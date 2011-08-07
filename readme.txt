@@ -2,55 +2,45 @@ Owl Lisp -- yet another pet lisp
 Copyright (c) 2008-2011 Aki Helin
 
 OVERVIEW
+~~~~~~~~
 
-   Owl Lisp is a simple purely functional Lisp system. It is mainly
-   an implementation of the purely functional subset of R5RS Scheme,
-   has some extra support for purely functional data structures (like a
-   complete order for objects), and an implementation which can be used
-   to run and compile programs fairly portably and efficiently without
-   needing nonstandard support libraries.
+Owl Lisp is a simple purely functional Lisp.
 
 
 REQUIREMENTS
+~~~~~~~~~~~~
 
 You should have make and gcc installed. 
 
 
 INSTALLATION
+~~~~~~~~~~~~
 
-Short version:
-
-   $ make install
-
-Altervative version:
-
+To install system-wide to /usr
    $ make
-   [...]
-   $ cp bin/ol $HOME/bin/ol
-   $ ol
-   You see a prompt.
-   > (+ 1 2)
-   3
-   > ^D
-   bye bye _o/~
+   $ sudo make install
 
-Ol is the standalone owl read-eval-print loop and compiler. It can be
-used to rebuild owl, interpret files, evaluate terms interactively or
-compile programs to fasl images or C files, which can then be compiled
-with a C-compiler to standalone programs.
+Alternatively you can try it out with 
+   $ make
+   $ cp bin/ol /somewhere/convenient
+   $ /somewhere/convenient/ol
+   You see a prompt
+   > 
 
 
 FILES
+~~~~~~
 
    c/ovm.c     - the virtual machine / shared owl lisp runtime
-   lib/*.scm   - some libraries required to build owl
-   bench/*.scm - some benchmarks
+   lib/*.l     - some libraries required to build owl
+   bench/*.l   - some benchmarks
    bin/ol      - the owl interpreter
 
 
 USAGE
+~~~~~
 
-Owl can be used either interactively, or interpret code from files,
+Owl can be used either interactively, or to interpret code from files,
 or compile programs to fasl-images or c-files. The difference between
 an owl program and a plain script is that the program should just have
 a function of one argument as the last value, which will be called with
@@ -84,12 +74,9 @@ functions. To make programs run faster, one can use for example:
 
 
 DOCUMENTATION
+~~~~~~~~~~~~~
 
 For further documentation, see:
 
   http://code.google.com/p/owl-lisp/wiki/OwlManual 
-
-The source code repository is at:
-   
-   https://github.com/aoh/owl-lisp
 
