@@ -64,13 +64,13 @@ test: bin/vm
 
 # these should work on Debian-likes after $ sudo apt-get install mingw32 wine1.2
 
-bin/vm.exe: vm.c
+bin/vm.exe: c/vm.c
 	test -x `which i586-mingw32msvc-gcc`
-	i586-mingw32msvc-gcc $(CFLAGS) -o bin/vm.exe vm.c -lwsock32
+	i586-mingw32msvc-gcc $(CFLAGS) -o bin/vm.exe c/vm.c -lwsock32
 
-bin/ol.exe: ol.c
+bin/ol.exe: c/ol.c
 	test -x `which i586-mingw32msvc-gcc`
-	i586-mingw32msvc-gcc $(CFLAGS) -o bin/ol.exe ol.c -lwsock32
+	i586-mingw32msvc-gcc $(CFLAGS) -o bin/ol.exe c/ol.c -lwsock32
 	# tests/run.sh wine bin/ol.exe <- stdio does not work in wine :(
 
 
