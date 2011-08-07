@@ -1,0 +1,33 @@
+#!/bin/sh
+
+test -d tmp || mkdir tmp || fail "cannot make tmp/"
+
+LOG=tmp/units-$$.out
+
+fail() {
+   cat $LOG
+   exit 1
+}
+
+echo -n "Running tests/ against $@:"
+
+touch $LOG
+
+for file in tests/*.scm
+do
+   ($@ -q < $file 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+done
+
+for file in tests/*.sh
+do
+   (sh $file $@ 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+done
+
+wait 
+
+grep ERROR $LOG && fail $LOG
+
+rm $LOG
+
+echo " ok"
+

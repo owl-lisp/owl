@@ -1,0 +1,27 @@
+
+;; check that the dlog results are correct (but not that a solution doesn't exist if one isn't found)
+
+(display "solving: ")
+(fold
+   (λ (rs i)
+      (lets
+         ((rs y (rnd rs 1000))
+          (rs a (rnd rs 1000))
+          (rs n (rnd rs 1000))
+          (n (if (< n (max y a)) (+ n (max y a)) n))
+          (x (dlog y a n)))
+         (display "o ")
+         (cond
+            ((not x) ;; no solution was found
+               ;; check naively that there indeed isn't one
+               (if (dlog-simple y a n)
+                  (error "dlog didn't solve " (list 'dlog y a n))
+                  rs))
+            ((= y (expt-mod a x n)) ;; solved correctly 
+               rs)
+            (else
+               (error "dlog failure: " (list (list 'dlog y a n) " = " x))))))
+   (seed->rands (time-ms))
+   (iota 0 1 100))
+
+(print "ok")

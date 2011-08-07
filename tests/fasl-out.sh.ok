@@ -1,0 +1,6 @@
+(kissa 11 22)
+run exit: 42
+(kissa 11 22)
+load exit: 42
+(kissa 11 22)
+vm exit: 42

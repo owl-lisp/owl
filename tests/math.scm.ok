@@ -1,0 +1,48 @@
+Running simple number tests:
+Testing simple cases
+ * 1
+ * 2
+ * 4
+ * 8
+ * 16
+ * 32
+ * 64
+ * 128
+ * 256
+ * 512
+ * 1024
+ * 2048
+ * 4096
+ * 8192
+ * 16384
+ * 32768
+ * 65536
+Running funny number tests:
+Testing cartesian products of funny numbers
+ * 4294967296
+ * 4294967295
+ * 65536
+ * 65535
+ * 256
+ * 255
+ * 16
+ * 15
+ * 4
+ * 3
+ * 2
+ * 1
+ * 0
+ * -1
+ * -2
+ * -3
+ * -4
+ * -15
+ * -16
+ * -255
+ * -256
+ * -65535
+ * -65536
+ * -4294967295
+ * -4294967296
+Running random tests:
+Tests complete.

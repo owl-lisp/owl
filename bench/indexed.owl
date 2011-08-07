@@ -1,0 +1,155 @@
+;;;
+;;; make some speed measurements on indexed data structures
+;;;
+
+;
+; sequential and random access of n-length data structure
+;
+; participants
+;	- list
+;  - iff (integer finite map)
+;  - rlist (random access list)
+;  - vector (a wide-branched tree)
+; 
+; notice that these are not otherwise equal data structures
+; rlists have O(1) cons, vectors O(1) length, iffs can be 
+; sparse but take a bit more memory etc. still, useful to 
+; know how they do for reading.
+; 
+
+(define cutoff-time 50) ; run each test until elaped time is over >cutoff-time ms
+
+(import lib-iff)
+
+(define (now-ms) 
+	(lets ((ss ms (clock))) (+ ms (* ss 1000))))
+
+(define (time thunk)
+	(lets
+		((start (now-ms))
+		 (value (thunk))
+		 (end (now-ms)))
+		(- end start)))
+
+(define (car< a b) (< (car a) (car b)))
+
+;; Part 1: reading - ordered
+
+(define (make-data len)
+	(iota 0 1 len))
+
+; data is always a permutation of (iota 0 1 n)
+
+(define (read-each data)
+	(λ (what)
+		(cons
+			(cond
+				((eq? what 'noop)
+					(time (λ () (fold (λ (x pos) x) 0 data))))
+				((eq? what 'list)
+					(time (λ () (fold (λ (x pos) (lref data pos)) 0 data))))
+				((eq? what 'rlist)
+					(let ((rl (list->rlist data)))
+						(time (λ () (fold (λ (x pos) (rget rl pos 0)) 0 data)))))
+				((eq? what 'vector)
+					(let ((vec (list->vector data)))
+						(time (λ () (fold (λ (x pos) (vec-ref vec pos)) 0 data)))))
+				((eq? what 'iff)
+					(let ((iff (fold (λ (iff p) (iput iff p p)) False data)))
+						(time (λ () (fold (λ (x pos) (iget iff pos pos)) 0 data)))))
+				(else
+					(error "seq-read: what is " what)))
+			what)))
+
+(define (write-each data)
+	(λ (what)
+		(cons
+			(cond
+				((eq? what 'noop)
+					(time (λ () (fold (λ (x pos) x) 0 data))))
+				((eq? what 'list)
+					(time (λ () (fold (λ (x pos) (lset data pos pos)) 0 data))))
+				((eq? what 'rlist)
+					(let ((rl (list->rlist data)))
+						(time (λ () (fold (λ (x pos) (rset rl pos pos)) 0 data)))))
+				((eq? what 'vector)
+					999999)
+				((eq? what 'iff)
+					(let ((iff (fold (λ (iff p) (iput iff p p)) False data)))
+						(time (λ () (fold (λ (x pos) (iput iff pos pos)) 0 data)))))
+				(else
+					(error "seq-read: what is " what)))
+			what)))
+
+(define load-time (now-ms))
+
+(define (battle len participants ordered? op)
+	;(print* (list (if ordered? "in order " "random access ") "read of " len " elems"))
+	(mail 1 (render (length participants) '())) (flush-port 1)
+	(if (null? participants)
+		(begin
+			(print ")")
+			null)
+		(lets
+			((data (make-data len))
+			 (data (if ordered? data (random-permutation (* load-time (now-ms)) data)))
+			 (timed (map (op data) participants))
+			 (timed (sort car< timed))
+			 (dropouts (map cdr (keep (λ (x) (>= (car x) cutoff-time)) timed))))
+			;(print "times: ") (for-each print timed)
+			(append
+				(map (λ (d) (cons len d)) dropouts)
+				(battle 
+					(+ len (+ 1 (div len 10))) ; grow by 10%
+					(map cdr (remove (λ (p) (has? dropouts (cdr p))) timed))
+					ordered? op)))))
+
+(begin
+	(print "")
+	(print* (list 
+"Check how large the various data structures indexable by 
+numbers can be before reading/writing each value once takes 
+over " cutoff-time "ms."))
+	(print "--- READ BENCHMARK ----------------------------")
+	(display " - in-order access (")
+	(flush-port 1)
+	(for-each 
+		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
+		(battle 1 '(list rlist vector iff) True read-each))
+	(print "")
+	(display " - random access (")
+	(flush-port 1)
+	(for-each 
+		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
+		(battle 1 '(list rlist vector iff) False read-each))
+	(print "")
+	(print "--- WRITE BENCHMARK ----------------------------")
+	(print "vectors have no write yet..")
+	(display " - in-order write (")
+	(flush-port 1)
+	(for-each 
+		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
+		(battle 1 '(list rlist iff) True write-each))
+	(display " - random order write (")
+	(flush-port 1)
+	(for-each 
+		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
+		(battle 1 '(list rlist iff) False write-each))
+	(print ""))
+
+
+;; Part 2: writing (not here yet)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

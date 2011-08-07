@@ -1,0 +1,60 @@
+.TH ol 1 "June 27, 2011"
+.SH NAME
+ol \- an owl lisp compiler and interpreter
+.SH SYNOPSIS
+.B ol
+.RI [ options ] " " [ path ] " ..."
+.SH DESCRIPTION
+Owl Lisp is a purely functional Lisp based on a subset of R5RS Scheme. Ol 
+can be used to evaluate programs interactively and compile them to native 
+binaries via C.
+.PP
+.SH OPTIONS
+This program follows the usual GNU command line syntax, with long
+options starting with two dashes (`-').
+A summary of essential command line flats options is included below.
+The complete list is shown on the help page.
+.TP
+.B \-h, \-\-help
+Show summary of options.
+.TP
+.B \-v, \-\-version
+Show version of program.
+.TP
+.B \-e, \-\-eval string
+Evaluate the string, print it's value, and exit with 0 unless errors occurred.
+.TP
+.B \-o, \-\-output output-file
+Compile the given file to fasl or C code, and save the result to the given output file.
+.TP
+.B \-r, \-\-run path
+Load the file silently, and call the last value with command line arguments given after --.
+.TP
+.B \-x, \-\-output-format format
+Choose what owl should compile the given file to. Valid options are currently c and fasl. This
+is normally deduced from the file suffix given in -o, and is thus not usually needed.
+.TP
+.B --native
+Translate much of the bytecode in the compiled program to C in order to avoid some interpretive overhead.
+.SH EXAMPLES
+.TP
+.B Make a simple binary
+ $ echo '(lambda (args) (for-each print args))' > test.l
+ $ ol -o test.c test.l
+ $ gcc -o test test.c
+ $ ./test foo bar
+.TP
+.B Compile in a pipe
+$ echo '(lambda (args) (print (cons "I got " args)))' | ol -x c -o - | gcc -x c -o test - && ./test 11 22 33
+.TP
+.B Loading vs running files
+ $ echo '(print "Hello, world!")' > test.l
+ $ ol test.l
+ Hello, world!
+ $ echo '(lambda (args) (print "Hello, world!"))' > test.l
+ $ ol --run test.l -- arg1 arg2 arg3
+ Hello, world!
+.SH SEE ALSO
+.BR gcc (1), scheme48 (1).
+.SH AUTHOR
+owl lisp and this manual page were written by Aki Helin <aki.helin@iki.fi>.
