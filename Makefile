@@ -1,6 +1,7 @@
 DESTDIR=
 PREFIX=/usr
 BINDIR=/bin
+INSTALL=install
 
 CFLAGS=-Wall -O2 -fomit-frame-pointer
 CC=gcc
@@ -43,11 +44,10 @@ fasl/ol.fasl: bin/vm owl/*.l
 ## rebuilding the repl fasl image until a fixed point is reached
 
 .fixedpoint: fasl/ol.fasl 
-	test -d tmp || mkdir tmp
-	cp fasl/ol.fasl tmp
+	cp fasl/ol.fasl fasl/ol.fasl.old
 	touch owl/ol.l
 	make fasl/ol.fasl
-	diff -q tmp/ol.fasl fasl/ol.fasl && touch .fixedpoint || make .fixedpoint
+	diff -q fasl/ol.fasl fasl/ol.fasl.old && touch .fixedpoint || make .fixedpoint
 
 stable: .fixedpoint
 
@@ -76,15 +76,18 @@ bin/ol.exe: c/ol.c
 
 ## meta
 
-install: bin/ol
-	test -d $(DESTDIR)$(PREFIX)/bin || mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp bin/ol $(DESTDIR)$(PREFIX)/bin
-	test -d $(DESTDIR)$(PREFIX)/share/man/man1 || mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	cat doc/ol.1 | gzip -9 > $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
+doc/ol.1.gz: doc/ol.1
+	cat doc/ol.1 | gzip -9 > doc/ol.1.gz
+
+install: bin/ol doc/ol.1.gz
+	-mkdir -p $(DESTDIR)$(PREFIX)/bin
+	-mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
+	$(INSTALL) -m 755 bin/ol $(DESTDIR)$(PREFIX)/bin/ol
+	$(INSTALL) -m 644 doc/ol.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
 uninstall:
-	rm $(DESTDIR)$(PREFIX)/bin/ol || echo "no ol"
-	rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz || echo "no manpage"
+	-rm $(DESTDIR)$(PREFIX)/bin/ol
+	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.l | less
