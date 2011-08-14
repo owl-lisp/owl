@@ -397,6 +397,22 @@
          ((teq? x (alloc 43)) True) ; root dispatch node
          (else False)))
 
+   ;; a separate function for listifying byte vectors, which may not be valid vectos (can be > leaf node size)
+
+   (define (copy-bvec bv pos tail)
+      (if (eq? pos 0)
+         (cons (refb bv pos) tail)
+         (lets
+            ((byte (refb bv pos)) 
+             (pos _ (fx- pos 1)))
+            (copy-bvec bv pos (cons byte tail)))))
+
+   (define (byte-vector->list bv)
+      (let ((size (sizeb bv)))
+         (if (eq? size 0)
+            null
+            (copy-bvec bv (- size 1) null))))
+      
    ;;;
    ;;; Vector iterators
    ;;;
@@ -531,7 +547,12 @@
 
    ;; list conversions
 
-   (define (vec->list vec) (vec-foldr cons null vec))
+   (define (vec->list vec) 
+      (if (teq? vec (raw 11))
+         ;; convert raw vectors directly to allow this to be used also for large chunks
+         ;; which are often seen near IO code
+         (byte-vector->list vec)
+         (vec-foldr cons null vec)))
 
    (define vector->list vec->list)
 
