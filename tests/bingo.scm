@@ -26,7 +26,7 @@
 (define (spammer rst)
    (wait-for 'start)
    (let loop ((wanted wanted) (rst rst))
-      (lets ((rst bit (rnd rst 2)))
+      (lets ((rst bit (rand rst 2)))
          (cond
             ((and (eq? bit 0) (check-mail)) =>
                (λ (envelope)
@@ -39,9 +39,9 @@
                (drop-mails))
             (else
                (lets 
-                  ((rst to  (rnd rst n))
-                   (rst num (rnd rst n))
-                   (rst rounds (rnd rst 3)))
+                  ((rst to  (rand rst n))
+                   (rst num (rand rst n))
+                   (rst rounds (rand rst 3)))
                   (mail to num)
                   (wait rounds)
                   (loop wanted rst)))))))
@@ -54,7 +54,7 @@
 
 (fold
    (λ (rst id)
-      (lets ((rst n (rnd rst #xffffffff)))
+      (lets ((rst n (rand rst #xffffffff)))
          (fork-server id
             (λ () (spammer (seed->rands n))))
          rst))

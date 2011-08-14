@@ -34,8 +34,8 @@
 ;; rst lst → rst' prefix tail, where prefix is a list or a vector
 (define (pick-data rst lst)
    (lets
-      ((rst n (rnd rst block-size))
-       (rst vec (rnd rst 2))
+      ((rst n (rand rst block-size))
+       (rst vec (rand rst 2))
        (hd (take lst n))
        (tl (drop lst n)))
       (values rst (if (eq? vec 0) hd (list->vector hd)) tl)))
@@ -46,10 +46,10 @@
 ;; send a stream of known data in chunks, while receiving and and flushing randomly and asynchronously
 ;; fd rst data → (bvec ...)
 (define (io fd rst data left reqs)
-   (lets ((rst n (rnd rst 4)))
+   (lets ((rst n (rand rst 4)))
       (cond
          ((and (eq? n 0) (> left 0) (eq? reqs 0)) ;; request data if some is unread and unrequested
-            (lets ((rst n (rnd rst block-size)))
+            (lets ((rst n (rand rst block-size)))
                ;(mail fd n) ;; request n+1 bytes
                (mail fd 'input) ;; request n+1 bytes
                (io fd rst data left (+ reqs 1))))
@@ -69,7 +69,7 @@
                (mail fd prefix)
                (io fd rst data left reqs)))
          ((eq? n 3) ;; idle for a few thread ticks
-            (lets ((rst n (rnd rst 2)))
+            (lets ((rst n (rand rst 2)))
                (wait n)
                (io fd rst data left reqs)))
          ((and (null? data) (= left 0)) ;; all sent and enough received
@@ -95,8 +95,8 @@
 
 (lets
    ((rs (seed->rands (* 123456789 seed)))
-    (rs a (rnd rs #xffffffffffffff))
-    (rs b (rnd rs #xffffffffffffff)))
+    (rs a (rand rs #xffffffffffffff))
+    (rs b (rand rs #xffffffffffffff)))
 
    (fork-server 'socket-thread
       (λ ()

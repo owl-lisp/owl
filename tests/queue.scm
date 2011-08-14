@@ -15,13 +15,13 @@
       (if (equal? l (queue->list cl))
          (print "done")
          (print "lists differ..."))
-      (lets ((rst op (rnd rst 5)))
+      (lets ((rst op (rand rst 5)))
          (cond
             ((eq? op 0) ; cons a random number
-               (lets ((rst n (rnd rst #xffff)))
+               (lets ((rst n (rand rst #xffff)))
                   (test rst (qcons n cl) (cons n l) (- i 1))))
             ((eq? op 1)
-               (lets ((rst n (rnd rst 256)))
+               (lets ((rst n (rand rst 256)))
                   (test rst (qsnoc n cl) (snoc n l) (- i 1))))
             ((eq? op 2)
                (lets 

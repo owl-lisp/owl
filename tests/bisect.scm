@@ -7,8 +7,8 @@
    (λ (limit)
       (lets
          ((rs (seed->rands (time-ms)))
-          (rs n (rnd-range rs 3 (max limit 4)))
-          (rs m (rnd-range rs n (* n 100000))))
+          (rs n (rand-range rs 3 (max limit 4)))
+          (rs m (rand-range rs n (* n 100000))))
          (if (= (sqrt n) (square n))
             (show " -> square ok " limit))
          (if (= (div n m) (divide n m))

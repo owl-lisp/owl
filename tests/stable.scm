@@ -23,7 +23,7 @@
 
 (lets
    ((rst (seed->rands (time-ms)))
-    (rst base (rnd-range rst 2 100))
+    (rst base (rand-range rst 2 100))
     (rst nums (random-numbers rst base 1000))
     (pairs (index nums))
     (pairs (sort car< pairs))

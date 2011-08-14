@@ -35,15 +35,15 @@
 	(if (> (time-ms) end)
 		(if (check-equal? ff lst alpha)
 			(print "ok"))
-		(lets ((rst n (rnd rst 3)))
+		(lets ((rst n (rand rst 3)))
 			(cond
 				((eq? n 0) ;; insert
 					(lets 
-						((rst k (rnd rst alpha))
-						 (rst v (rnd rst alpha)))
+						((rst k (rand rst alpha))
+						 (rst v (rand rst alpha)))
 						(work rst (put ff k v) (lput lst k v) end alpha)))
 				((eq? n 1) ;; delete
-					(lets ((rs k (rnd rst alpha)))
+					(lets ((rs k (rand rst alpha)))
 						(work rst (del ff k) (ldel lst k) end alpha)))
 				((eq? n 2) ;; compare
 					(if (check-equal? ff lst alpha)
@@ -51,9 +51,9 @@
 
 (lets
 	((rst (seed->rands (time-ms)))
-	 (rst seed (rnd rst 100000000000))
+	 (rst seed (rand rst 100000000000))
 	 (rst (seed->rands seed))
-	 (rst n (rnd-range rst 4 15))
-	 (rst alpha (rnd-nbit rst n)))
+	 (rst n (rand-range rst 4 15))
+	 (rst alpha (rand-nbit rst n)))
 	(work rst False null (+ (time-ms) 100) alpha))
 		

@@ -7,8 +7,8 @@
 
 (define (test rst)
    (lets
-      ((rst alpha (rnd rst 512)) ;; leaves having fixnums 0-255 are special in vectors
-       (rst n (rnd rst 1000))
+      ((rst alpha (rand rst 512)) ;; leaves having fixnums 0-255 are special in vectors
+       (rst n (rand rst 1000))
        (rst lst (random-numbers rst alpha n))
        (vec (list->vector lst))
        (str (list->string lst)))
@@ -44,9 +44,9 @@
 
                ;; cat
                (lets
-                  ((rst pre (rnd rst 2))
-                   (rst alpha (rnd rst 512))
-                   (rst n (rnd rst 1000))
+                  ((rst pre (rand rst 2))
+                   (rst alpha (rand rst 512))
+                   (rst n (rand rst 1000))
                    (rst lstp (random-numbers rst alpha n))
                    (vecp (list->vector lstp))
                    (strp (list->string lstp))

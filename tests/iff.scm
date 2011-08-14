@@ -10,8 +10,8 @@
 
 (define (test rst)
    (lets
-      ((rst shift (rnd rst max-bits))
-       (rst nnums (rnd rst max-nums))
+      ((rst shift (rand rst max-bits))
+       (rst nnums (rand rst max-nums))
        (nnums (max 1 nnums))
        (rst nums (random-numbers rst (<< 1 shift) (max 1 nnums)))
        ;(_ (print nums))

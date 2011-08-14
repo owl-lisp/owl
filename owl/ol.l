@@ -1497,7 +1497,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             iter iterr
             take keep remove 
             start-output-thread thread-controller
-            rnd seed->rands)))
+            rand seed->rands)))
 
 (import lib-usual-suspects usual-suspects)
 

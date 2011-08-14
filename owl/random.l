@@ -2,14 +2,12 @@
 ;;; a pseudorandom number generator
 ;;;
 
-;; bug: modulo-based random number choosing is broken (see issue #26)
-;; todo: unit tests
 ;; todo: alternative distributions
+;; note - we use mainly primop math here, so this may look a bit odd
 
 (define-module lib-random
 
    (export   
-
       ;; prngs
       lcg-rands           ;; seed (int32) → rands
       
@@ -21,12 +19,12 @@
       seed->bytes
 
       ;; stream functions
-      rnd                 ;; rs max → rs' n, 0 <= n < max
-      rnd-nbit            ;; rs n → rs' i
-      rnd-log
-      rnd-elem            ;; rs obj → rs' elem (for lists and vectors)
-      rnd-subset
-      rnd-range
+      rand                 ;; rs max → rs' n, 0 <= n < max
+      rand-nbit            ;; rs n → rs' i
+      rand-log
+      rand-elem            ;; rs obj → rs' elem (for lists and vectors)
+      rand-subset
+      rand-range
 
       random-numbers      ;; rs x max x i -> rs' (n_1 .. n_i), as in rand
       reservoir-sample    ;; rs x ll x n -> lst', |lst'| <= n
@@ -34,15 +32,6 @@
       random-permutation  ;; rs x lst -> rs' lst'
       random-subset       ;; rs x lst -> rs' lst' <- lst, same order, each element has 50% chance to be included
       rand-elem           ;; rs x thing -> rs' x element (for some data types)
-
-      ;;; old versions (to be removed later)
-      rand                ;; rst x max -> rst' x val, val <- [0 .. max-1]
-      rand-succ           ;; rst -> rst'  ;; <- to be removed and replaced with (make-random-<type> <seed>) etc
-      rand-nbit           ;; rst x nbits -> rst' x val, being exactly n bits wide
-      rand-log            ;; rst x max-bits -> rst' x val
-      rand-range          ;; rst x lo x hi -> rst' x n <= lo < hi
-      ; rand-range-uniform (= rand-range)
-      ; rand-range-normal
       )
 
    ;;;
@@ -69,43 +58,28 @@
             (pair seed (lcg-rands seed))
             (pair (ncar seed) (lcg-rands seed)))))
 
-   ;;; Ad-hoc old random generator
-
-   (define rand-modulus 15991) ; no longer a modulus
-   (define rand-multiplier 31337)
-
-   (define (rand-walk acc seed out)
-      (if (null? seed)
-         out
-         (lets 
-            ((lo hi (fx* (ncar seed) rand-multiplier))
-             (this over (fx+ lo acc)))
-            (rand-walk hi (ncdr seed) (ncons this out)))))
-
-   (define (rand-succ seed)
-      (cond
-         ; promote natural seeds to random states
-         ((teq? seed fix+)
-            (let ((seed (ncons 1 (ncons seed null))))
-               (tuple True (rand-walk rand-modulus seed null) seed)))
-         ((teq? seed int+) 
-            (tuple True (rand-walk rand-modulus seed null) seed))
-         (else
-            (lets ((st a b seed))
-               (cond
-                  ((= a b)
-                     (let ((ap (ncons 1 a)))
-                        ;(show "rand loop at " a)
-                        (tuple True (rand-walk rand-modulus ap null) ap)))
-                  (st   
-                     (tuple False
-                        (rand-walk rand-modulus a null)
-                        (rand-walk rand-modulus b null)))
-                  (else   
-                     (tuple True (rand-walk rand-modulus a null) b)))))))
-
    ;;; Xorshift (by George Marsaglia, period 2^128 - 1, based on example from Wikipedia)
    ;;; http://www.jstatsoft.org/v08/i14/paper
+
+   ;; reverse digits, cut topmost 0 digits and downgrade to fixnum if possible
+
+   (define (nrev-iter from to)
+      (if (null? from)
+         to
+         (lets ((d ds from))
+            (nrev-iter ds (ncons d to)))))
+
+   (define (nrev-fix ds)
+      (if (null? ds) 
+         0
+         (lets ((d ds ds))
+            (cond
+               ((eq? d 0) ;; drop leading zeros
+                  (nrev-fix ds))
+               ((eq? ds null) ;; downgrade a single digit to fixnum
+                  d)
+               (else
+                  (nrev-iter ds (ncons d null)))))))
 
    (define word32 #xffffffff)
 
@@ -124,196 +98,44 @@
 
    (define xors (xorshift-128 123456789 362436069 521288629 88675123))
 
+   ;;; Ad-hoc old random generator. 
+
+   (define rand-modulus 15991) ; no longer a modulus
+   (define rand-multiplier 31337)
+
+   (define (rand-walk acc seed out)
+      (if (null? seed)
+         out
+         (lets
+            ((lo hi (fx* (ncar seed) rand-multiplier))
+             (this over (fx+ lo acc)))
+            (rand-walk hi (ncdr seed) (ncons this out)))))
+
+   (define (rand-succ seed)
+      (cond
+         ; promote natural seeds to random states
+         ((teq? seed fix+)
+            (let ((seed (ncons 1 (ncons seed null))))
+               (tuple True (rand-walk rand-modulus seed null) seed)))
+         ((teq? seed int+)
+            (tuple True (rand-walk rand-modulus seed null) seed))
+         (else
+            (lets ((st a b seed))
+               (cond
+                  ((= a b)
+                     (let ((ap (ncons 1 a)))
+                        ;(show "rand loop at " a)
+                        (tuple True (rand-walk rand-modulus ap null) ap)))
+                  (st
+                     (tuple False
+                        (rand-walk rand-modulus a null)
+                        (rand-walk rand-modulus b null)))
+                  (else
+                     (tuple True (rand-walk rand-modulus a null) b)))))))
 
    ;;; Mersenne Twister (missing)
 
    ;;; Blum-Blum-Shub (import from lib-crypt?)
-
-
-   ; rst n -> rst' i, i in [0...n-1]
-
-   ; walk up to the significant digits and fall down having either
-   ;   - constructed exactly equal high part, so the current digit 
-   ;     is limited by the digit of the current number
-   ;   - constructed at least one smaller high digit, so any digit 
-   ;     (like the low 16-bit one from rst) will do
-
-   (define (rand-big rst n)
-      (if (null? n)
-         (values rst null True)
-         (lets ((rst head eq (rand-big rst (ncdr n))))
-            (if eq
-               (let ((val (rem (ncar (ref rst 2)) (+ (ncar n) 1))))
-                  (if (eq? val 0)
-                     (values (rand-succ rst) 
-                        (if (null? head) null (ncons 0 head))
-                        (eq? (ncar n) 0))
-                     (values
-                        (rand-succ rst)
-                        (ncons val head)
-                        (eq? val (ncar n)))))
-               (let ((this (ncar (ref rst 2))))
-                  (if (eq? this 0)
-                     (values (rand-succ rst) 
-                        (if (null? head) null (ncons 0 head))
-                        False)
-                     (values (rand-succ rst) 
-                        (ncons this head)
-                        False)))))))
-
-   ;; todo: rand returns 0 with maximum 0. consistent with other systems? see also rand-range etc
-   (define (rand rst max)
-      (let ((rst (rand-succ rst))) ; step and ensure tupleness
-         (type-case max
-            (fix+
-               (let ((this (ncar (ref rst 2))))
-                  (if (eq? max 0)
-                     (values rst 0)
-                     (values rst (fx% this max)))))
-            (int+
-               (lets ((rst n eq (rand-big rst max)))
-                  (cond
-                     (eq (rand rst max))
-                     ((null? n) (values rst 0))
-                     ((null? (ncdr n)) (values rst (ncar n)))
-                     (else (values rst n)))))
-            (fix- 
-               (lets ((rst n (rand rst (- 0 max))))
-                  (values rst (- 0 n))))
-            (int- 
-               (lets ((rst n (rand rst (- 0 max))))
-                  (values rst (- 0 n))))
-            (else
-               (error "bad rand limit: " max)))))
-
-   ;make a 500mb file for dieharder test
-   ;(define fd (open-output-file "inc-new.bin"))
-   ;(let loop ((rst 0) (n (* 500 (* 1024 1024))))
-   ;   (if (eq? 0 (band n #xffff)) (print (list 'left n 'bytes)))
-   ;   (if (eq? n 0)
-   ;      (close-port fd)
-   ;      (lets   ((rst b (rand rst 256)))
-   ;         (mail fd b)
-   ;         (loop rst (- n 1)))))
-
-   ;;;
-   ;;; Shareable part
-   ;;;
-
-   (define (random-list-elt rst lst)
-      (lets ((rst pos (rand rst (length lst))))   
-         (values rst (lref lst pos))))
-
-   (define (random-tuple-elt rst obj)
-      (lets ((rst pos (rand rst (size obj))))
-         (if (eq? pos 0)
-            (values rst (ref obj (size obj)))
-            (values rst (ref obj pos)))))
-
-
-   (define (rand-stream rst max)
-      (lets ((rst this (rand rst max)))
-         (pair this
-            (rand-stream rst max))))
-
-   ; random exactly n-bit number
-   (define (rand-nbit rst n)
-      (if (eq? n 0)
-         (values rst 0)
-         (lets
-            ((hi (<< 1 (- n 1)))
-             (rst val (rand rst hi)))
-            (values rst (bor val hi)))))
-
-   ; a number with log_2(n) instead of n evenly distributed in range
-   (define (rand-log rst n)
-      (if (= n 0)
-         0
-         (lets
-            ((rst n (rand rst n))
-             (rst n (rand-nbit rst n)))
-            (values rst n))))
-
-   (define (rand-range rst lo hi)
-      (if (> lo hi) 
-         (error "rand-range: bad range: " (list lo hi))
-         (lets ((rst o (rand rst (- hi lo))))
-            (values rst (+ o lo)))))
-
-   ;;; Testing
-   ;
-   '(lets
-      ((max 10000000000)
-       (goal (div max 2))
-       (max (* goal 2)))
-
-      (print (list max goal))
-      (let loop ((rst (rand-succ 1)) (sum 0) (n 0))
-         (receive (rand rst max)
-            (lambda (rst r)
-               (lets
-                  ((sum (+ sum r))
-                   (n (+ n 1))
-                   (avg (div sum n)))
-                  (if (eq? (band n #xff) 0)
-                     (show " * " (list 'at n 'val r 'avg avg 'dist (div (* 100 (- avg goal)) goal) 'perc)))
-                  (loop rst sum n))))))
-
-
-   (define (rand-elem rst obj)
-      (cond
-         ((pair? obj)
-            (lets ((rst n (rand rst (length obj))))
-               (values rst (lref obj n))))
-         ((vector? obj)
-            (lets ((rst n (rand rst (vec-len obj))))
-               (values rst (vec-ref obj n))))
-         (else
-            (error "rand-elem: what be " obj))))
-
-
-   ;;;
-   ;;; random files output to test with diehard(er) & ent 
-   ;;;
-   ;
-   ;
-   ;(define (populate-file port state size)
-   ;   (let loop ((state state) (left size) (pos 0) (buff null))
-   ;      (cond
-   ;         ((eq? left 0)
-   ;            (if (null? buff)
-   ;               (begin
-   ;                  (mail port buff)
-   ;                  True)
-   ;               True))
-   ;         ((eq? pos #x4fff)
-   ;            (mail port buff)
-   ;            (show " left " left)
-   ;            (loop state left 0 null))
-   ;         (else
-   ;            (receive (rand state 256)
-   ;               (lambda (state byte)   
-   ;                  (loop state (- left 1) (+ pos 1) (cons byte buff))))))))
-   ;
-   ;(define (random-file path state size)
-   ;   (show "opening file " path)
-   ;   (let ((port (open-output-file path)))
-   ;      (show " -> " port)
-   ;      (if port 
-   ;         (begin
-   ;            (populate-file port state size)
-   ;            (close-port port)
-   ;            True)
-   ;         False)))
-   ;
-
-
-
-
-
-   ;;;
-   ;;; Stream-based variants
-   ;;;
 
    (define (adhoc-seed->rands rst)
       (let ((rst (rand-succ rst)))
@@ -354,11 +176,11 @@
    ;;; Plain 0-(n-1) rand
    ;;;
 
-   (define (rnd-big rs n)
+   (define (rand-big rs n)
       (if (null? n)
          (values rs null True)
          (lets 
-            ((rs head eq (rnd-big rs (ncdr n)))
+            ((rs head eq (rand-big rs (ncdr n)))
              (this rs (uncons rs 0)))
             (if eq
                (let ((val (rem this (+ (ncar n) 1))))
@@ -371,38 +193,90 @@
 
    ; rs n → rs m, 0 <= m < n
 
-   (define (rnd rs max)
-      (type-case max
-         (fix+
-            (lets ((n rs (uncons rs 0)))
-               (if (eq? max 0)
-                  (values rs 0)
-                  (values rs (fx% n max)))))
-         (int+
-            (lets ((rs n eq (rnd-big rs max)))
-               (cond
-                  (eq (rnd rs max))
-                  ((null? n) (values rs 0)) 
-                  ((null? (ncdr n)) (values rs (ncar n)))
-                  (else (values rs n)))))
-         (else
-            (error "bad rand limit: " max))))
-  
+   ;; plan: take as many random bits as necessary, check that the value is below limit and pick or recurse
+
+   ;; compute the nearest m = (2^x)-1 with m >= num
+   ;; fixme: later by tree comparison
+   (define (bitmask num)
+      (if (eq? num 0)
+         1
+         (let loop ((n #xffff))
+            (lets ((np _ (fx>> n 1)))
+               (if (lesser? np num) ;; we lost the high bit
+                  n
+                  (loop np))))))
+
+   (define (rand-fixnum rs n)
+      (let loop ((rs rs) (mask (bitmask n)))
+         (lets
+            ((digit rs (uncons rs F))
+             (m (fxband digit mask)))
+            (if (lesser? m n)
+               (values rs m)
+               (loop rs mask)))))
+
+   ;; like rand-fixnum, but <= limit instead of < 
+   (define (rand-bignum-topdigit rs n)
+      (let loop ((rs rs) (mask (bitmask n)))
+         (lets
+            ((digit rs (uncons rs F))
+             (m (fxband digit mask)))
+            (cond
+               ((lesser? m n) (values rs m))
+               ((eq? m n) (values rs m))
+               (else (loop rs mask))))))
+      
+   (define (rand-bignum rs n)
+      (let loop ((rs rs) (left n) (out null))
+         (lets ((digit left left))
+            (if (null? left)
+               ;; last bignum digit (most significant bits) -> grab a suitable fixnum and compare
+               (lets 
+                  ((rs top (rand-bignum-topdigit rs digit))
+                   (try (nrev-fix (cons top out))))
+                  (if (< try n)
+                     ;; we made 0 <= try < n
+                     (values rs try)
+                     (rand-bignum rs n)))
+               (lets ((digit rs (uncons rs F)))
+                  (loop rs left (cons digit out)))))))
+
+   ;; todo: add (n-bits fixnum), use it to construct fixnum and bignum top digits, and compare&reject instead of modulo to avoid bias
+   ;; + compare speed to the old one!
+   (define (rand rs max)
+      (if (eq? max 0)
+         (values rs 0) ;; don't use any rands here
+         (type-case max
+            (fix+ (rand-fixnum rs max))
+            (int+ (rand-bignum rs max))
+            (else (error "bad rand limit: " max)))))
+
+   ;; a quick skew check. the modulo issue caused a >10% skew in some cases earlier
+   ;(let loop ((rs (seed->rands (time-ms))) (n 0) (sum 0) (lim 10000000000))
+   ;   (if (eq? 0 (band 1023 n))
+   ;      (let ((avg (div sum (max n 1))))
+   ;         (print
+   ;            (list "at " n " sum " sum " avg " avg " delta percent " 
+   ;               (let ((perc (div (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
+   ;                  perc)))))
+   ;   (lets ((rs val (rand rs lim)))
+   ;      (loop rs (+ n 1) (+ sum val) lim)))
+
    ;;;
    ;;; Random selection
    ;;;
 
    ;; picking one element (non-lazy)
-   (define (rnd-elem rs obj)
+   (define (rand-elem rs obj)
       (cond
          ((pair? obj)
-            (lets ((rs n (rnd rs (length obj))))
+            (lets ((rs n (rand rs (length obj))))
                (values rs (lref obj n))))
          ((tuple? obj)
-            (lets ((rs n (rnd rs (size obj))))
+            (lets ((rs n (rand rs (size obj))))
                (values rs (ref obj (+ n 1)))))
          ((vector? obj)
-            (lets ((rs n (rnd rs (vec-len obj))))
+            (lets ((rs n (rand rs (vec-len obj))))
                (values rs (vec-ref obj n))))
          (else
             (error "rand-elem: what be " obj))))
@@ -418,6 +292,15 @@
             (select-members (cdr lst) (ncdr bits) 1 out))
          (else
             (select-members (cdr lst) bits (<< this 1) out))))
+
+   ; random exactly n-bit number
+   (define (rand-nbit rs n)
+      (if (eq? n 0)
+         (values rs 0)
+         (lets
+            ((hi (<< 1 (- n 1)))
+             (rs val (rand rs hi)))
+            (values rs (bor val hi)))))
 
    ;; select with bits of a random number (to save some rands)
    (define (random-subset rst l)
@@ -444,7 +327,7 @@
             (values rs (return-selection res)))
          ((pair? ll)
             (lets 
-               ((rs x (rnd rs p))
+               ((rs x (rand rs p))
                 (res (if (< x n) (rset res x (car ll)) res)))
                (reservoir-sampler rs (cdr ll) n (+ p 1) res)))
          (else 
@@ -465,38 +348,29 @@
 
 
 
-   ; random exactly n-bit number
-   (define (rnd-nbit rs n)
-      (if (eq? n 0)
-         (values rs 0)
-         (lets
-            ((hi (<< 1 (- n 1)))
-             (rs val (rnd rs hi)))
-            (values rs (bor val hi)))))
-
    ; rs lst → rs' sublist, each element having 50% chance of being in the sublist
-   (define (rnd-subset rs l)
+   (define (rand-subset rs l)
       (if (null? l)
          (values rs null)
          (lets
             ((n (length l))
-             (rs bits (rnd-nbit rs (+ n 1))))
+             (rs bits (rand-nbit rs (+ n 1))))
             (values rs
                (reverse (select-members l bits 1 null))))))
 
    ; a number with log_2(n) instead of n evenly distributed in range
-   (define (rnd-log rs n)
+   (define (rand-log rs n)
       (if (= n 0)
          0
          (lets
-            ((rs n (rnd rs n))
-             (rs n (rnd-nbit rs n)))
+            ((rs n (rand rs n))
+             (rs n (rand-nbit rs n)))
             (values rs n))))
 
-   (define (rnd-range rs lo hi)
+   (define (rand-range rs lo hi)
       (if (< lo hi) 
          ;; fixme: is this indeed ok?
-         (lets ((rs o (rnd rs (- hi lo))))
+         (lets ((rs o (rand rs (- hi lo))))
             (values rs (+ o lo)))
          (error "rnd-range: bad range: " (list lo hi))))
 
@@ -505,7 +379,7 @@
    ;   (show " => " (reservoir-sample rst data 5))
    ;   (loop (rand-succ rst)))
    '(let loop ((rs (seed->rands (expt (time-ms) (+ 1 (band (time-ms) 7))))))
-      (lets ((rs n (rnd rs 100000000)))
+      (lets ((rs n (rand rs 100000000)))
          (show " => " n)
          (wait 100)
          (loop rs)))
@@ -550,10 +424,10 @@
       (let loop ((rs rs) (out null) (count count))
          (if (= count 0)
             (values rs out)
-            (lets ((rs n (rnd rs bound)))
+            (lets ((rs n (rand rs bound)))
                (loop rs (cons n out) (- count 1))))))
 
-   ; grab directly low 8 bits of each rand (same would happend with (rnd rs 256))
+   ; grab directly low 8 bits of each rand (same would happend with (rand rs 256))
    (define (random-bvec rs n)
       (let loop ((rs rs) (out null) (n n))
          (if (eq? n 0)
@@ -601,7 +475,7 @@
    ;; add basic statistical tests here
    ;;  - n-bit repetition frequencies
    ;;  - every nth bit bias
-   ;;  - check that a stream of (rnd rs n) stays near n/2
+   ;;  - check that a stream of (rand rs n) stays near n/2
 
    '(begin
       (begin

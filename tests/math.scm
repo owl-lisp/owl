@@ -238,7 +238,8 @@
       (print "Tests complete.")
       (begin
          (for-each (lambda (x) (run-test rst x)) math-tests)
-         (run-tests (rand-succ rst) (- step 1)))))
+         (lets ((rst n (rand rst 10000000)))
+            (run-tests rst (- step 1))))))
 
 (define (type-ok? gen n) ; n is an integer from funny numbers
 	(cond
@@ -297,6 +298,6 @@
 	(run-cartesian-test funny-numbers "Testing cartesian products of funny numbers")
 	; these occasionally dig out issues
 	(print "Running random tests:")
-	(run-tests seed 10)
+	(run-tests (seed->rands seed) 10)
 	)
 

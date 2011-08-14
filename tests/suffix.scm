@@ -24,8 +24,8 @@
 
 (define (try rst maxlen alphafact)
    (lets
-      ((rst len (rnd rst maxlen))
-       (rst alpha (rnd rst (ceil (* alphafact len))))
+      ((rst len (rand rst maxlen))
+       (rst alpha (rand rst (ceil (* alphafact len))))
        (rst nums (random-numbers rst alpha len))
        (data (list->vector nums))
        (sarr (suffix-array data))
