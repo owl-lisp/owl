@@ -1343,6 +1343,7 @@
 
 (import lib-repl)
 
+(print "hai")
 (define initial-environment
 	(bind-toplevel
 		(define-macros
@@ -1365,8 +1366,9 @@
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
        ;(seccomp  "-s" "--seccomp"  comment "enter seccomp at startup if compiled with -DUSE_SECCOMP")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
-       (native  False "--native"   comment "compile all applicable bytecode fragments to C")
-       (usual-suspects  False "--usual-suspects"   comment "compile a few common functions to C")
+       (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
+       ;(native  False "--native"   comment "compile all applicable bytecode fragments to C")
+       ;(usual-suspects  False "--usual-suspects"   comment "compile a few common functions to C")
        ;(linked  False "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads False "--no-threads" comment "do not include threading and io to generated c-code")
        )))
@@ -1523,12 +1525,12 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                               opts
                               (put opts 'want-threads T))
                            ;; to be customizable via command line opts
-                           (cond
-                              ((get opts 'native F) val)
-                              ((get opts 'usual-suspects F)
-                                 usual-suspects)
-                              (else False)))
-                        0)
+                           (let ((opt (abs (get opts 'optimize 0))))
+                              (cond
+                                 ((>= opt 2) val) ;; compile everything to native extended primops for -O2
+                                 ((= opt 1) usual-suspects) ;; compile some if -O1
+                                 (else False)))) ;; otherwise use bytecode and plain vm
+                           0)
                      (begin
                         (show "The last value should be a function of one value (the command line arguments), but it is instead " val)
                         2)))
