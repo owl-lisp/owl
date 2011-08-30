@@ -76,6 +76,7 @@ word ineval;
 word gcstart;
 word evalstart;
 int usegc;
+int slice;
 
 word vm();
 void exit(int rval);
@@ -458,6 +459,7 @@ word boot(int nargs, char **argv) {
    word *ptrs;
    word nwords;
    usegc = seccompp = evalstart = 0;
+   slice = TICKS; /* default thread slice (n calls per slice) */
    if (heap == NULL) { /* if no preloaded heap, try to load it from first arg */
       if (nargs < 2) exit(1);
       file_heap = load_heap(argv[1]);
@@ -549,8 +551,10 @@ static word prim_connect(word *host, word port) {
    addr.sin_port = htons(port);
    addr.sin_addr.s_addr = (in_addr_t) host[1];
    bytecopy((char *) (host + 1), (char *) &addr.sin_addr.s_addr, n);
-   if (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0)
+   if (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0) {
+      close(sock);
       return(IFALSE);
+   }
    set_nonblock(sock);
    return(fixnum(sock));
 }
@@ -779,6 +783,11 @@ static word prim_sys(int op, word a, word b, word c) {
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)fliptag(a));
          return(ITRUE);
+      case 14: { /* set-ticks n _ _ -> old */
+         word old = fixnum(slice); 
+         slice = fixval(a);
+         printf("set slice to %d\n", slice);
+         return(old); }
       default: 
          return(IFALSE);
    }
@@ -842,7 +851,7 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
 word vm(word *ob, word *args) {
    unsigned char *ip;
    int bank = 0; /* ticks deposited at syscall */
-   int ticker = TICKS; /* any initial value ok */
+   int ticker = slice; /* any initial value ok */
    unsigned short acc = 0; /* no support for >255arg functions */
    int op; /* opcode to execute */
    struct timeval tv;
@@ -1193,7 +1202,7 @@ dispatch: /* handle normal bytecode */
          word hdr;
          ob = (word *) R[*ip];
          R[0] = R[3];
-         ticker = bank ? bank : TICKS;
+         ticker = bank ? bank : slice;
          bank = 0;
          assert(allocp(ob),ob,50);
          hdr = *ob;
