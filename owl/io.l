@@ -9,7 +9,8 @@
 
 (define-module lib-io
 
-   (export 
+  (export 
+      ;; thread-oriented non-blocking io
       open-output-file        ;; path → thread-id | False
       open-input-file         ;; path → thread-id | False
       open-socket             ;; port → thread-id | False
@@ -26,6 +27,14 @@
       start-base-threads      ;; start stdio and sleeper threads
       wait-write              ;; fd → ? (no failure handling yet)
 
+      ;; stream-oriented blocking (for the writing thread) io
+      blocks->fd              ;; ll fd → n-bytes-written | False(error) + close after last write
+      ;blocks->file            ;; ll path → ditto
+      ;fd->blocks              ;; fd → ll + close at eof
+      ;file->blocks            ;; path → ditto
+      tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, False → error
+      ;tcp-socket-fold         ;; fd op state port fail → (op state' fd ip) | state" | fail
+   
       file->vector            ;; vector io, may be moved elsewhere later
       vector->file
       write-vector            ;; vec port
@@ -101,8 +110,7 @@
    (define (write-really bvec fd)
       (let ((end (sizeb bvec)))
          (let loop ()
-            (let ; ((wrote (fsend fd bvec start end))) ;; vm calls write()
-               ((wrote (sys-prim 0 fd bvec end)))
+            (let ((wrote (sys-prim 0 fd bvec end)))
                (cond
                   ((eq? wrote end)
                      True) ;; ok, wrote the whole chunk
@@ -112,6 +120,7 @@
                   (wrote ;; partial write
                      (write-really (bvec-tail bvec wrote) fd))
                   (else False)))))) ;; write error or other failure
+
 
    ;; how many bytes (max) to add to output buffer before flushing it to the fd
    (define output-buffer-size 4096)
@@ -416,8 +425,6 @@
          id))
 
 
-
-
    ;;;
    ;;; TCP sockets
    ;;;
@@ -487,6 +494,7 @@
          (else 
             ;; note: could try to autoconvert formats to be a bit more user friendly
             False)))
+
 
 
    ;;;
@@ -662,5 +670,49 @@
          (if fd
             (port->byte-stream fd)
             False)))
-)
 
+
+   ;;;
+   ;;; STREAM BASED IO
+   ;;;
+
+   (define socket-read-delay 2)
+
+   ;; In case one doesn't need asynchronous atomic io operations, one can use 
+   ;; threadless stream-based blocking (for the one thred) IO.
+
+   ;; write a stream of byte vectors to a fd and 
+   ;; (bvec ...) fd → n-written | False, CLOSES PORT
+   (define (blocks->fd ll fd)
+      (let loop ((ll ll) (n 0))
+         (cond
+            ((null? ll) 
+               (fclose fd)
+               n)
+            ((pair? ll)
+               (let ((r (write-really (car ll) fd)))
+                  (if r
+                     (loop (cdr ll) (+ n (sizeb (car ll))))
+                     (begin
+                        (fclose fd)
+                        False))))
+            (else (blocks->fd (ll) fd)))))
+
+   (define (socket-clients sock)
+      (let ((res (sys-prim 4 sock F F)))
+         (if res 
+            (lets ((ip fd res))
+               (pair (cons ip fd) (socket-clients sock)))
+            (begin
+               (interact sid socket-read-delay) ;; causes this thread to sleep for a few thread scheduler rounds (or ms)
+               (socket-clients sock)))))
+               
+
+   ;; port → ((ip . fd) ... . null|False), CLOSES SOCKET
+   (define (tcp-clients port)
+      (let ((sock (sys-prim 3 port F F)))
+         (if sock
+            (λ () (socket-clients sock)) ;; don't get first client yet
+            False))) ;; out of fds, no permissions etc
+
+)
