@@ -32,7 +32,8 @@
       ;blocks->file            ;; ll path → ditto
       ;fd->blocks              ;; fd → ll + close at eof
       ;file->blocks            ;; path → ditto
-      tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, False → error
+      tcp-clients              ;; port → ((ip . fd) ... X), X = null → ok, False → error
+      tcp-send                 ;; ip port (bvec ...) → n-written | 'write-error | 'cannot-connect
       ;tcp-socket-fold         ;; fd op state port fail → (op state' fd ip) | state" | fail
    
       file->vector            ;; vector io, may be moved elsewhere later
@@ -41,6 +42,9 @@
       port->byte-stream       ;; fd → (byte ...) | thunk 
       render fd? 
       fd->id id->fd
+
+      ;; temporary exports
+      fclose                 ;; fd
    ) 
 
    (define (fd? x) (eq? (type x) 98)) 
@@ -693,9 +697,7 @@
                (let ((r (write-really (car ll) fd)))
                   (if r
                      (loop (cdr ll) (+ n (sizeb (car ll))))
-                     (begin
-                        (fclose fd)
-                        False))))
+                     (begin (fclose fd) False))))
             (else (blocks->fd (ll) fd)))))
 
    (define (socket-clients sock)
@@ -706,7 +708,6 @@
             (begin
                (interact sid socket-read-delay) ;; causes this thread to sleep for a few thread scheduler rounds (or ms)
                (socket-clients sock)))))
-               
 
    ;; port → ((ip . fd) ... . null|False), CLOSES SOCKET
    (define (tcp-clients port)
@@ -715,4 +716,14 @@
             (λ () (socket-clients sock)) ;; don't get first client yet
             False))) ;; out of fds, no permissions etc
 
+   ;; ip port (bvec ...) → n-written | write-error | cannot-connect
+   (define (tcp-send ip port ll)
+      (let ((fd (_connect ip port)))
+         (if fd
+            (let ((res (blocks->fd ll fd)))
+               (or res ;; sent and closed
+                  (begin 
+                     (fclose fd) ;; may not be closed after the error
+                     'write-error)))
+            'cannot-connect)))
 )
