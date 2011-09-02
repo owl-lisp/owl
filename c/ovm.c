@@ -795,7 +795,7 @@ static word prim_sys(int op, word a, word b, word c) {
 
 static word prim_lraw(word wptr, int type, word revp) {
    word *lst = (word *) wptr;
-   int nwords, len = 0, step, pads;
+   int nwords, len = 0, pads;
    unsigned char *pos;
    word *raw, *ob;
    if (revp != IFALSE) { exit(1); } /* <- to be removed */
@@ -812,7 +812,6 @@ static word prim_lraw(word wptr, int type, word revp) {
    *raw = make_raw_header(nwords, (type|(pads<<5)));
    ob = lst;
    pos = ((unsigned char *) raw) + W;
-   step = 1;
    while ((word) ob != INULL) {
       *pos++ = fixval(ob[1])&255;
       ob = (word *) ob[2];
@@ -854,12 +853,9 @@ word vm(word *ob, word *args) {
    int ticker = slice; /* any initial value ok */
    unsigned short acc = 0; /* no support for >255arg functions */
    int op; /* opcode to execute */
-   struct timeval tv;
    static word R[NR];
    word load_imms[] = {fixnum(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
    usegc = 1; /* enble gc (later have if always evabled) */
-   tv.tv_sec = 0;
-   tv.tv_usec = 20000;
    evalstart = clock();
 
    /* clear blank regs */
