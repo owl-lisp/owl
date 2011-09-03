@@ -3,8 +3,8 @@ PREFIX=/usr
 BINDIR=/bin
 INSTALL=install
 
-CFLAGS=-Wall -O2 -fomit-frame-pointer
-CC=gcc
+CFLAGS=-Wall -O3 -fomit-frame-pointer
+#CC=gcc
 
 ## compile the repl/compiler by default
 
@@ -24,9 +24,11 @@ c/vm.c: c/ovm.c
 ## building the standalone read-eval-print loop and compiler
 
 c/ol.c: .fixedpoint
+	# the repl c code
 	bin/vm fasl/ol.fasl --run owl/ol.l -- -s some -o c/ol.c
 
 bin/ol: c/ol.c
+	# compiling the real owl repl binary
 	$(CC) $(CFLAGS) -o bin/new-ol c/ol.c
 	tests/run bin/new-ol
 	test -f bin/ol && mv bin/ol bin/old-ol || true
@@ -44,6 +46,7 @@ fasl/ol.fasl: bin/vm owl/*.l
 ## rebuilding the repl fasl image until a fixed point is reached
 
 .fixedpoint: fasl/ol.fasl 
+	# compiling repl fixed point. this may take a few rounds to finish.
 	cp fasl/ol.fasl fasl/ol.fasl.old
 	touch owl/ol.l
 	make fasl/ol.fasl

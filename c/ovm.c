@@ -657,7 +657,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (len > size) return(IFALSE);
          wrote = write(fd, ((char *)buff)+W, len);
          if (wrote > 0) return(fixnum(wrote));
-         if (errno == EAGAIN) return(fixnum(0));
+         if (errno == EAGAIN || errno == EWOULDBLOCK) return(fixnum(0));
          return(IFALSE); }
       case 1: { /* 1 = fopen <str> <mode> <to> */
          char *path = (char *) a;

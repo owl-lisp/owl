@@ -53,7 +53,8 @@
 
    (define (lfold op state lst) 
       (cond
-         ((pair? lst) (lfold op (op state (car lst)) (cdr lst)))
+         ((pair? lst) 
+            (lfold op (op state (car lst)) (cdr lst)))
          ((null? lst) state)
          (else (lfold op state (lst)))))
 
@@ -70,20 +71,25 @@
 
    (define (lfor state lst op) (lfold op state lst))
 
+   ;; map, preserves laziness
    (define (lmap fn l)
       (cond
          ((pair? l)
-            (pair (fn (car l))
+            (cons (fn (car l))
                (lmap fn (cdr l))))
-         ((null? l) null)
-         (else (lmap fn (l)))))
+         ((null? l) 
+            null)
+         (else 
+            (λ () (lmap fn (l))))))
 
+   ;; preserves laziness
    (define (lappend a b)
       (cond
          ((pair? a)
-            (pair (car a) (lappend (cdr a) b)))
+            (cons (car a) (lappend (cdr a) b)))
          ((null? a) b)
-         (else (lappend (a) b))))
+         (else 
+            (λ () (lappend (a) b)))))
 
    (define (lunfold op st end?)
       (if (end? st) 
@@ -166,8 +172,7 @@
 
    (define (ltake l n) (ltaker l n null))
 
-   ;; zip
-
+   ;; zip, preserves laziness of first argument
    (define (lzip op a b)
       (cond   
          ((null? a) null)
@@ -177,7 +182,8 @@
                (pair (op (car a) (car b))
                   (lzip op (cdr a) (cdr b)))
                (lzip op a (b))))
-         (else (lzip op (a) b))))
+         (else 
+            (λ () (lzip op (a) b)))))
 
    ; lst -> stream of (lst' ...)
    ; first == lst, changes mostly on the head of the list 
