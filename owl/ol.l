@@ -22,7 +22,15 @@
 ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 ;; DEALINGS IN THE SOFTWARE.
+
+;;; individual module compilation planning:
+;;  $ ol -o fasl/sfuz.fasl ol/sfuz.l  <- parallel
+;;  $ ol -o fasl/sgen.fasl ol/sgen.l  <- parallel
+;;  $ ol -o fasl/radamsa.fasl ol/radamsa.l fasl/sfuz.fasl fasl/sgen.fasl 
+;;  $ ol -o c/radamsa.c ol/radamsa.l fasl/*.fasl 
 ;;
+;;; in repl build
+;;  $ ol --include fasl -o fasl/lib-lazy.fasl ol/lazy.l <- start loading and grab any missing libs from fasl/<name>.fasl
 
 ;; todo: missing optimization: convert all evaluated closures to procs (doable but a bit of work..)
 ;; todo: having a constant-time (major) type dispatch opcode would help with generic routines
@@ -1343,7 +1351,6 @@
 
 (import lib-repl)
 
-(print "hai")
 (define initial-environment
 	(bind-toplevel
 		(define-macros
@@ -1360,7 +1367,7 @@
        (evaluate "-e" "--eval"     has-arg comment "evaluate expressions in the given string")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
        ;(memlimit "-m" "--max-heap" comment "maximum heap size (in mb)" cook ,string->integer)
-       (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments")
+       (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
        (notes    "-n" "--notes"    comment "show notes from code (meaning \\n;; <label>:<text>\\n)")
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
@@ -1512,7 +1519,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
          (let ((outcome (if (equal? path "-") (repl-port env stdin) (repl-file env path))))
             (tuple-case outcome
                ((ok val env)
-                  (if (function? val)
+                  (if (or 1 (function? val)) ;; <- testing, could allow individual module compilation also
                      (begin
                         (compiler val 
                            ;; output path

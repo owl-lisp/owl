@@ -25,7 +25,7 @@ c/vm.c: c/ovm.c
 
 c/ol.c: .fixedpoint
 	# the repl c code
-	bin/vm fasl/ol.fasl --run owl/ol.l -- -s some -o c/ol.c
+	bin/vm fasl/ol.fasl --run owl/ol.l -s some -o c/ol.c
 
 bin/ol: c/ol.c
 	# compiling the real owl repl binary
@@ -38,7 +38,7 @@ bin/ol: c/ol.c
 ## rebuilding the repl fasl image with itself
 
 fasl/ol.fasl: bin/vm owl/*.l
-	bin/vm fasl/ol.fasl --run owl/ol.l -- -s none -o fasl/ol-new.fasl
+	bin/vm fasl/ol.fasl --run owl/ol.l -s none -o fasl/ol-new.fasl
 	tests/run bin/vm fasl/ol-new.fasl
 	cp fasl/ol.fasl fasl/ol-old.fasl
 	mv fasl/ol-new.fasl fasl/ol.fasl

@@ -73,14 +73,16 @@
 				(walk rules null dict (append (reverse (cdr args)) others)))
 			((select-rule (car args) rules) =>
 				(λ (rule)
-					(lets ((name s l c def cook pred mandatory? single? rule))
+					(lets ((name s l c def cook pred mandatory? single? terminal? rule))
 						(if cook
 							(if (null? (cdr args))
 								(fail (list "'" (car args) "' requires an argument."))
 								(let ((value (cook (cadr args))))
 									(if (pred value)
 										; it's ok
-										(walk rules (cddr args)
+										(walk rules 
+                                 ;; instert an implicit -- after terminal rules to stop
+                                 (if terminal? (cons "--" (cddr args)) (cddr args))
 											(put dict name 
 												(if single? value (append (get dict name null) (list value))))
 											others)
@@ -122,6 +124,8 @@
 						(cl-rule (set node 8 True) lst))
 					((eq? op 'plural)
 						(cl-rule (set node 9 False) lst))
+					((eq? op 'terminal)
+						(cl-rule (set node 10 True) lst))
 					((eq? op 'has-arg)
 						(cl-rule node (cons 'cook (cons self lst))))
 					((eq? op 'cook)
@@ -146,7 +150,7 @@
 					(else
 						(error "cl-rule: i do not get this: " lst))))))
 
-	;	(name short long comment default (cook) (predicate) (mandatory?) (single?))
+	;	(name short long comment default (cook) (predicate) (mandatory?) (single?) (terminal?)
 	(define (cl-rules lst)
 		(map
 			(λ (lst)
@@ -155,7 +159,7 @@
 						(tuple 
 							(car lst) (cadr lst) (caddr lst)
 							False
-							False False self False True)
+							False False self False True False)
 						(cdddr lst))
 					(error "cl-rules: funny option: " lst)))
 			lst))
@@ -189,6 +193,7 @@
                         "")
                      (if (ref rule 8) " (mandatory)" "")
                      (if (not (ref rule 9)) " (can be several)" "")
+                     (if (not (ref rule 9)) " (terminal)" "")
                      nl)))
             null rules)))
 
