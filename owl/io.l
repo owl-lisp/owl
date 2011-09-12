@@ -113,17 +113,18 @@
 
    (define (write-really bvec fd)
       (let ((end (sizeb bvec)))
-         (let loop ()
-            (let ((wrote (sys-prim 0 fd bvec end)))
-               (cond
-                  ((eq? wrote end)
-                     True) ;; ok, wrote the whole chunk
-                  ((eq? wrote 0) ;; 0 = EWOULDBLOCK
-                     (interact sid 2) ;; fixme: adjustable delay rounds 
-                     (loop))
-                  (wrote ;; partial write
-                     (write-really (bvec-tail bvec wrote) fd))
-                  (else False)))))) ;; write error or other failure
+         (if (eq? end 0)
+            0
+            (let loop ()
+               (let ((wrote (sys-prim 0 fd bvec end)))
+                  (cond
+                     ((eq? wrote end) True) ;; ok, wrote the whole chunk
+                     ((eq? wrote 0) ;; 0 = EWOULDBLOCK
+                        (interact sid 2) ;; fixme: adjustable delay rounds 
+                        (loop))
+                     (wrote ;; partial write
+                        (write-really (bvec-tail bvec wrote) fd))
+                     (else False))))))) ;; write error or other failure
 
 
    ;; how many bytes (max) to add to output buffer before flushing it to the fd

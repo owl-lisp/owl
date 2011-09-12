@@ -1487,6 +1487,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (import lib-bisect)
    (import lib-io start-output-thread)
    (import lib-threads thread-controller)
+   (import lib-sexp)
    ; commonly needed functions 
    (define usual-suspects
       (list
@@ -1506,7 +1507,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             iter iterr
             take keep remove 
             start-output-thread thread-controller
-            rand seed->rands)))
+            sexp-parser rand seed->rands)))
 
 (import lib-usual-suspects usual-suspects)
 
