@@ -131,13 +131,27 @@
                (get-epsilon 1))))
          (/ n m)))
 
+   (define get-rest-of-line
+      (let-parses
+         ((chars (get-kleene* (get-byte-if (lambda (x) (not (eq? x 10))))))
+          (skip (get-imm 10))) ;; <- note that this won't match if line ends to eof
+         chars))
+
+   ;; #!<string>\n parses to '(hashbang <string>)
+   (define get-hashbang
+      (let-parses
+         ((hash (get-imm 35))
+          (bang (get-imm 33))
+          (line get-rest-of-line))
+         (list 'quote (list 'hashbang (list->string line)))))
+          
    (define get-a-whitespace
-      (get-either
+      (get-any-of
+         ;get-hashbang   ;; actually probably better to make it a symbol as above
          (get-byte-if (lambda (x) (has? '(9 10 32 13) x)))
          (let-parses
             ((skip (get-imm 59))
-             (skip (get-kleene* (get-byte-if (lambda (x) (not (eq? x 10))))))
-             (skip (get-imm 10)))
+             (skip get-rest-of-line))
             'comment)))
 
    (define maybe-whitespace (get-kleene* get-a-whitespace))
@@ -205,6 +219,7 @@
          ((skip maybe-whitespace)
           (val
             (get-any-of
+               get-hashbang
                get-number         ;; more than a simple integer
                get-sexp-regex ;; must be before symbols, which also may start with /
                get-symbol
