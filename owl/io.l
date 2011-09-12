@@ -28,13 +28,13 @@
       wait-write              ;; fd → ? (no failure handling yet)
 
       ;; stream-oriented blocking (for the writing thread) io
-      blocks->fd              ;; ll fd → n-bytes-written | False(error) + close after last write
-      ;blocks->file            ;; ll path → ditto
-      ;fd->blocks              ;; fd → ll + close at eof
-      ;file->blocks            ;; path → ditto
-      tcp-clients              ;; port → ((ip . fd) ... X), X = null → ok, False → error
-      tcp-send                 ;; ip port (bvec ...) → n-written | 'write-error | 'cannot-connect
-      ;tcp-socket-fold         ;; fd op state port fail → (op state' fd ip) | state" | fail
+      blocks->fd              ;; ll fd → ok? n-bytes-written + always close fd
+      ;blocks->file           ;; ll path → ditto
+      ;fd->blocks             ;; fd → ll + close at eof
+      ;file->blocks           ;; path → ditto
+      tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, False → error
+      tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
+      ;tcp-socket-fold        ;; fd op state port fail → (op state' fd ip) | state" | fail
    
       file->vector            ;; vector io, may be moved elsewhere later
       vector->file
@@ -686,18 +686,20 @@
    ;; threadless stream-based blocking (for the one thred) IO.
 
    ;; write a stream of byte vectors to a fd and 
-   ;; (bvec ...) fd → n-written | False, CLOSES PORT
+   ;; (bvec ...) fd → ok? n-written, always close port
    (define (blocks->fd ll fd)
       (let loop ((ll ll) (n 0))
          (cond
-            ((null? ll) 
+            ((null? ll) ;; all written ok
                (fclose fd)
-               n)
+               (values T n))
             ((pair? ll)
                (let ((r (write-really (car ll) fd)))
                   (if r
                      (loop (cdr ll) (+ n (sizeb (car ll))))
-                     (begin (fclose fd) False))))
+                     (begin 
+                        (fclose fd) 
+                        (values F n)))))
             (else (blocks->fd (ll) fd)))))
 
    (define (socket-clients sock)
@@ -716,14 +718,14 @@
             (λ () (socket-clients sock)) ;; don't get first client yet
             False))) ;; out of fds, no permissions etc
 
-   ;; ip port (bvec ...) → n-written | write-error | cannot-connect
+   ;; ip port (bvec ...) → True n-written | False error-sym
    (define (tcp-send ip port ll)
       (let ((fd (_connect ip port)))
          (if fd
-            (let ((res (blocks->fd ll fd)))
-               (or res ;; sent and closed
-                  (begin 
-                     (fclose fd) ;; may not be closed after the error
-                     'write-error)))
-            'cannot-connect)))
+            (lets ((ok? res (blocks->fd ll fd)))
+               (if ok?
+                  (values 'ok res)
+                  (values 'write-error res))) ; <- we may have sent some bytes
+            (values 'connect-error 0))))
+
 )
