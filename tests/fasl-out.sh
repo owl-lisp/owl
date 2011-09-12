@@ -13,7 +13,7 @@ $@ -x fasl < $FILE > $FASL2
 # check that outputs are equal
 diff $FASL1 $FASL2
 
-$@ --run $FILE -- 11 22
+$@ --run $FILE 11 22
 echo "run exit: $?"
 
 # check that output is just (kissa 11 22)
