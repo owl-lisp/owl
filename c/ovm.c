@@ -791,6 +791,17 @@ static word prim_sys(int op, word a, word b, word c) {
          slice = fixval(a);
          printf("set slice to %d\n", slice);
          return(old); }
+      case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
+         int fd = fixval(a);
+         word *buff = (word *) b;
+         int wrote, size, len = fixval(c);
+         if (immediatep(buff)) return(IFALSE);
+         size = (imm_val(*buff)-1)*W;
+         if (len > size) return(IFALSE);
+         wrote = send(fd, ((char *)buff)+W, len, 0); /* <- no MSG_DONTWAIT in win32 */
+         if (wrote > 0) return(fixnum(wrote));
+         if (errno == EAGAIN || errno == EWOULDBLOCK) return(fixnum(0));
+         return(IFALSE); }
       default: 
          return(IFALSE);
    }

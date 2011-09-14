@@ -29,6 +29,7 @@
 
       ;; stream-oriented blocking (for the writing thread) io
       blocks->fd              ;; ll fd → ok? n-bytes-written + always close fd
+      blocks->socket          ;; ll fd → ok? n-bytes-written + always close socket (fds != sockets in mingw)
       ;blocks->file           ;; ll path → ditto
       ;fd->blocks             ;; fd → ll + close at eof
       ;file->blocks           ;; path → ditto
@@ -111,6 +112,7 @@
    (define (bvec-tail bvec n)
       (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) 11 False))
 
+   ;; fixme: partial write info is not returned from write-really*
    (define (write-really bvec fd)
       (let ((end (sizeb bvec)))
          (if (eq? end 0)
@@ -126,6 +128,20 @@
                         (write-really (bvec-tail bvec wrote) fd))
                      (else False))))))) ;; write error or other failure
 
+   (define (write-really/socket bvec fd) ;; same but use a primop to send() instead of write()
+      (let ((end (sizeb bvec)))
+         (if (eq? end 0)
+            0
+            (let loop ()
+               (let ((wrote (sys-prim 15 fd bvec end)))
+                  (cond
+                     ((eq? wrote end) True) ;; ok, wrote the whole chunk
+                     ((eq? wrote 0) ;; 0 = EWOULDBLOCK
+                        (interact sid 2) ;; fixme: adjustable delay rounds 
+                        (loop))
+                     (wrote ;; partial write
+                        (write-really (bvec-tail bvec wrote) fd))
+                     (else False)))))))
 
    ;; how many bytes (max) to add to output buffer before flushing it to the fd
    (define output-buffer-size 4096)
@@ -703,6 +719,21 @@
                         (values F n)))))
             (else (blocks->fd (ll) fd)))))
 
+   (define (blocks->socket ll fd) ;; fd != sockets in win32
+      (let loop ((ll ll) (n 0))
+         (cond
+            ((null? ll) ;; all written ok
+               (fclose fd)
+               (values T n))
+            ((pair? ll)
+               (let ((r (write-really/socket (car ll) fd)))
+                  (if r
+                     (loop (cdr ll) (+ n (sizeb (car ll))))
+                     (begin 
+                        (fclose fd) 
+                        (values F n)))))
+            (else (blocks->fd (ll) fd)))))
+
    (define (socket-clients sock)
       (let ((res (sys-prim 4 sock F F)))
          (if res 
@@ -723,7 +754,7 @@
    (define (tcp-send ip port ll)
       (let ((fd (_connect ip port)))
          (if fd
-            (lets ((ok? res (blocks->fd ll fd)))
+            (lets ((ok? res (blocks->socket ll fd)))
                (if ok?
                   (values 'ok res)
                   (values 'write-error res))) ; <- we may have sent some bytes
