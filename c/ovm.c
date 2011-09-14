@@ -540,6 +540,8 @@ static void wordcopy(word *from, word *to, int n) { while(n--) *to++ = *from++; 
 static word prim_connect(word *host, word port) {
    int sock;
    int n;
+   unsigned char *ip = ((unsigned char *) host) + W;
+   unsigned long ipfull;
    struct sockaddr_in addr;
    port = fixval(port);
    if (!allocp(host))  /* bad host type */
@@ -550,7 +552,8 @@ static word prim_connect(word *host, word port) {
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port);
    addr.sin_addr.s_addr = (in_addr_t) host[1];
-   bytecopy((char *) (host + 1), (char *) &addr.sin_addr.s_addr, n);
+   ipfull = (ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | ip[3];
+   addr.sin_addr.s_addr = htonl(ipfull);
    if (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0) {
       close(sock);
       return(IFALSE);
@@ -722,8 +725,8 @@ static word prim_sys(int op, word a, word b, word c) {
 #ifndef WIN32
          n = read(fd, ((char *) res) + W, max);
 #else
-         if (fd == 0) { /* ... */
-            if(_kbhit()) {
+         if (fd == 0) { /* windows stdin in special apparently  */
+            if(!_isatty(0) || _kbhit()) { /* we don't get hit by kb in pipe */
                n = read(fd, ((char *) res) + W, max);
             } else {
                n = -1;
