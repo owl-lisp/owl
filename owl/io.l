@@ -717,7 +717,7 @@
                      (begin 
                         (fclose fd) 
                         (values F n)))))
-            (else (blocks->fd (ll) fd)))))
+            (else (loop (ll) n)))))
 
    (define (blocks->socket ll fd) ;; fd != sockets in win32
       (let loop ((ll ll) (n 0))
@@ -732,7 +732,7 @@
                      (begin 
                         (fclose fd) 
                         (values F n)))))
-            (else (blocks->fd (ll) fd)))))
+            (else (loop (ll) n)))))
 
    (define (socket-clients sock)
       (let ((res (sys-prim 4 sock F F)))
