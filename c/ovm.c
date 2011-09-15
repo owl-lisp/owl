@@ -82,6 +82,7 @@ word vm();
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
+char *getenv(const char *name);
 
 #define make_immediate(value, type)  (((value) << 12) | ((type) << 3) | 2)
 #define make_header(size, type)      (((size) << 12) | ((type) << 3) | 6)
@@ -648,6 +649,18 @@ static word *mkbvec(int len, int type) {
    return(ob);
 }
 
+/* map a null or C-string to False, Null or owl-string, false being null or too large string */
+word strp2owl(char *sp) {
+   int len;
+   word *res;
+   if (!sp) return(IFALSE);
+   len = strnlen(sp, 65536);
+   if (len == 65536) return(INULL); /* can't touch this */
+   res = mkbvec(len, 11); /* make a bvec instead of a string since we don't know the encoding */
+   bytecopy(sp, ((char *)res)+W, len);
+   return((word)res);
+}
+
 /* system- and io primops */
 static word prim_sys(int op, word a, word b, word c) {
    switch(op) {
@@ -802,6 +815,10 @@ static word prim_sys(int op, word a, word b, word c) {
          if (wrote > 0) return(fixnum(wrote));
          if (errno == EAGAIN || errno == EWOULDBLOCK) return(fixnum(0));
          return(IFALSE); }
+      case 16: { /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
+         char *name = (char *)a;
+         if (!allocp(name)) return(IFALSE);
+         return(strp2owl(getenv(name + W))); }
       default: 
          return(IFALSE);
    }
