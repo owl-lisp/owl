@@ -80,7 +80,7 @@
 
 
 ;; set a few flags which affect compilation or set static information
-(define *owl-version* "0.1.2")
+(define *owl-version* "0.1.3")
 ;(define *interactive* True) ;; causes file names to be printed when loading them
 
 ; The symbol _sans_cps acts as a quote to the CPS transformer. This 
@@ -1597,7 +1597,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                      (print-rules command-line-rules)
                      0)
                   ((get dict 'version False)
-                     (show "owl lisp version " *owl-version*)
+                     (show "Owl Lisp " *owl-version*)
                      0)
                   ((get dict 'about False) (print about-owl) 0)
                   ((get dict 'notes False) (show-notes-of others) 0)
