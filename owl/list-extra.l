@@ -1,6 +1,6 @@
 (define-module lib-list-extra
 
-	(export lref lset length
+	(export lref lset ldel length
 		take drop iota)
 
 	(import lib-math) ; basix arithmetic
@@ -20,6 +20,12 @@
 			(else
 				(cons (car lst)
 					(lset (cdr lst) (- pos 1) val)))))
+   
+   (define (ldel lst pos)
+      (cond
+         ((null? lst) (error "list-del: out of list, left " pos))
+         ((eq? pos 0) (cdr lst))
+         (else (cons (car lst) (ldel (cdr lst) (- pos 1))))))
 
 	(define (length lst)
 		(fold (λ (n v) (+ n 1)) 0 lst))
