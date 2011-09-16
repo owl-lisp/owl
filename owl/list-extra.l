@@ -1,11 +1,15 @@
 (define-module lib-list-extra
 
-	(export lref lset ldel length
+	(export 
+      lref lset ldel length
+      led ledn lins
 		take drop iota)
 
 	(import lib-math) ; basix arithmetic
 
 	;;; List ops using numbers
+
+   ;; todo: these base list ops  should use fixnum math most of the time
 
 	(define (lref lst pos)
 		(cond
@@ -26,6 +30,33 @@
          ((null? lst) (error "list-del: out of list, left " pos))
          ((eq? pos 0) (cdr lst))
          (else (cons (car lst) (ldel (cdr lst) (- pos 1))))))
+
+   ;; list edit node - apply op to list (not element) at pos pos, allowing last null
+   (define (ledn lst pos op)
+      (cond
+         ((eq? pos 0) (op lst))
+         ((null? lst) (error "ledn: out of list, remaining " pos))
+         (else
+            (lets ((hd tl lst))
+               (cons hd (ledn tl (- pos 1) op))))))
+      
+   ;; list edit - apply op to value at given pos
+   (define (led lst pos op)
+      (cond
+         ((null? lst) (error "led: out of list, remaining " pos))
+         ((eq? pos 0) (cons (op (car lst)) (cdr lst)))
+         (else
+            (lets ((hd tl lst))
+               (cons hd (led tl (- pos 1) op))))))
+
+   ;; insert value to list at given position
+   (define (lins lst pos val)
+      (cond
+         ((eq? pos 0) (cons val lst))
+         ((null? lst) (error "lins: out of list, left " pos))
+         (else
+            (lets ((hd tl lst))
+               (cons hd (lins tl (- pos 1) val))))))
 
 	(define (length lst)
 		(fold (λ (n v) (+ n 1)) 0 lst))
