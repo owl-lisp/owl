@@ -243,6 +243,7 @@
 
    ;; todo: add (n-bits fixnum), use it to construct fixnum and bignum top digits, and compare&reject instead of modulo to avoid bias
    ;; + compare speed to the old one!
+   ;; todo: check if limit is an exact power of two, and if so, use bitwise. if not, we know how many bits to generate, which is also necessary now.
    (define (rand rs max)
       (if (eq? max 0)
          (values rs 0) ;; don't use any rands here
@@ -303,14 +304,13 @@
             (values rs (bor val hi)))))
 
    ;; select with bits of a random number (to save some rands)
-   (define (random-subset rst l)
+   (define (random-subset rs l)
       (if (null? l)
-         null
+         (values rs null)
          (lets
             ((n (length l))
-             (rst bits (rand-nbit rst (+ n 1))))
-            (reverse
-               (select-members l bits 1 null)))))
+             (rs bits (rand-nbit rs (+ n 1))))
+            (values rs (reverse (select-members l bits 1 null))))))
 
    ;;;
    ;;; Reservoir sampler
