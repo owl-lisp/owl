@@ -21,6 +21,7 @@
 ;; todo: add state to parsing to capture flags, greediness etc
 ;; todo: s/<from>/<to>/r = repeat at the match position while match
 ;; todo: s/<from>/<to>/R = repeat from beginning while match
+;; todo: check handling of non-fixnum code points in the regex string itself (likely fails but no time to test atm)
 
 
 (define-module lib-regex
@@ -70,7 +71,9 @@
                   False))
             (else 
                (accept (ls) buff ms cont))))
-      accept)
+      (if (teq? cp fix+)
+         accept
+         (error "match string cannot yet contain a " cp)))
    
    (define (pred fn) ;; match match a specific (fixnum) code point
       (define (accept ls buff ms cont)
