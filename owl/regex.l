@@ -2,13 +2,15 @@
 ;; POSIX regular expressions
 ;;
 
-;; this library will implement a mostly complete, though at 
-;; least initially slow, version of mostly POSIX-compatible 
-;; extended regular expressions.
+;; this library implements a mostly complete POSIX-compatible 
+;; regular expressions. at the moment lib-regex tries to just 
+;; get all the features right. *lots* of non-constant-factor 
+;; optimizations are missing.
 
 ;;; spec: http://pubs.opengroup.org/onlinepubs/007908799/xbd/re.html
 ;;; syntax ref of portable scheme regexps (Dorai Sitaram): http://evalwhen.com/pregexp/index-Z-H-3.html#node_sec_3
 
+;; todo: c/regex/ : str → head|F tail, c/regex/g : str → (part ...)
 ;; todo: it would be nice to be able to call an arbitrary function on the matched area easily (for example to be used in radamsa)
 ;; fixme: some variable and function names are now misleading
 ;; todo: later return an ast instead of the function from parser to allow some postprocessing
@@ -17,6 +19,8 @@
 ;; todo: merge mergeable repetitions of equal asts
 ;; todo: lookbehind is missing
 ;; todo: add state to parsing to capture flags, greediness etc
+;; todo: s/<from>/<to>/r = repeat at the match position while match
+;; todo: s/<from>/<to>/R = repeat from beginning while match
 
 
 (define-module lib-regex
@@ -167,12 +171,6 @@
 
    ;; <rx>*
    (define (star rx)
-      ;(define (collect ls buff ms cont)
-      ;   (or
-      ;      (rx ls buff ms 
-      ;         (λ (ls buff ms) (collect ls buff ms cont)))
-      ;      (cont ls buff ms)))
-      ;collect
       (λ (ls buff ms cont)
          (let loop ((ls ls) (buff buff) (last-ms ms))
             (or
@@ -202,11 +200,12 @@
    ;; <rx>??
    (define (alt-quest rx) (rex-or epsilon rx))
 
+   ;;; repetitions
 
    ;; <rx>{n}
    (define (exactly n rx)
       (cond
-         ((eq? n 0) epsilon) ;; fixme: these should be handled by postprocessing later
+         ((eq? n 0) epsilon) ;; fixme: these could be handled by postprocessing later
          ((eq? n 1) rx)
          (else
             (λ (ls buff ms cont)
@@ -326,15 +325,22 @@
                (cdr node)
                (ranges-ref (cdr ls) n)))))
 
-   ;; match each node of already matched data against input and write to output
+   ;; match each node of already matched data (val) against input (ls) and write to output
    (define (match-list ls val buff)
       (cond
          ((null? val) (values ls buff))
          ((null? ls) (values False False))
          ((pair? ls)
-            (if (eq? (car val) (car ls))
-               (match-list (cdr ls) (cdr val) (cons (car val) buff))
-               (values False False)))
+            (lets ((next val val))
+               (cond
+                  ((eq? next (car ls)) ;; this elem matched
+                     (match-list (cdr ls) val (cons next buff)))
+                  ((teq? next int+) ;; try = for high code points
+                     (if (= next (car ls))
+                        (match-list (cdr ls) val (cons next buff))
+                        (values False False)))
+                  (else ;; no match
+                     (values False False)))))
          (else
             (match-list (ls) val buff))))
       

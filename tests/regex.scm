@@ -173,6 +173,7 @@
       ("/^[ae]+(?<!aaa)b/" "aaeaab" T)
       ("/^[ae]+(?<!aaa)b/" "aaeaaab" F)
       ("m/^fo+/" "foobar" (102 111 111))   ;; exerimental way to grab the matched area for other use
+      ("/(.)\\1/" (#x31337 #x31337) T) ;; check that bignum back references match (not using eq? for them)
       ))
 
 ;; run a small battery of tests during load to check for issues

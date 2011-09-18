@@ -141,4 +141,5 @@
  | '/^[ae]+(?<!aaa)b/' + 'aaeaab' = 'True'
  | '/^[ae]+(?<!aaa)b/' + 'aaeaaab' = 'False'
  | 'm/^fo+/' + 'foobar' = '(102 111 111)'
+ | '/(.)\1/' + '(201527 201527)' = 'True'
  '--> ~~\o\ ALL TESTS PASSED /o/~~ 
