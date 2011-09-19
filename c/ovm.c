@@ -83,6 +83,7 @@ void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
+size_t strnlen(const char *s, size_t maxlen);
 
 #define make_immediate(value, type)  (((value) << 12) | ((type) << 3) | 2)
 #define make_header(size, type)      (((size) << 12) | ((type) << 3) | 6)
