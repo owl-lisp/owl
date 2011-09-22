@@ -108,7 +108,8 @@ do
 	##
 
 	cat r5rs.defs $file start.txt > $PROG
-   compute $file "MzScheme 4.2.1" "mzscheme"
+   #compute $file "MzScheme 4.2.1" "mzscheme"
+   compute $file "Racket 5.1.1" "racket"
 
 	##
 	## Native code compilers
@@ -130,9 +131,9 @@ do
 	echo "(lambda (args) " >> $PROG
 	cat start.txt >> $PROG
 	echo ")" >> $PROG
-	../bin/ol --native -o input.c $PROG
+	../bin/ol -O2 -o input.c $PROG
 	gcc -O2 -o test input.c
-   compute $file "Owl (ol --native -o foo.c + gcc -O2)" "./test" 
+   compute $file "Owl (ol -O2 -o foo.c + gcc -O2)" "./test" 
 
    # use same source, but compile only a fixed set of functions to C
 	#../bin/ol --usual-suspects -o input.c $PROG
@@ -143,7 +144,7 @@ do
    rm foo &>/dev/null
 	csc -O5 -R numbers -o foo $PROG 2>/dev/null
    cp $PROG /tmp/chicken.l
-   compute $file "Chicken Scheme 4.5.0 (csc -O5)" ./foo
+   compute $file "Chicken Scheme 4.7.3 (csc -O5)" ./foo
 
    ## compile test.l to test.com with usual integrations and run
    ## MIT Scheme is one of the fastest, but I couldn't get it to run on my 64-bit machine 
