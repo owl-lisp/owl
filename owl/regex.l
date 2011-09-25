@@ -205,6 +205,8 @@
 
    ;;; repetitions
 
+   ;; todo: check if non-greedy repetitions (syntax could be foo{}? or foo?{}) defined?
+
    ;; <rx>{n}
    (define (exactly n rx)
       (cond
@@ -232,13 +234,20 @@
                         (rx ls buff ms (λ (ls buff ms) (maybe ls buff ms (- n 1))))
                         (cont ls buff ms))))
                (maybe ls buff ms n)))))
-  
+
    ;; r_ar_b..r_n
    (define-syntax cat
       (syntax-rules ()
          ((cat a) a)
          ((cat a b) (rex-and a b))
          ((cat a b ...) (cat a (cat b ...)))))
+
+   ;; <rx>{n,}
+   (define (at-least n rx)
+      (cond
+         ((eq? n 0) (star rx))
+         ((eq? n 1) (plus rx))
+         (else (cat (exactly n rx) (star rx)))))
 
    ;; ra|rb|..|rn
    (define-syntax union
@@ -731,11 +740,7 @@
    (define (make-repeater n m)
       (cond
          ((eq? m 'inf)
-            (cond
-               ((eq? n 0) star) ; R{0,} = R*
-               ((eq? n 1) plus) ; R{1,} = R+
-               (else ; R{n,} = exactly n R + R*
-                  (λ (rx) (rex-and (exactly n rx) (star rx))))))
+            (λ (rx) (at-least n rx)))
          ((= n m)
             (if (eq? n 0) 
                epsilon
@@ -747,7 +752,6 @@
          (else
             (error "make-repeater: bad range: " (list n 'to m)))))
 
-   ;; just {n} while testing
    (define get-range 
       (let-parses
          ((skip (get-imm 123))   ; <{>...}
@@ -760,8 +764,7 @@
                    (val (get-either get-number (get-epsilon 'inf)))) ; <{[n],[n]>...}
                   val)
             (get-epsilon start))) ; <{[n]>..}
-          (verify (<= start end) "bad range") ;; → can print error message with exact location in input if failes
-          ; (verify (> end 0) "zero range")   ;; can be enforced if necessary, but is also semantically valid so we let it pass
+          (verify (or (eq? end 'inf) (<= start end)) "bad range") ;; → can print error message with exact location in input if failes
           (skip (get-imm 125))) ; <{...}>
          (make-repeater start end)))
 

@@ -2,7 +2,8 @@
 ;;; Testing
 ;;;
 
-; ,r "lib/regex.scm" (import lib-regex) ;; when testing without a heap rebuild
+,r "owl/regex.l" 
+(import lib-regex) ;; when testing without a heap rebuild
 
 ;; regex str → did-match-ok?
 (define (test regex input should?)
@@ -174,6 +175,17 @@
       ("/^[ae]+(?<!aaa)b/" "aaeaaab" F)
       ("m/^fo+/" "foobar" (102 111 111))   ;; exerimental way to grab the matched area for other use
       ("/(.)\\1/" (#x31337 #x31337) T) ;; check that bignum back references match (not using eq? for them)
+      ("/^a{0,}/" "b" T)
+      ("/^a{0,}/" "ab" T)
+      ("/^a{1,}/" "b" F)
+      ("/^a{1,}/" "ab" T)
+      ("/^a{1,}/" "aab" T)
+      ("/^a{2,}/" "ab" F)
+      ("/^a{2,}/" "aab" T)
+      ("/^a{2,}/" "aaab" T)
+      ("/^a{3,}/" "aab" F)
+      ("/^a{3,}/" "aaab" T)
+      ("/^a{3,}/" "aaaab" T)
       ))
 
 ;; run a small battery of tests during load to check for issues
