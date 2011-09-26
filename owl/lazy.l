@@ -94,7 +94,9 @@
    (define (lunfold op st end?)
       (if (end? st) 
          null
-         (pair st (lunfold op (op st) end?))))
+         (lets ((this st (op st)))
+            (pair this
+               (lunfold op st end?)))))
 
    (define (ltail) null)
 

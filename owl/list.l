@@ -74,8 +74,8 @@
    (define (unfold op st end?)
       (if (end? st)
          null
-         (cons st
-            (unfold op (op st) end?))))
+         (lets ((this st (op st)))
+            (cons this (unfold op st end?)))))
 
    (define (fold2 op s1 s2 lst)
       (if (null? lst)
