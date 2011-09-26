@@ -28,6 +28,8 @@
       list->ff ff->list 
       empty-ff   ; could become Empty later
       render
+      
+      getf       ; (getf ff key) == (get ff key False)
       )
 
    ;
@@ -449,6 +451,10 @@
    ;; just one value? == is the root-node a black key-value pair
    (define (ff-singleton? ff)
       (eq? 70 (type ff)))
+
+   (define-syntax getf
+      (syntax-rules ()
+         ((getf ff key) (get ff key False))))
 
 )
 
