@@ -35,7 +35,10 @@
       log log2
       render render-number
       fx% ;; temp export until it is removed
+      zero?
       )
+
+   (define (zero? x) (eq? x 0))
 
    (define (fixnum? x) (eq? (type x) 2))
 
@@ -1865,17 +1868,12 @@
    ;;; Rendering numbers
    ;;;
 
-   (define (render-digit num tl)
-      (cons (+ num (if (< num 10) 48 87)) tl))
+   (define (char-of digit)
+      (+ digit (if (< digit 10) 48 87)))
 
    (define (render-digits num tl base)
-      (lets ((quot rem (quotrem num base)))
-         (if (eq? quot 0)
-            (render-digit rem tl)
-            (render-digits
-               quot
-               (render-digit rem tl)
-               base))))
+      (fold (λ (a b) (cons b a)) tl 
+         (unfold (λ (n) (lets ((q r (quotrem n base))) (values (char-of r) q))) num zero?)))
 
    ;; move to math.scm
 
@@ -1890,12 +1888,12 @@
             (cons 45
                (render-number (- 0 num) tl base)))
          ((< num base)
-            (render-digit num tl))
+            (cons (char-of num) tl))
          (else
             (render-digits num tl base))))
 
    (define render
-      (lambda (self obj tl)
+      (λ (self obj tl)
          (if (number? obj) 
             (render-number obj tl 10)
             (render self obj tl))))
