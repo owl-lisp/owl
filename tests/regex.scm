@@ -2,8 +2,8 @@
 ;;; Testing
 ;;;
 
-,r "owl/regex.l" 
-(import lib-regex) ;; when testing without a heap rebuild
+;,r "owl/regex.l" 
+;(import lib-regex) ;; when testing without a heap rebuild
 
 ;; regex str → did-match-ok?
 (define (test regex input should?)
