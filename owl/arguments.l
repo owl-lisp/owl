@@ -209,7 +209,7 @@
             null rules)))
 
 	(define print-rules 
-      (o print format-rules))
+      (o display format-rules))
 
 )
 
