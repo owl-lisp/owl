@@ -29,6 +29,7 @@
       get-sexp-regex
       string->regex
       string->replace-regex
+		string->complete-match-regex
       )
 
    (import lib-parse)
@@ -852,6 +853,11 @@
           (skip (get-imm 47))) ;; closing /
          (make-matcher rex start?)))
 
+	;; a parser for terms like ab{1,3}a* with implicit ^ and $
+   (define get-body-regex
+      (let-parses ((rex (get-regex)))
+         (make-matcher (rex-and rex fini) T)))
+
    (define get-copy-matcher-regex
       (let-parses 
          ((skip (get-imm 109))
@@ -912,7 +918,10 @@
          get-copy-matcher-regex ;; m/<regex>/ -> like /<regex>/ but returns a list of the matched data
          ))
 
-
+	;; str -> rex|False, for conversion of strings to complete matchers
+	(define (string->complete-match-regex str)
+		(try-parse get-body-regex (str-iter str) F F F))
+	
    ;; str → rex|False, same as is used in owl parser
    (define (string->extended-regexp str)
       (try-parse get-sexp-regex (str-iter str) F F F))
