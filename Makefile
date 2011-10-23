@@ -20,8 +20,6 @@ fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.l
 	bin/vm fasl/boot.fasl --run owl/ol.l -s none -o fasl/bootp.fasl
 	# check that the new image passes tests
 	tests/run bin/vm fasl/bootp.fasl
-	md5sum fasl/boot.fasl
-	md5sum fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
 	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
 	
