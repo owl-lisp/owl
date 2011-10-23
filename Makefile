@@ -6,10 +6,25 @@ INSTALL=install
 CFLAGS=-Wall -O3 -fomit-frame-pointer
 #CC=gcc
 
-## compile the repl/compiler by default
-
+# owl needs just a single binary
 owl: bin/ol 
 
+## fasl (plain bytecode) image boostrap
+
+fasl/boot.fasl: fasl/init.fasl
+	# start bootstrapping with the bundled init.fasl image
+	cp fasl/init.fasl fasl/boot.fasl
+
+fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.l
+	# selfcompile boot.fasl until a fixed point is reached
+	bin/vm fasl/boot.fasl --run owl/ol.l -s none -o fasl/bootp.fasl
+	# check that the new image passes tests
+	tests/run bin/vm fasl/bootp.fasl
+	md5sum fasl/boot.fasl
+	md5sum fasl/bootp.fasl
+	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
+	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
+	
 
 ## building just the virtual machine to run fasl images
 
@@ -17,44 +32,26 @@ bin/vm: c/vm.c
 	$(CC) $(CFLAGS) -o bin/vm c/vm.c
 
 c/vm.c: c/ovm.c
+	# make a vm without a bundled heap
 	echo "unsigned char *heap = 0;" > c/vm.c
-	cat c/ovm.c >> c/vm.c;
+	cat c/ovm.c >> c/vm.c
 
 
-## building the standalone read-eval-print loop and compiler
+## building standalone image out of the fixed point fasl image
 
-c/ol.c: .fixedpoint
-	# the repl c code
+c/ol.c: fasl/ol.fasl
+	# compile the repl using the fixed point image 
 	bin/vm fasl/ol.fasl --run owl/ol.l -s some -o c/ol.c
 
 bin/ol: c/ol.c
-	# compiling the real owl repl binary
-	$(CC) $(CFLAGS) -o bin/new-ol c/ol.c
-	tests/run bin/new-ol
-	test -f bin/ol && mv bin/ol bin/old-ol || true
-	mv bin/new-ol bin/ol
+	# compile the real owl repl binary
+	$(CC) $(CFLAGS) -o bin/olp c/ol.c
+	tests/run bin/olp
+	test -f bin/ol && mv bin/ol bin/ol-old
+	mv bin/olp bin/ol
 
 
-## rebuilding the repl fasl image with itself
-
-fasl/ol.fasl: bin/vm owl/*.l
-	bin/vm fasl/ol.fasl --run owl/ol.l -s none -o fasl/ol-new.fasl
-	tests/run bin/vm fasl/ol-new.fasl
-	cp fasl/ol.fasl fasl/ol-old.fasl
-	mv fasl/ol-new.fasl fasl/ol.fasl
-
-## rebuilding the repl fasl image until a fixed point is reached
-
-.fixedpoint: fasl/ol.fasl 
-	# compiling repl fixed point. this may take a few rounds to finish.
-	cp fasl/ol.fasl fasl/ol.fasl.old
-	touch owl/ol.l
-	make fasl/ol.fasl
-	diff -q fasl/ol.fasl fasl/ol.fasl.old && touch .fixedpoint || make .fixedpoint
-
-stable: .fixedpoint
-
-## running unit tests manually against vm+fasl/ol
+## running unit tests manually
 
 fasltest: bin/vm
 	tests/run bin/vm fasl/ol.fasl
@@ -95,5 +92,5 @@ uninstall:
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.l | less
 
-.PHONY: install uninstall todo test fasltest stable owl
+.PHONY: install uninstall todo test fasltest owl
 
