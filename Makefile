@@ -45,7 +45,7 @@ bin/ol: c/ol.c
 	# compile the real owl repl binary
 	$(CC) $(CFLAGS) -o bin/olp c/ol.c
 	tests/run bin/olp
-	test -f bin/ol && mv bin/ol bin/ol-old
+	test -f bin/ol && mv bin/ol bin/ol-old || true
 	mv bin/olp bin/ol
 
 
