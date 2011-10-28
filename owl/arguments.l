@@ -75,48 +75,57 @@
                   dict)))
          dict rules))
 
+   ;; a fast /^-/ to shave some startup ms for thousands of arguments, which are getting common for some tools
+   (define (dashy? str)
+      (let ((s (sizeb str)))
+         (if (lesser? s 1)
+            F
+            (eq? 45 (refb str 0)))))
+      
 	(define (walk rules args dict others)
 		(cond 
 			((null? args)
 				(if (mandatory-args-given? dict rules)
                (tuple (fill-defaults dict rules) (reverse others))
 					False))
-			((string-eq? (car args) "--")
-				(walk rules null dict (append (reverse (cdr args)) others)))
-			((select-rule (car args) rules) =>
-				(λ (rule)
-               (lets
-                  ((cook (getf rule 'cook))
-                   (id (getf rule 'id)))
-						(if cook ;; <- set if this expects an argument
-							(if (null? (cdr args))
-								(fail (list "'" (car args) "' requires an argument."))
-								(lets
-                           ((value (cook (cadr args)))
-                            (ok? ((get rule 'pred (λ (x) x)) value)))
-									(if ok?
-										(walk rules 
-                                 ;; instert an implicit -- after terminal rules to stop
-                                 (if (getf rule 'terminal) (cons "--" (cddr args)) (cddr args))
-											(put dict id
-												(if (getf dict 'plural) 
-                                       ;; put values to a list if this is a multi argument
-                                       (append (get dict id null) (list value))
-                                       value))
-											others)
-										(fail
-											(list "The argument '" (car args) "' did not accept '" (cadr args) "'.")))))
-                     ;; this doesn't have an argument, just count them
-							(walk rules (cdr args) 
-                        (put dict id (+ 1 (get dict id 0)))
-                        others)))))
-			((explode (car args)) =>
-				(λ (opts) ;; --foo → -f -o -o
-					(walk rules (append opts (cdr args)) dict others)))
-         ((string-eq? (car args) "-") ;; allow a solitary - to be used as an argument (usually to mean stdin/out)
-            (walk rules (cdr args) dict (cons (car args) others)))
-			((/^-/ (car args)) ;; looks like an arg, but we failed to handle it
-				(fail (list "Unknown argument: " (car args))))
+         ((dashy? (car args))
+            (cond
+               ((string-eq? (car args) "--")
+                  (walk rules null dict (append (reverse (cdr args)) others)))
+               ((select-rule (car args) rules) =>
+                  (λ (rule)
+                     (lets
+                        ((cook (getf rule 'cook))
+                         (id (getf rule 'id)))
+                        (if cook ;; <- set if this expects an argument
+                           (if (null? (cdr args))
+                              (fail (list "'" (car args) "' requires an argument."))
+                              (lets
+                                 ((value (cook (cadr args)))
+                                  (ok? ((get rule 'pred (λ (x) x)) value)))
+                                 (if ok?
+                                    (walk rules 
+                                       ;; instert an implicit -- after terminal rules to stop
+                                       (if (getf rule 'terminal) (cons "--" (cddr args)) (cddr args))
+                                       (put dict id
+                                          (if (getf dict 'plural) 
+                                             ;; put values to a list if this is a multi argument
+                                             (append (get dict id null) (list value))
+                                             value))
+                                       others)
+                                    (fail
+                                       (list "The argument '" (car args) "' did not accept '" (cadr args) "'.")))))
+                           ;; this doesn't have an argument, just count them
+                           (walk rules (cdr args) 
+                              (put dict id (+ 1 (get dict id 0)))
+                              others)))))
+               ((explode (car args)) =>
+                  (λ (opts) ;; --foo → -f -o -o
+                     (walk rules (append opts (cdr args)) dict others)))
+               ((string-eq? (car args) "-") ;; allow a solitary - to be used as an argument (usually to mean stdin/out)
+                  (walk rules (cdr args) dict (cons (car args) others)))
+               (else
+                  (fail (list "Unknown argument: " (car args))))))
 			(else
 				;;; add this to other arguments
 				(walk rules (cdr args) dict (cons (car args) others)))))
