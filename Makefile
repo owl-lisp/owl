@@ -77,14 +77,16 @@ bin/ol.exe: c/ol.c
 doc/ol.1.gz: doc/ol.1
 	cat doc/ol.1 | gzip -9 > doc/ol.1.gz
 
-install: bin/ol doc/ol.1.gz
+install: bin/ol bin/vm doc/ol.1.gz
 	-mkdir -p $(DESTDIR)$(PREFIX)/bin
 	-mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
 	$(INSTALL) -m 755 bin/ol $(DESTDIR)$(PREFIX)/bin/ol
+	$(INSTALL) -m 755 bin/vm $(DESTDIR)$(PREFIX)/bin/owl-vm
 	$(INSTALL) -m 644 doc/ol.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
 uninstall:
 	-rm $(DESTDIR)$(PREFIX)/bin/ol
+	-rm $(DESTDIR)$(PREFIX)/bin/owl-vm
 	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
 todo: bin/vm 
