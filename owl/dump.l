@@ -86,8 +86,26 @@
                ;; passed as command line arguments.
                str))))
 
+   ;; walk over raw string using primops and look for bytes > 127
+   (define (high-point? str pos)
+      (if (lesser? (refb str pos) 128)
+         (lets ((pos underflow? (fx- pos 1)))
+            (if underflow?
+               False
+               (high-point? str pos)))
+         True))
+        
+   ;; utf-8 decode if necessary (avoids some constant overhead, which is useful if there are 2 quadriollion args)
+   (define (maybe-utf8-decode str)
+      (let ((n (sizeb str))) ;; <- command line args are raw blocks so primitive lenb is ok
+         (cond
+            ((eq? n 0) str)
+            ((high-point? str (- n 1)) 
+               (utf8-decode-string str))
+            (else str))))
+
    (define (with-decoded-args prog)
-      (λ (vm-args)
+      (λ (vm-args) 
          (prog 
             (map utf8-decode-string vm-args))))
 
