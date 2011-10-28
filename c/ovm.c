@@ -83,7 +83,14 @@ void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
-size_t strnlen(const char *s, size_t maxlen);
+
+unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
+   unsigned int p = 0;
+   while(p < max && *pos++) {
+      p++;
+   }
+   return(p);
+}
 
 #define make_immediate(value, type)  (((value) << 12) | ((type) << 3) | 2)
 #define make_header(size, type)      (((size) << 12) | ((type) << 3) | 6)
@@ -655,7 +662,7 @@ word strp2owl(char *sp) {
    int len;
    word *res;
    if (!sp) return(IFALSE);
-   len = strnlen(sp, 65536);
+   len = lenn(sp, 65536);
    if (len == 65536) return(INULL); /* can't touch this */
    res = mkbvec(len, 11); /* make a bvec instead of a string since we don't know the encoding */
    bytecopy(sp, ((char *)res)+W, len);
@@ -803,7 +810,6 @@ static word prim_sys(int op, word a, word b, word c) {
       case 14: { /* set-ticks n _ _ -> old */
          word old = fixnum(slice); 
          slice = fixval(a);
-         printf("set slice to %d\n", slice);
          return(old); }
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
