@@ -5,7 +5,10 @@
 
 (define-module lib-sexp
    
-   (export sexp-parser read-exps-from)
+   (export 
+      sexp-parser 
+      read-exps-from
+      list->number)
 
    (import lib-parse)
    (import lib-intern intern-symbols string->uninterned-symbol)
@@ -256,4 +259,7 @@
          0))
 
 
-   )
+   (define (list->number lst fail)
+      (try-parse get-number lst F F fail))
+      
+)

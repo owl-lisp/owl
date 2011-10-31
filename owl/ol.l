@@ -556,6 +556,13 @@
 
 
 ;;;
+;;; Small utils
+;;;
+
+(define (string->number str fail)
+   (list->number (string->list str) fail))
+
+;;;
 ;;; Environment
 ;;;
 
@@ -870,6 +877,7 @@
       release-thread
       suspend
       mail interact
+      string->number
       wait
       wait-mail accept-mail check-mail return-mails
       set-signal-action
