@@ -32,6 +32,7 @@
       random-permutation  ;; rs x lst -> rs' lst'
       random-subset       ;; rs x lst -> rs' lst' <- lst, same order, each element has 50% chance to be included
       rand-elem           ;; rs x thing -> rs' x element (for some data types)
+      rand-occurs?        ;; rs → rs' T|F
       )
 
    ;;;
@@ -453,7 +454,23 @@
             (begin
                (show "failed to open " path)
                False))))
-         
+
+
+   (define (rand-occurs? rs prob)
+      (type-case prob
+         (rat 
+            (lets ((nom denom prob))
+               (if (eq? nom 1) ;; 1/n -> rand n and check for 0
+                  (lets ((rs n (rand rs denom)))
+                     (values rs (eq? n 0)))
+                  (lets ((rs n (rand rs denom)))
+                     (values rs (< n nom))))))
+         (fix- (values rs F))
+         (int- (values rs F))
+         (else
+            (if (eq? prob 0)
+               (values rs F)
+               (values rs T))))) ;; <- natural number > 0 -> >= 100%
 
    ;(lets ((rs l (shuffle (seed->rands 42) (iota 0 1 100))))
    ;   (show " xxx " l))
