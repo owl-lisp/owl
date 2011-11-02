@@ -6,11 +6,17 @@
 ;; still keeping the generated .c code portable, win32 being the main 
 ;; reason for worry.
 
+,r "owl/string.l"
+,r "owl/vector.l"
+
 (define-module lib-sys
    (export
       dir-fold
-      dir->list)
+      dir->list
+      getenv)
 
+   (import lib-string)
+   (import lib-vector)
    ;;;
    ;;; Unsafe operations not to be exported
    ;;;
@@ -51,5 +57,20 @@
    (define (dir->list path)
       (dir-fold (λ (seen this) (cons this seen)) null path))
 
+
+   ;;;
+   ;;; Environment variables
+   ;;;
+
+   ;; str → bvec | F
+   (define (getenv str)
+      (let ((str (c-string str)))
+         (if str 
+            (let ((bvec (sys-prim 16 str F F)))
+               (if bvec
+                  (bytes->string (vec->list bvec))
+                  False))
+            False)))
+            
 )
 
