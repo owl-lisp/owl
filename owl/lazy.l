@@ -16,6 +16,7 @@
       subsets permutations    ; usual applications
       lunfold
       delay
+      avg
       )
 
    ;; convert an application to a thunk
@@ -251,6 +252,19 @@
          ((null? it) it)
          ((pair? it) (cons (car it) (force (cdr it))))
          (else (force (it)))))
+
+   (define (avg ll)
+      (let loop ((ll ll) (sum 0) (len 0))
+         (cond
+            ((null? ll)
+               (if (eq? len 0)
+                  (error "avg: empty list: " ll)
+                  (/ sum len)))
+            ((pair? ll)
+               (loop (cdr ll) (+ sum (car ll)) (+ len 1)))
+            (else
+               (loop (ll) sum len)))))
+
 )
 
 
