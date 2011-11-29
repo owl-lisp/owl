@@ -218,7 +218,8 @@
          ;(* a (x x) b)
          )
 
-      (self (x x x x) a)
+      (fakt (x x x x) a)
+      (fakt (x x x x) a)
 		)))
 
 test
