@@ -108,7 +108,7 @@
                                        ;; instert an implicit -- after terminal rules to stop
                                        (if (getf rule 'terminal) (cons "--" (cddr args)) (cddr args))
                                        (put dict id
-                                          (if (getf dict 'plural) 
+                                          (if (getf rule 'plural) 
                                              ;; put values to a list if this is a multi argument
                                              (append (get dict id null) (list value))
                                              value))
