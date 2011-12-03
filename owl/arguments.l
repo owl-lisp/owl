@@ -71,7 +71,8 @@
             (let ((id (getf rule 'id)))
                (if (and (undefined? dict id) (defined? rule 'default))
                   (put dict id 
-                     ((getf rule 'cook) (getf rule 'default)))
+                     (let ((cookd ((getf rule 'cook) (getf rule 'default))))
+                        (if (getf rule 'plural) (list cookd) cookd))) ; <- a single plural default value needs to be listed
                   dict)))
          dict rules))
 
