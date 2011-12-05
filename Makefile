@@ -1,5 +1,5 @@
 DESTDIR=
-PREFIX=/usr
+PREFIX=/usr/local
 BINDIR=/bin
 INSTALL=install
 

@@ -16,7 +16,7 @@ You should have make and gcc installed.
 INSTALLATION
 ~~~~~~~~~~~~
 
-To install system-wide to /usr
+To install system-wide to /usr/local
    $ make
    $ sudo make install
 
@@ -70,7 +70,7 @@ simply fasl-encoded, to increase speed. Using the --native flag compiles
 most of the bytecode to C, and --usual-suspects compiles typically used 
 functions. To make programs run faster, one can use for example:
 
-  $ ol --native -o test.c test.scm && gcc -O2 -o test test.c
+  $ ol -O2 -o test.c test.scm && gcc -O2 -o test test.c
 
 
 DOCUMENTATION
