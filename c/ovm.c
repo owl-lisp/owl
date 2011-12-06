@@ -163,7 +163,7 @@ static word *fp;
 #define REF1(o,r) R[r] = ((word *) R[1])[o]
 #define RET(n)   ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD (NR+2)*8
-#define MINGEN 128
+#define MINGEN 1024*32
 #define OCLOSE(proctype) { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype) { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 
@@ -339,7 +339,7 @@ static word *gc(int size, word *regs) {
    } else if (nfree < MINGEN || nfree < size*W*2) {
          genstart = memstart; /* start full generation */
          return(gc(size, regs));
-   } else if ((nfree*100)/(nused+nfree) > 90) { 
+   } else if ((nfree*100)/(nused+nfree) > 95) { 
       /* (can continue using these kind of generations to
       trade some memory for time (the parent generation 
       may keep freeable memory (for the OS, not owl) a bit
@@ -548,14 +548,12 @@ static void wordcopy(word *from, word *to, int n) { while(n--) *to++ = *from++; 
 
 static word prim_connect(word *host, word port) {
    int sock;
-   int n;
    unsigned char *ip = ((unsigned char *) host) + W;
    unsigned long ipfull;
    struct sockaddr_in addr;
    port = fixval(port);
    if (!allocp(host))  /* bad host type */
       return(IFALSE);
-   n = (hdrsize(*host) - 1) * W;
    if ((sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
       return(IFALSE);
    addr.sin_family = AF_INET;
