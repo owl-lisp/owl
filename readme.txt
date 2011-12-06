@@ -16,7 +16,7 @@ You should have make and gcc installed.
 INSTALLATION
 ~~~~~~~~~~~~
 
-To install system-wide to /usr/local
+To install system-wide to /usr
    $ make
    $ sudo make install
 
