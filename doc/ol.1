@@ -28,14 +28,14 @@ Evaluate the string, print it's value, and exit with 0 unless errors occurred.
 Compile the given file to fasl or C code, and save the result to the given output file.
 .TP
 .B \-r, \-\-run path
-Load the file silently, and call the last value with command line arguments given after --.
+Load the file silently, and call the last value with the remaining command line arguments.
 .TP
 .B \-x, \-\-output-format format
 Choose what owl should compile the given file to. Valid options are currently c and fasl. This
 is normally deduced from the file suffix given in -o, and is thus not usually needed.
 .TP
-.B --native
-Translate much of the bytecode in the compiled program to C in order to avoid some interpretive overhead.
+.B -O0, -O1, -O2
+Write plain bytecode, compile some common functions to C or everything possible. These only make sense when compiling to C.
 .SH EXAMPLES
 .TP
 .B Make a simple binary
@@ -52,7 +52,7 @@ $ echo '(lambda (args) (print (cons "I got " args)))' | ol -x c -o - | gcc -x c 
  $ ol test.l
  Hello, world!
  $ echo '(lambda (args) (print "Hello, world!"))' > test.l
- $ ol --run test.l -- arg1 arg2 arg3
+ $ ol --run test.l arg1 arg2 arg3
  Hello, world!
 .SH SEE ALSO
 .BR gcc (1), scheme48 (1).
