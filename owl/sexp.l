@@ -8,7 +8,8 @@
    (export 
       sexp-parser 
       read-exps-from
-      list->number)
+      list->number
+		string->sexp)
 
    (import lib-parse)
    (import lib-intern intern-symbols string->uninterned-symbol)
@@ -22,13 +23,13 @@
    (define (symbol-lead-char? n) 
       (or (between? 97 n 122)
          (or (has? special-symbol-chars n)
-            (> n 128))))
+            (> n 127))))         ;; allow high code points in symbols
 
    (define (symbol-char? n) 
       (or (symbol-lead-char? n) 
          (or
             (between? 48 n 57)
-            (> n 128))))
+            (> n 127))))         ;; allow high code points in symbols
 
    (define get-symbol 
       (let-parses 
@@ -248,11 +249,11 @@
    ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
    (define (read-exps-from data red fail)
       (sexp-parser data
-         (lambda (data drop val pos)
+         (λ (data drop val pos)
             (if (eof? val)
                (reverse red)
                (read-exps-from data (cons val red) fail)))
-         (lambda (pos reason)
+         (λ (pos reason)
             (if (null? red)
                (fail "syntax error in first expression")
                (fail (list 'syntax 'error 'after (car red)))))
@@ -261,5 +262,8 @@
 
    (define (list->number lst fail)
       (try-parse get-number lst F F fail))
-      
+
+	(define (string->sexp str fail)
+		(try-parse (get-sexp) (str-iter str) F F fail))
+
 )
