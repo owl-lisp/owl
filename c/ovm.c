@@ -39,8 +39,8 @@ DIR *fdopendir(int fd);
 size_t strlen(const char *s);
 /* sys_mirp */
 
-
-#ifdef USE_SECCOMP
+/* enable SECCOMP support if we are on Linux */
+#ifdef __gnu_linux__
 #include <sys/prctl.h>
 #endif
 
@@ -70,11 +70,6 @@ static int breaked;      /* set in signal handler, passed over to owl in thread 
 unsigned char *hp;       /* heap pointer when loading heap */
 static int seccompp;     /* are we in seccomp? */
 
-/* gc measuring */
-word ingc;
-word ineval;
-word gcstart;
-word evalstart;
 int usegc;
 int slice;
 
@@ -267,6 +262,8 @@ int adjust_heap(int cells) {
    word new_words = nwords + cells;
    if (!usegc) /* only run when the vm is running (temp) */
       return(0);
+   if (seccompp) /* realloc is not allowed within seccomp */
+      return(0);
    memstart = realloc(memstart, new_words*W);
    if (memstart == old) { /* whee, no heap slide \o/ */
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
@@ -277,6 +274,7 @@ int adjust_heap(int cells) {
       fix_pointers(memstart, delta, memend); /* todo: measure time spent here */
       return(delta);
    } else {
+      /* fixme: might be common in seccomp, so would be better to put this to stderr? */
       puts("realloc failed, out of memory?");
       exit(3);
    }
@@ -288,9 +286,6 @@ static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
    int nfree, nused;
-   word now = clock();
-   ineval += now - evalstart;
-   evalstart = now;
    fp = regs + imm_val(*regs);
    root = fp+1;
    *root = (word) regs;
@@ -298,10 +293,6 @@ static word *gc(int size, word *regs) {
    memend = fp;
    marks(root, fp);
    fp = compact();
-   now = clock();
-   ingc += now - evalstart;
-   evalstart = now;
-   fflush(stdout);
    regs = (word *) *root;
    memend = realend;
    nfree = (word)memend - (word)regs;
@@ -309,7 +300,6 @@ static word *gc(int size, word *regs) {
    if (genstart == memstart) {
       word heapsize = (word) memend - (word) memstart;
       word nused = heapsize - nfree;
-      /* printf("GC: %dms in eval, %dms in gc, %d%% in gc\n", ineval/(CLOCKS_PER_SEC/1000), ingc/(CLOCKS_PER_SEC/1000), ingc/((ineval+ingc)/100)); */
       if ((heapsize/(1024*1024)) > max_heap_mb) { 
          breaked |= 8; /* will be passed over to mcp at thread switch*/
       }
@@ -467,7 +457,7 @@ word boot(int nargs, char **argv) {
    word *oargs = (word *) INULL;
    word *ptrs;
    word nwords;
-   usegc = seccompp = evalstart = 0;
+   usegc = seccompp = 0;
    slice = TICKS; /* default thread slice (n calls per slice) */
    if (heap == NULL) { /* if no preloaded heap, try to load it from first arg */
       if (nargs < 2) exit(1);
@@ -777,14 +767,16 @@ static word prim_sys(int op, word a, word b, word c) {
          return(fixnum(W));
       case 9: /* get memory limit (in mb) */
          return(fixnum(max_heap_mb));
-#ifdef USE_SECCOMP 
       case 10: /* enter linux seccomp mode */
-         if (prctl(PR_SET_SECCOMP,1)) {
-            return(IFALSE);
+#ifdef __gnu_linux__ 
+         if (seccompp) /* true, but different to signal we're already in seccomp */
+            return(INULL);  
+         if (prctl(PR_SET_SECCOMP,1) != -1) { /* true if no problem going seccomp */
+            seccompp = 1;
+            return(ITRUE);
          }
-         seccompp = 1;
-         return(ITRUE);
 #endif
+         return(IFALSE); /* seccomp not supported in current repl */
       /* dirops only to be used via exposed functions */
       case 11: { /* sys-opendir path _ _ -> False | dirobjptr */
          char *path = W + (char *) a; /* skip header */
@@ -892,7 +884,6 @@ word vm(word *ob, word *args) {
    static word R[NR];
    word load_imms[] = {fixnum(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
    usegc = 1; /* enble gc (later have if always evabled) */
-   evalstart = clock();
 
    /* clear blank regs */
    while(acc < NR) { R[acc++] = INULL; }
@@ -972,7 +963,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       R[NR-1] = (word) ob; /* fixme: unsafe temp location */
       while(p < NR) { fp[p+1] = R[p]; p++; } 
       fp = gc(1024*64, fp);
-      evalstart = clock();
       while(--p >= 0) { R[p] = fp[p+1]; }
       ob = (word *) R[NR-1];
       ip = ((unsigned char *) ob) + W + 1;

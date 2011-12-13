@@ -112,9 +112,6 @@
 (define (halt n)
    (sys-prim 6 n n n))
 
-(define (seccomp)
-   (sys-prim 10 F F F))
-
 
 
 (define-module lib-boolean
@@ -843,6 +840,45 @@
 ,r "owl/checksum.l"
 (import lib-checksum checksum)
 
+
+;;;
+;;; Entering seccomp 
+;;;
+
+;; a temporary O(n) way to get some space in the heap
+
+;; fixme: allow a faster way to allocate memory
+;; n-megs → _
+(define (ensure-free-heap-space megs)
+   (if (> megs 0)
+      (lets
+         ((my-word-size (get-word-size)) ;; word size in bytes in the current binary (4 or 8)
+          (blocksize 65536)              ;; want this many bytes per node in list
+          (pairsize (* my-word-size 3))  ;; size of cons cell, being [header] [car-field] [cdr-field]
+          (bytes                         ;; want n bytes after vector header and pair node for each block
+            (map (λ (x) 0) 
+               (iota 0 1 
+                  (- blocksize (+ pairsize my-word-size)))))
+          (n-blocks  
+            (ceil (/ (* megs (* 1024 1024)) blocksize))))
+         ;; make a big data structure
+         (map
+            (λ (node)
+               ;; make a freshly allocated byte vector at each node
+               (list->byte-vector bytes))
+            (iota 0 1 n-blocks))
+         ;; leave it as garbage
+         True)))
+
+;; enter seccomp with at least n-megs of free space in heap, or fail with an error
+(define (seccomp n-megs)
+   ;; grow some heap space work working, which is usually necessary given that we can't 
+   ;; get any more memory after entering seccomp
+   (if (and n-megs (> n-megs 0))
+      (ensure-free-heap-space n-megs))
+   (or (sys-prim 10 F F F)
+       (error "Failed to enter SECCOMP sandbox." "Did you compile with -DUSE_SECCOMP?")))
+
 ;; todo: share the modules instead later
 (define shared-misc
    (share-bindings
@@ -892,6 +928,7 @@
       get-word-size
       get-memory-limit
       checksum
+		string->sexp
       ))
 
 ,r "owl/fasl.l"     ; encoding and decoding arbitrary objects as lists of bytes
@@ -1379,7 +1416,9 @@
        (notes    "-n" "--notes"    comment "show notes from code (meaning \\n;; <label>:<text>\\n)")
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
-       ;(seccomp  "-s" "--seccomp"  comment "enter seccomp at startup if compiled with -DUSE_SECCOMP")
+       (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup if compiled with -DUSE_SECCOMP (see also -H)")
+       (seccomp-heap     "-H" "--heap"     cook ,string->integer default "5"
+         comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
        ;(native  False "--native"   comment "compile all applicable bytecode fragments to C")
@@ -1599,6 +1638,9 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                   (if (fold (λ (is this) (or is (get dict this F))) F '(quiet evaluate run output output-format))
                      (del env '*owl-prompt*) 
                      (put env '*interactive* True))))
+               (if (get dict 'seccomp False)
+                  (let ((megs (get dict 'seccomp-heap 'bug)))
+                     (seccomp megs))) ;; <- throws error if not succesful
                (cond
                   ((get dict 'help False)
                      (print brief-usage-text)
