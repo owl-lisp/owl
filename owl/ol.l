@@ -877,7 +877,7 @@
    (if (and n-megs (> n-megs 0))
       (ensure-free-heap-space n-megs))
    (or (sys-prim 10 F F F)
-       (error "Failed to enter SECCOMP sandbox." "Did you compile with -DUSE_SECCOMP?")))
+       (error "Failed to enter SECCOMP sandbox." "Are you running on Linux with SECCOMP support?")))
 
 ;; todo: share the modules instead later
 (define shared-misc
