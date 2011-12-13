@@ -42,6 +42,10 @@ size_t strlen(const char *s);
 /* enable SECCOMP support if we are on Linux */
 #ifdef __gnu_linux__
 #include <sys/prctl.h>
+#include <sys/syscall.h>
+#define EXIT(n) syscall(__NR_exit, n)
+#else
+#define EXIT(n) exit(n)
 #endif
 
 void set_nonblock (int sock) {
@@ -312,7 +316,7 @@ static word *gc(int size, word *regs) {
          if (nfree <= size) {
             /* todo, call a rip cord thunk set by MCP if applicable */
             puts("ovm: could not allocate more space");
-            exit(0);
+            EXIT(1);
          }
       } else if (nfree > (heapsize/10)) {
          /* decrease heap size if more than 10% is free by 10% of the free space */
@@ -759,7 +763,7 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          return((errno == EAGAIN || errno == EWOULDBLOCK) ? ITRUE : IFALSE); }
       case 6:
-         exit(fixval(a)); /* stop the press */
+         EXIT(fixval(a)); /* stop the press */
       case 7: /* set memory limit (in mb) */
          max_heap_mb = fixval(a);
          return(a);
@@ -1336,5 +1340,6 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
 }
 
 int main(int nargs, char **argv) {
-   return(boot(nargs, argv));
+   int rval = boot(nargs, argv);
+   EXIT(rval);
 }
