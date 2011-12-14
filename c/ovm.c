@@ -39,7 +39,7 @@ DIR *fdopendir(int fd);
 size_t strlen(const char *s);
 /* sys_mirp */
 
-/* enable SECCOMP support if we are on Linux, and exit via syscall to avoid calling exit_group in some libcs */
+/* possibly enable SECCOMP support if we are on newish Linux, and exit via syscall to avoid calling exit_group in some libcs */
 #ifdef __gnu_linux__
 #include <sys/prctl.h>
 #include <sys/syscall.h>
@@ -774,13 +774,15 @@ static word prim_sys(int op, word a, word b, word c) {
          return(fixnum(max_heap_mb));
       case 10: /* enter linux seccomp mode */
 #ifdef __gnu_linux__ 
-         if (seccompp) /* true, but different to signal we're already in seccomp */
+         if (seccompp) /* a true value, but different to signal that we're already in seccomp */
             return(INULL);  
          seccomp_time = 1000 * time(NULL); /* no time calls are allowed from seccomp, so start emulating a time if success */
+#ifdef PR_SET_SECCOMP
          if (prctl(PR_SET_SECCOMP,1) != -1) { /* true if no problem going seccomp */
             seccompp = 1;
             return(ITRUE);
          }
+#endif
 #endif
          return(IFALSE); /* seccomp not supported in current repl */
       /* dirops only to be used via exposed functions */

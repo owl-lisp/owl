@@ -341,11 +341,12 @@
    (define (stdin-sexp-stream bounced?)
       (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail bounced?)))
 
+   
 	(define (repl-trampoline repl env)
 		(let boing ((repl repl) (env env) (bounced? False))
 			(lets
             ((stdin (stdin-sexp-stream bounced?))
-             (stdin (if bounced? stdin (cons "You see a prompt" stdin)))
+             (stdin (if bounced? stdin (cons (if (module-ref env '*seccomp* F) "You see a prompt. You feel restricted." "You see a prompt") stdin)))
 				 (env (bind-toplevel env)))
 				(tuple-case (repl env stdin)
 					((ok val env)

@@ -103,12 +103,18 @@
 (import lib-syscall)
 
 
+;;; repl exit codes
+
+(define exit-seccomp-failed 2)     ;; --seccomp given but cannot do it
+
+
 ;;; rendering 
 
 ;; render unknown objects as <???>
 (define (render self obj tl)
    (ilist 60 63 63 63 62 tl))
 
+;; stop the vm *immediately* without flushing input or anything else with return value n
 (define (halt n)
    (sys-prim 6 n n n))
 
@@ -870,14 +876,17 @@
          ;; leave it as garbage
          True)))
 
-;; enter seccomp with at least n-megs of free space in heap, or fail with an error
+;; enter seccomp with at least n-megs of free space in heap, or stop the world (including all other threads and io)
 (define (seccomp n-megs)
    ;; grow some heap space work working, which is usually necessary given that we can't 
    ;; get any more memory after entering seccomp
    (if (and n-megs (> n-megs 0))
       (ensure-free-heap-space n-megs))
    (or (sys-prim 10 F F F)
-       (error "Failed to enter SECCOMP sandbox." "Are you running on Linux with SECCOMP support?")))
+      (begin
+         (system-stderr "Failed to enter SECCOMP. ")
+         (system-stderr "You must be on newish Linux and have it enabled in kernel.")
+         (halt exit-seccomp-failed))))
 
 ;; todo: share the modules instead later
 (define shared-misc
@@ -1392,6 +1401,8 @@
 ;;; REPL
 ;;;
 
+
+
 ,r "owl/repl.l"
 
 (import lib-repl)
@@ -1637,10 +1648,13 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                ((env 
                   (if (fold (λ (is this) (or is (get dict this F))) F '(quiet evaluate run output output-format))
                      (del env '*owl-prompt*) 
-                     (put env '*interactive* True))))
-               (if (get dict 'seccomp False)
-                  (let ((megs (get dict 'seccomp-heap 'bug)))
-                     (seccomp megs))) ;; <- throws error if not succesful
+                     (put env '*interactive* True)))
+                (seccomp?
+                  (if (get dict 'seccomp False)
+                     (let ((megs (get dict 'seccomp-heap 'bug)))
+                        (seccomp megs) ;; <- process exits unless this succeeds 
+                        True)
+                     False)))
                (cond
                   ((get dict 'help False)
                      (print brief-usage-text)
@@ -1667,7 +1681,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting
                   ((null? others)
-                     (repl-trampoline repl env))
+                     (repl-trampoline repl 
+                        (module-set env '*seccomp* seccomp?)))
                   (else
                      ;; load the given files
                      (define input
