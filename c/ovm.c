@@ -39,7 +39,7 @@ DIR *fdopendir(int fd);
 size_t strlen(const char *s);
 /* sys_mirp */
 
-/* enable SECCOMP support if we are on Linux */
+/* enable SECCOMP support if we are on Linux, and exit via syscall to avoid calling exit_group in some libcs */
 #ifdef __gnu_linux__
 #include <sys/prctl.h>
 #include <sys/syscall.h>
@@ -73,6 +73,7 @@ static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 unsigned char *hp;       /* heap pointer when loading heap */
 static int seccompp;     /* are we in seccomp? */
+static unsigned long seccomp_time; /* virtual time within seccomp sandbox in ms */
 
 int usegc;
 int slice;
@@ -775,6 +776,7 @@ static word prim_sys(int op, word a, word b, word c) {
 #ifdef __gnu_linux__ 
          if (seccompp) /* true, but different to signal we're already in seccomp */
             return(INULL);  
+         seccomp_time = 1000 * time(NULL); /* no time calls are allowed from seccomp, so start emulating a time if success */
          if (prctl(PR_SET_SECCOMP,1) != -1) { /* true if no problem going seccomp */
             seccompp = 1;
             return(ITRUE);
@@ -1296,15 +1298,23 @@ dispatch: /* handle normal bytecode */
       case 61: /* clock <secs> <ticks> */ { /* fixme: sys */
          struct timeval tp;
          word *ob;
-         gettimeofday(&tp, NULL);
-         allocate(6, ob); /* [NUM hi [NUM lo null]] */
-         ob[0] = ob[3] = NUMHDR; /* make a bignum for posix time */
-         ob[1] = fixnum(tp.tv_sec >> 16);
-         ob[4] = fixnum(tp.tv_sec&0xffff);
+         allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
+         ob[0] = ob[3] = NUMHDR; 
+         A0 = (word) (ob + 3);
          ob[2] = INULL; 
          ob[5] = (word) ob;
-         A0 = (word) (ob + 3);
-         A1 = fixnum(tp.tv_usec / 1000);
+         if (seccompp) {
+            unsigned long secs = seccomp_time / 1000;
+            A1 = fixnum(seccomp_time - (secs * 1000));
+            ob[1] = fixnum(secs >> 16);
+            ob[4] = fixnum(secs & 0xffff);
+            seccomp_time += (secs == 0xffffffff) ? 0 : 10; /* virtual 10ms passes on each call */
+         } else {
+            gettimeofday(&tp, NULL);
+            A1 = fixnum(tp.tv_usec / 1000);
+            ob[1] = fixnum(tp.tv_sec >> 16);
+            ob[4] = fixnum(tp.tv_sec&0xffff);
+         }
          next(2); }
       case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
          A1 = fixnum(ticker&0xffff);
