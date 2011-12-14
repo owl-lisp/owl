@@ -767,7 +767,7 @@
          (let ((now (time-ms)))
             (if (> now end)
                now
-               (begin (interact sleeper-id 65535) (loop)))))))
+               (begin (interact sleeper-id 50) (loop)))))))
 
 ; -> mcp gets <cont> 5 reason info
 
