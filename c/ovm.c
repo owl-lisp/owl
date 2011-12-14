@@ -39,7 +39,7 @@ DIR *fdopendir(int fd);
 size_t strlen(const char *s);
 /* sys_mirp */
 
-/* possibly enable SECCOMP support if we are on newish Linux, and exit via syscall to avoid calling exit_group in some libcs */
+/* possibly enable seccomp support if we are on newish Linux, and exit via syscall to avoid calling exit_group in some libcs */
 #ifdef __gnu_linux__
 #include <sys/prctl.h>
 #include <sys/syscall.h>

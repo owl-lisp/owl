@@ -884,8 +884,8 @@
       (ensure-free-heap-space n-megs))
    (or (sys-prim 10 F F F)
       (begin
-         (system-stderr "Failed to enter SECCOMP. 
-You must be on a newish Linux and have SECCOMP support enabled in kernel.
+         (system-stderr "Failed to enter seccomp sandbox. 
+You must be on a newish Linux and have seccomp support enabled in kernel.
 ")
          (halt exit-seccomp-failed))))
 
@@ -1428,7 +1428,7 @@ You must be on a newish Linux and have SECCOMP support enabled in kernel.
        (notes    "-n" "--notes"    comment "show notes from code (meaning \\n;; <label>:<text>\\n)")
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
-       (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup if compiled with -DUSE_SECCOMP (see also -H)")
+       (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup or exit if it failed")
        (seccomp-heap     "-H" "--heap"     cook ,string->integer default "5"
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
