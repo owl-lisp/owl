@@ -80,7 +80,7 @@
 
 
 ;; set a few flags which affect compilation or set static information
-(define *owl-version* "0.1.4")
+(define *owl-version* "0.1.5")
 ;(define *interactive* True) ;; causes file names to be printed when loading them
 
 ; The symbol _sans_cps acts as a quote to the CPS transformer. This 

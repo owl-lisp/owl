@@ -1,6 +1,6 @@
-.TH ol 1 "June 27, 2011"
+.TH ol 1 "December 14, 2011"
 .SH NAME
-ol \- an owl lisp compiler and interpreter
+ol \- an Owl Lisp compiler and interpreter
 .SH SYNOPSIS
 .B ol
 .RI [ options ] " " [ path ] " ..."
@@ -31,7 +31,7 @@ Compile the given file to fasl or C code, and save the result to the given outpu
 Load the file silently, and call the last value with the remaining command line arguments.
 .TP
 .B \-x, \-\-output-format format
-Choose what owl should compile the given file to. Valid options are currently c and fasl. This
+Choose what ol should compile the given input to. Valid options are currently \fIc\fR and \fIfasl\fR. This
 is normally deduced from the file suffix given in -o, and is thus not usually needed.
 .TP
 .B -O0, -O1, -O2
@@ -42,7 +42,7 @@ Enter seccomp sandbox mode at startup. This is an experimental Linux-only featur
 to be used for evaluating untrusted code.
 .TP
 .B \-H, \-\-heap n
-Make sure there are n megabytes of heap space available before entering SECCOMP sandbox.
+Make sure there are at least n megabytes of heap space available before entering SECCOMP sandbox.
 .SH EXAMPLES
 .TP
 .B Make a simple binary
@@ -64,4 +64,4 @@ $ echo '(lambda (args) (print (cons "I got " args)))' | ol -x c -o - | gcc -x c 
 .SH SEE ALSO
 .BR gcc (1), scheme48 (1).
 .SH AUTHOR
-owl lisp and this manual page were written by Aki Helin <aki.helin@iki.fi>.
+Owl Lisp and this manual page were written by Aki Helin <aki.helin@iki.fi>.
