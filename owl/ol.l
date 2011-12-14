@@ -884,8 +884,9 @@
       (ensure-free-heap-space n-megs))
    (or (sys-prim 10 F F F)
       (begin
-         (system-stderr "Failed to enter SECCOMP. ")
-         (system-stderr "You must be on newish Linux and have it enabled in kernel.")
+         (system-stderr "Failed to enter SECCOMP. 
+You must be on a newish Linux and have SECCOMP support enabled in kernel.
+")
          (halt exit-seccomp-failed))))
 
 ;; todo: share the modules instead later
