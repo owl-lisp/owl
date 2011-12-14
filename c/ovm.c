@@ -43,7 +43,7 @@ size_t strlen(const char *s);
 #ifdef __gnu_linux__
 #include <sys/prctl.h>
 #include <sys/syscall.h>
-#define EXIT(n) syscall(__NR_exit, n)
+#define EXIT(n) syscall(__NR_exit, n); exit(n) /* exit only needed to avoid compiler complaints */
 #else
 #define EXIT(n) exit(n)
 #endif
