@@ -36,6 +36,7 @@
       render render-number
       fx% ;; temp export until it is removed
       zero? exact? inexact?
+      real? complex? rational?
       )
 
    (define (zero? x) (eq? x 0))
@@ -44,6 +45,7 @@
 
    (define (exact? n) True)    ;; RnRS compat
    (define (inexact? n) False)
+
 
    ;; deprecated primop
    ;(define-syntax fxdivmod
@@ -188,6 +190,10 @@
          (rat  (negative? (ncar a)))
          (else (error 'negative? a))))
 
+   ;; RnRS compat
+   (define real? number?)
+   (define complex? number?)
+   (define rational? number?)
 
 
 
