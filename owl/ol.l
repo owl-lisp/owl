@@ -322,6 +322,8 @@
                         False)))
                (else False))))))
 
+
+(define eqv? equal?)
 ;;;
 ;;; Random access lists
 ;;;
@@ -894,7 +896,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-bindings
       run syscall error
       pair?  boolean?  fixnum?  eof?  symbol?  char?
-      tuple?  string?  function?  equal? bytecode?
+      tuple?  string?  function?  equal? eqv? bytecode?
       not
       null?  null 
       o
