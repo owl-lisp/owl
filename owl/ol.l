@@ -118,7 +118,19 @@
 (define (halt n)
    (sys-prim 6 n n n))
 
+;; throw an error if some familiar but unsupported Scheme functions are called
+(define-module lib-unsupported
+   (export set! vector-set!)
 
+   (define-syntax set! 
+      (syntax-rules ()
+         ((set! var val)
+            (error "set! is not supported: " '(set! var val)))))
+
+   (define (vector-set! thing pos val)
+      (error "vector-set! is not supported: " thing))
+
+)
 
 (define-module lib-boolean
 
@@ -1007,6 +1019,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-sys
          lib-syscall
          lib-symbol
+         lib-unsupported
          )))
 
 (define shared-bindings
