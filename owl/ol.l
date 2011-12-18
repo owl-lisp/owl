@@ -225,6 +225,9 @@
 
 (import lib-string)
 
+(define (number->string n)
+   (list->string (render render n null)))
+
 (define (fopen path mode)
    (syscall 7 (c-string path) mode))
 
@@ -927,6 +930,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       sleep
       list->tuple
       exit-thread
+      number->string
       fork
       fork-named
       fork-linked
