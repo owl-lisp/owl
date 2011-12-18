@@ -39,6 +39,7 @@
       real? complex? rational?
       exact->inexact inexact->exact
       negative? positive?
+      denominator numerator
       )
 
    (define (zero? x) (eq? x 0))
@@ -948,6 +949,16 @@
             (int< (mul a (ncdr b)) (ncar b)))
          (else 
             (int< a b))))
+
+   (define (denominator n)
+      (if (teq? n rat)
+         (ncdr n)  ;; always positive
+         1))
+
+   (define (numerator n)
+      (if (teq? n rat)
+         (ncar n)  ;; has the sign if negative
+         1))
 
    (define (<= a b)
       (or (< a b) (= a b)))
