@@ -38,6 +38,7 @@
       zero? exact? inexact?
       real? complex? rational?
       exact->inexact inexact->exact
+      negative? positive?
       )
 
    (define (zero? x) (eq? x 0))
@@ -191,8 +192,17 @@
          (fix- True)
          (int+ False)
          (int- True)
-         (rat  (negative? (ncar a)))
+         (rat  
+            (type-case (ncar a)
+               (fix+ False)
+               (fix- True)
+               (int+ False)
+               (int- True)
+               (else (error "Bad number: " a))))
          (else (error 'negative? a))))
+
+   (define (positive? a) 
+      (if (negative? a) F T))
 
    ;; RnRS compat
    (define real? number?)
