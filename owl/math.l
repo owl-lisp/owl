@@ -35,12 +35,15 @@
       log log2
       render render-number
       fx% ;; temp export until it is removed
-      zero?
+      zero? exact? inexact?
       )
 
    (define (zero? x) (eq? x 0))
 
    (define (fixnum? x) (eq? (type x) 2))
+
+   (define (exact? n) True)    ;; RnRS compat
+   (define (inexact? n) False)
 
    ;; deprecated primop
    ;(define-syntax fxdivmod
