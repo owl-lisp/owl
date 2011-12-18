@@ -37,6 +37,7 @@
       fx% ;; temp export until it is removed
       zero? exact? inexact?
       real? complex? rational?
+      exact->inexact inexact->exact
       )
 
    (define (zero? x) (eq? x 0))
@@ -45,7 +46,10 @@
 
    (define (exact? n) True)    ;; RnRS compat
    (define (inexact? n) False)
-
+   ;; signaling an error would also make sense for these, but as compat
+   ;; functions returning the argument as suggested in filed bug
+   (define (exact->inexact n) n) 
+   (define (inexact->exact n) n)
 
    ;; deprecated primop
    ;(define-syntax fxdivmod
