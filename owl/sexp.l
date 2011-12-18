@@ -218,6 +218,12 @@
          (get-word "N" Null)
          ))
 
+   (define (get-vector-of parser)
+      (let-parses
+         ((skip (get-imm 35))  ;; #
+          (fields (get-list-of parser)))
+         (list->vector fields)))
+
    (define (get-sexp)
       (let-parses
          ((skip maybe-whitespace)
@@ -230,6 +236,7 @@
                get-string
                get-funny-word
                (get-list-of (get-sexp))
+               (get-vector-of (get-sexp))
                (get-quoted (get-sexp))
                (get-byte-if eof?))))
          val
