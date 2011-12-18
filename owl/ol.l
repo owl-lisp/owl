@@ -249,7 +249,10 @@
 
    (define (symbol? x) (eq? (type x) 38))
 
-   (define (symbol->string x) (ref x 1))
+   (define (symbol->string x) 
+      (if (eq? (type x) 38)
+         (ref x 1)
+         (error "Not a symbol: " x)))
 
    (define render
       (lambda (self obj tl)
@@ -1002,7 +1005,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-regex
          lib-rlist
          lib-sys
-         lib-syscall)))
+         lib-syscall
+         lib-symbol
+         )))
 
 (define shared-bindings
    (foldr append null 
