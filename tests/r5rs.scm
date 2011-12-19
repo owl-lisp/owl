@@ -132,4 +132,45 @@
 ;   `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)  
 ;   #(10 5 2 4 3 8))
 
+;; FIXME: let-syntax and letrec-syntax are missing
 
+;; FIXME - expands to the wrong one
+; (check "4.3.2" (let ((=> #f)) (cond (#t => 'ok))) 'ok)
+
+(check "5.2.2" (let ((x 5))
+   (define foo (lambda (y) (bar x y)))
+   (define bar (lambda (a b) (+ (* a b) a)))
+   (foo (+ x 3)))
+   45)
+
+(check "6.1" (eqv? 'a 'a) #t)
+(check "6.1" (eqv? 'a 'b) #f)
+(check "6.1" (eqv? 2 2) #t)
+(check "6.1" (eqv? '() '()) #t)
+(check "6.1" (eqv? 100000000 100000000)  #t)
+;; (check "6.1" (eqv? (cons 1 2) (cons 1 2)) #f) <- check defn of eqv
+(check "6.1" (eqv? (lambda () 1) (lambda () 2)) #f)
+(check "6.1" (eqv? #f 'nil)  #f)
+(check "6.1" (let ((p (lambda (x) x))) (eqv? p p)) #t)
+
+(check "6.1" 
+   (letrec ((f (lambda () (if (eqv? f g) 'f 'both)))
+         (g (lambda () (if (eqv? f g) 'g 'both))))
+           (eqv? f g))
+   #f)
+
+(check "6.1" (eq? 'a 'a) #t)
+(check "6.1" (eq? (list 'a) (list 'a)) #f)
+(check "6.1" (eq? '() '()) #t)
+(check "6.1" (eq? car car)  #t)
+(check "6.1" (let ((x '(a))) (eq? x x)) #t)
+(check "6.1" (let ((x '#())) (eq? x x)) #t)
+(check "6.1" (let ((p (lambda (x) x))) (eq? p p))#t)
+
+(check "6.1" (equal? 'a 'a) #t)
+(check "6.1" (equal? '(a) '(a)) #t)
+(check "6.1" (equal? '(a (b) c) '(a (b) c)) #t)
+(check "6.1" (equal? "abc" "abc") #t)
+(check "6.1" (equal? 2 2)  #t)
+; (check "6.1" (equal? (make-vector 5 'a) (make-vector 5 'a)) #t) ;; FIXME make-vector not there, but could be
+(check "6.1" (equal? (lambda (x) x) (lambda (y) y)) #t)
