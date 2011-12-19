@@ -1425,6 +1425,12 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (begin . then)
                (type-case ob . more)))))
 
+   (define-syntax call-with-values
+      (syntax-rules ()
+         ((call-with-values (lambda () exp) (lambda (arg ...) body))
+            (receive exp (lambda (arg ...) body)))
+         ((call-with-values thunk (lambda (arg ...) body))
+            (receive (thunk) (lambda (arg ...) body)))))
 ))
 
 
