@@ -1319,6 +1319,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (case fresh . clauses)))
          ((case thing (else . body))
             (begin . body))
+         ((case thing) False)
          ((case thing ((a) . body) . clauses)
             (if (eq? thing (quote a))
                (begin . body)
