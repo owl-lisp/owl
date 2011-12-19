@@ -1469,6 +1469,17 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
             (receive exp (lambda (arg ...) body)))
          ((call-with-values thunk (lambda (arg ...) body))
             (receive (thunk) (lambda (arg ...) body)))))
+
+   (define-syntax do
+     (syntax-rules ()
+       ((do 
+         ((var init step) ...)
+         (test expr ...)
+         command ...)
+        (let loop ((var init) ...)
+         (if test 
+            (begin expr ...)
+            (loop step ...))))))
 ))
 
 
