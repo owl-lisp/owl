@@ -206,6 +206,7 @@
           (value parser))
          (list (get quotations type False) value)))
 
+   ;; fixme: add named characters #\newline, ...
    (define get-quoted-char
       (let-parses
          ((skip (get-imm 35)) ; #

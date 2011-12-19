@@ -154,8 +154,6 @@
 
 ;; todo: move these also to corresponding libraries
 
-(define (char? x) (eq? (type x) 26))
-
 (define max-object-size #xffff)
 
 
@@ -909,11 +907,19 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ")
          (halt exit-seccomp-failed))))
 
+
+;; Scheme compatibility library 
+(define-module lib-char 
+   (export char? char->integer integer->char)
+   (define char? number?)
+   (define char->integer self)
+   (define integer->char self))
+
 ;; todo: share the modules instead later
 (define shared-misc
    (share-bindings
       run syscall error
-      pair?  boolean?  fixnum?  eof?  symbol?  char?
+      pair?  boolean?  fixnum?  eof?  symbol?  
       tuple?  string?  function?  equal? eqv? bytecode?
       not
       null?  null 
@@ -1024,6 +1030,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-syscall
          lib-symbol
          lib-unsupported
+         lib-char
          )))
 
 (define shared-bindings
