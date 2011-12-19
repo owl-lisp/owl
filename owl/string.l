@@ -46,6 +46,7 @@
       str-map            ; op str → str'
       str-rev
       string             ; (string char ...) → str
+      string-copy        ; id
       render
       )
 
@@ -343,6 +344,8 @@
    (define (str-rev str)
       (runes->string
          (str-iterr str)))
+
+   (define string-copy self)
 
    (define render
       (lambda (self obj tl)
