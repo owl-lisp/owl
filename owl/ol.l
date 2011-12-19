@@ -449,9 +449,11 @@
 
 (define-module lib-function
 
-   (export function? bytecode? render)
+   (export function? procedure? bytecode? render)
 
    (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
+
+   (define procedure? function?)
 
    ;                                                               .-> ignore padding byte count
    ;                            .-> raw data object              .-+
@@ -940,7 +942,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-bindings
       run syscall error
       pair?  boolean?  fixnum?  eof?  symbol?  
-      tuple?  string?  function?  equal? eqv? bytecode?
+      tuple?  string?  function? procedure? equal? eqv? bytecode?
       not
       null?  null 
       o
