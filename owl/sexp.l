@@ -235,7 +235,7 @@
       (let-parses
          ((skip (get-imm 35))  ;; #
           (fields (get-list-of parser)))
-         (list->vector fields)))
+         (list->vector (intern-symbols fields))))
 
    (define (get-sexp)
       (let-parses
