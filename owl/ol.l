@@ -912,7 +912,10 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          (halt exit-seccomp-failed))))
 
 (define-module lib-scheme-compat
-   (export member memq memv apply)
+   (export 
+      member memq memv 
+      assoc assv assq
+      apply)
 
    ;; scheme member functions don't follow the argument conventions of other functions 
    (define (member x lst)
@@ -928,6 +931,20 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((null? lst) False)
          ((eq? x (car lst)) lst)
          (else (memq x (cdr lst)))))
+
+   (define (assq k l)
+      (cond
+         ((null? l) #f)
+         ((eq? (caar l) k) (car l))
+         (else (assq k (cdr l)))))
+   
+   (define (assv k l)
+      (cond
+         ((null? l) #f)
+         ((equal? (caar l) k) (car l))
+         (else (assv k (cdr l)))))
+
+   (define assoc assv)
 
    ;; a silly non-primitive apply
    (define (apply func l)
