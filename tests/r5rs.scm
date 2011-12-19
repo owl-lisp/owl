@@ -16,161 +16,306 @@
          (print " *** WRONG *** ")
          (print (list 'got thing))
          (print (list 'not wanted)))))
-      
 
-(check "1.3.4" (* 5 8) 40)
+(define-syntax compare-results
+   (syntax-rules (chapter ===>)
+      ((compare-results chapter name . stuff)
+         (begin
+            (print name)
+            (compare-results . stuff)))
+      ((compare-results term ===> wanted . rest)
+         (let ((val term))
+            (if (equal? val (quote wanted))
+               (compare-results . rest)
+               (print (list (quote term) " evaluates to " val " instead of " (quote wanted))))))
+      ((compare-results) 'ok)))
 
-;; mismatch - factorial definition
-
+;; definitions used in comparisons 
 (define x 28)
-
-(check "4.1.1" x 28)
-
-(check "4.1.2" (quote a) 'a)
-(check "4.1.2" (quote #(a b c)) (vector 'a 'b 'c))
-(check "4.1.2" #(a b c) #(a b c))
-(check "4.1.2" ''a '(quote a))
-(check "4.1.2" '"abc" "abc")
-(check "4.1.2" "abc" "abc")
-(check "4.1.2" '145932 145932)
-(check "4.1.2" 145932 145932)
-(check "4.1.2" '#t #t)
-(check "4.1.2" #t #t)
-
-(check "4.1.3" (+ 3 4) 7)
-(check "4.1.3" ((if #f + *) 3 4)   12)
-(check "4.1.4" ((lambda (x) (+ x x)) 4) 8)
-
 (define reverse-subtract
   (lambda (x y) (- y x)))
-
-(check "4.1.4" (reverse-subtract 7 10) 3)
-
 (define add4
   (let ((x 4))
       (lambda (y) (+ x y))))
 
-(check "4.1.4" (add4 6) 10)
+(compare-results
+   chapter "1.3.4" 
+      (* 5 8)         ===> 40
+   chapter "4.1.1"
+      x               ===> 28
+   chapter "4.1.2"
+      (quote a)         ===>  a
+      (quote #(a b c))  ===>  #(a b c)
+      (quote (+ 1 2))   ===>  (+ 1 2)
+      'a                ===>  a
+      '#(a b c)         ===>  #(a b c)
+      '()               ===>  ()
+      '(+ 1 2)          ===>  (+ 1 2)
+      '(quote a)        ===>  (quote a)
+      ''a               ===>  (quote a)
+      '"abc"            ===>  "abc"
+      "abc"             ===>  "abc"
+      '145932           ===>  145932
+      145932            ===>  145932
+      '#t               ===>  #t
+      #t                ===>  #t
+   chapter "4.1.3"
+      (+ 3 4)           ===>  7
+      ((if #f + *) 3 4) ===>  12
+   chapter "4.1.4"
+      ((lambda (x) (+ x x)) 4) ===>  8
+      (reverse-subtract 7 10)  ===>  3
+      (add4 6)                 ===>  10
+   chapter "4.1.5"
+      (if (> 3 2) 'yes 'no)    ===>  yes
+      (if (> 2 3) 'yes 'no)    ===>  no
+      (if (> 3 2)
+         (- 3 2)
+         (+ 3 2))              ===>  1
+   chapter "4.2.1" 
+      (cond 
+         ((> 3 2) 'greater)
+         ((< 3 2) 'less))       ===>  greater
+      (cond ((> 3 3) 'greater)
+         ((< 3 3) 'less)
+         (else 'equal))         ===>  equal
+      (cond 
+         ((assv 'b '((a 1) (b 2))) => cadr)
+         (else #f))             ===>  2
 
-;; mismatch - no variable arity lambdas 
+      (case (* 2 3)
+         ((2 3 5 7) 'prime)
+         ((1 4 6 8 9) 'composite)) ===>  composite
+      ;(case (car '(c d))
+      ;   ((a) 'a)
+      ;   ((b) 'b))                ===>  unspecified
+      (case (car '(c d)) 
+         ((a e i o u) 'vowel) 
+         ((w y) 'semivowel) 
+         (else 'consonant))        ===>  consonant
 
-(check "4.1.5" (if (> 3 2) 'yes 'no)  'yes)
-(check "4.1.5" (if (> 2 3) 'yes 'no) 'no)
-(check "4.1.5" (if (> 3 2) (- 3 2) (+ 3 2)) 1)
+      (and (= 2 2) (> 2 1))                   ===>  #t
+      (and (= 2 2) (< 2 1))                   ===>  #f
+      (and 1 2 'c '(f g))                     ===>  (f g)
+      (and)                                   ===>  #t
 
-;; mismatch - assignment 
-(check "4.2.1" (cond ((> 3 2) 'greater) ((< 3 2) 'less)) 'greater)
-(check "4.2.1" (cond ((> 3 3) 'greater) ((< 3 3) 'less) (else 'equal)) 'equal)
-(check "4.2.1" (cond ((assv 'b '((a 1) (b 2))) => cadr) (else #f)) 2)
+      (or (= 2 2) (> 2 1))                    ===>  #t
+      (or (= 2 2) (< 2 1))                    ===>  #t
+      (or #f #f #f)                           ===>  #f
+      (or (memq 'b '(a b c)) 
+          (/ 3 0))                            ===>  (b c)
 
-(check "4.2.1" (case (* 2 3) ((2 3 5 7) 'prime) ((1 4 6 8 9) 'composite))  'composite)
+   chapter "4.2.2"
+      (let ((x 2) (y 3))
+        (* x y))                              ===>  6
 
-(check "4.2.1" (case (car '(c d))
-  ((a e i o u) 'vowel)
-    ((w y) 'semivowel)
-      (else 'consonant)) 'consonant)
+      (let ((x 2) (y 3))
+         (let ((x 7) (z (+ x y)))
+            (* z x)))                         ===>  35
 
-(check "4.2.1" (and (= 2 2) (> 2 1)) #t)
-(check "4.2.1" (and (= 2 2) (< 2 1)) #f)
-(check "4.2.1" (and 1 2 'c '(f g)) '(f g))
-(check "4.2.1" (and) #t)
-(check "4.2.1" (or (= 2 2) (> 2 1)) #t)
-(check "4.2.1" (or (= 2 2) (< 2 1)) #t)
-(check "4.2.1" (or #f #f #f) #f)
-(check "4.2.1" (or (memq 'b '(a b c)) (/ 3 0)) '(b c))
+      (let ((x 2) (y 3))
+        (let* ((x 7)
+               (z (+ x y)))
+               (* z x)))                      ===>  70
 
-(check "4.2.2" (let ((x 2) (y 3)) (* x y)) 6)
-(check "4.2.2" (let ((x 2) (y 3)) (let ((x 7) (z (+ x y))) (* z x))) 35)
+      (letrec 
+         ((even? (lambda (n) (if (zero? n) #t (odd? (- n 1)))))
+          (odd? (lambda (n) (if (zero? n) #f (even? (- n 1)))))) 
+         (even? 88))                          ===>  #t
 
-(check "4.2.2" (let ((x 2) (y 3)) (let* ((x 7) (z (+ x y))) (* z x))) 70)
+   chapter "4.2.4"
+      (let ((x '(1 3 5 7 9)))
+         (do 
+            ((x x (cdr x)) (sum 0 (+ sum (car x)))) 
+            ((null? x) sum)))                 ===>  25
 
-(check "4.2.2"
-   (letrec ((even?
-          (lambda (n)
-            (if (zero? n)
-                #t
-                (odd? (- n 1)))))
-         (odd?
-          (lambda (n)
-            (if (zero? n)
-                #f
-                (even? (- n 1))))))
-     (even? 88))
-   #t)
+      (let loop ((numbers '(3 -2 1 6 -5))
+                 (nonneg '())
+                 (neg '()))
+        (cond ((null? numbers) (list nonneg neg))
+              ((>= (car numbers) 0)
+               (loop (cdr numbers)
+                     (cons (car numbers) nonneg)
+                     neg))
+              ((< (car numbers) 0)
+               (loop (cdr numbers)
+                     nonneg
+                     (cons (car numbers) neg)))))   
+                                              ===>  ((6 1 3) (-5 -2))
 
+   chapter "4.2.6"
+      `(list ,(+ 1 2) 4)                                ===>  (list 3 4)
+      (let ((name 'a)) `(list ,name ',name))            ===>  (list a (quote a))
+      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)             ===>  (a 3 4 5 6 b)
+      `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))) ===>  ((foo 7) . cons)
+      ;`#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)        ===>  #(10 5 2 4 3 8) ;; FIXME vector literals not yet handled
 
-(check "4.2.4" 
-   (let ((x '(1 3 5 7 9)))
-     (do ((x x (cdr x))
-          (sum 0 (+ sum (car x))))
-         ((null? x) sum)))
-   25)
-
-(check "4.2.4" 
-   (let loop ((numbers '(3 -2 1 6 -5))
-           (nonneg '())
-           (neg '()))
-  (cond ((null? numbers) (list nonneg neg))
-        ((>= (car numbers) 0)
-         (loop (cdr numbers)
-               (cons (car numbers) nonneg)
-               neg))
-        ((< (car numbers) 0)
-         (loop (cdr numbers)
-               nonneg
-               (cons (car numbers) neg)))))
-   '((6 1 3) (-5 -2)))
+     ;; FIXME nested quasiquotes are broken?
+     ;`(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
+     ;(let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))           ===>  (a `(b ,x ,'y d) e)
 
 
-(check "4.2.6" `(list ,(+ 1 2) 4) '(list 3 4))
-(check "4.2.6" (let ((name 'a)) `(list ,name ',name))   '(list a (quote a)))
-(check "4.2.6" `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b) '(a 3 4 5 6 b))
-(check "4.2.6" `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))) '((foo 7) . cons))
+      (quasiquote (list (unquote (+ 1 2)) 4))           ===>  (list 3 4)
+      '(quasiquote (list (unquote (+ 1 2)) 4))          ===>  `(list ,(+ 1 2) 4)
 
-;; FIXME
-;(check "4.2.6" 
-;   `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)  
-;   #(10 5 2 4 3 8))
+   chapter "4.3.2" ;; FIXME let(rec)-syntax not yet supported
+      ;(let ((=> #f)) (cond (#t => 'ok)))                ===> ok ;; FIXME
 
-;; FIXME: let-syntax and letrec-syntax are missing
+   chapter "5.2.2"
+      (let ((x 5))
+        (define foo (lambda (y) (bar x y)))
+        (define bar (lambda (a b) (+ (* a b) a)))
+        (foo (+ x 3)))                        ===>  45
 
-;; FIXME - expands to the wrong one
-; (check "4.3.2" (let ((=> #f)) (cond (#t => 'ok))) 'ok)
+   chapter "6.1" 
+      (eqv? 'a 'a)                             ===>  #t
+      (eqv? 'a 'b)                             ===>  #f
+      (eqv? 2 2)                               ===>  #t
+      (eqv? '() '())                           ===>  #t
+      (eqv? 100000000 100000000)               ===>  #t
+      ;(eqv? (cons 1 2) (cons 1 2))            ===>  #f  ;; FIXME compat eqv? is too equal? atm
+      (eqv? (lambda () 1)
+            (lambda () 2))                     ===>  #f
+      (eqv? #f 'nil)                           ===>  #f
+      (let ((p (lambda (x) x)))
+        (eqv? p p))                            ===>  #t
 
-(check "5.2.2" (let ((x 5))
-   (define foo (lambda (y) (bar x y)))
-   (define bar (lambda (a b) (+ (* a b) a)))
-   (foo (+ x 3)))
-   45)
+      (letrec 
+         ((f (lambda () (if (eqv? f g) 'f 'both)))
+          (g (lambda () (if (eqv? f g) 'g 'both))))
+         (eqv? f g))                           ===>  #f
 
-(check "6.1" (eqv? 'a 'a) #t)
-(check "6.1" (eqv? 'a 'b) #f)
-(check "6.1" (eqv? 2 2) #t)
-(check "6.1" (eqv? '() '()) #t)
-(check "6.1" (eqv? 100000000 100000000)  #t)
-;; (check "6.1" (eqv? (cons 1 2) (cons 1 2)) #f) <- check defn of eqv
-(check "6.1" (eqv? (lambda () 1) (lambda () 2)) #f)
-(check "6.1" (eqv? #f 'nil)  #f)
-(check "6.1" (let ((p (lambda (x) x))) (eqv? p p)) #t)
+      (let ((x '(a)))
+        (eqv? x x))                            ===>  #t
 
-(check "6.1" 
-   (letrec ((f (lambda () (if (eqv? f g) 'f 'both)))
-         (g (lambda () (if (eqv? f g) 'g 'both))))
-           (eqv? f g))
-   #f)
+      (eq? 'a 'a)                             ===>  #t
+      (eq? (list 'a) (list 'a))               ===>  #f
+      (eq? '() '())                           ===>  #t
+      (eq? car car)                           ===>  #t
+      (let ((x '(a)))
+        (eq? x x))              ===>  #t
+      (let ((x '#()))
+        (eq? x x))              ===>  #t
+      (let ((p (lambda (x) x)))
+        (eq? p p))              ===>  #t
+      (equal? 'a 'a)                          ===>  #t
+      (equal? '(a) '(a))                      ===>  #t
+      (equal? '(a (b) c)
+              '(a (b) c))                     ===>  #t
+      (equal? "abc" "abc")                    ===>  #t
+      (equal? 2 2)                            ===>  #t
+      ;(equal? (make-vector 5 'a) (make-vector 5 'a))             ===>  #t ;; TODO make-vector not there
 
-(check "6.1" (eq? 'a 'a) #t)
-(check "6.1" (eq? (list 'a) (list 'a)) #f)
-(check "6.1" (eq? '() '()) #t)
-(check "6.1" (eq? car car)  #t)
-(check "6.1" (let ((x '(a))) (eq? x x)) #t)
-(check "6.1" (let ((x '#())) (eq? x x)) #t)
-(check "6.1" (let ((p (lambda (x) x))) (eq? p p))#t)
+      ;(complex? 3+4i)                ===>  #t
+      (complex? 3)                    ===>  #t
+      (real? 3)                       ===>  #t
+      ;(real? -2.5+0.0i)              ===>  #t
+      ;(real? #e1e10)                 ===>  #t ;; <- mental parser fails also
+      (rational? 6/10)                ===>  #t
+      (rational? 6/3)                 ===>  #t
+      ;(integer? 3+0i)                ===>  #t
+      (integer? 3.0)                  ===>  #t
+      (integer? 8/4)                  ===>  #t
 
-(check "6.1" (equal? 'a 'a) #t)
-(check "6.1" (equal? '(a) '(a)) #t)
-(check "6.1" (equal? '(a (b) c) '(a (b) c)) #t)
-(check "6.1" (equal? "abc" "abc") #t)
-(check "6.1" (equal? 2 2)  #t)
-; (check "6.1" (equal? (make-vector 5 'a) (make-vector 5 'a)) #t) ;; FIXME make-vector not there, but could be
-(check "6.1" (equal? (lambda (x) x) (lambda (y) y)) #t)
+      (- 3 4)                         ===>  -1
+      ;(- 3 4 5)                      ===>  -6
+      ;(- 3)                          ===>  -3
+      ;(/ 3 4 5)                      ===>  3/20
+      ;(/ 3)                          ===>  1/3
+      
+      (abs -7)                        ===>  7
+
+      ;(modulo 13 4)                  ===>  1
+      (remainder 13 4)                ===>  1
+
+      ;(modulo -13 4)                 ===>  3
+      (remainder -13 4)               ===>  -1
+
+      ;(modulo 13 -4)                 ===>  -3
+      (remainder 13 -4)               ===>  1
+
+      ;(modulo -13 -4)                ===>  -1
+      (remainder -13 -4)              ===>  -1
+
+      (remainder -13 -4.0)            ===>  -1.0
+
+      (gcd 32 -36)                    ===>  4
+      ;(gcd)                          ===>  0
+      ;(lcm 32 -36)                   ===>  288
+      ;(lcm 32.0 -36)                 ===>  288.0  ; inexact
+      ;(lcm)                          ===>  1
+      
+      (numerator (/ 6 4))             ===>  3
+      (denominator (/ 6 4))           ===>  2
+      (denominator
+        (exact->inexact (/ 6 4)))     ===> 2.0
+
+      ;(floor -4.3)                  ===>  -5.0 ;; FIXME -- negative owl floor wrong
+      ;(ceiling -4.3)                ===>  -4.0 ;; FIXME -- negative owl ceiling wrong
+      ;(truncate -4.3)               ===>  -4.0
+      ;(round -4.3)                  ===>  -4.0
+
+      (floor 3.5)                   ===>  3.0
+      (ceiling 3.5)                 ===>  4.0
+      ;(truncate 3.5)                ===>  3.0
+      ;(round 3.5)                   ===>  4.0  ; inexact
+
+      ;(round 7/2)                   ===>  4    ; exact
+      ;(round 7)                     ===>  7
+   chapter "6.3.1"
+      (not #t)           ===>  #f
+      (not 3)                  ===>  #f
+      (not (list 3))           ===>  #f
+      (not #f)          ===>  #t
+      (not '())                ===>  #f
+      (not (list))             ===>  #f
+      (not 'nil)               ===>  #f
+
+      (boolean? #f)          ===>  #t
+      (boolean? 0)                  ===>  #f
+      (boolean? '())                ===>  #f
+   chapter "6.3.2"
+      (pair? '(a . b))                ===>  #t
+      (pair? '(a b c))                ===>  #t
+      (pair? '())                     ===>  #f
+      (pair? '#(a b))                 ===>  #f
+
+      (cons 'a '())                   ===>  (a)
+      (cons '(a) '(b c d))            ===>  ((a) b c d)
+      (cons "a" '(b c))               ===>  ("a" b c)
+      (cons 'a 3)                     ===>  (a . 3)
+      (cons '(a b) 'c)                ===>  ((a b) . c)
+
+      (car '(a b c))                  ===>  a
+      (car '((a) b c d))              ===>  (a)
+      (car '(1 . 2))                  ===>  1
+
+      (cdr '((a) b c d))              ===>  (b c d)
+      (cdr '(1 . 2))                  ===>  2
+      
+      (list? '(a b c))             ===>  #t
+      (list? '())                  ===>  #t
+      (list? '(a . b))             ===>  #f
+
+      (length '(a b c))                       ===>  3
+      (length '(a (b) (c d e)))               ===>  3
+      (length '())                            ===>  0
+      
+      (append '(x) '(y))                      ===>  (x y)
+      (append '(a) '(b c d))                  ===>  (a b c d)
+      (append '(a (b)) '((c)))                ===>  (a (b) (c))
+      
+      (append '(a b) '(c . d))                ===>  (a b c . d)
+      (append '() 'a)                         ===>  a
+
+      (reverse '(a b c))                      ===>  (c b a)
+      (reverse '(a (b c) d (e (f))))          ===>  ((e (f)) d (b c) a)
+
+      (memq 'a '(a b c))                      ===>  (a b c)
+      (memq 'b '(a b c))                      ===>  (b c)
+      (memq 'a '(b c d))                      ===>  #f
+      (memq (list 'a) '(b (a) c))             ===>  #f
+      (member (list 'a)
+              '(b (a) c))                     ===>  ((a) c)
+      (memv 101 '(100 101 102))               ===>  (101 102)
+)
