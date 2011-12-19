@@ -206,6 +206,14 @@
           (value parser))
          (list (get quotations type False) value)))
 
+   (define get-quoted-char
+      (let-parses
+         ((skip (get-imm 35)) ; #
+          (skip (get-imm 92)) ; \
+          (codepoint get-rune))
+         codepoint))
+
+   ;; most of these are to go via type definitions later
    (define get-funny-word
       (get-any-of
          (get-word "Null" Null)
@@ -238,10 +246,9 @@
                (get-list-of (get-sexp))
                (get-vector-of (get-sexp))
                (get-quoted (get-sexp))
-               (get-byte-if eof?))))
-         val
-         ;(lambda (lst msg) (list "could not read sexp because " msg))
-         ))
+               (get-byte-if eof?)
+               get-quoted-char)))
+         val))
 
    (define (ok? x) (eq? (ref x 1) 'ok))
    (define (ok exp env) (tuple 'ok exp env))

@@ -190,6 +190,8 @@
           (verify (eq? #b10000000 (fxband b #b11000000)) "Bad extension byte"))
          b))
 
+   ;; fixme: could also support the longer proposed ones
+   ;; fixme: get-rune == get-utf-8
    (define get-rune
       (get-any-of
          (get-byte-if (λ (x) (lesser? x 128)))
