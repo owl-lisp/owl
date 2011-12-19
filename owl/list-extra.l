@@ -3,7 +3,10 @@
 	(export 
       lref lset ldel length
       led ledn lins
-		take drop iota)
+		take drop iota
+      list-ref
+      list-tail
+      )
 
 	(import lib-math) ; basix arithmetic
 
@@ -16,6 +19,8 @@
 			((null? lst) (error "lref: out of list" pos))
 			((eq? pos 0) (car lst))
 			(else (lref (cdr lst) (- pos 1)))))
+
+   (define list-ref lref)
 
 	(define (lset lst pos val)
 		(cond
@@ -99,5 +104,9 @@
 				null)
 			(else 
 				(error "bad iota: " (list 'iota from step to)))))
-
+   
+   (define (list-tail lst n)
+      (if (eq? n 0)
+         lst
+         (list-tail (cdr lst) (- n 1))))
 )
