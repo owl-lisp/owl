@@ -219,11 +219,11 @@
 	; (to allow for example changing code from functions without causing
 	;  them to move in the heap, which would break object order)
 	(define (fasl-encode-cooked obj cook)
-		(force (encode obj cook)))
+		(force-ll (encode obj cook)))
 
 	; dump the data as such
 	(define (fasl-encode obj)
-		(force (encode obj (λ (x) x))))
+		(force-ll (encode obj (λ (x) x))))
 
 	(define chunk-size 4096)
 
@@ -357,7 +357,7 @@
       (lets ((ll ob (decode-or ll (λ (why) failed))))
          (cond
             ((eq? ob failed) fail-val)
-            ((null? (force ll)) ob)
+            ((null? (force-ll ll)) ob)
             (else fail-val))))
 
    ;; byte-stream → (ob ...) | (ob ... err)

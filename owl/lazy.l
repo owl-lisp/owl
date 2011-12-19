@@ -12,10 +12,10 @@
       lfor liota liter lnums
       lzip ltake llast llen
       pair tail uncons
-      force                     ; ll -> list
+      force-ll                ; ll -> list
       subsets permutations    ; usual applications
       lunfold
-      delay
+      delay force
       avg
       )
 
@@ -25,6 +25,12 @@
          ((delay (op . args))
             (λ () (op . args)))
          ((delay value) value)))
+
+   ;; force is effectively unnecessary in Owl, so might as well signal a 
+   ;; warning if this is used, because the code probably assumes 
+   ;; mutable state.
+
+   (define (force thunk) (thunk))
 
    ;; possibly delay construction of tail
    (define-syntax pair
@@ -247,11 +253,11 @@
    
    ; (lfold (lambda (n s) (print s) (+ n 1)) 0 (permutations (iota 0 1 5)))
 
-   (define (force it)
+   (define (force-ll it)
       (cond
          ((null? it) it)
-         ((pair? it) (cons (car it) (force (cdr it))))
-         (else (force (it)))))
+         ((pair? it) (cons (car it) (force-ll (cdr it))))
+         (else (force-ll (it)))))
 
    (define (avg ll)
       (let loop ((ll ll) (sum 0) (len 0))

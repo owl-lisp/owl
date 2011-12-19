@@ -326,7 +326,7 @@
    (define (print-syntax-error reason bytes posn)
       (print reason)
       (mail stdout '(32 32 32)) ; indent by 3 spaces
-      (mail stdout (cons 96 (append (force bytes) '(39 10))))
+      (mail stdout (cons 96 (append (force-ll bytes) '(39 10))))
       (mail stdout (map (λ (x) 32) (iota 0 1 (+ posn 4)))) ; move to right position
       (mail stdout '(94 10)))
 
