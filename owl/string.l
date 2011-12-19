@@ -45,6 +45,7 @@
       str-replace        ; str pat value -> str' ;; todo: drop str-replace, we have regexen now
       str-map            ; op str → str'
       str-rev
+      string             ; (string char ...) → str
       render
       )
 
@@ -276,6 +277,11 @@
    (define string-append str-app)
    (define string->list string->runes)
    (define list->string runes->string)
+
+   (define-syntax string
+      (syntax-rules ()
+         ((string . things)
+            (list->string (list . things)))))
 
    (define (c-string str) ; -> bvec | False
       (if (raw-string? str)
