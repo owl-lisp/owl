@@ -912,8 +912,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          (halt exit-seccomp-failed))))
 
 (define-module lib-scheme-compat
-   (export member memq memv)
+   (export member memq memv apply)
 
+   ;; scheme member functions don't follow the argument conventions of other functions 
    (define (member x lst)
       (cond
          ((null? lst) False)
@@ -928,6 +929,17 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((eq? x (car lst)) lst)
          (else (memq x (cdr lst)))))
 
+   ;; a silly non-primitive apply
+   (define (apply func l)
+      (if (null? l)
+         (func)
+         (lets ((a l l)) (if (null? l) (func a)
+         (lets ((b l l)) (if (null? l) (func a b)
+         (lets ((c l l)) (if (null? l) (func a b c)
+         (lets ((d l l)) (if (null? l) (func a b c d)
+         (lets ((e l l)) (if (null? l) (func a b c d e)
+         (lets ((f l l)) (if (null? l) (func a b c d e f)
+            (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
 )
 
 ;; Scheme compatibility library 
@@ -935,7 +947,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (export char? char->integer integer->char)
    (define char? number?)
    (define char->integer self)
-   (define integer->char self))
+   (define integer->char self)
+)
 
 ;; todo: share the modules instead later
 (define shared-misc
