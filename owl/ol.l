@@ -907,6 +907,24 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ")
          (halt exit-seccomp-failed))))
 
+(define-module lib-scheme-compat
+   (export member memq memv)
+
+   (define (member x lst)
+      (cond
+         ((null? lst) False)
+         ((equal? x (car lst)) lst)
+         (else (member x (cdr lst)))))
+
+   (define memv member)
+
+   (define (memq x lst)
+      (cond
+         ((null? lst) False)
+         ((eq? x (car lst)) lst)
+         (else (memq x (cdr lst)))))
+
+)
 
 ;; Scheme compatibility library 
 (define-module lib-char 
@@ -1031,6 +1049,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-symbol
          lib-unsupported
          lib-char
+         lib-scheme-compat
          )))
 
 (define shared-bindings
