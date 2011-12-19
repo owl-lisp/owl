@@ -225,6 +225,10 @@
          (get-word "T" True)
          (get-word "F" False)
          (get-word "N" Null)
+         (get-word "#true" True)    ;; get the longer ones first if present
+         (get-word "#false" False)
+         (get-word "#t" True)
+         (get-word "#f" False)
          ))
 
    (define (get-vector-of parser)
