@@ -89,6 +89,8 @@
 (define call/cc 
    ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
 
+(define call-with-current-continuation call/cc)
+
 (define call/cc2
    ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
 
@@ -948,6 +950,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       seccomp
       call/cc
       call/cc2
+      call-with-current-continuation
       display print-to print print* show
       render verb
       system-println
