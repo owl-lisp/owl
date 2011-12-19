@@ -74,6 +74,8 @@
 
       merge-chunks          ; exported for use in lib-io (may be moved later)
       leaf-data vec-leaf-of
+      vector-ref 
+      vector-length
       vec-leaves
       vec-cat             ;  vec x vec → vec
       vec-rev
@@ -635,6 +637,9 @@
 					(self self (cons "Vector" (vector->list obj)) tl))
             (else
                (render self obj tl)))))
+
+   (define vector-length vec-len)
+   (define vector-ref vec-ref)
 
 )
 
