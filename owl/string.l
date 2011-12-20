@@ -48,6 +48,10 @@
       string             ; (string char ...) → str
       string-copy        ; id
       substring          ; str start end → str'
+      string<?           ; str str → bool
+      string>?           ; str str → bool
+      string<=?          ; str str → bool
+      string>=?          ; str str → bool
       render
       )
 
@@ -360,6 +364,25 @@
          (else 
             (list->string (ltake (ldrop (str-iter str) start) (- end start))))))
 
+   ;; lexicographic comparison with end of string < lowest code point
+   ;; 1 = sa smaller, 2 = equal, 3 = sb smaller
+   (define (str-compare sa sb)
+      (let loop ((la (str-iter sa)) (lb (str-iter sb)))
+         (lets 
+            ((a la (uncons la F))
+             (b lb (uncons lb F)))
+            (cond
+               ((not a) (if b 1 2))
+               ((not b) 3)
+               ((lesser? a b) 1)
+               ((eq? a b) (loop la lb))
+               (else 3)))))
+
+   (define (string<? a b)       (eq? 1 (str-compare a b)))
+   (define (string<=? a b) (not (eq? 3 (str-compare a b))))
+   (define (string>? a b)       (eq? 3 (str-compare a b)))
+   (define (string>=? a b) (not (eq? 1 (str-compare a b))))
+                  
    (define render
       (lambda (self obj tl)
          (if (string? obj)

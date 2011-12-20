@@ -504,7 +504,7 @@
    (define render
       (λ (self obj tl)
          (if (tuple? obj)
-            (ilist 35 40 
+            (ilist 40 84 117 112 108 101 32
                (self self (ref obj 1)
                   (lfold
                      (λ (tl pos) (cons 32 (self self (ref obj pos) tl)))
