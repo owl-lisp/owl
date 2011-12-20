@@ -19,7 +19,7 @@
    (import lib-iff)
 
    (export 
-      number? fixnum?
+      number? fixnum? integer?
       + - * = / 
       << < <= = >= > >>   
       band bor bxor
@@ -40,6 +40,7 @@
       exact->inexact inexact->exact
       negative? positive?
       denominator numerator
+      remainder
       )
 
    (define (zero? x) (eq? x 0))
@@ -185,6 +186,14 @@
          (int+ True)
          (int- True)
          (rat  True)
+         (else False)))
+
+   (define (integer? a)
+      (type-case a
+         (fix+ True)
+         (fix- True)
+         (int+ True)
+         (int- True)
          (else False)))
 
    (define (negative? a)
@@ -1397,6 +1406,7 @@
                (else (big-bad-args 'rem a b))))
          (else (big-bad-args 'rem a b))))
 
+   (define remainder rem)
    ; fixme, only true when the signs are the same, but left here as a placeholder
 
    ;(print "math.scm: fix mod")
