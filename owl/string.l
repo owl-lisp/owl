@@ -47,6 +47,7 @@
       str-rev
       string             ; (string char ...) → str
       string-copy        ; id
+      substring          ; str start end → str'
       render
       )
 
@@ -346,6 +347,18 @@
          (str-iterr str)))
 
    (define string-copy self)
+
+   ;; going as per R5RS
+   (define (substring str start end)
+      (cond
+         ((< (string-length str) end)
+            (error "substring: out of string: " end))
+         ((negative? start)
+            (error "substring: negative start: " start))
+         ((< end start)
+            (error "substring: bad interval " (cons start end)))
+         (else 
+            (list->string (ltake (ldrop (str-iter str) start) (- end start))))))
 
    (define render
       (lambda (self obj tl)

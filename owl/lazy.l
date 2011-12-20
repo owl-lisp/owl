@@ -11,6 +11,7 @@
       lfold lfoldr lmap lappend    ; main usage patterns
       lfor liota liter lnums
       lzip ltake llast llen
+      ldrop
       pair tail uncons
       force-ll                ; ll -> list
       subsets permutations    ; usual applications
@@ -178,6 +179,14 @@
                (ltaker (cdr l) (- n 1) (cons (car l) o))))
          (else
             (ltaker (l) n o))))
+
+   ;; l n → l | Null (if out of list)
+   (define (ldrop l n)
+      (cond
+         ((eq? n 0) l)
+         ((pair? l) (ldrop (cdr l) (- n 1)))
+         ((null? l) l)
+         (else (ldrop (l) n))))
 
    (define (ltake l n) (ltaker l n null))
 
