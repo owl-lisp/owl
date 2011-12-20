@@ -48,6 +48,7 @@
       string             ; (string char ...) → str
       string-copy        ; id
       substring          ; str start end → str'
+      string-ref         ; str pos → char | error
       string<?           ; str str → bool
       string>?           ; str str → bool
       string<=?          ; str str → bool
@@ -374,7 +375,7 @@
             (cond
                ((not a) (if b 1 2))
                ((not b) 3)
-               ((lesser? a b) 1)
+               ((< a b) 1)
                ((eq? a b) (loop la lb))
                (else 3)))))
 
@@ -388,6 +389,10 @@
          (if (string? obj)
             (render-string obj tl)
             (render self obj tl))))
+
+   ;; fixme: O(n) temp string-ref! walk the tree later
+   (define (string-ref str p)
+      (llref (str-iter str) p))
 
 )
 
