@@ -11,7 +11,7 @@
       lfold lfoldr lmap lappend    ; main usage patterns
       lfor liota liter lnums
       lzip ltake llast llen
-      ldrop
+      ldrop llref
       pair tail uncons
       force-ll                ; ll -> list
       subsets permutations    ; usual applications
@@ -187,6 +187,16 @@
          ((pair? l) (ldrop (cdr l) (- n 1)))
          ((null? l) l)
          (else (ldrop (l) n))))
+
+   (define blank '(blank))
+
+   (define (llref ll p)
+      (lets
+         ((ll (ldrop ll p))
+          (val ll (uncons ll blank)))
+         (if (eq? val blank)
+            (error "llref: out of list: " p)
+            val)))
 
    (define (ltake l n) (ltaker l n null))
 
