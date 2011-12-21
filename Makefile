@@ -72,6 +72,13 @@ bin/ol.exe: c/ol.c
 	# tests/run.sh wine bin/ol.exe <- stdio does not work in wine :(
 
 
+## data 
+
+owl/unicode-char-folds.l:
+	echo "(define char-folds '(" > owl/unicode-char-folds.l 
+	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.l 
+	echo "))" >> owl/unicode-char-folds.l
+
 ## meta
 
 doc/ol.1.gz: doc/ol.1

@@ -18,6 +18,8 @@
 ;    run.
 
 ,r "owl/unicode.l"
+,r "owl/unicode-char-folds.l"
+,r "owl/iff.l"
 
 (define-module lib-string
 
@@ -53,9 +55,11 @@
       string>?           ; str str → bool
       string<=?          ; str str → bool
       string>=?          ; str str → bool
+      unicode-fold-char  ; char tail → (char' ... tail)
       render
       )
 
+   (import lib-iff iput iget) ;; for char mappings
    (import lib-unicode)
    (import lib-lazy)
 
@@ -389,6 +393,21 @@
          (if (string? obj)
             (render-string obj tl)
             (render self obj tl))))
+
+   ;; iff of codepoint → codepoint | (codepoint ...), the first being equal to (codepoint)
+   (define char-fold-iff
+      (fold 
+         (λ (iff node) 
+            (if (= (length node) 2) 
+               (iput iff (car node) (cdr node)) 
+               (iput iff (car node) (cdr node))))
+         False char-folds))
+
+   (define (unicode-fold-char codepoint tail)
+      (let ((mapping (iget char-fold-iff codepoint codepoint)))
+         (if (pair? mapping) ;; mapped to a list
+            (append mapping tail)
+            (cons mapping tail)))) ;; self or changed
 
    ;; fixme: O(n) temp string-ref! walk the tree later
    (define (string-ref str p)
