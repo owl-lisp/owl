@@ -915,7 +915,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (export 
       member memq memv 
       assoc assv assq
-      apply)
+      apply rationalize)
 
    ;; scheme member functions don't follow the argument conventions of other functions 
    (define (member x lst)
@@ -957,6 +957,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          (lets ((e l l)) (if (null? l) (func a b c d e)
          (lets ((f l l)) (if (null? l) (func a b c d e f)
             (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
+
+   ;; owl doesn't have inexact numbers, so any argument
+   ;; coming in will always be rational differing by 0
+   (define (rationalize n max-delta) n)
+
 )
 
 ;; Scheme compatibility library 
