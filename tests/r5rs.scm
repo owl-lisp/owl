@@ -318,4 +318,20 @@
       (member (list 'a)
               '(b (a) c))                     ===>  ((a) c)
       (memv 101 '(100 101 102))               ===>  (101 102)
+
+   chapter "6.2.5" ; numerical operations
+
+      (modulo 13 4)                   ===>  1
+      (remainder 13 4)                ===>  1
+
+      (modulo -13 4)                  ===>  3
+      (remainder -13 4)               ===>  -1
+
+      (modulo 13 -4)                  ===>  -3
+      (remainder 13 -4)               ===>  1
+
+      (modulo -13 -4)                 ===>  -1
+      (remainder -13 -4)              ===>  -1
+
+      (remainder -13 -4.0)            ===>  -1.0  ; inexact ;; no it's not --owl
 )

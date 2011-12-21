@@ -23,7 +23,7 @@
       + - * = / 
       << < <= = >= > >>   
       band bor bxor
-      div ediv rem quotrem mod divmod 
+      div ediv rem mod quotrem mod divmod 
       add nat-inc sub mul big-bad-args negate
       even? odd?
       gcd gcdl lcm
@@ -40,7 +40,7 @@
       exact->inexact inexact->exact
       negative? positive?
       denominator numerator
-      remainder
+      remainder modulo
       )
 
    (define (zero? x) (eq? x 0))
@@ -1946,6 +1946,23 @@
             (cons (char-of num) tl))
          (else
             (render-digits num tl base))))
+
+   (define (mod a b)
+      (if (negative? a)
+         (if (negative? b)
+            (remainder a b)
+            (let ((r (remainder a b)))
+               (if (eq? r 0)
+                  r
+                  (+ b r))))
+         (if (negative? b)
+            (let ((r (remainder a b)))
+               (if (eq? r 0)
+                  r
+                  (+ b r)))
+            (remainder a b))))
+
+   (define modulo mod)
 
    (define render
       (λ (self obj tl)
