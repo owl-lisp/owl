@@ -1790,14 +1790,14 @@
    (define (floor n)
       (if (teq? n rat)
          (if (negative? n)
-            (* -1 (floor (* -1 n)))
+            (* -1 (+ 1 (floor (* -1 n))))
             (div (ncar n) (ncdr n)))
          n))
    
    (define (ceiling n)
       (if (teq? n rat)
          (if (negative? n)
-            (* -1 (ceiling (* -1 n)))
+            (* -1 (floor (* -1 n)))
             (+ 1 (floor n)))
          n))
 
