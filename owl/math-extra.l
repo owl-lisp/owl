@@ -20,6 +20,7 @@
       totient divisor-sum divisor-count
       inv-mod mod-solve dlog dlog-simple
       fib
+      exact-integer-sqrt
       )
 
    (import lib-math)
@@ -82,6 +83,7 @@
       (let ((sq (sqrt n)))
          (values sq (sub n (mul sq sq)))))
 
+   (define exact-integer-sqrt isqrt)
 
    ;;; exponentiation
 
