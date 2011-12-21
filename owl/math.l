@@ -26,7 +26,7 @@
       div ediv rem quotrem mod divmod 
       add nat-inc sub mul big-bad-args negate
       even? odd?
-      gcd gcdl
+      gcd gcdl lcm
       min max minl maxl
       quotient quot
       floor ceiling ceil abs
@@ -1407,6 +1407,8 @@
          (else (big-bad-args 'rem a b))))
 
    (define remainder rem)
+   (define quotient div)
+
    ; fixme, only true when the signs are the same, but left here as a placeholder
 
    ;(print "math.scm: fix mod")
@@ -1906,6 +1908,15 @@
    ;   (lmap (λ (i) (lets ((rst n (rand i #x20000))) n)) (lnums 1))
    ;   (λ (n) (log 2 n))
    ;   (λ (n) (log2 n)))
+
+   ; note: it is safe to use div, which is faster for bignums, because by definition
+   ; the product is divisble by the gcd. also, gcd 0 0 is not safe, but since (lcm 
+   ; a a) == a, handlin this special case and and a small optimization overlap nicely.
+
+   (define (lcm a b) 
+      (if (eq? a b)
+         a
+         (div (abs (* a b)) (gcd a b))))
 
 
    ;;;
