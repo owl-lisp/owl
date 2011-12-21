@@ -41,6 +41,7 @@
       negative? positive?
       denominator numerator
       remainder modulo
+      truncate round
       )
 
    (define (zero? x) (eq? x 0))
@@ -1787,20 +1788,6 @@
    ;;; Basic math extra stuff
    ;;;
 
-   (define (floor n)
-      (if (teq? n rat)
-         (if (negative? n)
-            (* -1 (+ 1 (floor (* -1 n))))
-            (div (ncar n) (ncdr n)))
-         n))
-   
-   (define (ceiling n)
-      (if (teq? n rat)
-         (if (negative? n)
-            (* -1 (floor (* -1 n)))
-            (+ 1 (floor n)))
-         n))
-
    (define (abs n)
       (type-case n
          (fix+ n)
@@ -1809,6 +1796,40 @@
          (int- (ncons (ncar n) (ncdr n)))
          (rat (if (negative? n) (- 0 n) n))
          (else (error "bad math: " (list 'abs n)))))
+
+   (define (floor n)
+      (if (teq? n rat)
+         (lets ((a b n))
+            (if (negative? a)
+               (negate (nat-inc (div (abs a) b)))
+               (div a b)))
+         n))
+   
+   (define (ceiling n)
+      (if (teq? n rat)
+         (lets ((a b n))
+            (if (negative? a)
+               (div a b)
+               (nat-inc (floor n))))
+         n))
+
+   (define (truncate n)
+      (if (teq? n rat)
+         (lets ((a b n))
+            (if (negative? a)
+               (negate (div (negate a) b))
+               (div a b)))
+         n))
+
+   (define (round n)
+      (if (teq? n rat)
+         (lets ((a b n))
+            (if (eq? b 2)
+               (if (negative? a)
+                  (>> (- a 1) 1)
+                  (>> (nat-inc a) 1))
+               (div a b)))
+         n))
 
    (define (sum l) (fold + (car l) (cdr l)))
    (define (product l) (fold * (car l) (cdr l)))

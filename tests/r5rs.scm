@@ -39,11 +39,17 @@
       (lambda (y) (+ x y))))
 
 (compare-results
+
    chapter "1.3.4" 
+
       (* 5 8)           ===> 40
+
    chapter "4.1.1"
+
       x                 ===> 28
+
    chapter "4.1.2"
+
       (quote a)         ===>  a
       (quote #(a b c))  ===>  #(a b c)
       (quote (+ 1 2))   ===>  (+ 1 2)
@@ -59,20 +65,28 @@
       145932            ===>  145932
       '#t               ===>  #t
       #t                ===>  #t
+
    chapter "4.1.3"
+
       (+ 3 4)           ===>  7
       ((if #f + *) 3 4) ===>  12
+
    chapter "4.1.4"
+
       ((lambda (x) (+ x x)) 4)        ===>  8
       (reverse-subtract 7 10)         ===>  3
       (add4 6)                        ===>  10
+
    chapter "4.1.5"
+
       (if (> 3 2) 'yes 'no)           ===>  yes
       (if (> 2 3) 'yes 'no)           ===>  no
       (if (> 3 2)
          (- 3 2)
          (+ 3 2))                     ===>  1
+
    chapter "4.2.1" 
+
       (cond 
          ((> 3 2) 'greater)
          ((< 3 2) 'less))             ===>  greater
@@ -106,6 +120,7 @@
           (/ 3 0))                    ===>  (b c)
 
    chapter "4.2.2"
+
       (let ((x 2) (y 3))
         (* x y))                      ===>  6
 
@@ -124,6 +139,7 @@
          (even? 88))                          ===>  #t
 
    chapter "4.2.4"
+
       (let ((x '(1 3 5 7 9)))
          (do 
             ((x x (cdr x)) (sum 0 (+ sum (car x)))) 
@@ -144,6 +160,7 @@
                                               ===>  ((6 1 3) (-5 -2))
 
    chapter "4.2.6"
+
       `(list ,(+ 1 2) 4)                                ===>  (list 3 4)
       (let ((name 'a)) `(list ,name ',name))            ===>  (list a (quote a))
       `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)             ===>  (a 3 4 5 6 b)
@@ -158,16 +175,20 @@
       (quasiquote (list (unquote (+ 1 2)) 4))           ===>  (list 3 4)
       '(quasiquote (list (unquote (+ 1 2)) 4))          ===>  `(list ,(+ 1 2) 4)
 
-   chapter "4.3.2" ;; FIXME let(rec)-syntax not yet supported
-      ;(let ((=> #f)) (cond (#t => 'ok)))                ===> ok ;; FIXME
+   chapter "4.3.2"
+
+      ;; FIXME no let*-syntax
+      ;(let ((=> #f)) (cond (#t => 'ok)))                ===> ok ;; FIXME behaves wrong
 
    chapter "5.2.2"
+
       (let ((x 5))
         (define foo (lambda (y) (bar x y)))
         (define bar (lambda (a b) (+ (* a b) a)))
         (foo (+ x 3)))                ===>  45
 
    chapter "6.1" 
+
       (eqv? 'a 'a)                    ===>  #t
       (eqv? 'a 'b)                    ===>  #f
       (eqv? 2 2)                      ===>  #t
@@ -204,13 +225,14 @@
               '(a (b) c))             ===>  #t
       (equal? "abc" "abc")            ===>  #t
       (equal? 2 2)                    ===>  #t
-      ;(equal? (make-vector 5 'a) (make-vector 5 'a))             ===>  #t ;; TODO make-vector not there
+      ;(equal? (make-vector 5 'a) 
+      ;   (make-vector 5 'a))         ===>  #t ;; TODO make-vector not there
 
       ;(complex? 3+4i)                ===>  #t
       (complex? 3)                    ===>  #t
       (real? 3)                       ===>  #t
       ;(real? -2.5+0.0i)              ===>  #t
-      ;(real? #e1e10)                 ===>  #t ;; <- mental parser fails also
+      ;(real? #e1e10)                 ===>  #t ;; FIXME: unsupported number syntax
       (rational? 6/10)                ===>  #t
       (rational? 6/3)                 ===>  #t
       ;(integer? 3+0i)                ===>  #t
@@ -252,18 +274,19 @@
 
       (floor -4.3)                    ===>  -5.0
       (ceiling -4.3)                  ===>  -4.0
-      ;(truncate -4.3)                ===>  -4.0
+      (truncate -4.3)                ===>  -4.0
       ;(round -4.3)                   ===>  -4.0
 
       (floor 3.5)                     ===>  3.0
       (ceiling 3.5)                   ===>  4.0
-      ;(truncate 3.5)                 ===>  3.0
+      (truncate 3.5)                 ===>  3.0
       ;(round 3.5)                    ===>  4.0  ; inexact
 
       ;(round 7/2)                    ===>  4    ; exact
       ;(round 7)                      ===>  7
 
    chapter "6.3.1"
+
       (not #t)                        ===>  #f
       (not 3)                         ===>  #f
       (not (list 3))                  ===>  #f
@@ -277,6 +300,7 @@
       (boolean? '())                  ===>  #f
 
    chapter "6.3.2"
+
       (pair? '(a . b))                ===>  #t
       (pair? '(a b c))                ===>  #t
       (pair? '())                     ===>  #f
