@@ -55,6 +55,10 @@
       string>?           ; str str → bool
       string<=?          ; str str → bool
       string>=?          ; str str → bool
+      string-ci<?        ; str str → bool
+      string-ci>?        ; str str → bool
+      string-ci<=?       ; str str → bool
+      string-ci>=?       ; str str → bool
       unicode-fold-char  ; char tail → (char' ... tail)
       render
       )
@@ -371,8 +375,8 @@
 
    ;; lexicographic comparison with end of string < lowest code point
    ;; 1 = sa smaller, 2 = equal, 3 = sb smaller
-   (define (str-compare sa sb)
-      (let loop ((la (str-iter sa)) (lb (str-iter sb)))
+   (define (str-compare cook sa sb)
+      (let loop ((la (cook (str-iter sa))) (lb (cook (str-iter sb))))
          (lets 
             ((a la (uncons la F))
              (b lb (uncons lb F)))
@@ -383,11 +387,6 @@
                ((eq? a b) (loop la lb))
                (else 3)))))
 
-   (define (string<? a b)       (eq? 1 (str-compare a b)))
-   (define (string<=? a b) (not (eq? 3 (str-compare a b))))
-   (define (string>? a b)       (eq? 3 (str-compare a b)))
-   (define (string>=? a b) (not (eq? 1 (str-compare a b))))
-                  
    (define render
       (lambda (self obj tl)
          (if (string? obj)
@@ -412,6 +411,28 @@
    ;; fixme: O(n) temp string-ref! walk the tree later
    (define (string-ref str p)
       (llref (str-iter str) p))
+
+   (define (downcase ll)
+      (lets 
+         ((cp ol (uncons ll F))
+          (cpp (iget char-fold-iff cp cp)))
+         (cond
+            ((not cp) ;; end of data
+               null)
+            ((pair? cp) ;; mapped to several code points
+               (append cp (downcase ll)))
+            (else ;; no change or mapped to 1 code point
+               (pair cp (downcase ll))))))
+
+   (define (string<? a b)       (eq? 1 (str-compare i a b)))
+   (define (string<=? a b) (not (eq? 3 (str-compare i a b))))
+   (define (string>? a b)       (eq? 3 (str-compare i a b)))
+   (define (string>=? a b) (not (eq? 1 (str-compare i a b))))
+
+   (define (string-ci<? a b)       (eq? 1 (str-compare downcase a b)))
+   (define (string-ci<=? a b) (not (eq? 3 (str-compare downcase a b))))
+   (define (string-ci>? a b)       (eq? 3 (str-compare downcase a b)))
+   (define (string-ci>=? a b) (not (eq? 1 (str-compare downcase a b))))
 
 )
 
