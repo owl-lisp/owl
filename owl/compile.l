@@ -378,6 +378,7 @@
 
    (define bad-arity "Bad arity: ")
 
+   ; rator nargs → better call opcode | False = no better known option, just call | throw error if bad function or arity
    (define (rtl-pick-call rator nargs)
       (tuple-case rator
          ((value rator)
@@ -395,8 +396,10 @@
                   (if (= n nargs) 'goto-clos 
                      (error bad-arity 
                         (list rator 'wanted (- n 1) 'got (- nargs 1)))))
-               (else is foo
-                  (error "Bad operator: " rator))))
+               (else
+                  (if (or (not rator) (ff? rator)) ;; finite functions are also applicable
+                     False
+                     (error "Bad operator: " rator)))))
          (else False)))
 
    (define (rtl-call regs rator rands)

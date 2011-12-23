@@ -122,7 +122,7 @@ static word *fp;
 #define INULL  10
 #define IFALSE 18
 #define ITRUE 274
-#define IHALT  10 /* null, convert to a new immediate later */
+#define IHALT  10 /* FIXME: adde a distinct IHALT */ 
 #define TEXEC    0
 #define TPAIR    1
 #define TTUPLE   2
@@ -577,6 +577,23 @@ static word prim_less(word a, word b) {
    return((a < b) ? ITRUE : IFALSE);
 }
 
+static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid */
+   while((word) ff != IFALSE) { /* ff = [header key value [maybe left] [maybe right]] */
+      word this = ff[1], hdr;
+      if (this == key) 
+         return(ff[2]);
+      hdr = *ff;
+      if (prim_less(key, this) == ITRUE) {
+         ff = (word *) ((hdr & (FFLEFT << 3)) ? ff[3] : IFALSE); /* left branch always at 3, if any */
+      } else if (hdr & (FFRIGHT << 3)) {
+         ff = (word *) ((hdr & (FFLEFT << 3)) ? ff[4] : ff[3]); /* right pos depends on if there is a left branch */
+      } else {
+         return(def);
+      }
+   }
+   return(def);
+}
+
 static word prim_cast(word *ob, int type) {
    if (immediatep((word)ob)) {
       return(make_immediate(imm_val((word)ob), type));
@@ -908,6 +925,12 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } else if (hdr == 518) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
+      } else if ((hdr&255) == 70) { /* ff of any color, (<ff> key def) -> val */
+         word *cont = (word *) R[3];
+         R[3] = prim_get(ob, R[4], R[5]); 
+         ob = cont;
+         acc = 1;
+         goto apply;
       } else if ((hdr & 2303) != 2054) { /* not even code */
          error(259, ob, INULL);
       } 
@@ -916,6 +939,11 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       if (likely(*ip++ == acc)) goto invoke;
       ip--;
       error(256, fixnum(*ip), ob);
+   } else if ((word)ob == IFALSE && acc == 3) { /* ff application: (False key def) -> def */
+      ob = (word *) R[3]; /* call cont */
+      R[3] = R[5]; /* default arg */
+      acc = 1;
+      goto apply;
    } else if ((word)ob == IHALT) {
       /* a tread or mcp is calling the final continuation  */
       ob = (word *) R[0];
