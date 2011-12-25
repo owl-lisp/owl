@@ -37,6 +37,7 @@
 (define add4
   (let ((x 4))
       (lambda (y) (+ x y))))
+(define e '((a 1) (b 2) (c 3)))                                                                                                                             
 
 (compare-results
 
@@ -187,6 +188,7 @@
         (define bar (lambda (a b) (+ (* a b) a)))
         (foo (+ x 3)))                ===>  45
 
+
    chapter "6.1" 
 
       (eqv? 'a 'a)                    ===>  #t
@@ -228,6 +230,8 @@
       ;(equal? (make-vector 5 'a) 
       ;   (make-vector 5 'a))         ===>  #t ;; TODO make-vector not there
 
+   chapter "6.2.5"
+                                                                                                                                                  
       ;(complex? 3+4i)                ===>  #t
       (complex? 3)                    ===>  #t
       (real? 3)                       ===>  #t
@@ -274,16 +278,25 @@
 
       (floor -4.3)                    ===>  -5.0
       (ceiling -4.3)                  ===>  -4.0
-      (truncate -4.3)                ===>  -4.0
-      ;(round -4.3)                   ===>  -4.0
-
+      (truncate -4.3)                 ===>  -4.0
+      (round -4.3)                    ===>  -4.0
       (floor 3.5)                     ===>  3.0
       (ceiling 3.5)                   ===>  4.0
-      (truncate 3.5)                 ===>  3.0
-      ;(round 3.5)                    ===>  4.0  ; inexact
+      (truncate 3.5)                  ===>  3.0
+      (round 3.5)                     ===>  4.0  ; inexact ;; no it's not --owl
+      (round 7/2)                     ===>  4    ; exact
+      (round 7)                       ===>  7
 
-      ;(round 7/2)                    ===>  4    ; exact
-      ;(round 7)                      ===>  7
+      ;; additions
+      ;(sqrt (expt 11111111111 2))     ===> 11111111111
+      (expt 0 0)                      ===> 1
+      (expt 0 1)                      ===> 0
+      (number->string 3333333333333333 2) ===> "1011110101111010011000100101010000000101010101010101"
+      (number->string 3333333333333333 3) ===> "121012010100112222020212022011210"
+      (number->string 3333333333333333 11) ===> "886114800933a20"
+      (number->string 3333333333333333 16) ===> "bd7a625405555"
+   
+      ;; FIXME string->number is different from R5RS
 
    chapter "6.3.1"
 
@@ -345,19 +358,38 @@
               '(b (a) c))             ===>  ((a) c)
       (memv 101 '(100 101 102))       ===>  (101 102)
 
-   chapter "6.2.5" ; numerical operations
+      (assq 'a e)             ===>  (a 1)
+      (assq 'b e)             ===>  (b 2)
+      (assq 'd e)             ===>  #f
+      (assq (list 'a) '(((a)) ((b)) ((c))))
+                              ===>  #f                                                                                                                            
+      (assoc (list 'a) '(((a)) ((b)) ((c))))
+                                         ===>  ((a))                                                                                                              
+      (assv 5 '((2 3) (5 7) (11 13)))
+                                      ===>  (5 7)                    
 
-      (modulo 13 4)                   ===>  1
-      (remainder 13 4)                ===>  1
+   chapter "6.3.3"
+                                                                                                                                                            
+   (symbol? 'foo)                  ===>  #t                                                                                                                    
+   (symbol? (car '(a b)))          ===>  #t                                                                                                                    
+   (symbol? "bar")                 ===>  #f                                                                                                                    
+   (symbol? 'nil)                  ===>  #t                                                                                                                    
+   (symbol? '())                   ===>  #f                                                                                                                    
+   (symbol? #f)             ===>  #f                   
 
-      (modulo -13 4)                  ===>  3
-      (remainder -13 4)               ===>  -1
+   (symbol->string 'flying-fish) ===>  "flying-fish"
+   (symbol->string 'martin) ===>  "martin"                  ;; note, not 'Martin
+   (symbol->string (string->symbol "Malvina")) ===> "Malvina"
 
-      (modulo 13 -4)                  ===>  -3
-      (remainder 13 -4)               ===>  1
+   ; chapter "6.3.5" ;; FIXME char comparisons not mapped to ints
+   chapter "6.3.6"
+      (vector->list '#(dah dah didah)) ===>  (dah dah didah) 
+      (list->vector '(dididit dah)) ===>  #(dididit dah)
+   chapter "6.4"
 
-      (modulo -13 -4)                 ===>  -1
-      (remainder -13 -4)              ===>  -1
-
-      (remainder -13 -4.0)            ===>  -1.0  ; inexact ;; no it's not --owl
+   (map cadr '((a b) (d e) (g h)))                                                                                                                             
+                   ===>  (b e h)                                                                                                                               
+   (map (lambda (n) (expt n n))                                                                                                                                
+        '(1 2 3 4 5))                                                                                                                                          
+                   ===>  (1 4 27 256 3125)                                                  
 )

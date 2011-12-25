@@ -225,8 +225,8 @@
 
 (import lib-string)
 
-(define (number->string n)
-   (list->string (render render n null)))
+(define (number->string n base)
+   (list->string (render-number n null base)))
 
 (define (fopen path mode)
    (syscall 7 (c-string path) mode))

@@ -12,7 +12,9 @@
 (define-module lib-math-extra
 
    (export 
-      isqrt sqrt
+      exact-integer-sqrt ;; n → m r, m^2 + r = n
+      isqrt              ;; n → (floor (sqrt n))
+      sqrt               ;; n → m, m^2 = n
       expt expt-mod
       ncr npr 
       ! factor prime?
@@ -20,7 +22,6 @@
       totient divisor-sum divisor-count
       inv-mod mod-solve dlog dlog-simple
       fib
-      exact-integer-sqrt
       )
 
    (import lib-math)
@@ -69,21 +70,27 @@
                (isqrt-fix this (>> bit 1) n)))))
 
    ; largest m where m^2 <= n
-   (define (sqrt n)
+   (define (isqrt n)
       (cond
-         ((teq? n fix-) (sub 0 (sqrt (sub 0 n))))
-         ((teq? n int-) (sub 0 (sqrt (sub 0 n))))
+         ((teq? n fix-) (sub 0 (isqrt (sub 0 n))))
+         ((teq? n int-) (sub 0 (isqrt (sub 0 n))))
          ((eq? n 0) 0)
          ((eq? n 1) 1)
          (else
             (let ((hi (isqrt-init n)))
                (isqrt-fix hi (>> hi 1) n)))))
 
-   (define (isqrt n)
-      (let ((sq (sqrt n)))
+   (define (exact-integer-sqrt n)
+      (let ((sq (isqrt n)))
          (values sq (sub n (mul sq sq)))))
 
-   (define exact-integer-sqrt isqrt)
+   ;; sqrt n → m such that m^2 = n 
+   ;; fixme: finish sqrt after adding complex numbers
+   (define (sqrt n)
+      (lets ((m r (exact-integer-sqrt n)))
+         (if (eq? r 0)
+            m
+            (error "sqrt: not square and no imaginary numbers yet: " n))))
 
    ;;; exponentiation
 
@@ -235,7 +242,7 @@
 
    ; later apply the knowledge about limits
    (define (atkin-candidates lo max)
-      (let ((lim (sqrt max)))
+      (let ((lim (isqrt max)))
          (let loox ((store False) (x 1))
             (if (> x lim)
                store
@@ -330,12 +337,12 @@
          pows))
 
    (define (atkin-factor-driver pows lo)
-      (let ((max (min (<< lo 1) (sqrt (car pows)))))
+      (let ((max (min (<< lo 1) (isqrt (car pows)))))
          (let ((pows (factor-atkin-between lo max pows)))
             (cond
                ((eq? (car pows) 1)   
                   (cdr pows))
-               ((>= max (sqrt (car pows)))
+               ((>= max (isqrt (car pows)))
                   (cons (cons (car pows) 1) (cdr pows)))
                (else
                   (atkin-factor-driver pows  max))))))
@@ -499,7 +506,7 @@
    ;; todo: use incremental construction and an iff to check for matches
 
    (define (sqrt-ceil n)
-      (let ((s (sqrt n)))
+      (let ((s (isqrt n)))
          (if (< (* s s) n)
             (+ s 1)
             s)))

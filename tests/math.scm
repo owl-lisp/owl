@@ -168,10 +168,10 @@
 		;	(lambda (a b)
 		;		(let ((ai (inv-mod a b)))
 		;			(if ai (= (rem (* a ai) b) 1) True))))
-		(tuple 'unary nat-nz 'sqrt-ok
+		(tuple 'unary nat-nz 'isqrt-ok
 			(lambda (a)
 				(if (eq? a 1) True
-					(= a (sqrt (* a a))))))
+					(= a (isqrt (* a a))))))
 		(tuple 'trinary rat rat rat 'add-assoc
 			(lambda (a b c)
 				(= (+ (+ a b) c) (+ a (+ b c)))))

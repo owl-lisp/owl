@@ -51,6 +51,7 @@
       string-copy        ; id
       substring          ; str start end → str'
       string-ref         ; str pos → char | error
+      string=            ; str str → bool
       string<?           ; str str → bool
       string>?           ; str str → bool
       string<=?          ; str str → bool
@@ -423,6 +424,8 @@
                (append cp (downcase ll)))
             (else ;; no change or mapped to 1 code point
                (pair cp (downcase ll))))))
+
+   (define string= string-eq?)
 
    (define (string<? a b)       (eq? 1 (str-compare i a b)))
    (define (string<=? a b) (not (eq? 3 (str-compare i a b))))
