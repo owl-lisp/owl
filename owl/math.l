@@ -42,6 +42,7 @@
       denominator numerator
       remainder modulo
       truncate round
+      rational complex
       )
 
    (define (zero? x) (eq? x 0))
@@ -184,10 +185,13 @@
       (type-case a
          (fix+ True)
          (fix- True)
-         (int+ True)
-         (int- True)
-         (rat  True)
-         (else False)))
+         ;(int+ True)
+         ;(int- True)
+         ;(rat  True)
+         ;(comp True)
+         (else 
+            ;; major type 9, being all non-fixnum numbers
+            (eq? 72 (fxband (type a) 248)))))
 
    (define (integer? a)
       (type-case a
@@ -1544,99 +1548,7 @@
             
    (define (gcdl ls) (fold gcd (car ls) (cdr ls)))
 
-   ;;; 
-   ;;; base math mini-tests 
-   ;;;
 
-;   (import lib-test)
-;   (import lib-lazy)
-;   (import lib-random)
-;
-;   ; should interleave several types in addition to these  (a x a-1, a x b, a x (a >> 16), ...)
-;   (define test-nums ; a x b, a > b, both bignums, as number of bits growing increasingly fast
-;      (lzip 
-;         (lambda (rst n) 
-;            (lets 
-;               ((rst v (rand-nbit rst n))
-;                (rst m (rand rst n))
-;                (m n)
-;                ;(rst m (rand rst n))
-;                (rst w (rand-nbit rst (max 17 m))))
-;               (cons (list "nbits " n " and " m) (cons v w))))
-;         (liter rand-succ (lets ((a b (clock))) (* a b)))
-;         (lmap (lambda (n) (floor (* n (* n 0.05)))) (lnums 20))))
-;
-;   ;(define test-nums ; a x b, a > b, both bignums, number of bits in a increasing linearly
-;   ;   (lzip 
-;   ;      (lambda (rst n) 
-;   ;         (lets 
-;   ;            ((rst v (rand-nbit rst n))
-;   ;             (rst m (rand rst n))
-;   ;             (rst w (rand-nbit rst (max 17 m))))
-;   ;            (cons (list "nbits " n " and " m) (cons v w))))
-;   ;      (liter rand-succ (lets ((a b (clock))) (* a b)))
-;   ;      (lnums 20)))
-;
-;   ;; gcd comparison, shifty usually better (though something funny happened in (gcd n (ncdr n)), with n = 3^lots)
-;   (compare test-nums
-;      (lambda (n) (lets ((a b n)) (gcd-shifty a b)))
-;      (lambda (n) (lets ((a b n)) (gcd-euclid a b))))
-;
-;   ;; remainder test, plain rem usually better
-;   '(compare test-nums
-;      (lambda (n) (lets ((a b n)) (nat-rem a b)))
-;      (lambda (n) (lets ((a b n) (q r (nat-quotrem a b))) r))
-;      )
-;
-;   ;; alternative remainder test, reverse better when b has less bits
-;   (compare test-nums
-;      (lambda (n) (lets ((a b n)) (nat-rem-reverse a b)))
-;      (lambda (n) (lets ((a b n)) (nat-rem-simple a b)))
-;      )
-;
-;   ;; division quotient test, ediv now better due to new nat-rem
-;   (compare test-nums
-;      (lambda (n) (lets ((a b n)) (div-big-exact a b)))
-;      (lambda (n) (lets ((a b n)) (div-big-qr    a b)))
-;      )
-;
-;   ;; multiplication test, mul-simple being surprisingly close...
-;   (compare test-nums
-;      (lambda (n) (lets ((a b n)) (kara a b)))
-;      (lambda (n) (lets ((a b n)) (mul-simple a b)))
-;      )
-;
-;   (import lib-bisect bisect)
-;
-;   (define (bits-in d)
-;      (let loop ((d d) (n 0))
-;         (cond
-;            ((eq? d 0) n)
-;            (else
-;               (loop (>> d 1) (add n 1))))))
-;
-;   (define (nbits n)
-;      (let loop ((n n) (b 0))
-;         (lets ((d n n))
-;            (if (null? n)
-;               (add b (bits-in d))
-;               (loop n (add b 16))))))
-;
-;   (define (divide a b) ; curiously this is better than current division when both number are equally big
-;      (if (> a b)
-;         (lets ((na (nbits a)) (nb (nbits b)) (nc (- na nb)))
-;            (- 
-;               (bisect (lambda (q) (> (* q b) a))
-;                  (<< 1 (max 0 (- nc 2))) 
-;                  (<< 1 (+ nc 2)))
-;               1))
-;         0))
-;
-;   (compare test-nums
-;      (lambda (n) (lets ((a b n)) (divide a b)))
-;      (lambda (n) (lets ((a b n)) (div a b)))
-;      )
-;
    ;;;
    ;;; RATIONALS and COMPLEX (stub)
    ;;;
@@ -1740,6 +1652,7 @@
                (else
                   ; should also have bignum branch here
                   (+ b a))))
+         ;; todo: bignum branches also here
          ((teq? a rat)
             (if (teq? b rat)
                ; a'/a" + b'/b" = a'b" + b'a" / a"b"
@@ -1756,8 +1669,21 @@
          ((teq? b rat)
             ; a + b'/b'' = (ab" + b')/b"
             (divide (add (mul a (ncdr b)) (ncar b)) (ncdr b)))
-         ;((teq? a comp) (big-unimplemented '+ a b))
-         ;((teq? b comp) (big-unimplemented '+ a b))
+         ((teq? a comp)
+            (if (teq? b comp)
+               ;; A+ai + B+bi = A+B + (a+b)i
+               (lets 
+                  ((ar ai a)
+                   (br bi b)
+                   (r (+ ar br))
+                   (i (+ ai bi)))
+                  (if (eq? i 0) r (complex r i)))
+               (lets
+                  ((ar ai a))
+                  (complex (+ ar b) ai))))
+         ((teq? b comp)
+            (lets ((br bi b))
+               (complex (+ br a) bi)))
          (else 
             (add a b))))
 
@@ -1960,6 +1886,12 @@
                (cons 47
                   (render-number (ref num 2) tl base))
                base))
+         ((teq? num comp)
+            (lets ((real imag num))
+               (render-number real 
+                  (cons #\+ 
+                     (render-number imag (cons #\i tl) base))
+                  base)))
          ((< num 0)
             (cons 45
                (render-number (- 0 num) tl base)))

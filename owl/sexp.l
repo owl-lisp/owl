@@ -2,6 +2,7 @@
 ;   - switch get-byte and related ops to get-rune once it is in parse.scm
 
 ,r "owl/regex.l"
+,r "owl/intern.l"
 
 (define-module lib-sexp
    
@@ -123,7 +124,7 @@
          (sign (* (+ num tail) pow))))
 
    ;; anything up to a rational
-   (define get-number
+   (define get-rational
       (let-parses
          ((n get-number-unit)
           (m (get-either
@@ -135,6 +136,23 @@
                (get-epsilon 1))))
          (/ n m)))
 
+   (define get-imaginary-part
+      (let-parses
+         ((sign (get-either (get-imm #\+) (get-imm #\-)))
+          (imag get-rational)
+          (skip (get-imm #\i)))
+         (if (eq? sign #\+)
+            imag
+            (- 0 imag))))
+
+   (define get-number
+      (let-parses
+         ((real get-rational) ;; typically this is it
+          (imag (get-either get-imaginary-part (get-epsilon 0))))
+         (if (eq? imag 0)
+            real
+            (complex real imag))))
+           
    (define get-rest-of-line
       (let-parses
          ((chars (get-kleene* (get-byte-if (lambda (x) (not (eq? x 10))))))
