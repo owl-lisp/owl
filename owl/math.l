@@ -439,31 +439,30 @@
                (fix- (sub-small->pick-sign a b))         ;; +a + -b -> +c | -c, underflow determines sign
                (int+ (add-number-big a b))               ;; +a + +B -> +C
                (int-   (sub-number-big a b True))         ;; +a + -B -> -c | -C
-               (else (big-bad-args '+ a b))))
+               (else (big-bad-args 'add a b))))
          (fix-
             (type-case b
                (fix+ (sub-small->pick-sign b a))         ;; -a + +b == +b + -a -> as above (no need to recurse)
                (fix- (add-small->negative a b))         ;; -a + -b -> -c | -C
                (int+ (sub-big-number b a True))            ;; -a + +B == +B - +a -> sub-big-number 
-               ;;; FIXME is C quaranteed to be fresh?
                (int- (cast (add-number-big a b) 41))   ;; -a + -B == -C == -(a + B)   
-               (else (big-bad-args '+ a b))))
+               (else (big-bad-args 'add a b))))
          (int+
             (type-case b
                (fix+ (add-number-big b a))               ;; +A + +b -> +C
                (fix- (sub-big-number a b True))            ;; +A + -b == -b + +A -> as above
                (int+ (add-big a b False))                  ;; +A + +B == +C
                (int- (sub-big a b))                     ;; +A + -B == +c | -c | +C | -C
-               (else (big-bad-args '+ a b))))
+               (else (big-bad-args 'add a b))))
          (int-
             (type-case b
                (fix+ (sub-number-big b a True))            ;; -A + +b == +b + -A -> as above
                (fix- (cast (add-number-big b a) 41))      ;; -A + -b == -b + -A = -C -> as above
                (int+ (sub-big b a))                     ;; -A + +B == +B + -A -> as above
                (int- (cast (add-big a b False) 41))      ;; -A + -B == -(A + B)
-               (else (big-bad-args '+ a b))))
+               (else (big-bad-args 'add a b))))
          (else 
-            (big-bad-args '+ a b))))
+            (big-bad-args 'add a b))))
 
    ; substraction is just just opencoded (+ a (negate b))
 
@@ -1616,11 +1615,81 @@
    ;;; Generic arithmetic routines
    ;;;
 
-
+   ;; generic addition, switching from most common type (?) to more complex ones (no pun untended)
 
    (define (+ a b)
-      (cond
-         ((teq? a comp)
+      (type-case a
+         (fix+ 
+            (type-case b
+               (fix+  (add-small->positive a b))
+               (int+  (add-number-big a b))
+               (fix-  (sub-small->pick-sign a b))
+               (int-  (sub-number-big a b True))
+               (rat   ;; a + x/z = (x+az)/z
+                  (lets ((x z b))
+                     (divide (add (mul a z) x) z)))
+               (comp  ;; a + x+yi = (a+x) + yi
+                  (lets ((x y b))
+                     (complex (+ a x) y)))
+               (else (big-bad-args '+ a b))))
+         (int+
+            (type-case b
+               (fix+ (add-number-big b a))
+               (int+ (add-big a b False))
+               (fix- (sub-big-number a b True))
+               (int- (sub-big a b))
+               (rat   ;; a + x/z = (x+az)/z
+                  (lets ((x z b))
+                     (divide (add (mul a z) x) z)))
+               (comp  ;; -a + x+yi = (-a+x) + yi
+                  (lets ((x y b))
+                     (complex (+ a x) y)))
+               (else (big-bad-args '+ a b))))
+         (fix-
+            (type-case b
+               (fix+ (sub-small->pick-sign b a))
+               (fix- (add-small->negative a b))
+               (int+ (sub-big-number b a True))
+               (int- (cast (add-number-big a b) 41))
+               (rat   ;; -a + x/z = (x+(-a)z)/z
+                  (lets ((x z b))
+                     (divide (add (mul a z) x) z)))
+               (comp  ;; -a + x+yi = (-a+x) + yi
+                  (lets ((x y b))
+                     (complex (+ a x) y)))
+               (else (big-bad-args '+ a b))))
+         (int-
+            (type-case b
+               (fix+ (sub-number-big b a True))
+               (fix- (cast (add-number-big b a) 41))
+               (int+ (sub-big b a))
+               (int- (cast (add-big a b False) 41))
+               (rat   ;; a + x/z = (x+az)/z
+                  (lets ((x z b))
+                     (divide (add (mul a z) x) z)))
+               (comp  ;; -a + x+yi = (-a+x) + yi
+                  (lets ((x y b))
+                     (complex (+ a x) y)))
+               (else (big-bad-args '+ a b))))
+         (rat 
+            (type-case b
+               (rat
+                  ; a'/a" + b'/b" = a'b" + b'a" / a"b"
+                  (let ((ad (ncdr a)) (bd (ncdr b)))
+                     (if (eq? ad bd)   
+                        ; a/x + b/x = (a+b)/x, x within fixnum range
+                        (divide (add (ncar a) (ncar b)) ad)
+                        (let ((an (ncar a)) (bn (ncar b)))   
+                           (divide 
+                              (add (mul an bd) (mul bn ad))
+                              (mul ad bd))))))
+               (comp
+                  (lets ((br bi b))
+                     (complex (+ a br) bi)))
+               (else
+                  ; a'/a" + b = (a'+ba")/a"
+                  (divide (add (ncar a) (mul b (ncdr a))) (ncdr a)))))
+         (comp
             (if (teq? b comp)
                ;; A+ai + B+bi = A+B + (a+b)i
                (lets 
@@ -1632,38 +1701,8 @@
                (lets
                   ((ar ai a))
                   (complex (+ ar b) ai))))
-         ((teq? b comp)
-            (lets ((br bi b))
-               (complex (+ br a) bi)))
-         ;; a short branch for the most common case
-         ((teq? b fix+)
-            (cond
-               ((teq? a fix+)
-                  (add-small->positive a b))
-               ((teq? a int+)
-                  (add-number-big b a))
-               (else
-                  ; should also have bignum branch here
-                  (+ b a))))
-         ;; todo: bignum branches also here
-         ((teq? a rat)
-            (if (teq? b rat)
-               ; a'/a" + b'/b" = a'b" + b'a" / a"b"
-               (let ((ad (ncdr a)) (bd (ncdr b)))
-                  (if (eq? ad bd)   
-                     ; a/x + b/x = (a+b)/x, x within fixnum range
-                     (divide (add (ncar a) (ncar b)) ad)
-                     (let ((an (ncar a)) (bn (ncar b)))   
-                        (divide 
-                           (add (mul an bd) (mul bn ad))
-                           (mul ad bd)))))
-               ; a'/a" + b = (a'+ba")/a"
-               (divide (add (ncar a) (mul b (ncdr a))) (ncdr a))))
-         ((teq? b rat)
-            ; a + b'/b'' = (ab" + b')/b"
-            (divide (add (mul a (ncdr b)) (ncar b)) (ncdr b)))
          (else 
-            (add a b))))
+            (big-bad-args '+ a b))))
 
    ;; fixme: substraction lacks short circuits
    (define (- a b)
@@ -2003,6 +2042,43 @@
          (if (number? obj) 
             (render-number obj tl 10)
             (render self obj tl))))
+
+
+
+   ;;; 
+   ;;; Minitest for core ops
+   ;;; 
+
+;   (define end 7000)
+;
+;   (define (try op)
+;      (let loop ((a 1) (b 1))
+;         (if (eq? a end)
+;            (if (eq? b end)
+;               b
+;               (lets ((b _ (fx+ b 1)))
+;                  (loop 1 b)))
+;            (lets
+;               ((res (op a b))
+;                (a _ (fx+ a 1)))
+;               (loop a b)))))
+;
+;   (define (try-fixnum op)
+;      (lets
+;         ((start (time-ms))
+;          (val (try op))
+;          (elapsed (- (time-ms) start)))
+;         (print (list 'fixmath op 'took elapsed))))
+;
+;   (print "starting tests")
+;
+;   (define (nothing a b) a)
+;
+;   (try-fixnum add)
+;   (try-fixnum nothing)
+;   (try-fixnum +)
+;   (try-fixnum -)
+;   (try-fixnum *)
 
 )
 
