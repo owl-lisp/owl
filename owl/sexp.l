@@ -139,7 +139,7 @@
    (define get-imaginary-part
       (let-parses
          ((sign (get-either (get-imm #\+) (get-imm #\-)))
-          (imag get-rational)
+          (imag (get-either get-rational (get-epsilon 1))) ; we also want 0+i
           (skip (get-imm #\i)))
          (if (eq? sign #\+)
             imag

@@ -1629,16 +1629,6 @@
          (else 
             (divide a b))))
 
-   (define (* a b)
-      (cond
-         ((teq? a rat)
-            (if (teq? b rat)
-               (divide (mul (ncar a) (ncar b)) (mul (ncdr a) (ncdr b)))
-               (divide (mul (ncar a) b) (ncdr a))))
-         ((teq? b rat)
-            (divide (mul a (ncar b)) (ncdr b)))
-         (else   
-            (mul a b))))
 
    (define (+ a b)
       (cond
@@ -1687,7 +1677,7 @@
          (else 
             (add a b))))
 
-   ;; fixme: add a short branch for (- a <fixnum>|1)
+   ;; fixme: substraction lacks short circuits
    (define (- a b)
       (cond
          ((teq? a rat)   
@@ -1707,9 +1697,62 @@
             ; a - b'/b" = ab"/b" - b'/b"
             (let ((bl (ncdr b)))
                (- (rational (mul a bl) bl) b)))
+         ((teq? a comp)
+            (if (teq? b comp)
+               (lets 
+                  ((ar ai a) 
+                   (br bi b)
+                   (r (- ar br))
+                   (i (- ai bi)))
+                  (if (eq? i 0)
+                     r
+                     (complex r i)))
+               (lets ((ar ai a))
+                  (complex (- ar b) ai))))
+         ((teq? b comp)
+            (lets ((br bi b))
+               (complex (- a br) (negate bi))))
          (else
             (sub a b))))
 
+   ;; todo: complex construction should be a macro that checks for the nonimaginary part
+   ;; todo: multiplication lacks short circuits
+   ;; todo: no different multiplication for known up to rational etc
+   (define (* a b)
+      (cond
+         ((teq? a comp)
+            (if (teq? b comp)
+               (lets 
+                  ((ar ai a)
+                   (br bi b)
+                   (r (- (* ar br) (* ai bi)))
+                   (i (+ (* ai br) (* ar bi))))
+                  (if (eq? i 0)
+                     r
+                     (complex r i)))
+               (lets
+                  ((ar ai a)
+                   (r (* ar b))
+                   (i (* ai b)))
+                  (if (eq? i 0)
+                     r
+                     (complex r i)))))
+         ((teq? b comp)
+            (lets 
+               ((br bi b)
+                (r (* a br))
+                (i (* a bi)))
+               (if (eq? i 0)
+                  r
+                  (complex r i))))
+         ((teq? a rat)
+            (if (teq? b rat)
+               (divide (mul (ncar a) (ncar b)) (mul (ncdr a) (ncdr b)))
+               (divide (mul (ncar a) b) (ncdr a))))
+         ((teq? b rat)
+            (divide (mul a (ncar b)) (ncdr b)))
+         (else   
+            (mul a b))))
    ;;;
    ;;; Basic math extra stuff
    ;;;
@@ -1890,7 +1933,9 @@
             (lets ((real imag num))
                (render-number real 
                   (cons #\+ 
-                     (render-number imag (cons #\i tl) base))
+                     (if (eq? imag 1) ;; 0+1i = 0+i
+                        (cons #\i tl)
+                        (render-number imag (cons #\i tl) base)))
                   base)))
          ((< num 0)
             (cons 45
