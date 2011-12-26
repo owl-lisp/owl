@@ -75,6 +75,43 @@
 				(rat-nz rst)
 				(values rst n)))))
 
+(define (comp rst)
+   (lets
+      ((rs r (rat rst))
+       (rs i (rat rst)))
+      (values rs (complex r i))))
+
+(define (comp-nz rst)
+   (lets ((rs c (comp rst)))
+      (if (= c 0)
+         (comp-nz rs)
+         (values rs c))))
+
+(define (fixnum rs)
+   (lets ((d rs (uncons rs F)))
+      (values rs d)))
+
+(define (fixnum-nz rs)
+   (lets ((d rs (uncons rs F)))
+      (if (eq? d 0)
+         (fixnum-nz rs)
+         (values rs d))))
+
+(define (any rs)
+   (lets ((rs type (rand rs 5)))
+      (case type
+         ((0) (fixnum rs)) 
+         ((1) (nat rs))
+         ((2) (int rs))
+         ((3) (rat rs))
+         ((4) (comp rs)))))
+
+(define (any-nz rs)
+   (lets ((rs n (any rs)))
+      (if (= n 0)
+         (any rs)
+         (values rs n))))
+
 ;; all numbers are funny and some more than others
 
 (define funny-numbers
@@ -100,33 +137,33 @@
 
 (define math-tests
 	(list
-		(tuple 'unary rat 'add-double
+		(tuple 'unary any 'add-double
 			(lambda (x) (= (+ x x) (* x 2))))
-		(tuple 'unary int 'add-double-int
+		(tuple 'unary any 'add-double-int
 			(lambda (x) (= (+ x x) (* x 2))))
-		(tuple 'unary rat-nz 'div-self-one
+		(tuple 'unary any-nz 'div-self-one
 			(lambda (x) (= 1 (/ x x))))
 		(tuple 'unary rat 'succ-greater
 			(lambda (x) (> (+ x 1) x)))	;; FIXME, make rat
 		(tuple 'unary rat 'pred-lesser
 			(lambda (x) (< (- x 1) x)))	;; FIXME, ditto
-		(tuple 'binary rat rat 'mul-add-1
+		(tuple 'binary any any 'mul-add-1
 			(lambda (a b) (= (* a (+ b 1)) (+ (* a b) a))))
-		(tuple 'binary rat rat 'add-comm
+		(tuple 'binary any any 'add-comm
 			(lambda (a b) (= (+ a b) (+ b a))))
-		(tuple 'binary rat rat 'mul-comm
+		(tuple 'binary any any 'mul-comm
 			(lambda (a b) (= (* a b) (* b a))))
-		(tuple 'binary rat rat 'add-cancel
+		(tuple 'binary any any 'add-cancel
 			(lambda (a b) (= a (- (+ a b) b))))
-		(tuple 'binary rat rat-nz 'mul-div-cancel	
+		(tuple 'binary any any-nz 'mul-div-cancel	
 			(lambda (a b) (= a (/ (* a b) b))))
-		(tuple 'binary rat rat-nz 'div-mul-cancel 
+		(tuple 'binary any any-nz 'div-mul-cancel 
 			(lambda (a b) (= a (* (/ a b) b))))
-		(tuple 'binary rat rat 'add-trans-one	
+		(tuple 'binary any any 'add-trans-one	
 			(lambda (a b) (= (+ a (+ b 1)) (+ (+ a b) 1))))
-		(tuple 'binary rat rat 'mul-trans-two 
+		(tuple 'binary any any 'mul-trans-two 
 			(lambda (a b) (= (* a (* b 2)) (* (* a b) 2))))
-		(tuple 'binary rat rat-nz 'div-twice 
+		(tuple 'binary any any-nz 'div-twice 
 			(lambda (a b)	(= (/ (/ a b) b) (/ a (* b b)))))
 		(tuple 'binary int int-nz 'rem-abs-less 
 			(lambda (a b) (< (abs (rem a b)) (abs b))))
@@ -172,13 +209,13 @@
 			(lambda (a)
 				(if (eq? a 1) True
 					(= a (isqrt (* a a))))))
-		(tuple 'trinary rat rat rat 'add-assoc
+		(tuple 'trinary any any any 'add-assoc
 			(lambda (a b c)
 				(= (+ (+ a b) c) (+ a (+ b c)))))
-		(tuple 'trinary rat rat rat 'mul-assoc
+		(tuple 'trinary any any any 'mul-assoc
 			(lambda (a b c)
 				(= (* (* a b) c) (* a (* b c)))))
-		(tuple 'trinary rat rat rat 'mul-add
+		(tuple 'trinary any any any 'mul-add
 			(lambda (a b c)
 				(= (* a (+ b c)) (+ (* a b) (* a c)))))
 		;(tuple 'trinary nat nat nat-nz 'discrete-log ; fixme, ints
@@ -196,9 +233,6 @@
 		;						True)
 		;					False)
 		;				True))))
-					
-		
-
 ))
 
 (define (run-test rst test)
@@ -249,6 +283,10 @@
 		((eq? gen nat-nz) (> n 0))
 		((eq? gen int) True)
 		((eq? gen int-nz) (not (= n 0)))
+		((eq? gen comp) True)
+		((eq? gen comp-nz) (not (= n 0)))
+		((eq? gen any) True)
+		((eq? gen any-nz) (not (= n 0)))
 		(else (error "type-ok: unknown generator: " gen))))
 
 (define (run-cartesian-test nums msg)
@@ -298,6 +336,6 @@
 	(run-cartesian-test funny-numbers "Testing cartesian products of funny numbers")
 	; these occasionally dig out issues
 	(print "Running random tests:")
-	(run-tests (seed->rands seed) 10)
+	(run-tests (seed->rands seed) 30)
 	)
 

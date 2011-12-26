@@ -176,6 +176,11 @@
                      (= (ncdr a) (ncdr b))
                      False))
                (else False)))
+         (comp
+            (if (teq? b comp)
+               (and (= (ref a 1) (ref b 1)) 
+                    (= (ref a 2) (ref b 2)))
+               False))
          (else 
             (big-bad-args '= a b))))
 
@@ -918,33 +923,33 @@
                      (fix- (negative (mult-fixnums a b)))      ; +a * -b
                      (int+ (mult-num-big a b 0))               ; +a * +B
                      (int- (negative (mult-num-big a b 0)))   ; +a * -b
-                     (else (big-bad-args '* a b))))
+                     (else (big-bad-args 'mul a b))))
                (fix-
                   (type-case b
                      (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
                      (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
                      (int+ (cast (mult-num-big a b 0) 41))   ; -a * +B -> -C
                      (int- (mult-num-big a b 0))            ; -a * -B -> +C
-                     (else (big-bad-args '* a b))))
+                     (else (big-bad-args 'mul a b))))
                (int+
                   (type-case b
                      (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
                      (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
                      (int+ (mult-big a b))               ; +A * +B -> +C
                      (int- (cast (mult-big a b) 41))      ; +A * -B -> -C
-                     (else (big-bad-args '* a b))))
+                     (else (big-bad-args 'mul a b))))
                (int-   
                   (type-case b
                      (fix+ (cast (mult-num-big b a 0) 41))      ; -A * +b -> -C
                      (fix- (mult-num-big b a 0))               ; -A * -b -> +C
                      (int+ (cast (mult-big a b) 41))      ; -A * +B -> -C
                      (int- (mult-big a b))                  ; -A * -B -> +C
-                     (else (big-bad-args '* a b))))
+                     (else (big-bad-args 'mul a b))))
                (rat
                   (type-case b
-                     (rat  (big-bad-args '* a b))         ; handle this before mul for now
+                     (rat  (big-bad-args 'mul a b))         ; handle this before mul for now
                      (else (mul b a))))                  ; otherwise use other branches
-               (else (big-bad-args '* a b))))))
+               (else (big-bad-args 'mul a b))))))
 
    ;;; comparison (rationals need mul)
 
@@ -1611,27 +1616,25 @@
    ;;; Generic arithmetic routines
    ;;;
 
-   (define (/ a b)
-      (cond    
-         ((teq? a rat)
-            (if (teq? b rat)
-               ; a'/a" / b'/b" = a'b" / a"b'
-               (divide
-                  (mul (ncar a) (ncdr b)) 
-                  (mul (ncdr a) (ncar b)))
-               ; a'/a" / b = a'/ba"
-               (divide (ncar a) (mul (ncdr a) b))))
-         ((teq? b rat)
-            ; a / b'/b" = ab"/n
-            (divide (mul a (ncdr b)) (ncar b)))
-         ((eq? b 0)
-            (error "division by zero " (list '/ a b)))
-         (else 
-            (divide a b))))
 
 
    (define (+ a b)
       (cond
+         ((teq? a comp)
+            (if (teq? b comp)
+               ;; A+ai + B+bi = A+B + (a+b)i
+               (lets 
+                  ((ar ai a)
+                   (br bi b)
+                   (r (+ ar br))
+                   (i (+ ai bi)))
+                  (if (eq? i 0) r (complex r i)))
+               (lets
+                  ((ar ai a))
+                  (complex (+ ar b) ai))))
+         ((teq? b comp)
+            (lets ((br bi b))
+               (complex (+ br a) bi)))
          ;; a short branch for the most common case
          ((teq? b fix+)
             (cond
@@ -1659,27 +1662,27 @@
          ((teq? b rat)
             ; a + b'/b'' = (ab" + b')/b"
             (divide (add (mul a (ncdr b)) (ncar b)) (ncdr b)))
-         ((teq? a comp)
-            (if (teq? b comp)
-               ;; A+ai + B+bi = A+B + (a+b)i
-               (lets 
-                  ((ar ai a)
-                   (br bi b)
-                   (r (+ ar br))
-                   (i (+ ai bi)))
-                  (if (eq? i 0) r (complex r i)))
-               (lets
-                  ((ar ai a))
-                  (complex (+ ar b) ai))))
-         ((teq? b comp)
-            (lets ((br bi b))
-               (complex (+ br a) bi)))
          (else 
             (add a b))))
 
    ;; fixme: substraction lacks short circuits
    (define (- a b)
       (cond
+         ((teq? a comp)
+            (if (teq? b comp)
+               (lets 
+                  ((ar ai a) 
+                   (br bi b)
+                   (r (- ar br))
+                   (i (- ai bi)))
+                  (if (eq? i 0)
+                     r
+                     (complex r i)))
+               (lets ((ar ai a))
+                  (complex (- ar b) ai))))
+         ((teq? b comp)
+            (lets ((br bi b))
+               (complex (- a br) (negate bi))))
          ((teq? a rat)   
             (if (teq? b rat)
                ; a'/a" - b'/b" = a'b" - b'a" / a"b"
@@ -1697,21 +1700,6 @@
             ; a - b'/b" = ab"/b" - b'/b"
             (let ((bl (ncdr b)))
                (- (rational (mul a bl) bl) b)))
-         ((teq? a comp)
-            (if (teq? b comp)
-               (lets 
-                  ((ar ai a) 
-                   (br bi b)
-                   (r (- ar br))
-                   (i (- ai bi)))
-                  (if (eq? i 0)
-                     r
-                     (complex r i)))
-               (lets ((ar ai a))
-                  (complex (- ar b) ai))))
-         ((teq? b comp)
-            (lets ((br bi b))
-               (complex (- a br) (negate bi))))
          (else
             (sub a b))))
 
@@ -1753,6 +1741,49 @@
             (divide (mul a (ncar b)) (ncdr b)))
          (else   
             (mul a b))))
+
+   ;; todo: division lacks short circuits
+   (define (/ a b)
+      (cond    
+         ((eq? b 0)
+            (error "division by zero " (list '/ a b)))
+         ((teq? a comp)
+            (if (teq? b comp)
+               (lets 
+                  ((ar ai a) 
+                   (br bi b)
+                   (x (+ (* br br) (* bi bi)))
+                   (r (/ (+ (* ar br) (* ai bi)) x))
+                   (i (/ (- (* ai br) (* ar bi)) x))) 
+                  (if (eq? i 0) r (complex r i)))
+               (lets
+                  ((ar ai a)
+                   (x (* b b))
+                   (r (/ (* ar b) x))
+                   (i (/ (* ai b) x)))
+                  (if (eq? i 0) r (complex r i)))))
+         ((teq? b comp)
+            (lets 
+               ((br bi b)
+                (x (+ (* br br) (* bi bi)))
+                (re (/ (* a br) x))
+                (im (/ (- 0 (* a bi)) x)))
+               (if (eq? im 0) re (complex re im))))
+         ((teq? a rat)
+            (if (teq? b rat)
+               ; a'/a" / b'/b" = a'b" / a"b'
+               (divide
+                  (mul (ncar a) (ncdr b)) 
+                  (mul (ncdr a) (ncar b)))
+               ; a'/a" / b = a'/ba"
+               (divide (ncar a) (mul (ncdr a) b))))
+         ((teq? b rat)
+            ; a / b'/b" = ab"/n
+            (divide (mul a (ncdr b)) (ncar b)))
+         (else 
+            (divide a b))))
+
+
    ;;;
    ;;; Basic math extra stuff
    ;;;
