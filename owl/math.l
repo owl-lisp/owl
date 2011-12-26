@@ -1625,12 +1625,8 @@
                (int+  (add-number-big a b))
                (fix-  (sub-small->pick-sign a b))
                (int-  (sub-number-big a b True))
-               (rat   ;; a + x/z = (x+az)/z
-                  (lets ((x z b))
-                     (divide (add (mul a z) x) z)))
-               (comp  ;; a + x+yi = (a+x) + yi
-                  (lets ((x y b))
-                     (complex (+ a x) y)))
+               (rat   (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (comp  (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (int+
             (type-case b
@@ -1638,12 +1634,8 @@
                (int+ (add-big a b False))
                (fix- (sub-big-number a b True))
                (int- (sub-big a b))
-               (rat   ;; a + x/z = (x+az)/z
-                  (lets ((x z b))
-                     (divide (add (mul a z) x) z)))
-               (comp  ;; -a + x+yi = (-a+x) + yi
-                  (lets ((x y b))
-                     (complex (+ a x) y)))
+               (rat  (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (comp (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (fix-
             (type-case b
@@ -1651,12 +1643,8 @@
                (fix- (add-small->negative a b))
                (int+ (sub-big-number b a True))
                (int- (cast (add-number-big a b) 41))
-               (rat   ;; -a + x/z = (x+(-a)z)/z
-                  (lets ((x z b))
-                     (divide (add (mul a z) x) z)))
-               (comp  ;; -a + x+yi = (-a+x) + yi
-                  (lets ((x y b))
-                     (complex (+ a x) y)))
+               (rat  (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (comp (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (int-
             (type-case b
@@ -1664,12 +1652,8 @@
                (fix- (cast (add-number-big b a) 41))
                (int+ (sub-big b a))
                (int- (cast (add-big a b False) 41))
-               (rat   ;; a + x/z = (x+az)/z
-                  (lets ((x z b))
-                     (divide (add (mul a z) x) z)))
-               (comp  ;; -a + x+yi = (-a+x) + yi
-                  (lets ((x y b))
-                     (complex (+ a x) y)))
+               (rat  (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (comp (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (rat 
             (type-case b
@@ -1706,8 +1690,61 @@
 
    ;; fixme: substraction lacks short circuits
    (define (- a b)
-      (cond
-         ((teq? a comp)
+      (type-case a
+         (fix+
+            (type-case b
+               (fix+ (sub-small->pick-sign a b))
+               (fix- (add-small->positive a b))
+               (int+ (sub-number-big a b True))
+               (int- (add-number-big a b))
+               (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
+               (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+               (else (big-bad-args '- a b))))
+         (fix-
+            (type-case b
+               (fix+ (add-small->negative a b))
+               (fix- (sub-small->pick-sign b a))
+               (int+ (cast (add-number-big a b) 41))
+               (int- (sub-big-number b a True))
+               (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
+               (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+               (else (big-bad-args '- a b))))
+         (int+
+            (type-case b
+               (fix+ (sub-big-number a b True))
+               (fix- (add-number-big b a))
+               (int+ (sub-big a b))
+               (int- (add-big a b False))
+               (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
+               (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+               (else (big-bad-args '- a b))))
+         (int-
+            (type-case b
+               (fix+ (cast (add-number-big b a) 41))
+               (fix- (sub-number-big b a True))
+               (int+ (cast (add-big a b False) 41))
+               (int- (sub-big b a))
+               (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
+               (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+               (else (big-bad-args '- a b))))
+         (rat
+            (type-case b
+               (rat 
+                  ; a'/a" - b'/b" = a'b" - b'a" / a"b"
+                  (let ((ad (ncdr a)) (bd (ncdr b)))
+                     (if (eq? ad bd)   
+                        ; a/x - b/x = (a-b)/x, x within fixnum range
+                        (divide (sub (ncar a) (ncar b)) ad)
+                        (let ((an (ncar a)) (bn (ncar b)))   
+                           (divide 
+                              (sub (mul an bd) (mul bn ad))
+                              (mul ad bd))))))
+               (comp
+                  (lets ((br bi b)) (complex (- a br) (negate bi))))
+               (else
+                  ; a'/a" - b = (a'-ba")/a"
+                  (divide (sub (ncar a) (mul b (ncdr a))) (ncdr a)))))
+         (comp
             (if (teq? b comp)
                (lets 
                   ((ar ai a) 
@@ -1719,28 +1756,8 @@
                      (complex r i)))
                (lets ((ar ai a))
                   (complex (- ar b) ai))))
-         ((teq? b comp)
-            (lets ((br bi b))
-               (complex (- a br) (negate bi))))
-         ((teq? a rat)   
-            (if (teq? b rat)
-               ; a'/a" - b'/b" = a'b" - b'a" / a"b"
-               (let ((ad (ncdr a)) (bd (ncdr b)))
-                  (if (eq? ad bd)   
-                     ; a/x - b/x = (a-b)/x, x within fixnum range
-                     (divide (sub (ncar a) (ncar b)) ad)
-                     (let ((an (ncar a)) (bn (ncar b)))   
-                        (divide 
-                           (sub (mul an bd) (mul bn ad))
-                           (mul ad bd)))))
-               ; a'/a" - b = (a'-ba")/a"
-               (divide (sub (ncar a) (mul b (ncdr a))) (ncdr a))))
-         ((teq? b rat)
-            ; a - b'/b" = ab"/b" - b'/b"
-            (let ((bl (ncdr b)))
-               (- (rational (mul a bl) bl) b)))
          (else
-            (sub a b))))
+            (big-bad-args '- a b))))
 
    ;; todo: complex construction should be a macro that checks for the nonimaginary part
    ;; todo: multiplication lacks short circuits
