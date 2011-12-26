@@ -1930,12 +1930,17 @@
                   (render-number (ref num 2) tl base))
                base))
          ((teq? num comp)
+            ;; todo: imaginary number rendering looks silly, written in a hurry
             (lets ((real imag num))
                (render-number real 
-                  (cons #\+ 
-                     (if (eq? imag 1) ;; 0+1i = 0+i
-                        (cons #\i tl)
-                        (render-number imag (cons #\i tl) base)))
+                  (cond
+                     ((eq? imag 1) (ilist #\+ #\i tl))
+                     ((eq? imag -1) (ilist #\- #\i tl))
+                     ((< imag 0) ;; already has sign
+                        (render-number imag (cons #\i tl) base))
+                     (else
+                        (cons #\+
+                           (render-number imag (cons #\i tl) base))))
                   base)))
          ((< num 0)
             (cons 45
