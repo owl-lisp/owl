@@ -3,7 +3,7 @@ PREFIX=/usr
 BINDIR=/bin
 INSTALL=install
 
-CFLAGS=-Wall -O3 -fomit-frame-pointer
+CFLAGS=-Wall -O2 -fomit-frame-pointer
 #CC=gcc
 
 # owl needs just a single binary
