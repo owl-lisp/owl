@@ -1582,7 +1582,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (define (c-source-name path)
 	(cond
-		((/\.[a-z]+$/ path) ;; .scm, .lisp, .owl etc
+		((m/\.[a-z]+$/ path) ;; .scm, .lisp, .owl etc
 			(s/\.[a-z]+$/.c/ path))
 		(else
 			(string-append path ".c"))))
@@ -1669,12 +1669,14 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             fold foldr for map reverse length zip append unfold
             lref lset iota
             vec-ref vec-len vec-fold vec-foldr
-            print mail interact 
+            ;print 
+            mail interact 
             ;lib-rlist lib-iff
             iter iterr
             take keep remove 
             start-output-thread thread-controller
-            sexp-parser rand seed->rands)))
+            ;sexp-parser 
+            rand seed->rands)))
 
 (import lib-usual-suspects usual-suspects)
 

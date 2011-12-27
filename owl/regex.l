@@ -847,7 +847,8 @@
  
    (define get-matcher-regex
       (let-parses 
-         ((skip (get-imm 47))  ;; opening /
+         ((skip (get-imm #\m)) ;; [m]atch
+          (skip (get-imm 47))  ;; opening /
           (start? (get-either (get-imm 94) (get-epsilon False))) ;; maybe get leading ^ (special)
           (rex (get-regex))
           (skip (get-imm 47))) ;; closing /
@@ -860,7 +861,7 @@
 
    (define get-copy-matcher-regex
       (let-parses 
-         ((skip (get-imm 109))
+         ((skip (get-imm #\g)) ;; [g]rab
           (skip (get-imm 47))  ;; opening /
           (start? (get-either (get-imm 94) (get-epsilon False))) ;; maybe get leading ^ (special)
           (rex (get-regex))

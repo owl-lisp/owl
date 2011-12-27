@@ -31,7 +31,7 @@
 
    ;; "-foo" → ("-f" "-o" "-o") | False
 	(define (explode str)
-      (if (/^-[^-]{2,}/ str)
+      (if (m/^-[^-]{2,}/ str)
 			(map
 				(λ (char) (runes->string (list 45 char)))
 				(cdr (string->bytes str)))
