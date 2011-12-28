@@ -97,6 +97,11 @@ uninstall:
 	-rm $(DESTDIR)$(PREFIX)/bin/owl-vm
 	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
+clean:
+	-rm fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
+	-rm c/vm.c c/ol.c
+	-rm bin/ol bin/vm
+
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.l | less
 

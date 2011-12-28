@@ -271,79 +271,11 @@
             (show "assemble: what is " code)
             (fail False))))
 
-   ;; this would be one place where shared (extended)code could be 
-   ;; detected, other options being post-compilation search and replace,
-   ;; and carrying a bytecode tree along in compilation and looking up 
-   ;; results there. none of the options seem especially elegant..
-
-   (define (code->list bcode)
-      (map (λ (p) (refb bcode p))
-         (iota 0 1 (sizeb bcode))))
-
-   (define is-less False)
-   (define is-equal True)
-   (define is-greater null)
-
-   (define (compare-bytes a b pos end)
-      (if (eq? pos end)
-         is-equal
-         (let ((ab (refb a pos)) (bb (refb b pos)))
-            (cond
-               ((eq? ab bb) (compare-bytes a b (+ pos 1) end))
-               ((lesser? ab bb) is-less)
-               (else is-greater)))))
-
-   ;; shorter is less, otherwase lexical comparison from start
-   (define (compare-code a b)
-      (lets
-         ((as (sizeb a))
-          (bs (sizeb b)))
-         (cond
-            ((eq? as bs) (compare-bytes a b 0 as))
-            ((lesser? as bs) is-less)
-            (else is-greater))))
-
-   ;; codes bcode value → codes'
-   (define (insert-code codes bcode value)
-      (if codes
-         (ff-bind codes
-            (λ (l k v r)
-               (let ((res (compare-code k bcode)))
-                  (cond
-                     ((eq? res is-equal)
-                        (mkblack l bcode value r))
-                     ((eq? res is-less)
-                        (mkblack (insert-code l bcode value) k v r))
-                     (else
-                        (mkblack l k v (insert-code r bcode value)))))))
-         (mkblack False bcode value False)))
-
-    ;; codes bcode → bcode(')
-    (define (lookup-code codes bcode)
-      (if codes
-         (ff-bind codes
-            (λ (l k v r)
-               (let ((res (compare-code k bcode)))
-                  (cond
-                     ((eq? res is-equal) v)
-                     ((eq? res is-less) (lookup-code l bcode))
-                     (else (lookup-code r bcode))))))
-         bcode))
- 
    ;; lookup equal code from code tree in env, or make a new code fragments and add to tree
    (define (bytes->bytecode env bytes)
-      (lets
-         ((code (raw bytes 0 False))   ;; <- could be returned as such
-          (val (lookup-code env code)))
-         (if val
-            (begin
-               ;(if (eq? (refb val 1) 0)
-               ;   (print* (list "S + shared native " val " = " bytes))
-               ;   (print* (list "S + shared " val " = " bytes)))
-               (values env val)) ;; <- equal, possibly native, code already there
-            (begin
-               ;(print* (list "S + added " bytes))
-               (values (insert-code env code code) code))))) ;; add new code for sharing later
+      (values env 
+         (interact 'intern
+            (raw bytes 0 False))))
 
    ; code rtl object -> executable code
    (define (assemble-code env obj)
