@@ -1,14 +1,18 @@
 ;;;
-;;; Symbol interning and conversions
+;;; Value interning and conversions
 ;;;
+
+; have mappings:
+;  - strings->symbol
+;  - bytes->bytecode (where returned bytecode may use spacial primops)
+;  (- intern-char     -> x → x')
 
 (define-module lib-intern
    (export
       bytes->symbol
       string->symbol
       symbol->string
-      put-symbol
-      initialize-symbol-interner
+      initialize-interner
       string->uninterned-symbol
       intern-symbols
       )
@@ -68,7 +72,7 @@
                   (maybe-lookup-symbol (ref node 3) str))))
          False))
 
-
+   ;; node is an unbalanced trie of symbols (F | (Tuple L sym R))
    (define (put-symbol node sym)
       (if node
          (lets
@@ -98,28 +102,75 @@
    ; interner is started before the repl at vm boot
 
 
-   (define (new-symbol-interner root)
-      (bind (wait-mail)
-         (λ sender msg
-            (if (string? msg)
-               (lets ((root sym (string->interned-symbol root msg)))
-                  (mail sender sym)
-                  (new-symbol-interner root))
-               (begin
-                  (mail sender 'bad-kitty)
-                  (new-symbol-interner root))))))
-
-
    (define (string->symbol str)
       (interact 'intern str))
+
+   ;;;
+   ;;; BYTECODE INTERNING
+   ;;;
+
+   (define is-less False)
+   (define is-equal True)
+   (define is-greater null)
+
+   (define (compare-bytes a b pos end)
+      (if (eq? pos end)
+         is-equal
+         (let ((ab (refb a pos)) (bb (refb b pos)))
+            (cond
+               ((eq? ab bb) (compare-bytes a b (+ pos 1) end))
+               ((lesser? ab bb) is-less)
+               (else is-greater)))))
+
+   ;; shorter is less, otherwase lexical comparison from start
+   (define (compare-code a b)
+      (lets
+         ((as (sizeb a))
+          (bs (sizeb b)))
+         (cond 
+            ((eq? as bs) (compare-bytes a b 0 as))
+            ((lesser? as bs) is-less)
+            (else is-greater))))
+
+   ;; fixme: should occasionally balance the tree
+
+   ;; codes bcode value → codes'
+   (define (insert-code codes bcode value)
+      (if codes
+         (ff-bind codes
+            (λ (l k v r)
+               (let ((res (compare-code k bcode)))
+                  (cond
+                     ((eq? res is-equal)
+                        (mkblack l bcode value r))
+                     ((eq? res is-less)
+                        (mkblack (insert-code l bcode value) k v r))
+                     (else
+                        (mkblack l k v (insert-code r bcode value)))))))
+         (mkblack False bcode value False)))
+
+    ;; codes bcode → bcode' | False
+    (define (lookup-code codes bcode)
+      (if codes
+         (ff-bind codes
+            (λ (l k v r)
+               (let ((res (compare-code k bcode)))
+                  (cond
+                     ((eq? res is-equal) v)
+                     ((eq? res is-less) (lookup-code l bcode))
+                     (else (lookup-code r bcode))))))
+         False))
+
+   ;; codes bcode → codes(') bcode(')
+   (define (intern-code codes bcode)
+      (let ((res (lookup-code codes bcode)))
+         (if res
+            (values codes res)
+            (values (insert-code codes bcode bcode) bcode))))
 
    ; this will be forked as 'interner
    ; to bootstrap, collect all symbols from the entry procedure, intern
    ; them, and then make the intial threads with an up-to-date interner
-
-   ; ready to be forked 
-   (define (initialize-symbol-interner root)
-      (λ (new-symbol-interner root)))
 
    (define (bytes->symbol bytes)
       (string->symbol 
@@ -134,4 +185,29 @@
             (cons (intern-symbols (car sexp)) (intern-symbols (cdr sexp))))
          (else sexp)))
       
+   ;; thread with string → symbol, ...
+   (define (interner root codes)
+      (lets
+         ((env (wait-mail))
+          (sender msg env))
+         (cond
+            ((string? msg) ;; find an old symbol or make a new one
+               (lets ((root sym (string->interned-symbol root msg)))
+                  (mail sender sym)
+                  (interner root codes)))
+            ((bytecode? msg) ;; find an old equal bytecode sequence, extended wrapper, or add a new code fragment
+               (lets ((codes code (intern-code codes msg)))
+                  (mail sender code)
+                  (interner root codes)))
+            (else
+               (mail sender 'bad-kitty)
+               (interner root codes)))))
+
+   ;; make a thunk to be forked as the thread
+   (define (initialize-interner symbol-list codes)
+      (let 
+         ((sym-root (fold put-symbol False symbol-list))
+          (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) False codes)))
+         (λ () (interner sym-root code-root))))
+
 )

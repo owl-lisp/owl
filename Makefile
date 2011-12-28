@@ -2,6 +2,7 @@ DESTDIR=
 PREFIX=/usr
 BINDIR=/bin
 INSTALL=install
+TIME=/usr/bin/time -p
 
 CFLAGS=-Wall -O2 -fomit-frame-pointer
 #CC=gcc
@@ -17,7 +18,7 @@ fasl/boot.fasl: fasl/init.fasl
 
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.l
 	# selfcompile boot.fasl until a fixed point is reached
-	bin/vm fasl/boot.fasl --run owl/ol.l -s none -o fasl/bootp.fasl
+	$(TIME) bin/vm fasl/boot.fasl --run owl/ol.l -s none -o fasl/bootp.fasl
 	# check that the new image passes tests
 	tests/run bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile

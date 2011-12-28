@@ -252,6 +252,36 @@
 
 (import lib-vector)
 
+;;;
+;;; Functions
+;;;
+
+(define-module lib-function
+
+   (export function? procedure? bytecode? render)
+
+   (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
+
+   (define procedure? function?)
+
+   ;                                                               .-> ignore padding byte count
+   ;                            .-> raw data object              .-+
+   (define (bytecode? x) (eq? #b100000000110 (fxband (type x) #b100011111110))) 
+	;                             '------+
+	;                                    '-> 8-bit type/padding info
+
+   (define render 
+      (λ (self obj tl)
+         (if (function? obj)
+            (ilist 35 60
+               (self self
+                  (interact 'meta (tuple 'get-name obj)) ;; ask for a name for this (remove later)
+                  ;"function"  ;; just print as #<function>
+                  (cons 62 tl)))
+            (render self obj tl)))))
+
+(import lib-function)
+
 
 ;;;
 ;;; Symbols
@@ -442,36 +472,6 @@
 
 (import lib-eof)
 
-
-;;;
-;;; Functions
-;;;
-
-(define-module lib-function
-
-   (export function? procedure? bytecode? render)
-
-   (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
-
-   (define procedure? function?)
-
-   ;                                                               .-> ignore padding byte count
-   ;                            .-> raw data object              .-+
-   (define (bytecode? x) (eq? #b100000000110 (fxband (type x) #b100011111110))) 
-	;                             '------+
-	;                                    '-> 8-bit type/padding info
-
-   (define render 
-      (λ (self obj tl)
-         (if (function? obj)
-            (ilist 35 60
-               (self self
-                  (interact 'meta (tuple 'get-name obj)) ;; ask for a name for this (remove later)
-                  ;"function"  ;; just print as #<function>
-                  (cons 62 tl)))
-            (render self obj tl)))))
-
-(import lib-function)
 
 
 ;;;
@@ -698,15 +698,6 @@
 ,r "owl/compile.l"
 
 (import lib-compile)
-
-
-;;;
-;;; Code sharing
-;;;
-
-,r "owl/share-code.l"
-
-(import lib-code-share share-code vm-special-ops->codes) ;; todo: cut vm-special-ops out of here (to assembly?)
 
 
 ;;;
@@ -1877,15 +1868,11 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (display "> ")
    (flush-port stdout))
    
-(define (heap-entry syms)
-   ;(print " - heap entry got syms")
+(define (heap-entry symbol-list)
    (lets
-      ((symbol-root (fold put-symbol False syms))
-   (new-symbol-interner (initialize-symbol-interner symbol-root))
-   (initial-names (collect-function-names initial-environment)))
-      ;(print " - heap entry waiting for vm special ops")
+      ((interner-thunk (initialize-interner symbol-list null))
+       (initial-names (collect-function-names initial-environment)))
       (λ (vm-special-ops)
-         ;(show " - repl vm special op count " (length (ff->list vm-special-ops)))
          (let ((compiler (make-compiler vm-special-ops)))
             ;; still running in the boostrapping system
             ;; the next value after evaluation will be the new repl heap
@@ -1900,11 +1887,16 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                  ;; get basic io running
                                  (start-base-threads)
 
-                                 (mcp-on-break) ; install a global signal handler
+                                 ;; breaks go to MCP
+                                 (mcp-on-break)
 
-                                 (fork-server 'intern new-symbol-interner)
+                                 ;; repl needs symbol etc interning, which is handled by this thread
+                                 (fork-server 'intern interner-thunk)
+
+                                 ;; this thread will be removed later once 'intern does also the same
                                  (fork-server 'meta 
                                     (λ () (meta-storage (tuple initial-names False))))
+
                                  (exit-owl 
                                     (repl-start vm-args repl compiler
                                        (fold 
