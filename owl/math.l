@@ -1760,43 +1760,82 @@
             (big-bad-args '- a b))))
 
    ;; todo: complex construction should be a macro that checks for the nonimaginary part
-   ;; todo: multiplication lacks short circuits
    ;; todo: no different multiplication for known up to rational etc
+
    (define (* a b)
       (cond
-         ((teq? a comp)
-            (if (teq? b comp)
-               (lets 
-                  ((ar ai a)
-                   (br bi b)
-                   (r (- (* ar br) (* ai bi)))
-                   (i (+ (* ai br) (* ar bi))))
-                  (if (eq? i 0)
-                     r
-                     (complex r i)))
-               (lets
-                  ((ar ai a)
-                   (r (* ar b))
-                   (i (* ai b)))
-                  (if (eq? i 0)
-                     r
-                     (complex r i)))))
-         ((teq? b comp)
-            (lets 
-               ((br bi b)
-                (r (* a br))
-                (i (* a bi)))
-               (if (eq? i 0)
-                  r
-                  (complex r i))))
-         ((teq? a rat)
-            (if (teq? b rat)
-               (divide (mul (ncar a) (ncar b)) (mul (ncdr a) (ncdr b)))
-               (divide (mul (ncar a) b) (ncdr a))))
-         ((teq? b rat)
-            (divide (mul a (ncar b)) (ncdr b)))
-         (else   
-            (mul a b))))
+         ((eq? a 0) 0)
+         ((eq? b 0) 0)
+         (else
+            (type-case a
+               (fix+
+                  (type-case b
+                     (fix+ (mult-fixnums a b))                 ; +a * +b
+                     (fix- (negative (mult-fixnums a b)))      ; +a * -b
+                     (int+ (mult-num-big a b 0))               ; +a * +B
+                     (int- (negative (mult-num-big a b 0)))    ; +a * -b
+                     (rat  (divide (* a (ncar b)) (ncdr b)))
+                     (comp 
+                        (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (if (eq? i 0) r (complex r i))))
+                     (else (big-bad-args 'mul a b))))
+               (fix-
+                  (type-case b
+                     (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
+                     (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
+                     (int+ (cast (mult-num-big a b 0) 41))   ; -a * +B -> -C
+                     (int- (mult-num-big a b 0))            ; -a * -B -> +C
+                     (rat  (divide (* a (ncar b)) (ncdr b)))
+                     (comp 
+                        (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (if (eq? i 0) r (complex r i))))
+                     (else (big-bad-args 'mul a b))))
+               (int+
+                  (type-case b
+                     (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
+                     (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
+                     (int+ (mult-big a b))               ; +A * +B -> +C
+                     (int- (cast (mult-big a b) 41))      ; +A * -B -> -C
+                     (rat  (divide (* a (ncar b)) (ncdr b)))
+                     (comp 
+                        (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (if (eq? i 0) r (complex r i))))
+                     (else (big-bad-args 'mul a b))))
+               (int-   
+                  (type-case b
+                     (fix+ (cast (mult-num-big b a 0) 41))      ; -A * +b -> -C
+                     (fix- (mult-num-big b a 0))               ; -A * -b -> +C
+                     (int+ (cast (mult-big a b) 41))      ; -A * +B -> -C
+                     (int- (mult-big a b))                  ; -A * -B -> +C
+                     (rat  (divide (* a (ncar b)) (ncdr b)))
+                     (comp 
+                        (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (if (eq? i 0) r (complex r i))))
+                     (else (big-bad-args 'mul a b))))
+               (rat
+                  (type-case b
+                     (rat  
+                        (divide (* (ncar a) (ncar b)) (* (ncdr a) (ncdr b))))
+                     (comp 
+                        (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (if (eq? i 0) r (complex r i))))
+                     (else 
+                        (divide (* (ncar a) b) (ncdr a)))))
+               (comp 
+                  (if (teq? b comp)
+                     (lets 
+                        ((ar ai a)
+                         (br bi b)
+                         (r (- (* ar br) (* ai bi)))
+                         (i (+ (* ai br) (* ar bi))))
+                        (if (eq? i 0) r (complex r i)))
+                     (lets
+                        ((ar ai a)
+                         (r (* ar b))
+                         (i (* ai b)))
+                        (if (eq? i 0) r (complex r i)))))
+               (else 
+                  (big-bad-args '* a b))))))
 
    ;; todo: division lacks short circuits
    (define (/ a b)
