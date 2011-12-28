@@ -1914,7 +1914,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                              (cons 'stdout (fd->id 1))
                                              (cons 'stderr (fd->id 2))
                                              (cons '*vm-special-ops* vm-special-ops)
-                                             (cons '*codes* (vm-special-ops->codes vm-special-ops))
+                                             ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
                                              (cons '*owl-prompt* default-prompt)
                                              )))))))))
                   null 
