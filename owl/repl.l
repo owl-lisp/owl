@@ -196,6 +196,17 @@
 						(λ words key value (cons key words))
 						null env))
 				(repl env in))
+         ((find)
+            (lets ((rex in (uncons in False)))
+               (cond
+                  ((function? rex)
+                     (print (keep (λ (sym) (rex (symbol->string sym))) (ff-fold (λ (words key value) (cons key words)) null env))))
+                  ;((symbol? rex)
+                  ;   (let ((rex (string->regex (foldr string-append "" (list "m/" (symbol->string rex) "/")))))
+                  ;      (print (keep (λ (sym) (rex (symbol->string sym))) (ff-fold (λ (words key value) (cons key words)) null env)))))
+                  (else
+                     (print "I would have preferred a regex next.")))
+               (repl env in)))
 			((quit)
 				; this goes to repl-trampoline
 				(tuple 'ok 'quitter env))
