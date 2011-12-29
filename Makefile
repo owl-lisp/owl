@@ -102,8 +102,13 @@ clean:
 	-rm c/vm.c c/ol.c
 	-rm bin/ol bin/vm
 
+# make a standalone binary against dietlibc for relase
+standalone:
+	-rm bin/ol
+	make CFLAGS="-O2 -DNO_SECCOMP" CC="diet gcc" bin/ol
+
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.l | less
 
-.PHONY: install uninstall todo test fasltest owl
+.PHONY: install uninstall todo test fasltest owl standalone
 
