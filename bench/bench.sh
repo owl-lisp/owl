@@ -6,23 +6,24 @@
 
 test -f "bench.sh" || { echo "please run me in the bench/ directory"; exit 1; }
 
-NRUNS=20        # adjust to compensate for level of supercomputerness
+NRUNS=10        # adjust to compensate for level of supercomputerness
 PAT="(42)"     # pattern all runs should have in output if executed correctly 
 LOG=output     # stdout/err
 PROG=input.l # file to run
 TIME="/usr/bin/time -f %UX%M" # memory size reported by %M is 4x the correct (counts pages by accident?)
-MAXTIME=500    # most of the tests are scaled to take 1-5 seconds per run for owl
+MAXTIME=200    # most of the tests are scaled to take 1-5 seconds per run for owl
 MAXMEM=4194304 # 4GB 
 
 function compute {
    CMD=$3
    RES=`$TIME $CMD < $PROG 2>&1 > $LOG`
-   RES=`echo $RES | sed -e 's/X/ /'`
+   RES=`echo $RES | sed -e 's/X/ /' -re 's/.* ([0-9.]+ [0-9.]+)$/\1/'` # ignore exit values and stderr prints
    #echo $CMD
    #echo "------------------------------"
    #cat $LOG
    #echo "------------------------------"
    #echo "RES is $RES"
+   #echo "------------------------------"
    grep -q $PAT $LOG && ../bin/ol -e '(list->string (foldr (lambda (val tl) (render render val tl)) null (list "   " (lref *args* 3) "s (" (div (string->integer (lref *args* 4)) 4096) "Mb) - " (lref *args* 5))))' $RES "$2" || echo "  $MAXTIME.00+ or fail - $2 - x_X"  
 }
 
@@ -48,12 +49,16 @@ echo " + Schemes"
 echo "   - `../bin/ol --version`"
 echo "   - `gosh -V`"
 echo "   - `scm --version | head -n 1`"
-echo "   - Chibi Scheme 0.5.1"
+echo "   - Chibi Scheme 0.5.3"
 echo "   - `/home/aki/opt/guile/bin/guile --version | head -n1`"
 echo "   - `guile --version | head -n1` (legacy)"
 echo "   - `racket --version | sed -e 's/Welcome to //'`"
-echo "   - `echo "" | larceny | head -n 1`"
-echo "   - Sigscheme 0.8.5"
+echo "   - `echo "" | larceny | grep "Larceny v" | head -n 1`"
+echo "   - Sigacheme 0.6.1"
+echo "   - `echo "" | ikarus | grep Ikarus`"
+echo "   - `echo "" | scheme48 | grep "Welcome" | sed -e 's/Welcome to //' -e 's/ (.*//'`"
+echo "   - Chicken Scheme `csc -version | grep Version | sed -e 's/Version //'`"
+echo "   - `echo "" | tinyscheme | head -n 1`"
 echo
 
 echo "Test parameters: $NRUNS runs per test, max time ${MAXTIME}s, max mem ${MAXMEM}KB"
@@ -63,6 +68,13 @@ do
    echo
    echo "$file:"
    (
+
+	cat r5rs.defs $file start.txt > $PROG
+   compute $file "SigScheme" "sscm"
+
+	cat r5rs.defs $file start.txt > $PROG
+   cp $PROG /tmp/tinyscheme
+   compute $file "TinyScheme" tinyscheme
 
 	##
 	## Owl
@@ -75,6 +87,14 @@ do
 	# compiled with light vm specialization. to be the default mode later on.
    cat $file start.txt > $PROG
    compute $file "Owl (ol)" "../bin/ol"
+
+	# compare against old owls
+   cat $file start.txt > $PROG
+   compute $file "Owl (ol-0.1.5)" "ol-0.1.5"
+   compute $file "Owl (ol-0.1.4)" "ol-0.1.4"
+   compute $file "Owl (ol-0.1.3)" "ol-0.1.3"
+   compute $file "Owl (ol-0.1.2)" "ol-0.1.2"
+   compute $file "Owl (ol-0.1.1)" "ol-0.1.1"
 
    # only native as in via C
 	# owl's bytecode2c compiler (making standalone binaries with custom vm instructions)
@@ -115,9 +135,6 @@ do
 	cat r5rs.defs $file start.txt > $PROG
    compute $file "Guile" "/home/aki/opt/guile/bin/guile"
 
-	cat r5rs.defs $file start.txt > $PROG
-   compute $file "Sigscheme" "sscm"
-
 	echo "(use-syntax (ice-9 syncase))" | cat - r5rs.defs $file start.txt > $PROG
    compute $file "Guile (legacy)" "guile"
    
@@ -127,9 +144,6 @@ do
 #	#(grep -q "tags.*values" $file && echo novals) || \
 #	#(grep -q "tags.*macro" $file && echo nomacro) || \
 #	#(echo "(define display print)" > /tmp/file.l; cat r5rs.defs $file | grep -v call-with-current-continuation | grep -v define-syntax >> /tmp/file.l; $TIME flisp < /tmp/file.l > /tmp/out 2>/tmp/out-time; grep -q "compile error" /tmp/out-time && echo error || cat /tmp/out-time)
-
-	cat r5rs.defs $file start.txt > $PROG
-   compute $file "TinyScheme 1.37" tinyscheme
 
 
 
@@ -145,27 +159,21 @@ do
 	## Native code compilers
 	##
 
-	cat r5rs.defs $file start.txt  > $PROG
-   compute $file "petite chez scheme" "/home/aki/opt/petite/bin/a6le/scheme -b /home/aki/opt/petite/boot/a6le/petite.boot"
+	#cat r5rs.defs $file start.txt  > $PROG
+   #compute $file "petite chez scheme" "/home/aki/opt/petite/bin/a6le/scheme -b /home/aki/opt/petite/boot/a6le/petite.boot"
 
    # not yet on this machine
 	cat r5rs.defs $file start.txt | grep -v NOIKARUS > $PROG
-   compute $file "Ikarus 0.0.3" ikarus
+   compute $file "Ikarus" ikarus
 
 	cat r5rs.defs $file start.txt > $PROG
-   compute $file "Larceny 0.97 (IA32)" larceny
-
-
-   # use same source, but compile only a fixed set of functions to C
-	#../bin/ol --usual-suspects -o input.c $PROG
-	#gcc -O2 -o test input.c
-   #compute $file "Owl (ol --usual-suspects -o foo.c + gcc -O2)" "./test" 
+   compute $file "Larceny" larceny
 
 	cat r5rs.defs $file start.txt > $PROG
    rm foo &>/dev/null
 	csc -O5 -R numbers -o foo $PROG 2>/dev/null
    cp $PROG /tmp/chicken.l
-   compute $file "Chicken Scheme 4.7.3 (csc -O5)" ./foo
+   compute $file "Chicken Scheme (csc -O5)" ./foo
 
    ## compile test.l to test.com with usual integrations and run
    ## MIT Scheme is one of the fastest, but I couldn't get it to run on my 64-bit machine 
