@@ -41,9 +41,13 @@ size_t strlen(const char *s);
 
 /* possibly enable seccomp support if we are on newish Linux, and exit via syscall to avoid calling exit_group in some libcs */
 #ifdef __gnu_linux__
+#ifndef NO_SECCOMP
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #define EXIT(n) syscall(__NR_exit, n); exit(n) /* exit only needed to avoid compiler complaints */
+#else
+#define EXIT(n) exit(n)
+#endif
 #else
 #define EXIT(n) exit(n)
 #endif
@@ -791,6 +795,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return(fixnum(max_heap_mb));
       case 10: /* enter linux seccomp mode */
 #ifdef __gnu_linux__ 
+#ifndef NO_SECCOMP
          if (seccompp) /* a true value, but different to signal that we're already in seccomp */
             return(INULL);  
          seccomp_time = 1000 * time(NULL); /* no time calls are allowed from seccomp, so start emulating a time if success */
@@ -799,6 +804,7 @@ static word prim_sys(int op, word a, word b, word c) {
             seccompp = 1;
             return(ITRUE);
          }
+#endif
 #endif
 #endif
          return(IFALSE); /* seccomp not supported in current repl */
