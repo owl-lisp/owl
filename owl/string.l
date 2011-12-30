@@ -20,6 +20,7 @@
 ,r "owl/unicode.l"
 ,r "owl/unicode-char-folds.l"
 ,r "owl/iff.l"
+,r "owl/lazy.l"
 
 (define-module lib-string
 
@@ -61,6 +62,7 @@
       string-ci<=?       ; str str → bool
       string-ci>=?       ; str str → bool
       unicode-fold-char  ; char tail → (char' ... tail)
+      make-string        ; n char → str
       render
       )
 
@@ -360,7 +362,9 @@
       (runes->string
          (str-iterr str)))
 
-   (define string-copy self)
+   (define (i x) x)
+
+   (define string-copy i)
 
    ;; going as per R5RS
    (define (substring str start end)
@@ -384,8 +388,8 @@
             (cond
                ((not a) (if b 1 2))
                ((not b) 3)
-               ((< a b) 1)
-               ((eq? a b) (loop la lb))
+               ((< a b) 1) ;; todo: lesser? and eq? after they are interned
+               ((= a b) (loop la lb))
                (else 3)))))
 
    (define render
@@ -399,7 +403,7 @@
       (fold 
          (λ (iff node) 
             (if (= (length node) 2) 
-               (iput iff (car node) (cdr node)) 
+               (iput iff (car node) (cadr node)) 
                (iput iff (car node) (cdr node))))
          False char-folds))
 
@@ -413,17 +417,15 @@
    (define (string-ref str p)
       (llref (str-iter str) p))
 
-   (define (downcase ll)
+   (define (upcase ll)
       (lets 
-         ((cp ol (uncons ll F))
-          (cpp (iget char-fold-iff cp cp)))
-         (cond
-            ((not cp) ;; end of data
-               null)
-            ((pair? cp) ;; mapped to several code points
-               (append cp (downcase ll)))
-            (else ;; no change or mapped to 1 code point
-               (pair cp (downcase ll))))))
+         ((cp ll (uncons ll F)))
+         (if cp
+            (let ((cp (iget char-fold-iff cp cp)))
+               (if (pair? cp)
+                  (append cp (upcase ll))
+                  (pair cp (upcase ll))))
+            null)))
 
    (define string= string-eq?)
 
@@ -432,10 +434,13 @@
    (define (string>? a b)       (eq? 3 (str-compare i a b)))
    (define (string>=? a b) (not (eq? 1 (str-compare i a b))))
 
-   (define (string-ci<? a b)       (eq? 1 (str-compare downcase a b)))
-   (define (string-ci<=? a b) (not (eq? 3 (str-compare downcase a b))))
-   (define (string-ci>? a b)       (eq? 3 (str-compare downcase a b)))
-   (define (string-ci>=? a b) (not (eq? 1 (str-compare downcase a b))))
+   (define (string-ci<? a b)       (eq? 1 (str-compare upcase a b)))
+   (define (string-ci<=? a b) (not (eq? 3 (str-compare upcase a b))))
+   (define (string-ci>? a b)       (eq? 3 (str-compare upcase a b)))
+   (define (string-ci>=? a b) (not (eq? 1 (str-compare upcase a b))))
+
+   (define (make-string n char)
+      (list->string (repeat char n)))
 
 )
 

@@ -6,6 +6,7 @@
 		take drop iota
       list-ref
       list-tail
+      repeat
       )
 
 	(import lib-math) ; basix arithmetic
@@ -109,4 +110,10 @@
       (if (eq? n 0)
          lst
          (list-tail (cdr lst) (- n 1))))
+
+   (define (repeat thing n)
+      (let loop ((n n) (out null))
+         (if (eq? n 0)
+            out
+            (loop (- n 1) (cons thing out)))))
 )
