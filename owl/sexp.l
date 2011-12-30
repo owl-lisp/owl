@@ -166,14 +166,31 @@
           (bang (get-imm 33))
           (line get-rest-of-line))
          (list 'quote (list 'hashbang (list->string line)))))
-          
+   
+   ;; skip everything up to |#
+   (define (get-block-comment)
+      (get-either
+         (let-parses
+            ((skip (get-imm #\|))
+             (skip (get-imm #\#)))
+            'comment)
+         (let-parses
+            ((skip get-byte)
+             (skip (get-block-comment)))
+            skip)))
+
    (define get-a-whitespace
       (get-any-of
          ;get-hashbang   ;; actually probably better to make it a symbol as above
          (get-byte-if (lambda (x) (has? '(9 10 32 13) x)))
          (let-parses
-            ((skip (get-imm 59))
+            ((skip (get-imm #\;))
              (skip get-rest-of-line))
+            'comment)
+         (let-parses
+            ((skip (get-imm #\#))
+             (skip (get-imm #\|))
+             (skip (get-block-comment)))
             'comment)))
 
    (define maybe-whitespace (get-kleene* get-a-whitespace))
@@ -251,9 +268,13 @@
 
    (define (get-vector-of parser)
       (let-parses
-         ((skip (get-imm 35))  ;; #
+         ((skip (get-imm #\#))
           (fields (get-list-of parser)))
-         (list->vector (intern-symbols fields))))
+         (let ((fields (intern-symbols fields)))
+            (if (first pair? fields False)
+               ;; vector may have unquoted stuff, so convert it to a sexp constructing a vector, which the macro handler can deal with
+               (cons 'vector (map (λ (x) (list 'quote x)) fields))
+               (list->vector fields)))))
 
    (define (get-sexp)
       (let-parses
