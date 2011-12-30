@@ -73,6 +73,7 @@
       ;vec-render         ; v x tail → tail'
 
       merge-chunks          ; exported for use in lib-io (may be moved later)
+      make-vector           ; n elem → #(elem ...)
       leaf-data vec-leaf-of
       vector-ref 
       vector-length
@@ -617,6 +618,10 @@
    (define (vec-rev a)
       (list->vector
          (vec-iterr a)))
+
+   ;; fixme: make-vector does not share the nodes despite most being equal
+   (define (make-vector n elem)
+      (list->vector (repeat elem n)))
 
    ;;;
    ;;; Vector construction
