@@ -37,7 +37,9 @@
 (define add4
   (let ((x 4))
       (lambda (y) (+ x y))))
-(define e '((a 1) (b 2) (c 3)))                                                                                                                             
+(define e '((a 1) (b 2) (c 3)))
+(define (f) (make-string 3 #\*))
+(define (g) "***")
 
 (compare-results
 
@@ -287,15 +289,18 @@
       (round 7/2)                     ===>  4    ; exact
       (round 7)                       ===>  7
 
+      (max 3 4)                      ===>  4    ; exact
+      (max 3.9 4)                    ===>  4.0  ; inexact ;; no it's not --owl
+
       ;; additions
-      ;(sqrt (expt 11111111111 2))     ===> 11111111111
+      ;(sqrt (expt 11111111111 2))    ===> 11111111111
       (expt 0 0)                      ===> 1
       (expt 0 1)                      ===> 0
       (number->string 3333333333333333 2) ===> "1011110101111010011000100101010000000101010101010101"
       (number->string 3333333333333333 3) ===> "121012010100112222020212022011210"
       (number->string 3333333333333333 11) ===> "886114800933a20"
       (number->string 3333333333333333 16) ===> "bd7a625405555"
-   
+  
       ;; FIXME string->number is different from R5RS
 
    chapter "6.3.1"
@@ -358,38 +363,61 @@
               '(b (a) c))             ===>  ((a) c)
       (memv 101 '(100 101 102))       ===>  (101 102)
 
-      (assq 'a e)             ===>  (a 1)
-      (assq 'b e)             ===>  (b 2)
-      (assq 'd e)             ===>  #f
+      (assq 'a e)                     ===>  (a 1)
+      (assq 'b e)                     ===>  (b 2)
+      (assq 'd e)                     ===>  #f
       (assq (list 'a) '(((a)) ((b)) ((c))))
-                              ===>  #f                                                                                                                            
+                                      ===>  #f                                                                                                                            
       (assoc (list 'a) '(((a)) ((b)) ((c))))
-                                         ===>  ((a))                                                                                                              
+                                      ===>  ((a))                                                                                                              
       (assv 5 '((2 3) (5 7) (11 13)))
                                       ===>  (5 7)                    
 
    chapter "6.3.3"
-                                                                                                                                                            
-   (symbol? 'foo)                  ===>  #t                                                                                                                    
-   (symbol? (car '(a b)))          ===>  #t                                                                                                                    
-   (symbol? "bar")                 ===>  #f                                                                                                                    
-   (symbol? 'nil)                  ===>  #t                                                                                                                    
-   (symbol? '())                   ===>  #f                                                                                                                    
-   (symbol? #f)             ===>  #f                   
 
-   (symbol->string 'flying-fish) ===>  "flying-fish"
-   (symbol->string 'martin) ===>  "martin"                  ;; note, not 'Martin
-   (symbol->string (string->symbol "Malvina")) ===> "Malvina"
+      (symbol? 'foo)                  ===>  #t
+      (symbol? (car '(a b)))          ===>  #t
+      (symbol? "bar")                 ===>  #f
+      (symbol? 'nil)                  ===>  #t
+      (symbol? '())                   ===>  #f
+      (symbol? #f)                    ===>  #f                   
 
-   ; chapter "6.3.5" ;; FIXME char comparisons not mapped to ints
+      (symbol->string 'flying-fish)   ===>  "flying-fish"
+      (symbol->string 'martin)        ===>  "martin"     ;; note, not 'Martin
+      (symbol->string (string->symbol "Malvina")) 
+                                      ===> "Malvina"
+
+   chapter "6.3.5" ;; strings
+      
+      ; additions
+      (string<? "a" "b")             ===> #t
+      (string<=? "a" "b")            ===> #t
+      (string>=? "a" "b")            ===> #f
+      (string>? "a" "b")             ===> #f
+      (string-ci<? "Aa" "AAa")       ===> #t
+      (string-ci>? "Aa" "AAA")       ===> #f
+      
+      (substring "xkappaz" 1 6)      ===> "kappa"
+
+      (list->string 
+         (string->list "abc"))       ===> "abc"
+
+      (string-append "foo" "bar")    ===> "foobar"
+
+      (string-copy "a")              ===> "a"
+
+      (make-string 3 #\a)            ===> "aaa"
+
    chapter "6.3.6"
-      (vector->list '#(dah dah didah)) ===>  (dah dah didah) 
-      (list->vector '(dididit dah)) ===>  #(dididit dah)
+
+      (vector->list '#(dah dah didah)) 
+                                      ===>  (dah dah didah) 
+      (list->vector '(dididit dah))   ===>  #(dididit dah)
+
+
    chapter "6.4"
 
-   (map cadr '((a b) (d e) (g h)))                                                                                                                             
-                   ===>  (b e h)                                                                                                                               
-   (map (lambda (n) (expt n n))                                                                                                                                
-        '(1 2 3 4 5))                                                                                                                                          
-                   ===>  (1 4 27 256 3125)                                                  
+      (map cadr '((a b) (d e) (g h))) ===>  (b e h)
+      (map (lambda (n) (expt n n)) '(1 2 3 4 5))
+                                      ===>  (1 4 27 256 3125)                                                  
 )
