@@ -1,4 +1,6 @@
-;; Things that should work the same as in R5RS Scheme
+;;;
+;;; Testing the intersection of R5RS and Owl
+;;;
 
 (define (print thing)
    ;; silly R5RS & Owl version
@@ -41,38 +43,61 @@
 (define (f) (make-string 3 #\*))
 (define (g) "***")
 
+(define a-stream
+  (letrec ((next
+            (lambda (n)
+              (cons n (delay (next (+ n 1)))))))
+    (next 0)))
+(define head car)
+(define tail
+  (lambda (stream) (force (cdr stream))))
+
+(define list-length
+  (lambda (obj)
+    (call-with-current-continuation
+      (lambda (return)
+        (letrec ((r
+                  (lambda (obj)
+                    (cond ((null? obj) 0)
+                          ((pair? obj)
+                           (+ (r (cdr obj)) 1))
+                          (else (return #f))))))
+          (r obj))))))
+
+
+
 (compare-results
 
    chapter "1.3.4" 
 
-      (* 5 8)           ===> 40
+      (* 5 8)                         ===> 40
 
    chapter "4.1.1"
 
-      x                 ===> 28
+      x                               ===> 28
 
    chapter "4.1.2"
 
-      (quote a)         ===>  a
-      (quote #(a b c))  ===>  #(a b c)
-      (quote (+ 1 2))   ===>  (+ 1 2)
-      'a                ===>  a
-      '#(a b c)         ===>  #(a b c)
-      '()               ===>  ()
-      '(+ 1 2)          ===>  (+ 1 2)
-      '(quote a)        ===>  (quote a)
-      ''a               ===>  (quote a)
-      '"abc"            ===>  "abc"
-      "abc"             ===>  "abc"
-      '145932           ===>  145932
-      145932            ===>  145932
-      '#t               ===>  #t
-      #t                ===>  #t
+      (quote a)                       ===>  a
+      (quote #(a b c))                ===>  #(a b c)
+      (quote (+ 1 2))                 ===>  (+ 1 2)
+      'a                              ===>  a
+      '#(a b c)                       ===>  #(a b c)
+      '()                             ===>  ()
+      '(+ 1 2)                        ===>  (+ 1 2)
+      '(quote a)                      ===>  (quote a)
+      ''a                             ===>  (quote a)
+      '"abc"                          ===>  "abc"
+      "abc"                           ===>  "abc"
+      '145932                         ===>  145932
+      145932                          ===>  145932
+      '#t                             ===>  #t
+      #t                              ===>  #t
 
    chapter "4.1.3"
 
-      (+ 3 4)           ===>  7
-      ((if #f + *) 3 4) ===>  12
+      (+ 3 4)                         ===>  7
+      ((if #f + *) 3 4)               ===>  12
 
    chapter "4.1.4"
 
@@ -139,14 +164,14 @@
       (letrec 
          ((even? (lambda (n) (if (zero? n) #t (odd? (- n 1)))))
           (odd? (lambda (n) (if (zero? n) #f (even? (- n 1)))))) 
-         (even? 88))                          ===>  #t
+         (even? 88))                  ===>  #t
 
    chapter "4.2.4"
 
       (let ((x '(1 3 5 7 9)))
          (do 
             ((x x (cdr x)) (sum 0 (+ sum (car x)))) 
-            ((null? x) sum)))                 ===>  25
+            ((null? x) sum)))         ===>  25
 
       (let loop ((numbers '(3 -2 1 6 -5))
                  (nonneg '())
@@ -160,28 +185,37 @@
                (loop (cdr numbers)
                      nonneg
                      (cons (car numbers) neg)))))   
-                                              ===>  ((6 1 3) (-5 -2))
+                                      ===>  ((6 1 3) (-5 -2))
 
    chapter "4.2.6"
 
-      `(list ,(+ 1 2) 4)                                ===>  (list 3 4)
-      (let ((name 'a)) `(list ,name ',name))            ===>  (list a (quote a))
-      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)             ===>  (a 3 4 5 6 b)
-      `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))) ===>  ((foo 7) . cons)
-      ;`#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)        ===>  #(10 5 2 4 3 8) ;; FIXME vector literals not yet handled
+      `(list ,(+ 1 2) 4)              ===>  (list 3 4)
+      (let ((name 'a)) `(list ,name ',name))            
+                                      ===>  (list a (quote a))
+      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)             
+                                      ===>  (a 3 4 5 6 b)
+      `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))) 
+                                      ===>  ((foo 7) . cons)
+      ;`#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)        
+      ;                               ===>  #(10 5 2 4 3 8) ;; FIXME vector literals not yet handled
 
      ;; FIXME nested quasiquotes are broken?
-     ;`(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
-     ;(let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))           ===>  (a `(b ,x ,'y d) e)
+     ;`(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          
+     ;                                ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
+     ;(let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))           
+     ;                                ===>  (a `(b ,x ,'y d) e)
 
 
-      (quasiquote (list (unquote (+ 1 2)) 4))           ===>  (list 3 4)
-      '(quasiquote (list (unquote (+ 1 2)) 4))          ===>  `(list ,(+ 1 2) 4)
+      (quasiquote (list (unquote (+ 1 2)) 4))           
+                                      ===>  (list 3 4)
+      '(quasiquote (list (unquote (+ 1 2)) 4))          
+                                      ===>  `(list ,(+ 1 2) 4)
 
    chapter "4.3.2"
 
       ;; FIXME no let*-syntax
-      ;(let ((=> #f)) (cond (#t => 'ok)))                ===> ok ;; FIXME behaves wrong
+      ;(let ((=> #f)) (cond (#t => 'ok))) 
+      ;                               ===> ok ;; FIXME behaves wrong
 
    chapter "5.2.2"
 
@@ -289,17 +323,22 @@
       (round 7/2)                     ===>  4    ; exact
       (round 7)                       ===>  7
 
-      (max 3 4)                      ===>  4    ; exact
-      (max 3.9 4)                    ===>  4.0  ; inexact ;; no it's not --owl
+      (max 3 4)                       ===>  4    ; exact
+      (max 3.9 4)                     ===>  4.0  ; inexact ;; no it's not --owl
 
       ;; additions
-      ;(sqrt (expt 11111111111 2))    ===> 11111111111
+      (sqrt (expt 11111111111 2))     ===> 11111111111
+      (sqrt -4)                       ===> 0+2i
       (expt 0 0)                      ===> 1
       (expt 0 1)                      ===> 0
-      (number->string 3333333333333333 2) ===> "1011110101111010011000100101010000000101010101010101"
-      (number->string 3333333333333333 3) ===> "121012010100112222020212022011210"
-      (number->string 3333333333333333 11) ===> "886114800933a20"
-      (number->string 3333333333333333 16) ===> "bd7a625405555"
+      (number->string 3333333333333333 2) 
+                                      ===> "1011110101111010011000100101010000000101010101010101"
+      (number->string 3333333333333333 3) 
+                                      ===> "121012010100112222020212022011210"
+      (number->string 3333333333333333 11) 
+                                      ===> "886114800933a20"
+      (number->string 3333333333333333 16) 
+                                      ===> "bd7a625405555"
   
       ;; FIXME string->number is different from R5RS
 
@@ -390,23 +429,25 @@
    chapter "6.3.5" ;; strings
       
       ; additions
-      (string<? "a" "b")             ===> #t
-      (string<=? "a" "b")            ===> #t
-      (string>=? "a" "b")            ===> #f
-      (string>? "a" "b")             ===> #f
-      (string-ci<? "Aa" "AAa")       ===> #t
-      (string-ci>? "Aa" "AAA")       ===> #f
+      (string=? "a" "")               ===> #f
+      (string-ci=? "Aa" "aA")         ===> #t
+      (string<? "a" "b")              ===> #t
+      (string<=? "a" "b")             ===> #t
+      (string>=? "a" "b")             ===> #f
+      (string>? "a" "b")              ===> #f
+      (string-ci<? "Aa" "AAa")        ===> #t
+      (string-ci>? "Aa" "AAA")        ===> #f
       
-      (substring "xkappaz" 1 6)      ===> "kappa"
+      (substring "xkappaz" 1 6)       ===> "kappa"
 
       (list->string 
-         (string->list "abc"))       ===> "abc"
+         (string->list "abc"))        ===> "abc"
 
-      (string-append "foo" "bar")    ===> "foobar"
+      (string-append "foo" "bar")     ===> "foobar"
 
-      (string-copy "a")              ===> "a"
+      (string-copy "a")               ===> "a"
 
-      (make-string 3 #\a)            ===> "aaa"
+      (make-string 3 #\a)             ===> "aaa"
 
    chapter "6.3.6"
 
@@ -414,10 +455,66 @@
                                       ===>  (dah dah didah) 
       (list->vector '(dididit dah))   ===>  #(dididit dah)
 
+      ;; additions
 
+      (make-vector 3 'betelgeuse)     ===> #(betelgeuse betelgeuse betelgeuse)
+      (vector? '(foo))                ===> #f
+      (vector 'a 'b 'c)               ===>  #(a b c)
+
+      (vector-ref '#(1 1 2 3 5 8 13 21) 5)  
+                                      ===>  8
    chapter "6.4"
+
+      (procedure? car)                ===>  #t
+      (procedure? 'car)               ===>  #f
+      (procedure? (lambda (x) (* x x)))
+                                      ===>  #t
+      (procedure? '(lambda (x) (* x x)))
+                                      ===>  #f
+      (call-with-current-continuation procedure?) 
+                                      ===>  #t
 
       (map cadr '((a b) (d e) (g h))) ===>  (b e h)
       (map (lambda (n) (expt n n)) '(1 2 3 4 5))
                                       ===>  (1 4 27 256 3125)                                                  
+
+      (apply + (list 3 4))            ===>  7    ;; not a primop though --owl
+
+      (map cadr '((a b) (d e) (g h))) ===>  (b e h)
+
+      
+      (map (lambda (n) (expt n n)) '(1 2 3 4 5))
+                                      ===>  (1 4 27 256 3125)
+
+      (force (delay (+ 1 2)))         ===>  3
+
+      (let ((p (delay (+ 1 2))))
+        (list (force p) (force p)))   ===>  (3 3)   ;; note -- NO CACHING there being no side effects
+
+      (head (tail (tail a-stream)))   ===>  2
+
+      (call-with-current-continuation
+        (lambda (exit)
+          (for-each (lambda (x)
+                      (if (negative? x)
+                          (exit x)))
+                    '(54 0 37 -3 245 19))
+          #t))                        ===>  -3
+
+      
+      (list-length '(1 2 3 4))        ===>  4
+
+      (list-length '(a b . c))        ===>  #f
+
+      (call-with-values (lambda () (values 4 5)) (lambda (a b) b))
+                                      ===>  5
+
+      ;; FIXME: environment fetches missing
+      ;(eval '(* 7 3) (scheme-report-environment 5))
+      ;                               ===>  21
+
+      ;(eval 'x (interaction-environment))       ;; defined above 
+      ;                               ===> 28
+
+      ;; most of the IO and system interaction don't apply to owl
 )
