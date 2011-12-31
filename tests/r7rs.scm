@@ -18,4 +18,7 @@ Testing block comments. They could also be nested on second thought...
 (if (not (= 42 ((lambda (|foo|) foo) 42)))
    (print "symbolic failure 2"))
 
+(if (not (string=? "||" (symbol->string (string->symbol ""))))
+   (print "symbolic failure 3"))
+
 (print "all done")
