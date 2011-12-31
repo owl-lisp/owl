@@ -33,12 +33,18 @@
             (> n 127))))         ;; allow high code points in symbols
 
    (define get-symbol 
-      (let-parses 
-         ((head (get-rune-if symbol-lead-char?))
-          (tail (get-greedy* (get-rune-if symbol-char?)))
-          (next (peek get-byte))
-          (foo (assert (lambda (b) (not (symbol-char? b))) next))) ; avoid useless backtracking
-         (string->uninterned-symbol (runes->string (cons head tail)))))
+      (get-either
+         (let-parses 
+            ((head (get-rune-if symbol-lead-char?))
+             (tail (get-greedy* (get-rune-if symbol-char?)))
+             (next (peek get-byte))
+             (foo (assert (lambda (b) (not (symbol-char? b))) next))) ; avoid useless backtracking
+            (string->uninterned-symbol (runes->string (cons head tail))))
+         (let-parses
+            ((skip (get-imm #\|))
+             (chars (get-greedy+ (get-rune-if (λ (x) (not (eq? x #\|))))))
+             (skip (get-imm #\|)))
+            (string->uninterned-symbol (runes->string chars)))))
 
    (define (digit-char? x) 
       (or (between? 48 x 57)
