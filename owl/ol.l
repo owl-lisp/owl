@@ -584,6 +584,62 @@
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
 
+(define-module lib-scheme-compat
+   (export 
+      member memq memv 
+      assoc assv assq
+      apply rationalize)
+
+   ;; scheme member functions don't follow the argument conventions of other functions 
+   (define (member x lst)
+      (cond
+         ((null? lst) False)
+         ((equal? x (car lst)) lst)
+         (else (member x (cdr lst)))))
+
+   (define memv member)
+
+   (define (memq x lst)
+      (cond
+         ((null? lst) False)
+         ((eq? x (car lst)) lst)
+         (else (memq x (cdr lst)))))
+
+   (define (assq k l)
+      (cond
+         ((null? l) #f)
+         ((eq? (caar l) k) (car l))
+         (else (assq k (cdr l)))))
+   
+   (define (assv k l)
+      (cond
+         ((null? l) #f)
+         ((equal? (caar l) k) (car l))
+         (else (assv k (cdr l)))))
+
+   (define assoc assv)
+
+   ;; a silly non-primitive apply
+   (define (apply func l)
+      (if (null? l)
+         (func)
+         (lets ((a l l)) (if (null? l) (func a)
+         (lets ((b l l)) (if (null? l) (func a b)
+         (lets ((c l l)) (if (null? l) (func a b c)
+         (lets ((d l l)) (if (null? l) (func a b c d)
+         (lets ((e l l)) (if (null? l) (func a b c d e)
+         (lets ((f l l)) (if (null? l) (func a b c d e f)
+            (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
+
+   ;; owl doesn't have inexact numbers, so any argument
+   ;; coming in will always be rational differing by 0
+   (define (rationalize n max-delta) n)
+
+)
+
+(import lib-scheme-compat)
+
+
 ,r "owl/env.l"
 
 (import lib-env)
@@ -891,58 +947,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ")
          (halt exit-seccomp-failed))))
 
-(define-module lib-scheme-compat
-   (export 
-      member memq memv 
-      assoc assv assq
-      apply rationalize)
-
-   ;; scheme member functions don't follow the argument conventions of other functions 
-   (define (member x lst)
-      (cond
-         ((null? lst) False)
-         ((equal? x (car lst)) lst)
-         (else (member x (cdr lst)))))
-
-   (define memv member)
-
-   (define (memq x lst)
-      (cond
-         ((null? lst) False)
-         ((eq? x (car lst)) lst)
-         (else (memq x (cdr lst)))))
-
-   (define (assq k l)
-      (cond
-         ((null? l) #f)
-         ((eq? (caar l) k) (car l))
-         (else (assq k (cdr l)))))
-   
-   (define (assv k l)
-      (cond
-         ((null? l) #f)
-         ((equal? (caar l) k) (car l))
-         (else (assv k (cdr l)))))
-
-   (define assoc assv)
-
-   ;; a silly non-primitive apply
-   (define (apply func l)
-      (if (null? l)
-         (func)
-         (lets ((a l l)) (if (null? l) (func a)
-         (lets ((b l l)) (if (null? l) (func a b)
-         (lets ((c l l)) (if (null? l) (func a b c)
-         (lets ((d l l)) (if (null? l) (func a b c d)
-         (lets ((e l l)) (if (null? l) (func a b c d e)
-         (lets ((f l l)) (if (null? l) (func a b c d e f)
-            (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
-
-   ;; owl doesn't have inexact numbers, so any argument
-   ;; coming in will always be rational differing by 0
-   (define (rationalize n max-delta) n)
-
-)
 
 ;; Scheme compatibility library 
 (define-module lib-char 
@@ -1174,6 +1178,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                               (template ...)))))))))
          shared-bindings))))
 
+
+(import lib-scheme-compat) ;; used in macros
+
 (define (define-macros env lst)
    (for env lst
       (λ env defn
@@ -1276,7 +1283,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((if test then else) (_branch 0 test False else then))))
 
    (define-syntax cond
-      (syntax-rules (to else =>)
+      (syntax-rules (else =>)
          ((cond) False)
          ((cond (else exp . rest))
             (begin exp . rest))
@@ -1285,30 +1292,35 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (if fresh
                   (exp fresh)
                   (cond . rest))))
-         ((cond (clause to exp) . rest) 
-            (let ((fresh clause))
-               (if fresh
-                  (apply exp fresh)
-                  (cond . rest))))
          ((cond (clause exp . rest-exps) . rest) 
             (if clause
                (begin exp . rest-exps)
                (cond . rest)))))
 
    (define-syntax case
-      (syntax-rules (else has?)
+      (syntax-rules (else eqv? memv =>)
          ((case (op . args) . clauses)
             (let ((fresh (op . args)))
                (case fresh . clauses)))
-         ((case thing (else . body))
-            (begin . body))
          ((case thing) False)
+         ((case thing ((a) => exp) . clauses)
+            (if (eqv? thing (quote a))
+               (exp thing)
+               (case thing . clauses)))
+         ((case thing ((a ...) => exp) . clauses)
+            (if (memv thing (quote (a ...)))
+               (exp thing)
+               (case thing . clauses)))
          ((case thing ((a) . body) . clauses)
-            (if (eq? thing (quote a))
+            (if (eqv? thing (quote a))
                (begin . body)
                (case thing . clauses)))
+         ((case thing (else => func))
+            (func thing))
+         ((case thing (else . body))
+            (begin . body))
          ((case thing ((a . b) . body) . clauses)
-            (if (has? (quote (a . b)) thing)
+            (if (memv thing (quote (a . b)))
                (begin . body)
                (case thing . clauses)))))
 

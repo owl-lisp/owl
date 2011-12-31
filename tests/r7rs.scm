@@ -35,6 +35,22 @@ Testing block comments. They could also be nested on second thought...
 
 (if (not (equal? (list 2 1 1 0) (list (foo x x) (foo o x) (foo x o) (foo o o))))
    (print (list (foo x x) (foo o x) (foo x o) (foo o o))))
-  
+
+;; case also supports =>
+
+(case (+ 1 2)
+   ((1 2) => (lambda (x) (print (list 'bad x))))
+   ((3) => (lambda (x) 'ok)) ;; uses eqv
+   (else => (lambda (x) (print (list 'bad x)))))
+
+(case (+ 1 2)
+   ((1) => (lambda (x) (print (list 'bad x))))
+   ((2 3) => (lambda (x) 'ok)) ;; uses memv
+   (else => (lambda (x) (print (list 'bad x)))))
+
+(case (+ 1 3)
+   ((1) => (lambda (x) (print (list 'bad x))))
+   (else => (lambda (x) 42)))
+
 ;; shouldn't have printed anything before this
 (print "all done")
