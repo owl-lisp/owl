@@ -80,7 +80,7 @@
 
 
 ;; set a few flags which affect compilation or set static information
-(define *owl-version* "0.1.6a")
+(define *owl-version* "0.1.6")
 ;(define *interactive* True) ;; causes file names to be printed when loading them
 
 ; The symbol _sans_cps acts as a quote to the CPS transformer. This 
@@ -288,22 +288,7 @@
 ;;;
 
 
-(define-module lib-symbol
-
-   (export symbol? symbol->string render)
-
-   (define (symbol? x) (eq? (type x) 38))
-
-   (define (symbol->string x) 
-      (if (eq? (type x) 38)
-         (ref x 1)
-         (error "Not a symbol: " x)))
-
-   (define render
-      (lambda (self obj tl)
-         (if (symbol? obj)
-            (self self (symbol->string obj) tl)
-            (render self obj tl)))))
+,r "owl/symbol.l"
 
 (import lib-symbol)
 
