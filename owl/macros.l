@@ -47,8 +47,8 @@
 						(match-pattern (car pattern) (car exp)
 							(match-pattern (cdr pattern) (cdr exp) vals))
 						False))
-				((eq? pattern exp)
-					vals)
+				((eq? pattern exp) vals)
+            ((eq? pattern '_) vals)
 				((function? pattern)
 					(if (pattern exp) (cons exp vals) False))
 				(else False)))
@@ -69,6 +69,7 @@
 			dict
 			(diff (symbols-of exp) literals)))
 
+   ;; fixme: we have ffs now
 	(define (push dict key val)
 		(cond
 			((null? dict)
@@ -87,14 +88,19 @@
 				(fail fail) (dictionary null))
 			(cond
 				((symbol? pattern)
-					(if (has? literals pattern)
-						(if (eq? pattern form) dictionary (fail pattern))
-						(if collect?
+               (cond
+                  ((eq? pattern '_) ;; wildcard - match anything, leave no binding
+                     dictionary)
+					   ((has? literals pattern)
+                     (if (eq? pattern form) dictionary (fail pattern)))
+						(collect?
 							;;; append to dictionary
-							(push dictionary pattern form)
+							(push dictionary pattern form))
+                  (else
 							(let ((binding (getq dictionary pattern)))
 								(if binding
-									(if (equal? (cadr binding) form) dictionary 
+									(if (equal? (cadr binding) form)
+                              dictionary 
 										(fail pattern))
 									(cons (list pattern form) dictionary))))))
 				((null? pattern)
