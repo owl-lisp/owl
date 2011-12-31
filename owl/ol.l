@@ -2,26 +2,26 @@
 ;;; ol.scm: an Owl read-eval-print loop.
 ;;;
 
-;;
-;; Copyright (c) 2008-2011 Aki Helin
-;; 
-;; Permission is hereby granted, free of charge, to any person obtaining a 
-;; copy of this software and associated documentation files (the "Software"),
-;; to deal in the Software without restriction, including without limitation
-;; the rights to use, copy, modify, merge, publish, distribute, sublicense,
-;; and/or sell copies of the Software, and to permit persons to whom the
-;; Software is furnished to do so, subject to the following conditions
-;; 
-;; The above copyright notice and this permission notice shall be included 
-;; in all copies or substantial portions of the Software.
-;; 
-;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-;; DEALINGS IN THE SOFTWARE.
+#| Copyright (c) 2008-2011 Aki Helin
+ |
+ | Permission is hereby granted, free of charge, to any person obtaining a 
+ | copy of this software and associated documentation files (the "Software"),
+ | to deal in the Software without restriction, including without limitation
+ | the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ | and/or sell copies of the Software, and to permit persons to whom the
+ | Software is furnished to do so, subject to the following conditions
+ | 
+ | The above copyright notice and this permission notice shall be included 
+ | in all copies or substantial portions of the Software.
+ | 
+ | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ | IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ | FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+ | THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ | LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+ | FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ | DEALINGS IN THE SOFTWARE.
+ |#
 
 ;;; individual module compilation planning:
 ;;  $ ol -o fasl/sfuz.fasl ol/sfuz.l  <- parallel
@@ -122,15 +122,19 @@
 
 ;; throw an error if some familiar but unsupported Scheme functions are called
 (define-module lib-unsupported
-   (export set! vector-set!)
+   (export set! set-car! set-cdr! string-set! vector-set!)
 
-   (define-syntax set! 
-      (syntax-rules ()
-         ((set! var val)
-            (error "set! is not supported: " '(set! var val)))))
+   (define-syntax set!
+      (syntax-rules () 
+         ((set! var val) (error "set! is not supported: " '(set! var val)))))
+  
+   (define (unsupported name)
+      (error "Mutator not supported: " name))
 
-   (define (vector-set! thing pos val)
-      (error "vector-set! is not supported: " thing))
+   (define (set-car! pair val) (unsupported "set-car!"))
+   (define (set-cdr! pair val) (unsupported "set-cdr!"))
+   (define (vector-set! vec pos val) (unsupported "vector-set!"))
+   (define (string-set! str pos val) (unsupported "string-set!"))
 
 )
 
@@ -145,11 +149,11 @@
          (else False)))
 
    (define render 
-		(lambda (self obj tail)
-			(cond
-				((eq? obj True)  (ilist 84 114 117 101 tail))
-				((eq? obj False) (ilist 70 97 108 115 101 tail))
-				(else (render self obj tail))))))
+      (lambda (self obj tail)
+         (cond
+            ((eq? obj True)  (ilist 84 114 117 101 tail))
+            ((eq? obj False) (ilist 70 97 108 115 101 tail))
+            (else (render self obj tail))))))
 
 (import lib-boolean)
 
@@ -267,8 +271,8 @@
    ;                                                               .-> ignore padding byte count
    ;                            .-> raw data object              .-+
    (define (bytecode? x) (eq? #b100000000110 (fxband (type x) #b100011111110))) 
-	;                             '------+
-	;                                    '-> 8-bit type/padding info
+   ;                             '------+
+   ;                                    '-> 8-bit type/padding info
 
    (define render 
       (λ (self obj tl)
@@ -515,7 +519,7 @@
 
 ;; old foldable api wrapper
 (define (renderer o tl) 
-	(render render o tl))
+   (render render o tl))
 
 
 (define (verb obj) 
@@ -999,7 +1003,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       get-word-size
       get-memory-limit
       checksum
-		string->sexp
+      string->sexp
       ))
 
 ,r "owl/fasl.l"     ; encoding and decoding arbitrary objects as lists of bytes
@@ -1100,7 +1104,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (primitive 'car)
                (primitive 'cdr)
                (primitive 'eq?)
-               ;(primitive 'fx%)
                (primitive 'type)
                (primitive 'size)
                (primitive 'cast)
@@ -1128,7 +1131,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (primitive 'set)
                (primitive 'lesser?)
                (primitive 'call-native)
-               ;(primitive 'halt)
                (primitive 'mkred)
                (primitive 'mkblack)
                (primitive 'ff-bind)
@@ -1137,8 +1139,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (primitive 'ffcdr)
                (primitive 'red?)
                (primitive 'listuple)
-               ;(primitive 'get)
-               ;(primitive 'fupd)
                (primitive 'fxband)         
                (primitive 'fx+)
                (primitive 'fxqr)
@@ -1146,8 +1146,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (primitive 'fx-)
                (primitive 'fx<<)
                (primitive 'fx>>)
-               ;(primitive 'fxbdivmod)
-               ;(primitive 'fxdivmod)
                (primitive 'ncons)
                (primitive 'ncar)
                (primitive 'ncdr)
@@ -1157,22 +1155,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (primitive 'clock)
                (primitive 'time)
                (primitive 'sizeb)
-               ;(primitive 'vm-set)
                (primitive 'blit)
                (primitive 'getev)
                (primitive 'fill-rect)
-
-               ; graphics extension (comment out "start growling" sections in ovm.c if not needed)
-               ; no, relocate the code back to blit.srv after posix is running. lila protocol ftw
-               ;(primitive 'win-open) 
-               ;(primitive 'win-put)
-               ;(primitive 'win-update)
-               ;(primitive 'win-line)
-               ;(primitive 'win-circle)
-               ;(primitive 'win-rectangle)
-               ;(primitive 'win-arc)
-               ;(primitive 'win-event)
-               ;(primitive 'win-fill-rect)
 
                ; needed to define the rest of the macros
                ; fixme, could use macro-expand instead
@@ -1486,28 +1471,25 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;;; REPL
 ;;;
 
-
-
 ,r "owl/repl.l"
 
 (import lib-repl)
 
 (define initial-environment
-	(bind-toplevel
-		(define-macros
-			initial-environment-sans-macros
-			initial-macros)))
+   (bind-toplevel
+      (define-macros
+         initial-environment-sans-macros
+         initial-macros)))
 
 ;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux
 
 (define command-line-rules
    (cl-rules
-     `((help       "-h" "--help")
-       (about      "-a" "--about")
+     `((help     "-h" "--help")
+       (about    "-a" "--about")
        (version  "-v" "--version")
        (evaluate "-e" "--eval"     has-arg comment "evaluate expressions in the given string")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
-       ;(memlimit "-m" "--max-heap" comment "maximum heap size (in mb)" cook ,string->integer)
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
        (notes    "-n" "--notes"    comment "show notes from code (meaning \\n;; <label>:<text>\\n)")
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
@@ -1517,8 +1499,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
-       ;(native  False "--native"   comment "compile all applicable bytecode fragments to C")
-       ;(usual-suspects  False "--usual-suspects"   comment "compile a few common functions to C")
        ;(linked  False "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads False "--no-threads" comment "do not include threading and io to generated c-code")
        )))
@@ -1557,11 +1537,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
             (system-println "Bad memory limit")))))
 
 (define (c-source-name path)
-	(cond
-		((m/\.[a-z]+$/ path) ;; .scm, .lisp, .owl etc
-			(s/\.[a-z]+$/.c/ path))
-		(else
-			(string-append path ".c"))))
+   (cond
+      ((m/\.[a-z]+$/ path) ;; .scm, .lisp, .owl etc
+         (s/\.[a-z]+$/.c/ path))
+      (else
+         (string-append path ".c"))))
 
 (define (try thunk fail-val)
    ; run the compiler chain in a new task
