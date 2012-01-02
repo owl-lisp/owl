@@ -1617,6 +1617,7 @@
 
    ;; generic addition, switching from most common type (?) to more complex ones (no pun untended)
 
+   ;; rational case: a/b + c, gcd(a,b) = 1 => gcd(a+bc, b) = 1 -> no need to renormalize
    (define (+ a b)
       (type-case a
          (fix+ 
@@ -1625,7 +1626,7 @@
                (int+  (add-number-big a b))
                (fix-  (sub-small->pick-sign a b))
                (int-  (sub-number-big a b True))
-               (rat   (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (rat   (lets ((x z b)) (rational (add (mul a z) x) z)))
                (comp  (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (int+
@@ -1634,7 +1635,7 @@
                (int+ (add-big a b False))
                (fix- (sub-big-number a b True))
                (int- (sub-big a b))
-               (rat  (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (rat  (lets ((x z b)) (rational (add (mul a z) x) z)))
                (comp (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (fix-
@@ -1643,7 +1644,7 @@
                (fix- (add-small->negative a b))
                (int+ (sub-big-number b a True))
                (int- (cast (add-number-big a b) 41))
-               (rat  (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (rat  (lets ((x z b)) (rational (add (mul a z) x) z)))
                (comp (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (int-
@@ -1652,7 +1653,7 @@
                (fix- (cast (add-number-big b a) 41))
                (int+ (sub-big b a))
                (int- (cast (add-big a b False) 41))
-               (rat  (lets ((x z b)) (divide (add (mul a z) x) z)))
+               (rat  (lets ((x z b)) (rational (add (mul a z) x) z)))
                (comp (lets ((x y b)) (complex (+ a x) y)))
                (else (big-bad-args '+ a b))))
          (rat 
@@ -1688,7 +1689,6 @@
          (else 
             (big-bad-args '+ a b))))
 
-   ;; fixme: substraction lacks short circuits
    (define (- a b)
       (type-case a
          (fix+
@@ -1771,8 +1771,8 @@
                (fix+
                   (type-case b
                      (fix+ (mult-fixnums a b))                 ; +a * +b
-                     (fix- (negative (mult-fixnums a b)))      ; +a * -b
                      (int+ (mult-num-big a b 0))               ; +a * +B
+                     (fix- (negative (mult-fixnums a b)))      ; +a * -b
                      (int- (negative (mult-num-big a b 0)))    ; +a * -b
                      (rat  (divide (* a (ncar b)) (ncdr b)))
                      (comp 
@@ -1782,8 +1782,8 @@
                (fix-
                   (type-case b
                      (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
-                     (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
                      (int+ (cast (mult-num-big a b 0) 41))   ; -a * +B -> -C
+                     (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
                      (int- (mult-num-big a b 0))            ; -a * -B -> +C
                      (rat  (divide (* a (ncar b)) (ncdr b)))
                      (comp 
@@ -1793,8 +1793,8 @@
                (int+
                   (type-case b
                      (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
-                     (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
                      (int+ (mult-big a b))               ; +A * +B -> +C
+                     (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
                      (int- (cast (mult-big a b) 41))      ; +A * -B -> -C
                      (rat  (divide (* a (ncar b)) (ncdr b)))
                      (comp 
@@ -1804,8 +1804,8 @@
                (int-   
                   (type-case b
                      (fix+ (cast (mult-num-big b a 0) 41))      ; -A * +b -> -C
-                     (fix- (mult-num-big b a 0))               ; -A * -b -> +C
                      (int+ (cast (mult-big a b) 41))      ; -A * +B -> -C
+                     (fix- (mult-num-big b a 0))               ; -A * -b -> +C
                      (int- (mult-big a b))                  ; -A * -B -> +C
                      (rat  (divide (* a (ncar b)) (ncdr b)))
                      (comp 
@@ -1868,13 +1868,13 @@
             (if (teq? b rat)
                ; a'/a" / b'/b" = a'b" / a"b'
                (divide
-                  (mul (ncar a) (ncdr b)) 
-                  (mul (ncdr a) (ncar b)))
+                  (* (ncar a) (ncdr b)) 
+                  (* (ncdr a) (ncar b)))
                ; a'/a" / b = a'/ba"
-               (divide (ncar a) (mul (ncdr a) b))))
+               (divide (ncar a) (* (ncdr a) b))))
          ((teq? b rat)
             ; a / b'/b" = ab"/n
-            (divide (mul a (ncdr b)) (ncar b)))
+            (divide (* a (ncdr b)) (ncar b)))
          (else 
             (divide a b))))
 
