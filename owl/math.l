@@ -1673,7 +1673,7 @@
                      (complex (+ a br) bi)))
                (else
                   ; a'/a" + b = (a'+ba")/a"
-                  (divide (add (ncar a) (mul b (ncdr a))) (ncdr a)))))
+                  (rational (add (ncar a) (mul b (ncdr a))) (ncdr a)))))
          (comp
             (if (teq? b comp)
                ;; A+ai + B+bi = A+B + (a+b)i
@@ -1743,7 +1743,7 @@
                   (lets ((br bi b)) (complex (- a br) (negate bi))))
                (else
                   ; a'/a" - b = (a'-ba")/a"
-                  (divide (sub (ncar a) (mul b (ncdr a))) (ncdr a)))))
+                  (rational (sub (ncar a) (mul b (ncdr a))) (ncdr a)))))
          (comp
             (if (teq? b comp)
                (lets 
