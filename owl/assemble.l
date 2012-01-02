@@ -271,14 +271,13 @@
             (show "assemble: what is " code)
             (fail False))))
 
-   ;; lookup equal code from code tree in env, or make a new code fragments and add to tree
-   (define (bytes->bytecode env bytes)
-      (values env 
-         (interact 'intern
-            (raw bytes 0 False))))
+   ;; make bytecode and intern it (to improve sharing, not mandatory)
+   (define (bytes->bytecode bytes)
+      (interact 'intern (raw bytes 0 False)))
 
    ; code rtl object -> executable code
-   (define (assemble-code env obj)
+   ;; todo: exit via fail cont
+   (define (assemble-code obj)
       (tuple-case obj
          ((code arity insts)
             (lets
@@ -287,7 +286,7 @@
                ;(show "optimized code is " insts)
                (if (not insts)
                   (error "failed to allocate registers" "")
-                  (bytes->bytecode env
+                  (bytes->bytecode
                      (call/cc
                         (λ (ret)
                            (cons arity (assemble insts ret))))))))))

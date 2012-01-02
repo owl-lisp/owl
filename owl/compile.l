@@ -619,62 +619,51 @@
 
    ;;; closure -> executable procedure (closed from elsewhere if not independent)
 
-   (define (rtl-literal env rtl thing)
+   (define (rtl-literal rtl thing)
       (if (uncompiled-closure? thing)
-         (rtl env (cdr thing))
-         (values env thing)))
+         (rtl (cdr thing))
+         thing))
 
    ; code .. → code' ...
-   (define (rtl-literals env rtl-procedure lits)
+   (define (rtl-literals rtl-procedure lits)
       ;;; convert all uncompiled closures to procedures
-      (if (null? lits)
-         (values env lits)
-         (lets
-            ((env this (rtl-literal  env rtl-procedure (car lits)))
-             (env tail (rtl-literals env rtl-procedure (cdr lits))))
-            (values env (cons this tail)))))
+      (map (λ (lit) (rtl-literal rtl-procedure lit)) lits))
 
    (define (list->proc lst)
       (listuple 32 (length lst) lst))
 
    ;;; proc = #(procedure-header <code-ptr> l0 ... ln)
    ; env node → env' owl-func
-   (define (rtl-procedure env node)
+   (define (rtl-procedure node)
       (tuple-case node
          ;;; #(procedure #(code arity exec) l0 ... ln)
          ((closure formals body clos literals)
+            ;; todo: should pass info about env and literals to assembly in order to select better call opcodes
             (lets
-               ((env lits (rtl-literals env rtl-procedure literals))
-                (env exec
-                  (assemble-code env
+               ((lits (rtl-literals rtl-procedure literals))
+                (exec
+                  (assemble-code 
                      (tuple 'code
                         (length formals)
                         (rtl-control (entry-regs clos literals formals) body)))))
-               (values env
-                  (if (null? lits)
-                     exec ; #<bytecode> 
-                     (list->proc (cons exec lits)))))) ; #[TPROC #<bytecode> <val0> ... <valn]
+               (if (null? lits)
+                  exec ; #<bytecode> 
+                  (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn]
          (else
             (error "rtl-procedure: bad input: " node))))
 
-
-   ; env exp → env' exp'
-   (define (rtl-exp env exp)
+   ; exp → exp'
+   (define (rtl-exp exp)
       (tuple-case exp
          ((closure formals body clos literals)
             (if (null? clos)
-               (rtl-procedure env exp)
+               (rtl-procedure exp)
                (error "rtl-exp: free variables in entry closure: " clos)))
          (else
-            (values env False))))
+            False)))
 
+   ;; todo: exit via fail cont on errors
    (define (compile exp env)
-      ;(show " - compiling " exp)
-      ;; todo: add and update the shared code tree and possible other necessary things in env (or pass and modify the real env?)
-      (lets
-         ((toplevel (module-ref env '*toplevel* 42))
-          (codes (module-ref env '*codes* False))
-          (codes exp (rtl-exp codes exp)))
-         (ok exp (module-set env '*codes* codes))))
+      (ok (rtl-exp exp) env))
 
 )
