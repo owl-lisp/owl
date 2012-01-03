@@ -20,7 +20,6 @@
 
    (define (self x) x)
 
-   ;; fixme: partially deprecated
    (define vm-instructions
       (list->ff
       `((move . 9)      ; move a, t:      Rt = Ra
@@ -28,7 +27,7 @@
         (goto . 2)      ; jmp a, nargs    call Ra with nargs args
         (clos . 3)      ; clos lp, o, nenv, e0 ... en, t: 
         (cloc . 4)      ; cloc lp, o, nenv, e0 ... en, t: 
-        (ref1 . 5)       ; ref1 p, t
+        (move2 . 5)     ; two moves, 4 args
         (clos1 . 6)
         (cloc1 . 7)
         ; 8 = jlq 
@@ -95,7 +94,12 @@
          ((ret a)
             (list (inst->op 'ret) (reg a)))
          ((move a b more)
-            (ilist (inst->op 'move) (reg a) (reg b) (assemble more fail)))
+            (lets
+               ((tl (assemble more fail))
+                (op (inst->op 'move)))
+               (if (eq? (car tl) op) ;; [move a b] + [move c d] = [move2 a b c d] to remove a common dispatch
+                  (ilist (inst->op 'move2) (reg a) (reg b) (cdr tl))
+                  (ilist op (reg a) (reg b) tl))))
          ((prim op args to more)
             (cond
                ;; fixme: handle mk differently, this was supposed to be a temp hack

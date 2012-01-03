@@ -159,7 +159,9 @@
          (cond
             (else 
                (values
-                  (list "{word res=fixval(R["a"])+fixval(R["b"]);R["r"]=fixnum(res&0xffff);R["o"]=(res>>16)?ITRUE:IFALSE;}")
+                  (list "{word res=(((R["a"])+(R["b"]))&0x1ffff000)|2;R["r"]=res&0xffff002;R["o"]=(res&0x10000000)?ITRUE:IFALSE;}")
+                  ;(list "{word res=fixval(R["a"])+fixval(R["b"]);R["r"]=fixnum(res&0xffff);R["o"]=(res>>16)?ITRUE:IFALSE;}")
+
                   bs (put (put regs r 'fixnum) o 'bool))))))
 
    ; fxband a b r
@@ -191,7 +193,8 @@
    (define (cify-fxsub bs regs fail) 
       (lets ((a b r u bs (get4 (cdr bs))))
          (values
-            (list "{word a=fixval(R["a"]);word b=fixval(R["b"]);if(b>a){R["r"]=fixnum((a|0x10000)-b);R["u"]=ITRUE;}else{R["r"]=fixnum(a-b);R["u"]=IFALSE;}}")
+            ;(list "{word a=fixval(R["a"]);word b=fixval(R["b"]);if(b>a){R["r"]=fixnum((a|0x10000)-b);R["u"]=ITRUE;}else{R["r"]=fixnum(a-b);R["u"]=IFALSE;}}")
+            (list "{word res=(R["a"]|0x10000000)-(R["b"]&0xffff000);R["r"]=res&0xffff002;;R["u"]=(res&0x10000000)?IFALSE:ITRUE;}")
             bs (put (put regs r 'fixnum) u 'bool))))
 
    ; fx<< a b hi lo
@@ -356,14 +359,15 @@
                         (values code null regs)))))
             (cons 3 (cify-closer "TCLOS"))
             (cons 4 (cify-closer "TPROC"))
-            (cons 5 ;; ref1 offset to (read register 1, usually closure or immediates)
+            (cons 5 ;; move2 from1 to1 from2 to2
                (λ (bs regs fail)
-                  (lets ((offset to bs (get2 (cdr bs))))
+                  (lets 
+                     ((from1 to1 bs (get2 (cdr bs)))
+                      (from2 to2 bs (get2 bs))
+                      (regs (put regs to1 (get regs from1 False)))
+                      (regs (put regs to2 (get regs from2 False))))
                      (cond
-                        (else 
-                           (values 
-                              (list "R[" to "]=G(R[1]," offset ");")
-                              bs (del regs to)))))))
+                        (else (values (list "R[" to1 "]=R[" from1 "];R[" to2 "]=R[" from2 "];") bs regs))))))
             (cons 6 (cify-closer-1 "TCLOS"))
             (cons 7 (cify-closer-1 "TPROC"))
             (cons 8 ;; jump-if-equal a b lo8 hi8

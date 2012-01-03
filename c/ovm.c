@@ -1026,7 +1026,10 @@ dispatch: /* handle normal bytecode */
       case 2: OGOTO(*ip,ip[1]); /* fixme, these macros are not used in cgen output anymore*/
       case 3: OCLOSE(TCLOS); break;
       case 4: OCLOSE(TPROC); break;
-      case 5: REF1(*ip,ip[1]); next(2);
+      case 5: /* mov2 from1 to1 from2 to2 */
+         R[ip[1]] = R[ip[0]];
+         R[ip[3]] = R[ip[2]];
+         next(4);
       case 6: CLOSE1(TCLOS); break;
       case 7: CLOSE1(TPROC); break;
       case 8: /* jlq a b o, extended jump  */
@@ -1189,12 +1192,13 @@ dispatch: /* handle normal bytecode */
          A1 = (errno == EINTR) ? ITRUE : IFALSE; 
          next(2); }
       case 38: { /* fx+ a b r o, types prechecked, signs ignored */
-         word res = fixval(R[*ip]) + fixval(A1);
-         if (res & 0xffff0000) {
-            A2 = fixnum(res&0xffff);
+         /* values are (n<<12)|2*/
+         word res = ((A0 + A1) & 0x1ffff000) | 2;
+         if (res & 0x10000000) {
+            A2 = res & 0xffff002;
             A3 = ITRUE;
          } else {
-            A2 = fixnum(res);
+            A2 = res;
             A3 = IFALSE;
          }
          next(4); }
@@ -1204,9 +1208,9 @@ dispatch: /* handle normal bytecode */
          A3 = fixnum((res>>16)&0xffff);
          next(4); }
       case 40: { /* fx- a b r u, args prechecked, signs ignored */
-         word r = (fixval(A0)|0x10000) - fixval(A1);
-         A3 = (r & 0x10000) ? IFALSE : ITRUE;
-         A2 = fixnum(r&0xffff);
+         word r = (A0|0x10000000) - (A1 & 0xffff000);
+         A3 = (r & 0x10000000) ? IFALSE : ITRUE;
+         A2 = r & 0xffff002;
          next(4); }
       case 41: { /* red? node r (has highest type bit?) */
          word *node = (word *) R[*ip];
@@ -1250,17 +1254,12 @@ dispatch: /* handle normal bytecode */
       case 49: { /* withff node l k v r */
          word hdr, *ob = (word *) R[*ip];
          assert(allocp(ob), ob, 49);
-         hdr = *ob >> 3;
+         hdr = *ob++ >> 3;
          assert(((hdr&31)==TFF),ob,49) 
-         A2 = ob[1]; /* key */
-         A3 = ob[2]; /* value */
-         if (hdr&FFLEFT) {         
-            A1 = ob[3];
-            A4 = (hdr&FFRIGHT) ? ob[4] : IFALSE; 
-         } else {
-            A1 = IFALSE;
-            A4 = (hdr&FFRIGHT)?ob[3]:IFALSE;
-         }
+         A2 = *ob++; /* key */
+         A3 = *ob++; /* value */
+         A1 = (hdr & FFLEFT) ? *ob++ : IFALSE; 
+         A4 = (hdr & FFRIGHT) ? *ob++ : IFALSE; 
          next(5); }
       case 50: { /* run thunk quantum */ /* fixme: maybe move to sys */
          word hdr;
@@ -1389,3 +1388,4 @@ int main(int nargs, char **argv) {
    int rval = boot(nargs, argv);
    EXIT(rval);
 }
+
