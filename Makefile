@@ -107,6 +107,9 @@ standalone:
 	-rm bin/ol
 	make CFLAGS="-O2 -DNO_SECCOMP" CC="diet gcc" bin/ol
 
+fasl-update: fasl/ol.fasl
+	cp fasl/ol.fasl fasl/init.fasl
+
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.l | less
 
