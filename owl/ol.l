@@ -266,7 +266,8 @@
 
    (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
 
-   (define procedure? function?)
+   (define (procedure? obj) 
+      (or (function? obj) (ff? obj) (not obj)))
 
    ;                                                               .-> ignore padding byte count
    ;                            .-> raw data object              .-+
@@ -433,36 +434,6 @@
 
 
 
-   
-
-,r "owl/intern.l"
-
-(import lib-intern)
-
-(import lib-unicode encode-point)
-
-
-;;;
-;;; The eof object
-;;;
-
-(define-module lib-eof
-
-   (export eof? render)
-
-   (define (eof? x) (eq? (type x) 34))
-
-   ;; eof
-   (define render
-      (λ (self obj tl)
-         (if (eof? obj)
-            (ilist 69 111 102 tl)
-            (render self obj tl)))))
-
-(import lib-eof)
-
-
-
 ;;;
 ;;; Tuples
 ;;;
@@ -502,6 +473,36 @@
             (render self obj tl)))))
 
 (import lib-tuple)
+
+   
+
+,r "owl/intern.l"
+
+(import lib-intern)
+
+(import lib-unicode encode-point)
+
+
+;;;
+;;; The eof object
+;;;
+
+(define-module lib-eof
+
+   (export eof? render)
+
+   (define (eof? x) (eq? (type x) 34))
+
+   ;; eof
+   (define render
+      (λ (self obj tl)
+         (if (eof? obj)
+            (ilist 69 111 102 tl)
+            (render self obj tl)))))
+
+(import lib-eof)
+
+
 
 
 ;;;
