@@ -275,12 +275,12 @@
 				(cons (car lst)
 					(push-exports-deeper (cdr lst))))))
 
-	;; make this threaded this next
 	(define (eval-repl exp env repl)
 		(tuple-case (macro-expand exp env)
 			((ok exp env)
 				(cond
 					((definition? exp)
+                  (mail 'intern (tuple 'set-name (cadr exp))) 
 						(tuple-case (evaluate (caddr exp) env)
 							((ok value env2)
 								;; get rid of the meta thread later
@@ -352,12 +352,22 @@
    (define (stdin-sexp-stream bounced?)
       (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail bounced?)))
 
-   
 	(define (repl-trampoline repl env)
 		(let boing ((repl repl) (env env) (bounced? False))
 			(lets
             ((stdin (stdin-sexp-stream bounced?))
-             (stdin (if bounced? stdin (cons (if (module-ref env '*seccomp* F) "You see a prompt. You feel restricted." "You see a prompt") stdin)))
+             (stdin  
+               (if bounced? 
+                  (begin ;; we may need to reprint a prompt here
+                     (if (env-get env '*owl-prompt* F) 
+                        (begin 
+                           (wait 10)  ;; wait for error message to be printed in stderr (hack)
+                           (display "> ") (flush-port stdout)  ;; reprint prompt
+                           ))
+                     stdin)
+                  (cons 
+                     (if (module-ref env '*seccomp* F) "You see a prompt. You feel restricted." "You see a prompt")
+                     stdin)))
 				 (env (bind-toplevel env)))
 				(tuple-case (repl env stdin)
 					((ok val env)
