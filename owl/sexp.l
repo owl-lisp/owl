@@ -246,13 +246,25 @@
                (get-byte-if (lambda (x) (get quotations x False)))))
           (value parser))
          (list (get quotations type False) value)))
+  
+   (define get-named-char
+      (get-any-of
+         (get-word "null" 0)
+         (get-word "alarm" 7)
+         (get-word "backspace" 8)
+         (get-word "tab" 9)
+         (get-word "newline" 10)
+         (get-word "return" 13)
+         (get-word "escape" 27)
+         (get-word "space" 32)
+         (get-word "delete" 127)))
 
    ;; fixme: add named characters #\newline, ...
    (define get-quoted-char
       (let-parses
          ((skip (get-imm 35)) ; #
           (skip (get-imm 92)) ; \
-          (codepoint get-rune))
+          (codepoint (get-either get-named-char get-rune)))
          codepoint))
 
    ;; most of these are to go via type definitions later
