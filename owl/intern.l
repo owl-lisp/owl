@@ -218,23 +218,31 @@
                   ((set-name name) ;; use this name for all functions
                      (interner root codes (put names 'name name)))
                   ((get-name func)
-                     (mail sender (get names (bytecode-of func) False))
+                     (mail sender 
+                        (or (get names func False)  ;; in case it is named as such
+                            (get names (bytecode-of func) False))) ;; in case we know what this belongs to
                      (interner root codes names))
+                  ((name-object obj name) ;; name any object, mainly for toplevel defns
+                     (interner root codes 
+                        (put names obj (cons name (get names obj null)))))
+                  ((flush) ;; clear names before boot
+                     (interner root codes False))
                   (else
                      ;(show "unknown interner op: " msg)
                      (interner root codes names))))
             ((null? msg) ;; get current info
-               (mail sender (tuple 'interner-state root codes))
+               (mail sender (tuple 'interner-state root codes names))
                (interner root codes names))
             (else
                (mail sender 'bad-kitty)
                (interner root codes names)))))
 
    ;; make a thunk to be forked as the thread
-   (define (initialize-interner symbol-list codes)
+   ;; (sym ...)  ((bcode . value) ...) old-interner-names → thunk
+   (define (initialize-interner symbol-list codes names)
       (let 
          ((sym-root (fold put-symbol False symbol-list))
           (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) False codes)))
-         (λ () (interner sym-root code-root False))))
+         (λ () (interner sym-root code-root names))))
 
 )

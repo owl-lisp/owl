@@ -280,12 +280,14 @@
 			((ok exp env)
 				(cond
 					((definition? exp)
-                  (mail 'intern (tuple 'set-name (cadr exp)))  ;; tell intern to assign this name to all codes to come
+                  (mail 'intern (tuple 'set-name (string-append "in:" (symbol->string (cadr exp)))))  ;; tell intern to assign this name to all codes to come
 						(tuple-case (evaluate (caddr exp) env)
 							((ok value env2)
 								;; get rid of the meta thread later
 								(mail 'meta (tuple 'set-name value (cadr exp)))
                         (mail 'intern (tuple 'set-name False)) ;; we stopped evaluating the value
+                        (if (function? value)
+                           (mail 'intern (tuple 'name-object value (cadr exp)))) ;; name function object explicitly
 								(let ((env (put env (cadr exp) (tuple 'defined (mkval value)))))
 									(ok (cadr exp) (bind-toplevel env))))
 							((fail reason)

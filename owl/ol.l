@@ -52,6 +52,7 @@
 ;; todo: sane register allocator and closure converter
 ;; todo: port leaf prototype theorem prover later?
 
+(mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
 ;; todo: owl is starting to need support for compilation of individual modules. requiring one file to have one library and map the libraries to paths would make this easy, but it feels stupid and wrong. there are two tempting options (having owl fork() processes to load requirements, mark them as loading in requirements, and block to receive the fasl when it is necessary) or allow compiling the modules to .fasl:s and have a Makefile to make just the required recompilation.
 ;; todo: extend the default loader to also handle fasls
@@ -264,8 +265,10 @@
 
    (export function? procedure? bytecode? render)
 
+   ;; raw bytecode vector, 1-level (proc) or 2-level (clos) function
    (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
 
+   ;; something executable? being a function or a finite function
    (define (procedure? obj) 
       (or (function? obj) (ff? obj) (not obj)))
 
@@ -280,8 +283,10 @@
          (if (function? obj)
             (ilist 35 60
                (self self
-                  (interact 'meta (tuple 'get-name obj)) ;; ask for a name for this (remove later)
-                  ;"function"  ;; just print as #<function>
+                  (let ((names (interact 'intern (tuple 'get-name obj))))
+                     (if names ;; list of symbols
+                        (last names "function")
+                        "function"))
                   (cons 62 tl)))
             (render self obj tl)))))
 
@@ -1785,7 +1790,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ; state = #(names ...)
 (define (meta-storage state)
    (bind (wait-mail)
-      (lambda (sender message)
+      (λ (sender message)
          (tuple-case message
             ((set-name obj name)
                ; (show "meta: naming " name)
@@ -1808,9 +1813,10 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                (show "meta-storage: strange request: " message)
                (meta-storage state))))))
 
+;; env → (ff of entry-object → symbol)
 (define (collect-function-names env)
    (ff-fold
-      (lambda (collected name value)
+      (λ (collected name value)
          (tuple-case value
             ((defined node)
                (tuple-case node
@@ -1849,8 +1855,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
       (lets
-         ((interner-thunk (initialize-interner symbol-list codes))
-          (initial-names (collect-function-names initial-environment)))
+         ((initial-names (ref (interact 'intern null) 4)) ;; names from current interner
+          (interner-thunk (initialize-interner symbol-list codes initial-names)))
          (λ (vm-special-ops)
             (let ((compiler (make-compiler vm-special-ops)))
                ;; still running in the boostrapping system
