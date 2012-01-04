@@ -162,14 +162,16 @@
 
    ;;; plain bytecoded versions for testing ----------------------------------
 
-   (define (get ff key def)
-      (if ff
-         (wiff (ff l k v r)
-            (cond
-               ((eq? key k) v)
-               ((lesser? key k) (get l key def))
-               (else (get r key def))))
-         def))
+   ;(define (get ff key def)
+   ;   (if ff
+   ;      (wiff (ff l k v r)
+   ;         (cond
+   ;            ((eq? key k) v)
+   ;            ((lesser? key k) (get l key def))
+   ;            (else (get r key def))))
+   ;      def))
+   (define (get ff key def) 
+      (ff key def))
 
    ;; ff key val -> ff' | False
    (define (ff-update ff key val)
