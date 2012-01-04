@@ -184,9 +184,17 @@
          ((pair? sexp)
             (cons (intern-symbols (car sexp)) (intern-symbols (cdr sexp))))
          (else sexp)))
-      
+     
+
+   ;; obj → bytecode | False
+   (define (bytecode-of func)
+      (cond
+         ((bytecode? func) func)
+         ((function? func) (bytecode-of (ref func 1)))
+         (else False)))
+
    ;; thread with string → symbol, ...
-   (define (interner root codes)
+   (define (interner root codes names)
       (lets
          ((env (wait-mail))
           (sender msg env))
@@ -194,20 +202,39 @@
             ((string? msg) ;; find an old symbol or make a new one
                (lets ((root sym (string->interned-symbol root msg)))
                   (mail sender sym)
-                  (interner root codes)))
+                  (interner root codes names)))
             ((bytecode? msg) ;; find an old equal bytecode sequence, extended wrapper, or add a new code fragment
-               (lets ((codes code (intern-code codes msg)))
+               (lets 
+                  ((codes code (intern-code codes msg))
+                   (name (get names 'name False)))
                   (mail sender code)
-                  (interner root codes)))
+                  (interner root codes 
+                     ;; cons the name association (same bytecode can be in many functions)
+                     (if name
+                        (put names code (cons name (get names code null)))
+                        names))))
+            ((tuple? msg)
+               (tuple-case msg
+                  ((set-name name) ;; use this name for all functions
+                     (interner root codes (put names 'name name)))
+                  ((get-name func)
+                     (mail sender (get names (bytecode-of func) False))
+                     (interner root codes names))
+                  (else
+                     ;(show "unknown interner op: " msg)
+                     (interner root codes names))))
+            ((null? msg) ;; get current info
+               (mail sender (tuple 'interner-state root codes))
+               (interner root codes names))
             (else
                (mail sender 'bad-kitty)
-               (interner root codes)))))
+               (interner root codes names)))))
 
    ;; make a thunk to be forked as the thread
    (define (initialize-interner symbol-list codes)
       (let 
          ((sym-root (fold put-symbol False symbol-list))
           (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) False codes)))
-         (λ () (interner sym-root code-root))))
+         (λ () (interner sym-root code-root False))))
 
 )
