@@ -33,10 +33,10 @@
    (define (fail reason) (tuple 'fail reason))
 
    ; regs = (node ...), biggest id first
-   ; node = #(var sym id)
-   ;      = #(val value id)
-   ;      = #(env regs id) 
-   ;      = #(lit regs id)
+   ; node = #(var <sym> id)
+   ;      = #(val <value> id)
+   ;      = #(env <regs> id) 
+   ;      = #(lit <values> id)
 
    ; [r0 = MCP] [r1 = Clos] [r2 = Env] [r3 = a0, often cont] [r4] ... [rn]
 
@@ -83,6 +83,7 @@
                (else
                   (find-any (cdr regs) sym type subtype))))))
 
+   ;; find which register has the literals-tuple
    (define (find-literals env)
       (if (null? env)
          (error "No literals found: " env)
@@ -100,9 +101,6 @@
    (define (find-value regs var)
       (find-any regs var 'val 'lit))
 
-   ; #(iref a1 a2 r more)
-   ; #(ref a r more)
-
    (define (rtl-value regs val cont)
       (let ((position (find-value regs val)))
          (cond
@@ -110,7 +108,7 @@
                (cont regs position))
             ((small-value? val)
                (load-small-value regs val
-                  (lambda (regs pos)
+                  (λ (regs pos)
                      (cont regs pos))))
             ((not position)
                (error "rtl-value: cannot make a load for a " val))
@@ -162,7 +160,7 @@
 
    (define (env->loadable env)
       (map
-         (lambda (x)
+         (λ (x)
             (if (symbol? x)
                (tuple 'var x)
                (error "Cannot yet load this env node: " env)))
@@ -176,11 +174,8 @@
                (create-alias (cdr regs) name position)))))
 
    (define (create-aliases regs names positions)
-      (fold
-         (lambda (regs alias)
-            (create-alias regs (car alias) (cdr alias)))
-         regs
-         (zip cons names positions)))
+      (fold (λ (regs alias) (create-alias regs (car alias) (cdr alias)))
+         regs (zip cons names positions)))
 
    (define (rtl-arguments one?)
 
@@ -192,7 +187,7 @@
                (rtl-variable regs sym cont))
             ((make-closure lpos env lit)
                (many regs (env->loadable env) null
-                  (lambda (regs envp)
+                  (λ (regs envp)
                      (rtl-close regs lpos envp lit cont))))
             (else
                (error "rtl-simple: unknown thing: " a))))
@@ -201,11 +196,11 @@
          (if (null? args)
             (cont regs (reverse places))
             (one regs (car args)
-               (lambda (regs pos)
+               (λ (regs pos)
                   (many regs (cdr args) (cons pos places) cont)))))
       (if one?
          one
-         (lambda (regs args cont)
+         (λ (regs args cont)
             (many regs args null cont))))
 
 
@@ -234,7 +229,7 @@
                   (+ (<< op 8) (band (value-of (car args)) #xff))
                   formals (cdr args) cont)))
          (rtl-args regs args
-            (lambda (regs args)
+            (λ (regs args)
                ;; args = input registers
                (cond
                   ;; a run-of-the-mill a0 .. an → rval -primop
@@ -248,14 +243,14 @@
                   (else
                      ; bind or ff-bind, or arithmetic
                      (bind (rtl-bind regs formals)
-                        (lambda (selected regs)
+                        (λ (selected regs)
                            (tuple 'prim op args selected
                               (cont regs))))))))))
 
 
    (define (rtl-make-moves sequence tail)
       (foldr
-         (lambda (move rest)
+         (λ (move rest)
             (if (eq? (car move) (cdr move))
                rest
                (tuple 'move (car move) (cdr move) rest)))
@@ -291,7 +286,7 @@
    (define (apply-saves to-save safes call)
       (let ((new (zip cons to-save safes)))
          (map
-            (lambda (reg)
+            (λ (reg)
                (let ((node (getq new reg)))
                   (if node (cdr node) reg)))
             call)))
@@ -299,9 +294,9 @@
 
    (define (rtl-check-moves perms n)
       (call/cc
-         (lambda (ret)
+         (λ (ret)
             (lfor 0 perms
-               (lambda (nth perm)
+               (λ (nth perm)
                   (cond
                      ((rtl-moves-ok? perm) (ret perm))
                      ((eq? nth try-n-perms) (ret False))
@@ -315,9 +310,9 @@
           (call-prime (rtl-add-targets call-prime))
           (call-prime 
             (remove 
-               (lambda (move) (eq? (car move) (cdr move)))
+               (λ (move) (eq? (car move) (cdr move)))
                call-prime))
-          (call-prime (sort (lambda (a b) (< (car a) (car b))) call-prime))
+          (call-prime (sort (λ (a b) (< (car a) (car b))) call-prime))
           (perms (permutations call-prime))
           (ok-moves (rtl-check-moves perms 1)))
          (if ok-moves
@@ -328,13 +323,13 @@
 
    (define (rtl-make-jump call free rest)
       (call/cc
-         (lambda (ret)
+         (λ (ret)
             (or
                (lfor False (subsets call)
-                  (lambda (foo subset) 
+                  (λ (foo subset) 
                      (cond
                         ((rtl-try-saves subset free call rest)
-                           => (lambda (call) (ret call)))
+                           => (λ (call) (ret call)))
                         (else False))))
                ; has never happened in practice
                (error "failed to compile call: " call)))))
@@ -342,7 +337,7 @@
    (define (rtl-jump rator rands free inst)
       (let ((nargs (length rands)))
          (cond
-            ;; cont is usually at 2, and usually there is 
+            ;; cont is usually at 3, and usually there is 
             ;; 1 return value -> special instruction
             ((and (eq? rator a0) (= nargs 1))
                (tuple 'ret (car rands)))
@@ -379,7 +374,9 @@
    (define bad-arity "Bad arity: ")
 
    ; rator nargs → better call opcode | False = no better known option, just call | throw error if bad function or arity
-   (define (rtl-pick-call rator nargs)
+   (define (rtl-pick-call regs rator nargs)
+      ;(show "picking call for " rator)
+      ;(show "regs " regs)
       (tuple-case rator
          ((value rator)
             (tuple-case (fn-type rator)
@@ -390,37 +387,38 @@
                      (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
                ((proc n)
                   (if (= n nargs) 'goto-proc 
-                     (error bad-arity 
-                        (list rator 'wanted (- n 1) 'got (- nargs 1)))))
+                     (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
                ((clos n)
                   (if (= n nargs) 'goto-clos 
-                     (error bad-arity 
-                        (list rator 'wanted (- n 1) 'got (- nargs 1)))))
+                     (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
                (else
                   (if (or (not rator) (ff? rator)) ;; finite functions are also applicable
                      False
                      (error "Bad operator: " rator)))))
-         (else False)))
+         (else 
+            ;(show "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
+            ;(print "ENV:")
+            ;(for-each (λ (x) (show " - " x)) regs)
+            False)))
 
    (define (rtl-call regs rator rands)
       ; rator is here possibly #(value #<func>) and much of the call can be inlined
       ; change the flag if can check call here
       (rtl-args regs (cons rator rands)
-         (lambda (regs all)
+         (λ (regs all)
             (let ((free (rtl-safe-registers (length all) all)))
                (rtl-jump (car all) (cdr all) free 
-                  (rtl-pick-call rator (length rands)))))))
+                  (rtl-pick-call regs rator (length rands)))))))
 
    (define (value-pred pred)
-      (lambda (val)
+      (λ (val)
          (tuple-case val
-            ((value val)
-               (pred val))
+            ((value val) (pred val))
             (else False))))
 
    (define null-value? (value-pred null?))
-   (define false-value? (value-pred (lambda (x) (eq? x False))))
-   (define zero-value? (value-pred (lambda (x) (eq? x 0))))
+   (define false-value? (value-pred (λ (x) (eq? x False))))
+   (define zero-value? (value-pred (λ (x) (eq? x 0))))
 
    (define (simple-first a b cont)
       (cond
@@ -440,19 +438,20 @@
       (let 
          ((node
             (some 
-               (lambda (x) (if (eq? (ref x 2) op) x False))
+               (λ (x) (if (eq? (ref x 2) op) x False))
                primops)))
          (if node node (error "Unknown primop: " op))))
 
    (define (opcode-arity-ok? op n)
       (bind (opcode->primop op)
-         (lambda (name op in out fn)
+         (λ (name op in out fn)
             (cond
                ((eq? in n) True)
                ((eq? in 'any) True)
                (else False)))))
 
-   (define (rtl-control regs exp)
+   ;; compile any AST node node to RTL
+   (define (rtl-any regs exp)
       ;(show " - " exp)
       (tuple-case exp
          ((branch kind a b then else)
@@ -460,86 +459,86 @@
                ((eq? kind 0)      ; branch on equality (jump if equal)
                   (simple-first a b
                      ;;; move simple to a, if any
-                     (lambda (a b)
+                     (λ (a b)
                         (cond
 ;; todo: convert jump-if-<val> rtl nodes to a single shared rtl node to avoid having to deal with them as separate instructions
       
                            ((null-value? a) ; jump-if-null (optimization)
-                              (rtl-simple regs b (lambda (regs bp)
+                              (rtl-simple regs b (λ (regs bp)
                                  (let 
-                                    ((then (rtl-control regs then))
-                                     (else (rtl-control regs else)))
+                                    ((then (rtl-any regs then))
+                                     (else (rtl-any regs else)))
                                     (tuple 'jn bp then else)))))
                            ((false-value? a) ; jump-if-false 
-                              (rtl-simple regs b (lambda (regs bp)
+                              (rtl-simple regs b (λ (regs bp)
                                  (let 
-                                    ((then (rtl-control regs then))
-                                     (else (rtl-control regs else)))
+                                    ((then (rtl-any regs then))
+                                     (else (rtl-any regs else)))
                                     (tuple 'jf bp then else)))))
                            ;; jz not yet understood everywhere
                            ;((zero-value? a) ; jump-if-zero 
-                           ;   (rtl-simple regs b (lambda (regs bp)
+                           ;   (rtl-simple regs b (λ (regs bp)
                            ;      (let 
-                           ;         ((then (rtl-control regs then))
-                           ;          (else (rtl-control regs else)))
+                           ;         ((then (rtl-any regs then))
+                           ;          (else (rtl-any regs else)))
                            ;         (tuple 'jz bp then else)))))
                            (else
-                              (rtl-simple regs a (lambda (regs ap)
-                                 (rtl-simple regs b (lambda (regs bp)
+                              (rtl-simple regs a (λ (regs ap)
+                                 (rtl-simple regs b (λ (regs bp)
                                     (let
-                                       ((then (rtl-control regs then))
-                                        (else (rtl-control regs else)))
+                                       ((then (rtl-any regs then))
+                                        (else (rtl-any regs else)))
                                        (tuple 'jeq ap bp then else)))))))))))
                ((eq? kind 1)      ; branch on type of immediate object
                   (let ((b (extract-value b)))
                      (if (and (fixnum? b) (>= b 0) (< b 256))
                         (rtl-simple regs a 
-                           (lambda (regs ap)
+                           (λ (regs ap)
                               (let 
-                                 ((then (rtl-control regs then))
-                                  (else (rtl-control regs else)))
+                                 ((then (rtl-any regs then))
+                                  (else (rtl-any regs else)))
                                  (tuple 'jit ap b then else))))
-                        (error "rtl-control: bad immediate branch type: " b))))
+                        (error "rtl-any: bad immediate branch type: " b))))
                ((eq? kind 2)      ; branch on type of allocated object
                   (let ((b (extract-value b)))
                      (if (and (fixnum? b) (>= b 0) (< b 256))
                         (rtl-simple regs a 
-                           (lambda (regs ap)
+                           (λ (regs ap)
                               (let 
-                                 ((then (rtl-control regs then))
-                                  (else (rtl-control regs else)))
+                                 ((then (rtl-any regs then))
+                                  (else (rtl-any regs else)))
                                  ; peephole optimize (jat <x> <type-a> <then> (jat <x> <type-b> .. ..))
                                  (tuple 'jat ap b then else))))
-                        (error "rtl-control: bad alloc branch type: " b))))
+                        (error "rtl-any: bad alloc branch type: " b))))
                ((eq? kind 3) ; branch on type of raw object
                   (let ((b (extract-value b)))
                      (if (and (fixnum? b) (>= b 0) (< b 256))
                         (rtl-simple regs a 
-                           (lambda (regs ap)
+                           (λ (regs ap)
                               (let 
-                                 ((then (rtl-control regs then))
-                                  (else (rtl-control regs else)))
+                                 ((then (rtl-any regs then))
+                                  (else (rtl-any regs else)))
                                  (tuple 'jrt ap b then else))))
-                        (error "rtl-control: bad raw branch type: " b))))
-               ((eq? kind 4)   ; (branch-4 name type (lambda (f0 .. fn) B) Else)
+                        (error "rtl-any: bad raw branch type: " b))))
+               ((eq? kind 4)   ; (branch-4 name type (λ (f0 .. fn) B) Else)
                   ; FIXME check object size here (via meta)
                   (let ((b (extract-value b)))
                      (if (and (fixnum? b) (>= b 0) (< b 257))
                         (rtl-simple regs a 
-                           (lambda (regs ap)
+                           (λ (regs ap)
                               (tuple-case then
                                  ((lambda formals body)
                                     (bind (rtl-bind regs formals)
-                                       (lambda (selected then-regs)
+                                       (λ (selected then-regs)
                                           (let 
-                                             ((then-body (rtl-control then-regs body))
-                                              (else (rtl-control regs else)))
+                                             ((then-body (rtl-any then-regs body))
+                                              (else (rtl-any regs else)))
                                              (tuple 'jab ap b 
                                                 (tuple 'lambda selected then-body)
                                                 else)))))
                                  (else
-                                    (error "rtl-control: bad jab then branch: " then)))))
-                        (error "rtl-control: bad alloc binding branch type: " b))))
+                                    (error "rtl-any: bad jab then branch: " then)))))
+                        (error "rtl-any: bad alloc binding branch type: " b))))
                ((eq? kind 3)
                   ; a verbose type-directed binding dispatch instruction, probable base for a real 
                   ; algebraic data types. (branch 3 obj type then else)
@@ -548,55 +547,55 @@
                         ; same as kind 1 above
                         (if (and (fixnum? type) (>= type 0) (< type 257))
                            (rtl-simple regs a 
-                              (lambda (regs ap)
+                              (λ (regs ap)
                                  (let 
-                                    ((then (rtl-control regs then))
-                                     (else (rtl-control regs else)))
+                                    ((then (rtl-any regs then))
+                                     (else (rtl-any regs else)))
                                     (tuple 'jit ap type then else))))
-                           (error "rtl-control: bad immediate branch type: " type)))
+                           (error "rtl-any: bad immediate branch type: " type)))
                      ((alloc type size)
                         ; same as kind 2 above
                         (if (and (fixnum? type) (>= type 0) (< type 257))
                            (rtl-simple regs a 
-                              (lambda (regs ap)
+                              (λ (regs ap)
                                  (let 
-                                    ((then (rtl-control regs then))
-                                     (else (rtl-control regs else)))
+                                    ((then (rtl-any regs then))
+                                     (else (rtl-any regs else)))
                                     (tuple 'jat ap type then else))))
-                           (error "rtl-control: bad immediate branch type: " b)))
+                           (error "rtl-any: bad immediate branch type: " b)))
                      ((literal val)
                         ; same as (branch 0 val a then else)
-                        (rtl-control regs (tuple 'branch 0 a (mkval val) then else)))
+                        (rtl-any regs (tuple 'branch 0 a (mkval val) then else)))
                      (else is type
-                        (error "rtl-control: type branch: bad type: " type))))
+                        (error "rtl-any: type branch: bad type: " type))))
                (else
-                  (show "rtl-control: unknown branch type: " kind))))
+                  (show "rtl-any: unknown branch type: " kind))))
          ((call rator rands)
+            ;; compile as primop call, bind if rator is lambda or a generic call
             (let ((op (and (eq? (ref rator 1) 'value) (primop-of (ref rator 2)))))
                (if op
                   (tuple-case (car rands)
                      ((lambda formals body)
                         (if (opcode-arity-ok? op (length (cdr rands)))
                            (rtl-primitive regs op formals (cdr rands)
-                              (lambda (regs) (rtl-control regs body)))
+                              (λ (regs) (rtl-any regs body)))
                            (error "Bad number of arguments for primitive: " 
                               (list 'op op 'got (length (cdr rands)) 'at rands))))
                      (else
                         (error "bad primitive args: " rands)))
                   (tuple-case rator
                      ((lambda formals body)
+                        ;; ((lambda (args) ...) ...) => add new aliases for values
                         (rtl-args regs rands
-                           (lambda (regs args)
+                           (λ (regs args)
                               ;;; note that this is an alias thing...
                               (if (= (length formals) (length args))
-                                 (rtl-control
-                                    (create-aliases regs formals args)
-                                    body)
+                                 (rtl-any (create-aliases regs formals args) body)
                                  (error "Bad argument count in lambda call: " (list 'args args 'formals formals))))))
                      (else
                         (rtl-call regs rator rands))))))
          (else
-            (show "rtl-control: wtf: " exp))))
+            (show "rtl-any: wtf: " exp))))
 
    (define (formals->regs formals pos)
       (if (null? formals)
@@ -604,7 +603,7 @@
          (cons (tuple 'var (car formals) pos)
             (formals->regs (cdr formals) (+ pos 1)))))
 
-   ; r0 = clos, r1 = lit, r2 = a0 ...
+   ; r0 = mcp, r1 = clos, r2 = lit, r3 aka a0 = arg0, r4 = arg1, ...
 
    (define (entry-regs clos literals formals)
       (append
@@ -632,6 +631,7 @@
    (define (list->proc lst)
       (listuple 32 (length lst) lst))
 
+   ;; todo: control flow analysis time - if we can see what the arguments are here, the info could be used to make most continuation returns direct via known call opcodes, which would remove an important branch prediction killer
    ;;; proc = #(procedure-header <code-ptr> l0 ... ln)
    ; env node → env' owl-func
    (define (rtl-procedure node)
@@ -645,7 +645,7 @@
                   (assemble-code 
                      (tuple 'code
                         (length formals)
-                        (rtl-control (entry-regs clos literals formals) body)))))
+                        (rtl-any (entry-regs clos literals formals) body)))))
                (if (null? lits)
                   exec ; #<bytecode> 
                   (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn]

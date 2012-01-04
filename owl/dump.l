@@ -262,25 +262,30 @@
       ;;; Choosing frequently referenced code vectors
       ;;;
 
-   (define (code-refs seen obj)
-      (cond
-         ((immediate? obj) (values seen False))
-         ((bytecode? obj)
-            (values seen (put False obj 1)))
-         ((get seen obj False) =>
-            (λ (here) (values seen here)))
-         (else
-            (let loop ((seen seen) (lst (tuple->list obj)) (here False))
-               (if (null? lst)
-                  (values (put seen obj here) here)
-                  (lets ((seen this (code-refs seen (car lst))))
-                     (loop seen (cdr lst)
-                        (ff-union this here +))))))))
+      (define (code-refs seen obj)
+         (cond
+            ((immediate? obj) (values seen False))
+            ((bytecode? obj)
+               (values seen (put False obj 1)))
+            ((get seen obj False) =>
+               (λ (here) (values seen here)))
+            (else
+               (let loop ((seen seen) (lst (tuple->list obj)) (here False))
+                  (if (null? lst)
+                     (values (put seen obj here) here)
+                     (lets ((seen this (code-refs seen (car lst))))
+                        (loop seen (cdr lst)
+                           (ff-union this here +))))))))
 
    ; ob → ((nrefs . ob) ..) 
    (define (all-code-refs ob)
       (lets ((refs this (code-refs False ob)))
          (ff-fold (λ (out x n) (cons (cons n x) out)) null this)))
+
+   ;; _ → ((bytecode . bytecode) ...)
+   (define (codes-of ob) 
+      (lets ((refs this (code-refs False ob)))
+         (ff-fold (λ (out x n) (cons (cons x x) out)) null this)))
 
    ;; ob percent → (codevec ...)
    (define (most-linked-code ob perc)
@@ -320,7 +325,7 @@
          (if (string? path)
             (cook-format (s/^.*\.([a-z]+)$/\1/ path))
             F)))
-   
+
 
    ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
    ; dump entry object to path, or stdout if path is "-"
@@ -343,6 +348,11 @@
              (entry ;; pass symbols to entry if requested (repls need this)
                (if (get opts 'want-symbols F) 
                   (entry (symbols-of entry))
+                  entry))
+               
+             (entry ;; pass code vectors to entry if requested (repls need this)
+               (if (get opts 'want-codes F) 
+                  (entry (codes-of entry))
                   entry))
                
              ;; fixme: allow a compiler arg to convert this point fully to native to get also the thread scheduler compiled

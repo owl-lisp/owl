@@ -1846,56 +1846,57 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (flush-port stdout))
    
 (define (heap-entry symbol-list)
-   (lets
-      ((interner-thunk (initialize-interner symbol-list null))
-       (initial-names (collect-function-names initial-environment)))
-      (λ (vm-special-ops)
-         (let ((compiler (make-compiler vm-special-ops)))
-            ;; still running in the boostrapping system
-            ;; the next value after evaluation will be the new repl heap
-            (λ (vm-args)
-               ;; now we're running in the new repl 
-               (thread-controller 
-                  (list
-                     (tuple 'init
-                        (λ () 
-                           (fork-server 'repl
-                              (λ () 
-                                 ;; get basic io running
-                                 (start-base-threads)
+   (λ (codes) ;; all my codes are belong to codes
+      (lets
+         ((interner-thunk (initialize-interner symbol-list codes))
+          (initial-names (collect-function-names initial-environment)))
+         (λ (vm-special-ops)
+            (let ((compiler (make-compiler vm-special-ops)))
+               ;; still running in the boostrapping system
+               ;; the next value after evaluation will be the new repl heap
+               (λ (vm-args)
+                  ;; now we're running in the new repl 
+                  (thread-controller 
+                     (list
+                        (tuple 'init
+                           (λ () 
+                              (fork-server 'repl
+                                 (λ () 
+                                    ;; get basic io running
+                                    (start-base-threads)
 
-                                 ;; breaks go to MCP
-                                 (mcp-on-break)
+                                    ;; breaks go to MCP
+                                    (mcp-on-break)
 
-                                 ;; repl needs symbol etc interning, which is handled by this thread
-                                 (fork-server 'intern interner-thunk)
+                                    ;; repl needs symbol etc interning, which is handled by this thread
+                                    (fork-server 'intern interner-thunk)
 
-                                 ;; this thread will be removed later once 'intern does also the same
-                                 (fork-server 'meta 
-                                    (λ () (meta-storage (tuple initial-names False))))
+                                    ;; this thread will be removed later once 'intern does also the same
+                                    (fork-server 'meta 
+                                       (λ () (meta-storage (tuple initial-names False))))
 
-                                 (exit-owl 
-                                    (repl-start vm-args repl compiler
-                                       (fold 
-                                          (λ (env defn)
-                                             (put env (car defn) 
-                                                (tuple 'defined (mkval (cdr defn)))))
-                                          initial-environment
-                                          (list
-                                             (cons '*owl* (directory-of (car vm-args)))
-                                             (cons '*args* vm-args)
-                                             (cons 'dump compiler)                                 ; <- merge here and rename
-                                             (cons '*owl-version* *owl-version*)
-                                             (cons 'eval exported-eval)
-                                             (cons 'stdin  (fd->id 0))
-                                             (cons 'stdout (fd->id 1))
-                                             (cons 'stderr (fd->id 2))
-                                             (cons '*vm-special-ops* vm-special-ops)
-                                             ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
-                                             (cons '*owl-prompt* default-prompt)
-                                             )))))))))
-                  null 
-                  False))))))
+                                    (exit-owl 
+                                       (repl-start vm-args repl compiler
+                                          (fold 
+                                             (λ (env defn)
+                                                (put env (car defn) 
+                                                   (tuple 'defined (mkval (cdr defn)))))
+                                             initial-environment
+                                             (list
+                                                (cons '*owl* (directory-of (car vm-args)))
+                                                (cons '*args* vm-args)
+                                                (cons 'dump compiler)                                 ; <- merge here and rename
+                                                (cons '*owl-version* *owl-version*)
+                                                (cons 'eval exported-eval)
+                                                (cons 'stdin  (fd->id 0))
+                                                (cons 'stdout (fd->id 1))
+                                                (cons 'stderr (fd->id 2))
+                                                (cons '*vm-special-ops* vm-special-ops)
+                                                ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
+                                                (cons '*owl-prompt* default-prompt)
+                                                )))))))))
+                     null 
+                     False)))))))
 
 ;; todo: dumping with fasl option should only dump the fasl and only fasl
 
@@ -1935,6 +1936,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                   (list->ff
                      `((output . ,(get opts 'output 'bug))
                        (want-symbols . True)
+                       (want-codes . True)
                        (want-native-ops . True)))
                   (choose-natives 
                      (get opts 'specialize "none")
