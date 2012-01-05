@@ -377,7 +377,8 @@
 						; the end
                   (if (env-get env '*owl-prompt* F)
                      (print "bye bye _o/~"))
-						0)
+                  (wait 100) ;; todo: get rid of the pending stdin read (planned to be changed anyway) or flush and sync stdout&err properly
+                  (halt 0))
 					((error reason env)
 						; better luck next time
 						(cond
