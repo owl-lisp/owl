@@ -323,7 +323,7 @@
                            ((this todo todo)
                             (id st this)
                             (state (update-state state st))
-                            (op a b c (run st 1))) ;; capture every 2 samples (nondeterministic later)
+                            (op a b c (run st 0)))
                            (if (eq? op 1)
                               ; out of time, usual suspect, short path here
                               (self self todo (cons (tuple id a) done) state)
