@@ -13,8 +13,6 @@
 (define sock (car sp))
 (define port (cdr sp))
 
-(print "Opened socket")
-
 (define a (list 1 2 3 4 5))
 (define b (vector 11 22 10 33 44))
 (define c (list 100 101 10 102 103))
@@ -42,20 +40,15 @@
    
 (fork-server 'socket-thread
    (λ ()
-      (print "Server thread waiting for connection")
       (let ((cli (interact sock 'accept)))
-         (print "Server thread got connection")
          (sender cli)
          (mail cli 'flush)
          (reader cli)
          (close-port cli))))
 
-(print "Connecting to local server")
-
 (let ((conn (open-connection (vector 127 0 0 1) port)))
    (if conn
       (begin
-         (print "Made connection")
          (sender conn)
          (mail conn 'flush)
          (reader conn)

@@ -17,8 +17,6 @@
 (define sock (car sp))
 (define port (cdr sp))
 
-(print "Opened socket")
-
 (define seed (* (time-ms) (<< (time-ms) 4)))
 
 ; (show "Random seed: " seed)
@@ -73,7 +71,6 @@
                (wait n)
                (io fd rst data left reqs)))
          ((and (null? data) (= left 0)) ;; all sent and enough received
-            (close-port fd)
             (let loop ((reqs reqs)) ;; read responses to remaining requests 
                (if (= reqs 0) 
                   null ;; all done
@@ -100,18 +97,12 @@
 
    (fork-server 'socket-thread
       (λ ()
-         (print "Server thread waiting for connection")
          (let ((cli (interact sock 'accept)))
-            (print "Server thread got connection")
             (compare-bidi cli (seed->rands a))
             )))
 
-   (print "Connecting to local server")
-
    (let ((conn (open-connection (vector 127 0 0 1) port)))
       (if conn
-         (begin
-            (print "Made connection")
-            (compare-bidi conn (seed->rands b)))
+         (compare-bidi conn (seed->rands b))
          (print "Unable to connect to the local server"))))
 
