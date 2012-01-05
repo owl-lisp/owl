@@ -8,5 +8,5 @@
 (define link-tag "mcp/links")
 (define mcp-tag "mcp/break")
 (define (mcp-halt threads state) 1)
-(define thread-quantum 20)
+(define thread-quantum 10000)
 

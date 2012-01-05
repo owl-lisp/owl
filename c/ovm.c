@@ -1263,9 +1263,9 @@ dispatch: /* handle normal bytecode */
          next(5); }
       case 50: { /* run thunk quantum */ /* fixme: maybe move to sys */
          word hdr;
-         ob = (word *) R[*ip];
+         ob = (word *) A0;
          R[0] = R[3];
-         ticker = bank ? bank : slice;
+         ticker = bank ? bank : fixval(A1);
          bank = 0;
          assert(allocp(ob),ob,50);
          hdr = *ob;
