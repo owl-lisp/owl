@@ -19,6 +19,7 @@ fasl/boot.fasl: fasl/init.fasl
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.l
 	# selfcompile boot.fasl until a fixed point is reached
 	$(TIME) bin/vm fasl/boot.fasl --run owl/ol.l -s none -o fasl/bootp.fasl
+	ls -la fasl/bootp.fasl
 	# check that the new image passes tests
 	tests/run bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
