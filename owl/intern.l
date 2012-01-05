@@ -209,9 +209,8 @@
                    (name (get names 'name False)))
                   (mail sender code)
                   (interner root codes 
-                     ;; cons the name association (same bytecode can be in many functions)
-                     (if name
-                        (put names code (cons name (get names code null)))
+                     (if (get names code False)
+                        (put names code name)    ;; name after first finding
                         names))))
             ((tuple? msg)
                (tuple-case msg
@@ -222,9 +221,9 @@
                         (or (get names func False)  ;; in case it is named as such
                             (get names (bytecode-of func) False))) ;; in case we know what this belongs to
                      (interner root codes names))
-                  ((name-object obj name) ;; name any object, mainly for toplevel defns
+                  ((name-object obj name) ;; name any object, overriding anything, for user definitions
                      (interner root codes 
-                        (put names obj (cons name (get names obj null)))))
+                        (put names obj name)))
                   ((flush) ;; clear names before boot
                      (interner root codes False))
                   (else

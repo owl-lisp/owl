@@ -301,7 +301,7 @@
    ;; todo: move with-threading to lib-threads and import from there
    (define (with-threading ob)
       (λ (args)
-         (thread-controller
+         (thread-controller thread-controller
             (list
                (tuple 'root
                   (λ ()

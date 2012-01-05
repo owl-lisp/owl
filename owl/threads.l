@@ -49,7 +49,7 @@
 
    (define (deliver-messages todo done state subs msg tc)
       (if (null? subs)
-         (tc todo done state)
+         (tc tc todo done state)
          (lets ((state waked (deliver-mail state (car subs) msg)))
             (if waked
                (deliver-messages (cons waked todo) done state (cdr subs) msg tc)
@@ -63,9 +63,9 @@
          (if (null? subscribers)
             (if (eq? (ref (ref msg 2) 1) 'finished)
                ; a thread finishes silently
-               (tc todo done (del state id))
+               (tc tc todo done (del state id))
                ; a thread poofs silently. should make some noise to stderr.
-               (tc todo done (del state id)))
+               (tc tc todo done (del state id)))
             (deliver-messages todo done 
                (del (fupd state link-tag (del links id)) id)
                subscribers msg tc))))
@@ -106,9 +106,7 @@
          ; 1, runnig and time slice exhausted (the usual suspect, could be on a shorter branch)
          (λ (id a b c todo done state tc)
             ; (system-println "syscall 1 - switch thread")
-            (tc todo
-               (cons (tuple id a) done)
-               state))
+            (tc tc todo (cons (tuple id a) done) state))
 
          ; 2, thread finished, drop
          (λ (id a b c todo done state tc)
@@ -142,7 +140,7 @@
                            (else
                               (system-println "fork: bad parameter")
                               state))))))
-               (tc todo done state)))
+               (tc tc todo done state)))
 
          ; 5, user thrown error
          (λ (id a b c todo done state tc)
@@ -155,12 +153,12 @@
          ; 6, (return-mails rl)
          (λ (id cont rmails foo todo done state tc)
             (let ((queue (get state id qnull)))
-               (tc (cons (tuple id (λ () (cont 'done))) todo)
+               (tc tc (cons (tuple id (λ () (cont 'done))) todo)
                   done (put state id (foldr qsnoc queue rmails)))))
 
          ; 7, am i the only thread?
          (λ (id cont b c todo done state tc)
-            (tc 
+            (tc tc 
                (cons (tuple id (λ () (cont (and (null? todo) (null? done))))) todo)
                done state))
             
@@ -174,8 +172,8 @@
                ; send a normal mail
                (lets ((state waked (deliver-mail state to (tuple id msg))))
                   (if waked
-                     (tc (ilist (car todo) waked (cdr todo)) done state)
-                     (tc todo done state)))))
+                     (tc tc (ilist (car todo) waked (cdr todo)) done state)
+                     (tc tc todo done state)))))
 
          ;; not in use atm, was old method of starting mcp (and possibly will also be the new one)
          ; 10, have a break, have a quick-chat-with-mcp-repl
@@ -196,12 +194,12 @@
          ; 11, reset mcp state (usually means exit from mcp repl)
          (λ (id cont threads state xtodo xdone xstate tc)
             ; (system-println "syscall 11 - swapping mcp state")
-            (tc threads null state))
+            (tc tc threads null state))
 
          ;; todo: allow setting the break function itself here
          ; 12, set break action
          (λ (id cont choice x todo done state tc)
-            (tc 
+            (tc tc  
                (cons (tuple id (λ () (cont True))) todo)
                done (put state mcp-tag choice)))
 
@@ -210,12 +208,12 @@
             (lets ((valp queue (quncons (get state id qnull) F)))
                (cond
                   (valp      ;; envelope popped from inbox
-                     (tc (cons (tuple id (λ () (cont valp))) todo) done
+                     (tc tc (cons (tuple id (λ () (cont valp))) todo) done
                         (fupd state id queue)))
                   (nonblock? ;; just tell there is no mail with False
-                     (tc (cons (tuple id (λ () (cont False))) todo) done state))
+                     (tc tc (cons (tuple id (λ () (cont False))) todo) done state))
                   (else      ;; leave thread continuation waiting
-                     (tc todo done (put state id cont))))))
+                     (tc tc todo done (put state id cont))))))
 
          ;; todo: switch memory limit to a hard one in ovm.c
          ; 14, memory limit was exceeded 
@@ -236,9 +234,9 @@
             (let
                ((resume
                   (λ (args)
-                     (tc (cons (tuple id (λ () (cont 'resumed))) todo)
+                     (tc tc (cons (tuple id (λ () (cont 'resumed))) todo)
                         done state))))
-               (tc (cons (tuple id (λ () (cont resume))) todo) done state)))
+               (tc tc (cons (tuple id (λ () (cont resume))) todo) done state)))
 
          ; 17, catch or release a running thread (not touching mailbox etc)
          (λ (id cont catch? info todo done state tc)
@@ -258,11 +256,11 @@
             (lets
                ((grab (λ (l n) (cons (ref n 1) l)))
                 (ids (fold grab (fold grab null todo) done)))
-               (tc (cons (tuple id (λ () (cont (cons id ids)))) todo) done state)))
+               (tc tc (cons (tuple id (λ () (cont (cons id ids)))) todo) done state)))
 
          ; 19, set return value proposal
          (λ (id cont b c todo done state tc)
-            (tc (cons (tuple id (λ () (cont b))) todo) done (put state return-value-tag b)))
+            (tc tc (cons (tuple id (λ () (cont b))) todo) done (put state return-value-tag b)))
             
    ))
 
@@ -282,18 +280,18 @@
 
    ; (enter-mcp thread-controller done state) -- no way to go here without the poll, rethink that
 
-   (define (thread-controller todo done state)
+   (define (thread-controller self todo done state)
       (if (eq? todo null)
          (if (null? done)
             (halt-thread-controller state)
-            (thread-controller done null state))
+            (self self done null state))
          (lets 
             ((this todo todo)
              (id st this)
              (op a b c (run st thread-quantum)))
             (if (eq? op 1)
                ; out of time, usual suspect, short path here
-               (thread-controller todo (cons (tuple id a) done) state)
-               ((ref mcp-syscalls op) id a b c todo done state thread-controller)))))
+               (self self todo (cons (tuple id a) done) state)
+               ((ref mcp-syscalls op) id a b c todo done state self)))))
 
 )

@@ -283,10 +283,8 @@
          (if (function? obj)
             (ilist 35 60
                (self self
-                  (let ((names (interact 'intern (tuple 'get-name obj))))
-                     (if names ;; list of symbols
-                        (last names "function")
-                        "function"))
+                  (let ((name (interact 'intern (tuple 'get-name obj))))
+                     (or name "function"))
                   (cons 62 tl)))
             (render self obj tl)))))
 
@@ -1863,7 +1861,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                ;; the next value after evaluation will be the new repl heap
                (λ (vm-args)
                   ;; now we're running in the new repl 
-                  (thread-controller 
+                  (thread-controller thread-controller
                      (list
                         (tuple 'init
                            (λ () 
