@@ -1538,6 +1538,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
+       (profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
        ;(linked  False "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads False "--no-threads" comment "do not include threading and io to generated c-code")
        )))
@@ -1601,13 +1602,15 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
             (print-to (list "que? " bad) stderr)
             fail-val))))
 
-(define (owl-run outcome args path)
+(define (owl-run outcome args path profile?)
    (if outcome
       (tuple-case outcome
          ((ok val env)
             ;; be silent when all is ok
             ;; exit with 127 and have error message go to stderr when the run crashes
-            (try (λ () (val args)) 127))
+            (if profile?
+               (try (λ () (profile (λ () (val args)) 30)) 127)
+               (try (λ () (val args)) 127)))
          ((error reason env)
             (print-repl-error
                (list "ol: cannot run " path " as there there was an error during loading:" reason))
@@ -1782,7 +1785,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                            1)))
                   ((get dict 'run False) =>
                      (λ (path)
-                        (owl-run (try (λ () (repl-file env path)) False) (cons "ol" others) path)))
+                        (owl-run (try (λ () (repl-file env path)) False) (cons "ol" others) path
+                           (get dict 'profile False))))
                   ((get dict 'evaluate False) => 
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting
