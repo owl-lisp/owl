@@ -275,7 +275,8 @@
                ((prof (get state 'prof False)) ;; ff storing profiling info
                 (tc (get prof 'tc False))      ;; normal thread scheduler
                 (prof (del prof 'tc)))         ;; give just the collected data to thread
-               (tc tc (cons (tuple id (λ () (id (cont prof)))) todo) done state)))
+               (tc tc (cons (tuple id (λ () (id (cont prof)))) todo) done 
+                  (del state 'prof))))
    ))
 
    ;; todo: add deadlock detection here (and other bad terminal waits)
@@ -304,7 +305,7 @@
                            ((this todo todo)
                             (id st this)
                             (state (update-state state st))
-                            (op a b c (run st thread-quantum)))
+                            (op a b c (run st 10))) ;; capture every 10 samples (nondeterministic later)
                            (if (eq? op 1)
                               ; out of time, usual suspect, short path here
                               (self self todo (cons (tuple id a) done) state)
@@ -332,8 +333,6 @@
 
    ; (enter-mcp thread-controller done state) -- no way to go here without the poll, rethink that
 
-
-
    (define (thread-controller self todo done state)
       (if (eq? todo null)
          (if (null? done)
@@ -342,7 +341,7 @@
          (lets 
             ((this todo todo)
              (id st this)
-             (op a b c (run st 10)))
+             (op a b c (run st thread-quantum)))
             (if (eq? op 1)
                ; out of time, usual suspect, short path here
                (self self todo (cons (tuple id a) done) state)
