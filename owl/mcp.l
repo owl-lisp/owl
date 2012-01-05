@@ -102,7 +102,7 @@
                      (print stoppeth-mcp)
                      (! 300))) ;; fixme: hack to wait for io flushing
                (if maybe-cont
-                  (maybe-cont vm-threads null state) ; start running the given controller 
+                  (maybe-cont maybe-cont vm-threads null state) ; start running the given controller 
                   (syscall 11 vm-threads state))) ; resume existing mcp with these threads
             (tuple-case (car threads)
                ((active id thread-state value)

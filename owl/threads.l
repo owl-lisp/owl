@@ -100,7 +100,8 @@
 
    ; mcp syscalls grab the functions from here to transform the state 
 
-   (define mcp-syscalls
+   ;; syscalls used when profiler is running
+   (define mcp-syscalls-during-profiling
       (tuple
 
          ; 1, runnig and time slice exhausted (the usual suspect, could be on a shorter branch)
@@ -261,8 +262,62 @@
          ; 19, set return value proposal
          (λ (id cont b c todo done state tc)
             (tc tc (cons (tuple id (λ () (cont b))) todo) done (put state return-value-tag b)))
-            
+        
+         ;;; 20 & 21 change during profiling 
+
+         ; 20, start profiling, no-op during profiling returning 'already-profiling
+         (λ (id cont b c todo done state tc) 
+            (tc tc (cons (tuple id (λ () (cont 'already-profiling))) todo) done state))
+         
+         ; 21, end profiling, resume old ones, pass profiling info 
+         (λ (id cont b c todo done state tc) 
+            (lets
+               ((prof (get state 'prof False)) ;; ff storing profiling info
+                (tc (get prof 'tc False))      ;; normal thread scheduler
+                (prof (del prof 'tc)))         ;; give just the collected data to thread
+               (tc tc (cons (tuple id (λ () (id (cont prof)))) todo) done state)))
    ))
+
+   ;; todo: add deadlock detection here (and other bad terminal waits)
+   (define (halt-thread-controller state)
+      (get state return-value-tag 0))
+
+   ;; store profiling info about this call
+   (define (update-state state exec)
+      (let ((prof (get state 'prof F)))
+         (fupd state 'prof
+            (put prof 'counter (+ 1 (get prof 'counter 0))))))
+
+   (define mcp-syscalls
+      (lets
+         ((syscalls mcp-syscalls-during-profiling)
+          (syscalls
+            (set syscalls 20
+               (λ (id cont b c todo done state tc)
+                  ;; make a new thread scheduler using the other syscall set
+                  (define (scheduler self todo done state)
+                     (if (eq? todo null)
+                        (if (null? done)
+                           (halt-thread-controller state)
+                           (self self done null state))
+                        (lets 
+                           ((this todo todo)
+                            (id st this)
+                            (state (update-state state st))
+                            (op a b c (run st thread-quantum)))
+                           (if (eq? op 1)
+                              ; out of time, usual suspect, short path here
+                              (self self todo (cons (tuple id a) done) state)
+                              ((ref mcp-syscalls-during-profiling op) id a b c todo done state self))))) ; <- difference here
+
+                  (scheduler scheduler (cons (tuple id (λ () (cont 'started-profiling))) todo) done 
+                     (put state 'prof           ;; profiling data is stored under key 'prof
+                        (put state 'tc tc)))))) ;; store normal scheduler there for resuming on syscall 21
+          (syscalls
+            (set syscalls 21 ;; end-profiling syscall doesn't do anything when not profiling
+               (λ (id cont b c todo done state tc) 
+                  (tc tc (cons (tuple id (λ () (cont 'not-profiling-you-fool))) todo) done state)))))
+         syscalls))
 
    (define (enter-mcp controller threads state)
       ; could break here also when threads is just repl-input
@@ -274,11 +329,10 @@
                      threads state controller))))
          null False))
 
-   ;; todo: add deadlock detection here (and other bad terminal waits)
-   (define (halt-thread-controller state)
-      (get state return-value-tag 0))
 
    ; (enter-mcp thread-controller done state) -- no way to go here without the poll, rethink that
+
+
 
    (define (thread-controller self todo done state)
       (if (eq? todo null)
@@ -288,10 +342,11 @@
          (lets 
             ((this todo todo)
              (id st this)
-             (op a b c (run st thread-quantum)))
+             (op a b c (run st 10)))
             (if (eq? op 1)
                ; out of time, usual suspect, short path here
                (self self todo (cons (tuple id a) done) state)
                ((ref mcp-syscalls op) id a b c todo done state self)))))
+
 
 )

@@ -1,6 +1,6 @@
 (define-module lib-syscall
 
-   (export syscall error interact fork accept-mail wait-mail check-mail exi-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from)
+   (export syscall error interact fork accept-mail wait-mail check-mail exi-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling)
 
    (define (syscall op a b)
       (call/cc (λ (resume) (sys resume op a b))))
@@ -105,4 +105,9 @@
    (define (error reason info)
       (syscall 5 reason info))
 
+   (define (start-profiling)
+      (syscall 20 T T))
+
+   (define (stop-profiling)
+      (syscall 21 T T))
 )

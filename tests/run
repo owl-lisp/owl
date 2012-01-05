@@ -17,7 +17,7 @@ MAXMEM=1048576 # 1GB
 MAXTIME=60
 for file in tests/*.scm
 do
-   (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; $@ -q < $file 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; $@ -q $file 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done
 
 for file in tests/*.sh
