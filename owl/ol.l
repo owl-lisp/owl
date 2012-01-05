@@ -547,8 +547,10 @@
 ; it would make more sense just to make it a n-ary macro
 
 (define (print* lst)
-   (mail stdout
-      (foldr renderer '(10) lst)))
+   (mail stdout (foldr renderer '(10) lst)))
+
+(define (print*-to lst to)
+   (mail to (foldr renderer '(10) lst)))
 
 (define-syntax output
    (syntax-rules ()
@@ -960,6 +962,26 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (define integer->char self)
 )
 
+;; profiling doesn't yet have a good home. merge to lib-internals or lib-debug later?
+;; run thunk and show n most called functions. no timings yet.
+(define (profile thunk n)
+   (lets
+      ((skip (start-profiling))
+       (skip (set-ticker 0))
+       (res (thunk))
+       (stats (stop-profiling))
+       (most-used
+         (take
+            (sort
+               (λ (a b) (> (car a) (car b)))
+               (ff-fold
+                  (λ (out func n)
+                     (cons (cons n func) out))
+                  null stats))
+            n)))
+      (for-each (λ (p) (print*-to (list (car p) ":" (cdr p)) stdout)) most-used) ;; <- could use stderr later
+      res))
+
 ;; todo: share the modules instead later
 (define shared-misc
    (share-bindings
@@ -1012,6 +1034,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       get-memory-limit
       checksum
       string->sexp
+      profile
       ))
 
 ,r "owl/fasl.l"     ; encoding and decoding arbitrary objects as lists of bytes
