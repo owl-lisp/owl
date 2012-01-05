@@ -210,8 +210,8 @@
                   (mail sender code)
                   (interner root codes 
                      (if (get names code False)
-                        (put names code name)    ;; name after first finding
-                        names))))
+                        names
+                        (put names code name)))))    ;; name after first finding
             ((tuple? msg)
                (tuple-case msg
                   ((set-name name) ;; use this name for all functions
