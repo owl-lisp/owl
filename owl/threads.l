@@ -283,11 +283,29 @@
    (define (halt-thread-controller state)
       (get state return-value-tag 0))
 
+   (define (bytecode-of thing default)
+      (cond
+         ((bytecode? thing) thing)
+         ((function? thing) (bytecode-of (ref thing 1) default))
+         (else default)))
+
    ;; store profiling info about this call
+   ;; the exec is either a thunk to be run in a thread as a result of 
+   ;; forking or a syscall being answered, or a vm-generated tuple which 
+   ;; has arguments for the next function call and the function at the 
+   ;; *last* slot of the tuple.
+
    (define (update-state state exec)
-      (let ((prof (get state 'prof F)))
-         (fupd state 'prof
-            (put prof 'counter (+ 1 (get prof 'counter 0))))))
+      (if (tuple? exec) ;; vm thread suspensions are tuples
+         (lets
+            ((bcode (bytecode-of (ref exec (size exec)) 'not-a-function)) ;; identify place based in bytecode which is inert
+             (prof (get state 'prof F))
+             (count (get prof bcode 0))
+             (prof (put prof bcode (+ count 1)))
+             (state (fupd state 'prof prof)))
+            state)
+         ;; don't record anything for now for the rare thread starts and resumes with syscall results
+         state))
 
    (define mcp-syscalls
       (lets
