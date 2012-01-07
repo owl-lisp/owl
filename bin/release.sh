@@ -19,4 +19,4 @@ cp fasl/ol.fasl $DIR/fasl/init.fasl   # copy current fixed point as the start im
 cp readme.txt Makefile $DIR
 tar -f - -c $DIR | gzip -9 > $DIR.tar.gz
 cd $DIR
-make && echo target built ok && cd .. && gpg --clearsign $DIR.tar.gz
+make && echo target built ok && cd .. && gpg -b $DIR.tar.gz
