@@ -2,7 +2,7 @@
 ;;; ol.scm: an Owl read-eval-print loop.
 ;;;
 
-#| Copyright (c) 2008-2011 Aki Helin
+#| Copyright (c) 2012 Aki Helin
  |
  | Permission is hereby granted, free of charge, to any person obtaining a 
  | copy of this software and associated documentation files (the "Software"),
@@ -290,6 +290,44 @@
 
 (import lib-function)
 
+
+;;;
+;;; Better error handler
+;;;
+
+;; reverse tuple & enlist
+#|
+(define (function->list func)
+   (if (bytecode? func)
+      (list func)
+      (map (λ (x) (ref func x)) (iota (size func) -1 0))))
+
+;; this isn't accurate enough
+;; needed: a way to know which value in a function is the continuation
+;; one solution, though not a simple one, would be to disassemble the code and figure out what is called at the end
+;; another option, write a version of the vm in owl and use that?
+;; third option: use a value browser and let the user look into the current continuation
+;; fourth option: just print the internals of the continuation for a hint of location
+(define (sub-cont cont)
+   (cond
+      ((not cont) False)
+      ((bytecode? cont) False)
+      ((not (function? cont)) False)
+      (else (first function? (function->list cont) False))))
+
+(define (cont-chain cont)
+   (if (function? cont)
+      (cons cont (cont-chain (sub-cont cont)))
+      null))
+
+(define error-syscall error)
+
+(define (error msg info)
+   (call/cc
+      (λ (cont)
+         (error-syscall (cons msg info) 
+           (foldr (λ (ob tl) (if (null? tl) (list ob) (ilist ob " -> " tl))) null (cdr (cont-chain cont)))))))
+|#
 
 ;;;
 ;;; Symbols
