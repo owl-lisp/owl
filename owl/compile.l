@@ -10,10 +10,10 @@
 
 (define-module lib-compile
 
-   (export compile
-      nary-primop nullary-primop unary-primop binary-primop trinary-primop
-      primops prim-opcodes
-      )
+   (export 
+      compile
+      primops 
+      prim-opcodes)
 
    (import lib-ast)
    (import lib-lazy)
