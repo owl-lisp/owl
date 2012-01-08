@@ -217,11 +217,23 @@
 	(define (flush-stdout)
       (mail stdout 'flush))
 
+   ;; names env → ok? module|error
 	(define (build-export names env)
-		(fold
-			(λ module key
-				(put module key (get env key 'undefined-lol)))
-			False names))
+      (let loop ((names names) (unbound null) (module False))
+         (cond
+            ((null? names)
+               (cond
+                  ((null? unbound)
+                     (values True module))
+                  ((null? (cdr unbound))
+                     (values False (list "Undefined exported value: " (car unbound))))
+                  (else
+                     (values False (list "Undefined exports: " unbound)))))
+            ((get env (car names) False) =>
+               (λ (value)
+                  (loop (cdr names) unbound (put module (car names) value))))
+            (else
+               (loop (cdr names) (cons (car names) unbound) module)))))
 
 	; fixme, use pattern matching...
 
@@ -294,8 +306,10 @@
 								(fail
 									(list "Definition of" (cadr exp) "failed because" reason)))))
 					((export? exp)
-						(let ((module (build-export (cdr exp) env)))
-							(ok module env)))
+						(lets ((ok? module (build-export (cdr exp) env)))
+                     (if ok?
+                        (ok module env)
+                        (fail module))))
 					((module-definition? exp)
 						(tuple-case (repl env (push-exports-deeper (cddr exp)))
 							((ok module module-env)
