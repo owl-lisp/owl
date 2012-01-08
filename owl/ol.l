@@ -1263,6 +1263,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((λ (v ...) . body) (lambda (v ...) . body))
          ((λ v ... body) (lambda (v ...) body))))
 
+   (define-syntax syntax-error
+      (syntax-rules ()
+         ((syntax-error . stuff)
+            (error "Syntax error: " (quote stuff)))))
+
    (define-syntax begin
       (syntax-rules (define define-syntax letrec)
          ((begin
