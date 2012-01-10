@@ -11,6 +11,8 @@
 		bind-toplevel
 		)
 
+   (import lib-regex string->regex)
+
 	(define definition? 
 		(let ((pat (list '_define symbol? (λ x True))))
 			(lambda (exp) (match pat exp))))
@@ -19,6 +21,9 @@
 	; bla bla
 	;     blo blo
 	;         blu blu
+
+   ;; toplevel variable which holds currently loaded (r7rs-style) libraries
+   (define libraries-var '*libs*)
 
    (define error-port stderr)
 
@@ -140,6 +145,17 @@
 						(list path (string-append (env-get env '*owl* "") path))
 						"for loading.")))))
 
+   ;; regex-fn | string | symbol → regex-fn | False
+   (define (thing->rex thing)
+      (cond
+         ((function? thing) thing)
+         ((string? thing) 
+            (string->regex 
+               (foldr string-append "" (list "m/" thing "/"))))
+         ((symbol? thing)
+            (thing->rex (symbol->string thing)))
+         (else False)))
+
 	;; load unless already in *loaded*
 
 	(define (repl-require repl path in env)
@@ -191,21 +207,17 @@
 						(else
 							(repl-fail env (list "Not loadable: " op))))))
 			((words)
-				(show "Words: " 
-					(ff-fold 
-						(λ words key value (cons key words))
-						null env))
+            (prompt env (cons "Words: " (ff-fold (λ (words key value) (cons key words)) null env)))
 				(repl env in))
          ((find)
-            (lets ((rex in (uncons in False)))
+            (lets 
+               ((thing in (uncons in False))
+                (rex (thing->rex thing)))
                (cond
                   ((function? rex)
-                     (print (keep (λ (sym) (rex (symbol->string sym))) (ff-fold (λ (words key value) (cons key words)) null env))))
-                  ;((symbol? rex)
-                  ;   (let ((rex (string->regex (foldr string-append "" (list "m/" (symbol->string rex) "/")))))
-                  ;      (print (keep (λ (sym) (rex (symbol->string sym))) (ff-fold (λ (words key value) (cons key words)) null env)))))
+                     (prompt env (keep (λ (sym) (rex (symbol->string sym))) (ff-fold (λ (words key value) (cons key words)) null env))))
                   (else
-                     (print "I would have preferred a regex next.")))
+                     (prompt env "I would have preferred a regex or a symbol.")))
                (repl env in)))
 			((quit)
 				; this goes to repl-trampoline
@@ -253,11 +265,15 @@
 				env names)))
 
 	(define import? 
-		(let ((pattern `(import ,symbol? . ,(λ x True))))
+		(let ((pattern `(import ,symbol? . ,(λ (x) True))))
 			(λ exp (match pattern exp))))
 
 	(define module-definition?
-		(let ((pattern `(define-module ,symbol? . ,(λ x True))))
+		(let ((pattern `(define-module ,symbol? . ,(λ (x) True))))
+			(λ exp (match pattern exp))))
+
+	(define library-definition?
+		(let ((pattern `(define-library ,symbol? . ,(λ (x) True))))
 			(λ exp (match pattern exp))))
 
 	;; a simple eval 
