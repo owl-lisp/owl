@@ -1,3 +1,6 @@
+;; todo: could actually also be called eval
+;; todo: use a failure continuation or make the failure handling otherwise more systematic
+
 (define-module lib-repl
 
 	(export 
@@ -12,6 +15,10 @@
 		)
 
    (import lib-regex string->regex)
+
+   ;; toplevel variable to which loaded libraries are added
+
+   (define library-key '*libraries*)
 
 	(define definition? 
 		(let ((pat (list '_define symbol? (λ x True))))
@@ -136,9 +143,11 @@
                    (outcome (repl load-env exps)))
                   (tuple-case outcome
                      ((ok val env)
+                        ;(prompt env ";; loaded")
                         (repl (mark-loaded (env-set env '*owl-prompt* (tuple 'defined (tuple 'value prompt))) path) in))
                      ((error reason partial-env)
                         ; fixme, check that the fd is closed!
+                        ;(prompt env ";; failed to load")
                         (repl-fail env (list "Could not load" path "because" reason))))))
 				(repl-fail env
 					(list "Could not find any of" 
@@ -164,8 +173,23 @@
             (repl env in)
 				(repl-load repl path in env))))
 
+   (define repl-ops-help "Commands:
+,help             - show this
+,load [string]    - load a file
+,l                - || -
+,require [string] - load a file unless loaded
+,r                - || -
+,words            - list all current definitions
+,find [regex|sym] - list all defined words matching regex or m/<sym>/
+,libraries        - show all currently loaded libraries
+,libs             - || -
+,quit             - exit owl")
+
 	(define (repl-op repl op in env)
 		(case op	
+         ((help)
+            (prompt env repl-ops-help)
+            (repl env in))
 			((load l)
 				(lets ((op in (uncons in False)))
 					(cond
@@ -219,6 +243,11 @@
                   (else
                      (prompt env "I would have preferred a regex or a symbol.")))
                (repl env in)))
+         ((libs libraries)
+            (print "Currently defined libraries:")
+            (for-each print (map car (module-ref env library-key null)))
+            (prompt env "")
+            (repl env in))
 			((quit)
 				; this goes to repl-trampoline
 				(tuple 'ok 'quitter env))
@@ -264,6 +293,8 @@
 					(put env key (get mod key 'undefined-lol))) 
 				env names)))
 
+   (define (_ x) True)
+
 	(define import? 
 		(let ((pattern `(import ,symbol? . ,(λ (x) True))))
 			(λ exp (match pattern exp))))
@@ -272,9 +303,8 @@
 		(let ((pattern `(define-module ,symbol? . ,(λ (x) True))))
 			(λ exp (match pattern exp))))
 
-	(define library-definition?
-		(let ((pattern `(define-library ,symbol? . ,(λ (x) True))))
-			(λ exp (match pattern exp))))
+	(define (library-definition? x)
+      (and (pair? x) (list? x) (eq? (car x) '_define-library)))
 
 	;; a simple eval 
 
@@ -302,6 +332,55 @@
 			(else
 				(cons (car lst)
 					(push-exports-deeper (cdr lst))))))
+
+   ;; list starting with val?
+   (define (headed? val exp)
+      (and (pair? exp) (eq? val (car exp)) (list? exp)))
+
+   ;; do all imports from libraries in library-key of current env
+   ;; env (import-decl ..) → True env' | False error-msg
+   ;; fixme: this would be a fold with failure cont
+   (define (library-import env exps)
+      (if (null? exps)
+         (values True env)
+         (lets 
+            ((libs (module-ref env library-key null))
+             (key (car exps)))
+            (cond
+               ((assoc key libs) =>
+                  (λ (pair) 
+                     ;; copy all bindings from the (completely) imported library
+                     (library-import
+                        (env-fold put env (cdr pair))
+                        (cdr exps))))
+               (else
+                  (values False (list "Cannot import " (car exps))))))))
+
+   (define (repl-library exp env repl)
+      (cond
+         ((null? exp)
+            (repl-fail env "no export?"))
+         ((headed? 'import (car exp))
+            (lets ((ok? env (library-import env (cdar exp))))
+               (if ok?
+                  (repl-library (cdr exp) env repl)
+                  (repl-fail env (list "import failed: " env)))))
+         ((headed? 'begin (car exp))
+            ;; run basic repl on it
+            (tuple-case (repl env (cdar exp))
+               ((ok value env)
+                  ;; continue on to other defines or export
+                  (repl-library (cdr exp) env repl))
+               ((error reason env)
+                  (repl-fail env reason))))
+         ((headed? 'export (car exp))
+            ;; build the export out of current env
+            (lets ((ok? module (build-export (cdar exp) env)))
+               (if ok?
+                  (ok module env) ;; should caller should store name etc
+                  (repl-fail env module))))
+         (else 
+            (repl-fail env (list "unknown library term: " (car exp))))))
 
 	(define (eval-repl exp env repl)
 		(tuple-case (macro-expand exp env)
@@ -334,6 +413,19 @@
 							((error reason broken-env)
 								(fail
 									(list "Module definition of" (cadr exp) "failed because" reason)))))
+               ((library-definition? exp)
+                  (lets 
+                     ((exps (map cadr (cdr exp))) ;; drop the quotes
+                      (name exps (uncons exps False)))
+                     (tuple-case (repl-library exps env repl)
+                        ((ok library lib-env)
+                           (ok ";; Library added" 
+                              (module-set env library-key 
+                                 (cons (cons name library)
+                                    (module-ref env 'library-key null)))))
+                        ((error reason not-env)
+                           (fail 
+                              (list "Library" name "failed to load because" reason))))))
 					((import? exp)
 						(tuple-case (evaluate (cadr exp) env)
 							((ok mod envx)
@@ -440,4 +532,5 @@
          (if exps
             (repl env exps)
             (tuple 'error "not parseable" env))))
+
 )

@@ -708,6 +708,7 @@
       (else
          (list "error: " 'instruction opcode 'info (tuple a b)))))
 
+
 ;;;
 ;;; Macro expansion
 ;;;
@@ -1545,6 +1546,24 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          (if test 
             (begin expr ...)
             (loop step ...))))))
+
+   (define-syntax define-library
+      (syntax-rules (export import begin _define-library define-library)
+         ;; push export to the end
+         ((define-library x ... (export e ...) term . tl)
+          (define-library x ... term (export e) . tl))
+
+         ;; lift all imports above begins
+         ((define-library x ... (begin . b) (import . i) . tl)
+          (define-library x ... (import . i) (begin . b) . tl))
+
+         ;; convert to special form understood by the repl
+         ((define-library name (import . i) ... (begin . b) ... (export . e))
+          (_define-library 'name '(import . i) ... '(begin . b) ... '(export . e)))
+
+         ;; fail otherwise
+         ((_ . wtf)
+            (syntax-error "Weird library contents: " (quote . (define-library . wtf))))))
 ))
 
 

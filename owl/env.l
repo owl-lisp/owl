@@ -4,7 +4,7 @@
 
 (define-module lib-env
 
-	(export lookup env-bind env-set module-ref module-set apply-env)
+	(export lookup env-bind env-set module-ref module-set apply-env env-fold)
 
 	(define lookup
 		(let ((undefined (tuple 'undefined)))
@@ -49,7 +49,7 @@
 	; occurence of a variable is replaced by it's value
 
 	; this is functionally equivalent to making a big 
-	; ((lambda (name ..) exp) value)), but the compiler currently
+	; (((lambda (name ..) exp) value)), but the compiler currently
 	; handles values occurring in the sexp itself a bit more efficiently
 
 	(define (ok env exp) (tuple 'ok exp env))
@@ -133,5 +133,7 @@
 						exp)))))
 		
 	(define env-set put)
+
+   (define env-fold ff-fold)
 
 )
