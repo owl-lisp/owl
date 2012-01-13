@@ -1564,6 +1564,13 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ;; fail otherwise
          ((_ . wtf)
             (syntax-error "Weird library contents: " (quote . (define-library . wtf))))))
+
+   (define-syntax lets/cc
+      (syntax-rules ()
+         ((lets/cc (om . nom) . fail)
+            (syntax-error "let/cc: continuation name cannot be " (quote (om . nom))))
+         ((lets/cc var . body)
+            (call/cc (λ (var) (lets . body))))))
 ))
 
 
