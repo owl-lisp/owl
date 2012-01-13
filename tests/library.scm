@@ -17,7 +17,7 @@
       (define (baz x) (cons mine bar))
       (print (baz 42))))
 
-;; test renaming
+;; test export + renaming
 
 (define-library (rename)
    (export 
@@ -34,3 +34,30 @@
       (define out 42)
       (print (list foo bar))))
 
+#|
+;; test only import
+
+(define-library (foobar)
+   (export foo bar)
+   (begin
+      (define foo "foo")
+      (define bar "bad")))
+
+(define-library (barfoo)
+   (export foo bar)
+   (begin
+      (define foo "BAD")
+      (define bar "bar")))
+
+(define-library (test)
+   (export foobar)
+   (import 
+      (only (foobar) foo)
+      (only (barfoo) bar))
+   (begin
+      (define (foobar)
+         (print (cons foo bar)))
+      (foobar)))
+
+(print "ALL DONE")
+|#
