@@ -18,6 +18,8 @@
 
    ;; toplevel variable to which loaded libraries are added
 
+   (define (? x) True)
+
    (define library-key '*libraries*)
 
 	(define definition? 
@@ -259,6 +261,8 @@
       (mail stdout 'flush))
 
    ;; names env → ok? module|error
+   ;; <export spec> = <identifier> | (rename <identifier_1> <identifier_2>)
+
 	(define (build-export names env)
       (let loop ((names names) (unbound null) (module False))
          (cond
@@ -293,7 +297,7 @@
 		(if (null? names)
 			(import env mod (map car (ff->list mod)))
 			(fold
-				(λ env key
+				(λ (env key)
 					;; could be a bit more descriptive here..
 					(put env key (get mod key 'undefined-lol))) 
 				env names)))
@@ -342,50 +346,84 @@
    (define (headed? val exp)
       (and (pair? exp) (eq? val (car exp)) (list? exp)))
 
-   ;; do all imports from libraries in library-key of current env
-   ;; env (import-decl ..) → True env' | False error-msg
-   ;; fixme: this would be a fold with failure cont
-   (define (library-import env exps)
-      (if (null? exps)
-         (values True env)
-         (lets 
-            ((libs (module-ref env library-key null))
-             (key (car exps)))
-            (cond
-               ((assoc key libs) =>
-                  (λ (pair) 
-                     ;; copy all bindings from the (completely) imported library
-                     (library-import
-                        (env-fold put env (cdr pair))
-                        (cdr exps))))
-               (else
-                  (values False (list "Cannot import " (car exps))))))))
+   ;; (import <import set> ...)
+   ;; <import set> = <library name> 
+   ;;              | (only <import set> <identifier> ...)
+   ;;              | (except <import set> <identifier> ...)
+   ;;              | (prefix <import set> <identifier>)
+   ;;              | (rename <import set_1> (<identifier_a> <identifier_b>) ..)
+
+   ;; (a ...)
+   (define (symbols? exp)
+      (and (list? exp) (all symbol? exp)))
+
+   ;; ((a b) ...)
+   (define (pairs? exp)
+      (and (list? exp) 
+         (all (λ (x) (and (list? x) (= (length x) 2))) exp)))
+
+   (define (choose lib namer)
+      (env-fold 
+         (λ (env name value)
+            (let ((name (namer name)))
+               (if name (put env name value) env)))
+         False lib))
+      
+   (define (import-set->library iset libs fail)
+      (cond
+         ((assoc iset libs) =>
+            (λ (pair) 
+               (cdr pair))) ;; copy all bindings from the (completely) imported library
+         ((match `(only ,? . ,symbols?) iset)
+            (choose 
+               (import-set->library (cadr iset) libs fail)
+               (λ (var) (if (has? (cddr iset) var) var False))))
+         ((match `(except ,? . ,symbols?) iset)
+            (choose 
+               (import-set->library (cadr iset) libs fail)
+               (λ (var) (if (has? (cddr iset) var) False var))))
+         ((match `(rename ,? . ,pairs?) iset)
+            (choose
+               (import-set->library (cadr iset) libs fail)
+               (λ (var) 
+                  (let ((val (assq var (cddr iset))))
+                     (if val (cdr val) False)))))
+         (else 
+            (fail "Cannot import " iset))))
+
+   (define (library-import env exps fail)
+      (let ((libs (module-ref env library-key null)))
+         (fold
+            (λ (env iset) 
+               (env-fold put env 
+                  (import-set->library iset libs fail)))
+            env exps)))
 
    (define (repl-library exp env repl)
-      (cond
-         ((null? exp)
-            (repl-fail env "no export?"))
-         ((headed? 'import (car exp))
-            (lets ((ok? env (library-import env (cdar exp))))
-               (if ok?
-                  (repl-library (cdr exp) env repl)
-                  (repl-fail env (list "import failed: " env)))))
-         ((headed? 'begin (car exp))
-            ;; run basic repl on it
-            (tuple-case (repl env (cdar exp))
-               ((ok value env)
-                  ;; continue on to other defines or export
-                  (repl-library (cdr exp) env repl))
-               ((error reason env)
-                  (repl-fail env reason))))
-         ((headed? 'export (car exp))
-            ;; build the export out of current env
-            (lets ((ok? module (build-export (cdar exp) env)))
-               (if ok?
-                  (ok module env) ;; should caller should store name etc
-                  (repl-fail env module))))
-         (else 
-            (repl-fail env (list "unknown library term: " (car exp))))))
+      (lets/cc ret
+         ((fail (λ (reason) (repl-fail env reason))))
+         (cond
+            ((null? exp) (fail "no export?"))
+            ((headed? 'import (car exp))
+               (repl-library (cdr exp)
+                  (library-import env (cdar exp) fail)
+                  repl))
+            ((headed? 'begin (car exp))
+               ;; run basic repl on it
+               (tuple-case (repl env (cdar exp))
+                  ((ok value env)
+                     ;; continue on to other defines or export
+                     (repl-library (cdr exp) env repl))
+                  ((error reason env)
+                     (repl-fail env reason))))
+            ((headed? 'export (car exp))
+               ;; build the export out of current env
+               (lets ((ok? module (build-export (cdar exp) env)))
+                  (if ok?
+                     (ok module env) ;; should caller should store name etc
+                     (repl-fail env module))))
+            (else 
+               (repl-fail env (list "unknown library term: " (car exp)))))))
 
 	(define (eval-repl exp env repl)
 		(tuple-case (macro-expand exp env)
@@ -431,7 +469,7 @@
                         ((error reason not-env)
                            (fail 
                               (list "Library" name "failed to load because" reason))))))
-					((import? exp)
+					((import? exp) ;; <- old module import, will be deprecated soon
 						(tuple-case (evaluate (cadr exp) env)
 							((ok mod envx)
 								(let ((new (import env mod (cddr exp))))
