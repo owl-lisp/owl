@@ -1,5 +1,5 @@
-;; todo: could actually also be called eval
 ;; todo: use a failure continuation or make the failure handling otherwise more systematic
+;; todo: should (?) be factored to eval, repl and library handling
 
 (define-module lib-repl
 
@@ -273,6 +273,11 @@
             ((get env (car names) False) =>
                (λ (value)
                   (loop (cdr names) unbound (put module (car names) value))))
+            ((and  ;; swap name for (rename <local> <exported>)
+                (match `(rename ,symbol? ,symbol?) (car names))
+                (get env (cadar names) False)) =>
+               (λ (value)
+                  (loop (cdr names) unbound (put module (caddar names) value))))
             (else
                (loop (cdr names) (cons (car names) unbound) module)))))
 

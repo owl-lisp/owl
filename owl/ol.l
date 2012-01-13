@@ -1550,8 +1550,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (define-syntax define-library
       (syntax-rules (export import begin _define-library define-library)
          ;; push export to the end
-         ((define-library x ... (export e ...) term . tl)
-          (define-library x ... term (export e) . tl))
+         ((define-library x ... (export . e) term . tl)
+          (define-library x ... term (export . e) . tl))
 
          ;; lift all imports above begins
          ((define-library x ... (begin . b) (import . i) . tl)
