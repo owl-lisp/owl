@@ -260,20 +260,17 @@
 	(define (flush-stdout)
       (mail stdout 'flush))
 
-   ;; names env → ok? module|error
    ;; <export spec> = <identifier> | (rename <identifier_1> <identifier_2>)
-
-	(define (build-export names env)
+	(define (build-export names env fail)
       (let loop ((names names) (unbound null) (module False))
          (cond
             ((null? names)
                (cond
-                  ((null? unbound)
-                     (values True module))
+                  ((null? unbound) module)
                   ((null? (cdr unbound))
-                     (values False (list "Undefined exported value: " (car unbound))))
+                     (fail (list "Undefined exported value: " (car unbound))))
                   (else
-                     (values False (list "Undefined exports: " unbound)))))
+                     (fail (list "Undefined exports: " unbound)))))
             ((get env (car names) False) =>
                (λ (value)
                   (loop (cdr names) unbound (put module (car names) value))))
@@ -407,30 +404,25 @@
             env exps)))
 
    (define (repl-library exp env repl fail)
-      (lets/cc ret
-         ((faxil (λ (reason) (repl-fail env reason))))
-         (cond
-            ((null? exp) (fail "no export?"))
-            ((headed? 'import (car exp))
-               (repl-library (cdr exp)
-                  (library-import env (cdar exp) fail)
-                  repl fail))
-            ((headed? 'begin (car exp))
-               ;; run basic repl on it
-               (tuple-case (repl env (cdar exp))
-                  ((ok value env)
-                     ;; continue on to other defines or export
-                     (repl-library (cdr exp) env repl fail))
-                  ((error reason env)
-                     (fail reason))))
-            ((headed? 'export (car exp))
-               ;; build the export out of current env
-               (lets ((ok? module (build-export (cdar exp) env)))
-                  (if ok?
-                     (ok module env) ;; should caller should store name etc
-                     (fail module))))
-            (else 
-               (fail (list "unknown library term: " (car exp)))))))
+      (cond
+         ((null? exp) (fail "no export?"))
+         ((headed? 'import (car exp))
+            (repl-library (cdr exp)
+               (library-import env (cdar exp) fail)
+               repl fail))
+         ((headed? 'begin (car exp))
+            ;; run basic repl on it
+            (tuple-case (repl env (cdar exp))
+               ((ok value env)
+                  ;; continue on to other defines or export
+                  (repl-library (cdr exp) env repl fail))
+               ((error reason env)
+                  (fail reason))))
+         ((headed? 'export (car exp))
+            ;; build the export out of current env
+            (ok (build-export (cdar exp) env fail) env))
+         (else 
+            (fail (list "unknown library term: " (car exp))))))
 
 	(define (eval-repl exp env repl)
 		(tuple-case (macro-expand exp env)
@@ -451,10 +443,8 @@
 								(fail
 									(list "Definition of" (cadr exp) "failed because" reason)))))
 					((export? exp)
-						(lets ((ok? module (build-export (cdr exp) env)))
-                     (if ok?
-                        (ok module env)
-                        (fail module))))
+						(lets ((module (build-export (cdr exp) env (λ (x) x)))) ; <- to be removed soon, dummy fail cont
+                     (ok module env)))
 					((module-definition? exp)
 						(tuple-case (repl env (push-exports-deeper (cddr exp)))
 							((ok module module-env)
