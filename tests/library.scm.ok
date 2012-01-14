@@ -2,4 +2,5 @@
 (foo bar)
 (foo . bar)
 (foo . bar)
+(aa-foo bb-bar)
 END OF LINE

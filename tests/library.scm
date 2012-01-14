@@ -68,5 +68,28 @@
          (print (cons foo bar)))
       (foobar)))
 
+;; nested and prefixing 
+
+(define-library (aa)
+   (export foo bar)
+   (begin
+      (define foo "aa-foo")
+      (define bar "aa-bar")))
+
+(define-library (bb)
+   (export foo bar)
+   (begin
+      (define foo "bb-foo")
+      (define bar "bb-bar")))
+
+(define-library (test)
+   (export test)
+   (import
+      (prefix (except (aa) bar) aa-)
+      (prefix (only (bb) bar) bb-))
+   (begin
+      (define (test)
+         (print (list aa-foo bb-bar)))
+      (test)))
 
 (print "END OF LINE")
