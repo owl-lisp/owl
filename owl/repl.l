@@ -388,6 +388,13 @@
                (λ (var) 
                   (let ((val (assq var (cddr iset))))
                      (if val (cdr val) False)))))
+         ((match `(prefix ,? ,symbol?) iset)
+            (let ((prefix (symbol->string (caddr iset))))
+               (choose
+                  (import-set->library (cadr iset) libs fail)
+                  (λ (var)
+                     (string->symbol 
+                        (string-append prefix (symbol->string var)))))))
          (else 
             (fail "Cannot import " iset))))
 
