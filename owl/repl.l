@@ -465,7 +465,7 @@
                            (ok ";; Library added" 
                               (module-set env library-key 
                                  (cons (cons name library)
-                                    (module-ref env 'library-key null)))))
+                                    (module-ref env library-key null)))))
                         ((error reason not-env)
                            (fail 
                               (list "Library" name "failed to load because" reason))))))
