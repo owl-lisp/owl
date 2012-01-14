@@ -396,7 +396,7 @@
                      (string->symbol 
                         (string-append prefix (symbol->string var)))))))
          (else 
-            (fail "Cannot import " iset))))
+            (fail (list "Cannot import " iset)))))
 
    (define (library-import env exps fail)
       (let ((libs (module-ref env library-key null)))
@@ -406,31 +406,31 @@
                   (import-set->library iset libs fail)))
             env exps)))
 
-   (define (repl-library exp env repl)
+   (define (repl-library exp env repl fail)
       (lets/cc ret
-         ((fail (λ (reason) (repl-fail env reason))))
+         ((faxil (λ (reason) (repl-fail env reason))))
          (cond
             ((null? exp) (fail "no export?"))
             ((headed? 'import (car exp))
                (repl-library (cdr exp)
                   (library-import env (cdar exp) fail)
-                  repl))
+                  repl fail))
             ((headed? 'begin (car exp))
                ;; run basic repl on it
                (tuple-case (repl env (cdar exp))
                   ((ok value env)
                      ;; continue on to other defines or export
-                     (repl-library (cdr exp) env repl))
+                     (repl-library (cdr exp) env repl fail))
                   ((error reason env)
-                     (repl-fail env reason))))
+                     (fail reason))))
             ((headed? 'export (car exp))
                ;; build the export out of current env
                (lets ((ok? module (build-export (cdar exp) env)))
                   (if ok?
                      (ok module env) ;; should caller should store name etc
-                     (repl-fail env module))))
+                     (fail module))))
             (else 
-               (repl-fail env (list "unknown library term: " (car exp)))))))
+               (fail (list "unknown library term: " (car exp)))))))
 
 	(define (eval-repl exp env repl)
 		(tuple-case (macro-expand exp env)
@@ -464,10 +464,13 @@
 								(fail
 									(list "Module definition of" (cadr exp) "failed because" reason)))))
                ((library-definition? exp)
-                  (lets 
+                  (lets/cc ret
                      ((exps (map cadr (cdr exp))) ;; drop the quotes
-                      (name exps (uncons exps False)))
-                     (tuple-case (repl-library exps env repl)
+                      (name exps (uncons exps False))
+                      (fail 
+                        (λ (reason) 
+                           (ret (fail (list "Library" name "failed:" reason))))))
+                     (tuple-case (repl-library exps env repl fail)
                         ((ok library lib-env)
                            (ok ";; Library added" 
                               (module-set env library-key 
