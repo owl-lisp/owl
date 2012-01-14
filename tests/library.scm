@@ -92,4 +92,37 @@
          (print (list aa-foo bb-bar)))
       (test)))
 
+;; cond-expand
+
+#|(define-library (cond)
+   (export test)
+   (cond-expand 
+      (slartibartfast
+         (import (only (norway) coasts))
+         (begin   
+            (define (test x) coasts)))
+      (else
+         (begin
+            (define (test x) x))))
+   (begin
+      (print (test "ok"))))
+ |#        
+
+(define-library (cond)
+   (export test)
+   (cond-expand 
+      (pyramid-scheme
+         (import (only (norway) coasts))
+         (begin
+            (unbound-thingy)
+            (define (test x) coasts)))
+      (owl-lisp
+         (begin
+            (define (test x) "ok")))
+      (else
+         (begin
+            (define (test x) "fail"))))
+   (begin
+      (print (test "ok"))))
+
 (print "END OF LINE")

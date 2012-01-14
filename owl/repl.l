@@ -21,6 +21,7 @@
    (define (? x) True)
 
    (define library-key '*libraries*)
+   (define features-key '*features*)
 
 	(define definition? 
 		(let ((pat (list '_define symbol? (λ x True))))
@@ -403,6 +404,23 @@
                   (import-set->library iset libs fail)))
             env exps)))
 
+   (define (match-feature req feats fail)
+      (cond
+         ((memv req feats) True)
+         ((symbol? req) False)
+         (else (fail "Weird feature requirement: " req))))
+
+   (define (choose-branch bs env fail)
+      (cond
+         ((null? bs) null) ;; nothing matches, no else
+         ((match `(else . ,list?) (car bs)) (cdar bs))
+         ((pair? (car bs))
+            (if (match-feature (caar bs) (module-ref env features-key null) fail)
+               (cdar bs)
+               (choose-branch (cdr bs) env fail)))
+         (else
+            (fail (list "Funny cond-expand node: " bs)))))
+
    (define (repl-library exp env repl fail)
       (cond
          ((null? exp) (fail "no export?"))
@@ -421,6 +439,10 @@
          ((headed? 'export (car exp))
             ;; build the export out of current env
             (ok (build-export (cdar exp) env fail) env))
+         ((headed? 'cond-expand (car exp))
+            (repl-library
+               (append (choose-branch (cdar exp) env fail) (cdr exp))
+               env repl fail))
          (else 
             (fail (list "unknown library term: " (car exp))))))
 

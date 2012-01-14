@@ -1021,6 +1021,14 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       (for-each (λ (p) (print*-to (list (car p) ":" (cdr p)) stdout)) most-used) ;; <- could use stderr later
       res))
 
+;; implementation features, used by cond-expand
+(define *features*
+   (cons 
+      (string->symbol (string-append "owl-lisp-" *owl-version*))
+      '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
+      ;;          ^
+      ;;          '-- to be a fairly large subset of at least, so adding this
+
 ;; todo: share the modules instead later
 (define shared-misc
    (share-bindings
@@ -1074,6 +1082,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       checksum
       string->sexp
       profile
+      *features*
       ))
 
 ,r "owl/fasl.l"     ; encoding and decoding arbitrary objects as lists of bytes
@@ -1549,17 +1558,21 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
    (define-syntax define-library
       (syntax-rules (export import begin _define-library define-library)
-         ;; push export to the end
+         ;; push export to the end (should syntax-error on multiple exports before this)
          ((define-library x ... (export . e) term . tl)
           (define-library x ... term (export . e) . tl))
 
          ;; lift all imports above begins
-         ((define-library x ... (begin . b) (import . i) . tl)
-          (define-library x ... (import . i) (begin . b) . tl))
+         ;((define-library x ... (begin . b) (import . i) . tl)
+         ; (define-library x ... (import . i) (begin . b) . tl))
 
          ;; convert to special form understood by the repl
-         ((define-library name (import . i) ... (begin . b) ... (export . e))
-          (_define-library 'name '(import . i) ... '(begin . b) ... '(export . e)))
+         ;((define-library name (import . i) ... (begin . b) ... (export . e))
+         ; (_define-library 'name '(import . i) ... '(begin . b) ... '(export . e)))
+
+         ;; accept otherwise in whatever order
+         ((define-library thing ...)
+          (_define-library (quote thing) ...))
 
          ;; fail otherwise
          ((_ . wtf)
