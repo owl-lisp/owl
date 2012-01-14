@@ -34,7 +34,6 @@
       (define out 42)
       (print (list foo bar))))
 
-#|
 ;; test only import
 
 (define-library (foobar)
@@ -59,5 +58,15 @@
          (print (cons foo bar)))
       (foobar)))
 
-(print "ALL DONE")
-|#
+(define-library (test)
+   (export foobar)
+   (import
+      (except (foobar) bar)
+      (except (barfoo) foo))
+   (begin
+      (define (foobar)
+         (print (cons foo bar)))
+      (foobar)))
+
+
+(print "END OF LINE")
