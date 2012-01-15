@@ -10,7 +10,9 @@
       sexp-parser 
       read-exps-from
       list->number
-		string->sexp)
+      get-sexps       ;; greedy* get-sexp
+		string->sexp
+      vector->sexps)
 
    (import lib-parse)
    (import lib-intern intern-symbols string->uninterned-symbol)
@@ -322,6 +324,9 @@
           (foo maybe-whitespace))
          (intern-symbols sexp)))
 
+   (define get-sexps
+      (get-greedy* sexp-parser))
+
    ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
    (define (read-exps-from data red fail)
       (sexp-parser data
@@ -341,5 +346,13 @@
 
 	(define (string->sexp str fail)
 		(try-parse (get-sexp) (str-iter str) F F fail))
+
+   ;; parse all contents of vector to a list of sexps, or fail with 
+   ;; fail-val and print error message with further info if errmsg 
+   ;; is non-false 
+
+   (define (vector->sexps vec fail errmsg)
+      ; try-parse parser data maybe-path maybe-error-msg fail-val
+      (try-parse get-sexps (vector->list vec) False errmsg False))
 
 )
