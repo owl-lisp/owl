@@ -1029,6 +1029,10 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;;          ^
       ;;          '-- to be a fairly large subset of at least, so adding this
 
+;; list of dirs from which to try to load files included in libraries
+(define *include-dirs*
+   (list "."))
+
 ;; todo: share the modules instead later
 (define shared-misc
    (share-bindings
@@ -1083,6 +1087,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       string->sexp
       profile
       *features*
+      *include-dirs*
       ))
 
 ,r "owl/fasl.l"     ; encoding and decoding arbitrary objects as lists of bytes
