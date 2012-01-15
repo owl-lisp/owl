@@ -400,18 +400,30 @@
                   (import-set->library iset libs fail)))
             env exps)))
 
-   (define (match-feature req feats fail)
+   (define (match-feature req feats libs fail)
       (cond
-         ((memv req feats) True)
+         ((memv req feats) True) ;; a supported implementation feature
          ((symbol? req) False)
-         (else (fail "Weird feature requirement: " req))))
+         ((assv req libs) True) ;; an available (loaded) library
+         ((and (headed? 'not req) (= (length req) 2))
+            (not (match-feature (cadr req) feats libs fail)))
+         ((headed? 'and req)
+            (all (λ (req) (match-feature req feats libs fail)) (cdr req)))
+         ((headed? 'or req)
+            (some (λ (req) (match-feature req feats libs fail)) (cdr req)))
+         (else 
+            (fail "Weird feature requirement: " req))))
 
    (define (choose-branch bs env fail)
       (cond
          ((null? bs) null) ;; nothing matches, no else
          ((match `(else . ,list?) (car bs)) (cdar bs))
          ((pair? (car bs))
-            (if (match-feature (caar bs) (module-ref env features-key null) fail)
+            (if (match-feature 
+                     (caar bs) 
+                     (module-ref env features-key null)
+                     (module-ref env library-key null)
+                     fail)
                (cdar bs)
                (choose-branch (cdr bs) env fail)))
          (else

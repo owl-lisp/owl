@@ -4,5 +4,6 @@
 (foo . bar)
 (aa-foo bb-bar)
 ok
+correct
 included correctly
 END OF LINE

@@ -111,6 +111,19 @@
    (begin
       (print (test "ok"))))
 
+(define-library (cond logic)
+   (export test)
+   (cond-expand
+      ((and owl-lisp (not owl-lisp))
+         (begin (define foo "wrong")))
+      ((or quilty (not quilty))
+         (begin (define foo "correct")))
+      (else
+         (begin (define foo "wronger"))))
+   (begin
+      (define (test) (print foo))
+      (test)))
+
 ;; file include
 
 (define *include-dirs*  ;; try to include from the tests directory only
