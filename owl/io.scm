@@ -4,8 +4,8 @@
 
 ;; todo: bidirectional threads (mainly tcp connections) don't sleep and take too much code
 
-,r "owl/queue.l"
-,r "owl/vector.l"
+,r "owl/queue.scm"
+,r "owl/vector.scm"
 
 (define-module lib-io
 

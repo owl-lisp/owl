@@ -2,8 +2,8 @@
 ;;; owl cfg parsing combinators and macros
 ;;;
 
-,r "owl/unicode.l"
-,r "owl/lazy.l"
+,r "owl/unicode.scm"
+,r "owl/lazy.scm"
 
 (define-module lib-parse
 

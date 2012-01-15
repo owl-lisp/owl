@@ -4,10 +4,10 @@
 
 ; note, heavily connected to the thread controller's internals
 
-,r "owl/mcp-tags.l"
-,r "owl/dump.l"
-,r "owl/io.l"
-,r "owl/queue.l"
+,r "owl/mcp-tags.scm"
+,r "owl/dump.scm"
+,r "owl/io.scm"
+,r "owl/queue.scm"
 
 (define-module lib-mcp
 

@@ -1,7 +1,7 @@
 ; already loaded when booting.
 
-,r "owl/gensym.l"
-,r "owl/env.l" 
+,r "owl/gensym.scm"
+,r "owl/env.scm" 
 
 (define-module lib-macros
    

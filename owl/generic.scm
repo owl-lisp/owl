@@ -13,7 +13,7 @@
 ; todo operations
 ;	- rev(erse)
 
-,r "owl/rlist.l"
+,r "owl/rlist.scm"
 (define-module lib-generic 
 	(export 
 		fold		;; (fold op st X) → (op (.. (op (op st a) b) ..) n)

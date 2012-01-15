@@ -47,7 +47,7 @@
 ;	<field> = 0 <type> <val> -- immediate
 ;			  = <N> -- pointer to nth last object (see hack warning below)
 
-,r "owl/lazy.l"
+,r "owl/lazy.scm"
 
 ;; todo: add a lazy fasl encoder
 

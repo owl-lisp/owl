@@ -43,7 +43,7 @@
 
 
 
-,r "owl/lazy.l"
+,r "owl/lazy.scm"
 
 (define-module lib-vector
 

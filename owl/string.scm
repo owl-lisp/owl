@@ -17,10 +17,10 @@
 ;    iterators on the fly. both iterators only need to decompress each chunk once in a full 
 ;    run.
 
-,r "owl/unicode.l"
-,r "owl/unicode-char-folds.l"
-,r "owl/iff.l"
-,r "owl/lazy.l"
+,r "owl/unicode.scm"
+,r "owl/unicode-char-folds.scm"
+,r "owl/iff.scm"
+,r "owl/lazy.scm"
 
 (define-module lib-string
 

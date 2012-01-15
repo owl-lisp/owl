@@ -5,8 +5,8 @@
 ; - convert lambdas which do not occur as operators to closures
 ; - add information about required literal values and variables
 
-,r "owl/ast.l"
-,r "owl/assemble.l"
+,r "owl/ast.scm"
+,r "owl/assemble.scm"
 
 (define-module lib-closurize
 

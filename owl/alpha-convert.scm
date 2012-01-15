@@ -4,9 +4,9 @@
 
 ; convert all variables to fresh symbols. makes compilation easier.
 
-,r "owl/gensym.l"
-,r "owl/ast.l"
-,r "owl/env.l"
+,r "owl/gensym.scm"
+,r "owl/ast.scm"
+,r "owl/env.scm"
 
 (define-module lib-alpha-convert
 

@@ -1,5 +1,5 @@
-,r "owl/ast.l"
-,r "owl/env.l"
+,r "owl/ast.scm"
+,r "owl/env.scm"
 
 (define-module lib-recursion
 

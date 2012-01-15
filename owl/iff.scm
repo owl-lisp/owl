@@ -5,7 +5,7 @@
 ;; todo: extend to work for negative numbers
 ;; todo: no unit tests. add a quick lib-compare test asap.
 
-,r "owl/ff.l"
+,r "owl/ff.scm"
 
 (define-module lib-iff
 

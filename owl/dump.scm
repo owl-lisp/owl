@@ -12,11 +12,11 @@
 ;   |   '----------> type/variant (if any)
 ;   '--------------> rawness
 
-,r "owl/mcp-tags.l"
-,r "owl/fasl.l"
-,r "owl/unicode.l"
-,r "owl/cgen.l"
-,r "owl/threads.l"
+,r "owl/mcp-tags.scm"
+,r "owl/fasl.scm"
+,r "owl/unicode.scm"
+,r "owl/cgen.scm"
+,r "owl/threads.scm"
 
 (define-module lib-dump
 

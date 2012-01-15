@@ -7,8 +7,8 @@
 ;; todo: split primops away to lib-primop, which should be imporable early on in repl build
 ;; todo: handle allocation and retargeting in a separate pass
 
-,r "owl/register.l"
-,r "owl/memuse.l"
+,r "owl/register.scm"
+,r "owl/memuse.scm"
 
 (define-module lib-assemble
 

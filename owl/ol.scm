@@ -58,14 +58,14 @@
 ;; todo: extend the default loader to also handle fasls
 ;; todo: allow both $ ol -o foo.[fasl|c] bar.[ol|fasl]
 
-,r "owl/primop.l"
+,r "owl/primop.scm"
 
 ;; todo: cut some of these out later
 ;; todo: convert forget-all-but to drop also primops after lib-primop is done
 
 ,forget-all-but (*vm-special-ops* *codes* wait *args* stdin stdout stderr set-ticker run lib-primop) ; wait needed in lib-parse atm
 
-(define *loaded* '("owl/primop.l")) ;; avoid reloading it
+(define *loaded* '("owl/primop.scm")) ;; avoid reloading it
 (import lib-primop) ;; grab freshly defined primops 
 
 ;; common things using primops
@@ -101,7 +101,7 @@
 
 ;;; syscalls (interacting with the underlying thread controller implemented in lib/threads.scm and lib/mcp.scm)
 
-,r "owl/syscall.l"
+,r "owl/syscall.scm"
 
 (import lib-syscall)
 
@@ -179,7 +179,7 @@
 
 ;; pure list stuff not depending on math or other external things
 
-,r "owl/list.l"
+,r "owl/list.scm"
 
 (import lib-list)
 
@@ -187,29 +187,29 @@
 ;;; Finite functions
 ;;;
 
-,require "owl/ff.l"
+,require "owl/ff.scm"
 (import lib-ff)
 
 
 ;;; integer stores, include in toplevel 
 
-,r "owl/iff.l"
+,r "owl/iff.scm"
 
 
 ;;;
 ;;; Math
 ;;;
 
-,r "owl/math.l"   ; basic arithmetic
+,r "owl/math.scm"   ; basic arithmetic
 (import lib-math) 
 
-,r "owl/list-extra.l"   ; list ops requiring basic math (length ...)
+,r "owl/list-extra.scm"   ; list ops requiring basic math (length ...)
 (import lib-list-extra)
 
-,r "owl/math-extra.l"   ; less basic math (factor, ...)
+,r "owl/math-extra.scm"   ; less basic math (factor, ...)
 (import lib-math-extra)
 
-,r "owl/lazy.l"   ; things computed as needed (remember, no caching, these are not ok for dp)
+,r "owl/lazy.scm"   ; things computed as needed (remember, no caching, these are not ok for dp)
 (import lib-lazy)
 
 
@@ -217,7 +217,7 @@
 ;;; Sorting
 ;;;
 
-,r "owl/sort.l"
+,r "owl/sort.scm"
 
 (import lib-sort)
 
@@ -226,7 +226,7 @@
 ;;; Strings
 ;;;
 
-,r "owl/string.l"
+,r "owl/string.scm"
 
 (import lib-string)
 
@@ -253,7 +253,7 @@
 ;;; Vectors
 ;;;
 
-,r "owl/vector.l"
+,r "owl/vector.scm"
 
 (import lib-vector)
 
@@ -334,7 +334,7 @@
 ;;;
 
 
-,r "owl/symbol.l"
+,r "owl/symbol.scm"
 
 (import lib-symbol)
 
@@ -407,7 +407,7 @@
 ;;; Random access lists
 ;;;
 
-,r "owl/rlist.l"
+,r "owl/rlist.scm"
 
 (import lib-rlist)
 
@@ -416,7 +416,7 @@
 ;;; Generic versions of the universal common language words
 ;;;
 
-,r "owl/generic.l"
+,r "owl/generic.scm"
 
 (define ≡ equal?)
 
@@ -517,7 +517,7 @@
 
    
 
-,r "owl/intern.l"
+,r "owl/intern.scm"
 
 (import lib-intern)
 
@@ -550,7 +550,7 @@
 ;;; IO
 ;;;
 
-,r "owl/io.l"
+,r "owl/io.scm"
 
 (import lib-io)
 
@@ -604,11 +604,11 @@
 ;;; S-expression parsing
 ;;; 
 
-,r "owl/parse.l"
+,r "owl/parse.scm"
 
 (import lib-parse)
 
-,r "owl/sexp.l"
+,r "owl/sexp.scm"
 
 (import lib-sexp)
 
@@ -684,14 +684,14 @@
 (import lib-scheme-compat)
 
 
-,r "owl/env.l"
+,r "owl/env.scm"
 
 (import lib-env)
 
 
 ;;; Gensyms and sexp utils 
 
-,r "owl/gensym.l"
+,r "owl/gensym.scm"
 
 (import lib-gensym)
 
@@ -713,7 +713,7 @@
 ;;; Macro expansion
 ;;;
 
-,r "owl/macros.l"
+,r "owl/macros.scm"
 
 (import lib-macros)
 
@@ -722,7 +722,7 @@
 ;;; Sexp -> AST translation
 ;;;
 
-,r "owl/ast.l"
+,r "owl/ast.scm"
 
 (import lib-ast)
 
@@ -731,7 +731,7 @@
 ;;; Computing fixed points
 ;;;
 
-,r "owl/recursion.l"
+,r "owl/recursion.scm"
 
 (import lib-recursion)
 
@@ -740,7 +740,7 @@
 ;;; CPS
 ;;;
 
-,r "owl/cps.l"
+,r "owl/cps.scm"
 
 (import lib-cps)
 
@@ -749,7 +749,7 @@
 ;;; Alpha conversion -- replace each formal with a unique symbol
 ;;; 
 
-,r "owl/alpha-convert.l"
+,r "owl/alpha-convert.scm"
 
 (import lib-alpha-convert)
 
@@ -767,7 +767,7 @@
 ;;; Closure Conversion + Literal Conversion
 ;;;
 
-,r "owl/closurize.l"
+,r "owl/closurize.scm"
 
 (import lib-closurize)
 
@@ -776,7 +776,7 @@
 ;;; Bytecode Assembler
 ;;;
 
-,r "owl/assemble.l"
+,r "owl/assemble.scm"
 
 (import lib-assemble)
 
@@ -785,7 +785,7 @@
 ;;; Register transfer language, hic sunt hackones...
 ;;;
 
-,r "owl/compile.l"
+,r "owl/compile.scm"
 
 (import lib-compile)
 
@@ -866,7 +866,7 @@
 ; adding negative fixnums to sleep seconds and pick
 ; the minimum in ovm.
 
-,r "owl/time.l"
+,r "owl/time.scm"
 
 ;; fixme: should sleep one round to get a timing, and then use avg of the last one(s) to make an educated guess
 (define (sleep ms)
@@ -920,17 +920,17 @@
       (λ envl mod
          (append (ff->list mod) envl))))
 
-,r "owl/arguments.l"
-,r "owl/random.l"
-,r "owl/cgen.l"
+,r "owl/arguments.scm"
+,r "owl/random.scm"
+,r "owl/cgen.scm"
 
 (import lib-args)
 
-,r "owl/mcp.l"
+,r "owl/mcp.scm"
 
 (import lib-mcp)
 
-,r "owl/dump.l"
+,r "owl/dump.scm"
 
 (import lib-dump make-compiler dump-fasl)
 
@@ -946,7 +946,7 @@
             (dump-fasl maybe-world path)
             'saved))))
 
-,r "owl/checksum.l"
+,r "owl/checksum.scm"
 (import lib-checksum checksum)
 
 
@@ -1090,18 +1090,18 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       *include-dirs*
       ))
 
-,r "owl/fasl.l"     ; encoding and decoding arbitrary objects as lists of bytes
-,r "owl/checksum.l" ; checksums for (lazy) lists of numbers
-,r "owl/queue.l"    ; double-ended lists
-,r "owl/suffix.l"   ; suffix sorting
-,r "owl/bisect.l"   ; binary searches 
-,r "owl/test.l"     ; a simple algorithm equality/benchmark tester
-,r "owl/regex.l"    ; regular expressions
-,r "owl/sys.l"      ; more operating system interface
-;,r "owl/sat.l"      ; naive SAT solving
+,r "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
+,r "owl/checksum.scm" ; checksums for (lazy) lists of numbers
+,r "owl/queue.scm"    ; double-ended lists
+,r "owl/suffix.scm"   ; suffix sorting
+,r "owl/bisect.scm"   ; binary searches 
+,r "owl/test.scm"     ; a simple algorithm equality/benchmark tester
+,r "owl/regex.scm"    ; regular expressions
+,r "owl/sys.scm"      ; more operating system interface
+;,r "owl/sat.scm"      ; naive SAT solving
 
-;,r "owl/ppm.l"      ; support for reading ppm image files
-;,r "owl/grale.l"    ; simple 8-bit graphics if grale available (not in use until grale can use internal programs)
+;,r "owl/ppm.scm"      ; support for reading ppm image files
+;,r "owl/grale.scm"    ; simple 8-bit graphics if grale available (not in use until grale can use internal programs)
 
 ;; included but not imported by default
 (define shared-extra-libs
@@ -1597,7 +1597,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;;; REPL
 ;;;
 
-,r "owl/repl.l"
+,r "owl/repl.scm"
 
 (import lib-repl)
 
@@ -1721,7 +1721,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 (import lib-mcp)
 
-,r "owl/threads.l"
+,r "owl/threads.scm"
 
 (import lib-threads)
 
@@ -1806,7 +1806,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       False))
 
 ;;; handling of --notes
-,r "owl/notes.l"
+,r "owl/notes.scm"
 
 (import lib-notes show-notes-of)
 

@@ -1,9 +1,9 @@
 ;; todo: report errors via a failure cont
 
-,r "owl/ast.l"
-,r "owl/gensym.l"
-,r "owl/assemble.l"
-,r "owl/primop.l"
+,r "owl/ast.scm"
+,r "owl/gensym.scm"
+,r "owl/assemble.scm"
+,r "owl/primop.scm"
 
 (define-module lib-cps
 

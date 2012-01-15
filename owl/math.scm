@@ -11,8 +11,8 @@
 ;; wishlist: complex numbers not implemented yet
 ;; fixme: at least main base bignum functions (+ - * =) should handle the full dispatch
 
-,r "owl/iff.l" 
-;,r "owl/test.l"  ; <- just for debugging and testing
+,r "owl/iff.scm" 
+;,r "owl/test.scm"  ; <- just for debugging and testing
 
 (define-module lib-math
 

@@ -5,7 +5,7 @@
 ;; todo: string-sort is usually good, and doubling is always good but on average 3x slower -> use string-sort for first 2^n steps?
 ;; todo: allow constructing also a suffix tree (or provide a convenient iterator)
 
-,r "owl/lazy.l"
+,r "owl/lazy.scm"
 
 (define-module lib-suffix
 

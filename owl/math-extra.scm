@@ -2,12 +2,12 @@
 ;;; Owl math module, things after basic arithmetic
 ;;;
 
-,r "owl/iff.l"
-,r "owl/math.l"
-,r "owl/sort.l"
-,r "owl/list.l"
-,r "owl/list-extra.l"
-,r "owl/lazy.l"
+,r "owl/iff.scm"
+,r "owl/math.scm"
+,r "owl/sort.scm"
+,r "owl/list.scm"
+,r "owl/list-extra.scm"
+,r "owl/lazy.scm"
 
 (define-module lib-math-extra
 

@@ -2,7 +2,7 @@
 ;;; Converting Sexps to a more compact and AST
 ;;;
 
-,r "owl/env.l"
+,r "owl/env.scm"
 
 (define-module lib-ast
 

@@ -16,9 +16,9 @@ fasl/boot.fasl: fasl/init.fasl
 	# start bootstrapping with the bundled init.fasl image
 	cp fasl/init.fasl fasl/boot.fasl
 
-fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.l
+fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm
 	# selfcompile boot.fasl until a fixed point is reached
-	$(TIME) bin/vm fasl/boot.fasl --run owl/ol.l -s none -o fasl/bootp.fasl
+	$(TIME) bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
 	ls -la fasl/bootp.fasl
 	# check that the new image passes tests
 	tests/run bin/vm fasl/bootp.fasl
@@ -41,7 +41,7 @@ c/vm.c: c/ovm.c
 
 c/ol.c: fasl/ol.fasl
 	# compile the repl using the fixed point image 
-	bin/vm fasl/ol.fasl --run owl/ol.l -s some -o c/ol.c
+	bin/vm fasl/ol.fasl --run owl/ol.scm -s some -o c/ol.c
 
 bin/ol: c/ol.c
 	# compile the real owl repl binary
@@ -76,10 +76,10 @@ bin/ol.exe: c/ol.c
 
 ## data 
 
-owl/unicode-char-folds.l:
-	echo "(define char-folds '(" > owl/unicode-char-folds.l 
-	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.l 
-	echo "))" >> owl/unicode-char-folds.l
+owl/unicode-char-folds.scm:
+	echo "(define char-folds '(" > owl/unicode-char-folds.scm 
+	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.scm 
+	echo "))" >> owl/unicode-char-folds.scm
 
 ## meta
 
@@ -114,7 +114,7 @@ fasl-update: fasl/ol.fasl
 	gpg -b fasl/init.fasl
 
 todo: bin/vm 
-	bin/vm fasl/ol.fasl -n owl/*.l | less
+	bin/vm fasl/ol.fasl -n owl/*.scm | less
 
 .PHONY: install uninstall todo test fasltest owl standalone
 

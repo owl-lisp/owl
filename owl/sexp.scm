@@ -1,8 +1,8 @@
 ; todo:
 ;   - switch get-byte and related ops to get-rune once it is in parse.scm
 
-,r "owl/regex.l"
-,r "owl/intern.l"
+,r "owl/regex.scm"
+,r "owl/intern.scm"
 
 (define-module lib-sexp
    

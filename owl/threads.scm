@@ -11,8 +11,8 @@
 ;; todo: make it a bug to send mail to a thread having no inbox.
 ;; todo: switch thread inboxen to be lib-queue things instead of ad-hoc ones
 
-,r "owl/mcp-tags.l"
-,r "owl/queue.l"
+,r "owl/mcp-tags.scm"
+,r "owl/queue.scm"
 
 
 (define-module lib-threads

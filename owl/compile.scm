@@ -4,9 +4,9 @@
 
 ;; todo: register dance prior to making a call really belongs to a separate register retargeting pass
 
-,r "owl/ast.l"
-,r "owl/assemble.l"
-,r "owl/closurize.l"
+,r "owl/ast.scm"
+,r "owl/assemble.scm"
+,r "owl/closurize.scm"
 
 (define-module lib-compile
 

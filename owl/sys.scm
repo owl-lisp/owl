@@ -6,8 +6,8 @@
 ;; still keeping the generated .c code portable, win32 being the main 
 ;; reason for worry.
 
-,r "owl/string.l"
-,r "owl/vector.l"
+,r "owl/string.scm"
+,r "owl/vector.scm"
 
 (define-module lib-sys
    (export
