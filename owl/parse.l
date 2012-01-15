@@ -368,13 +368,13 @@
 
    (define (try-parse parser data maybe-path maybe-error-msg fail-val)
       (parser data    
-         (lambda (data fail val pos)
+         (λ (data fail val pos)
             (if (null-ll? data)
                ; all successfully parsed
                val
                ; something unparsed. backtrack.
                (fail pos "out of data")))
-         (lambda (pos reason)
+         (λ (pos reason)
             ; print error if maybe-error-msg is given
             (if maybe-error-msg
                (if (or maybe-path (has-newline? data))
