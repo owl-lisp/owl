@@ -1,0 +1,6 @@
+
+(define foo "included correctly")
+
+(define (test)
+   (print foo))
+

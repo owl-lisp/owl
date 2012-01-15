@@ -94,20 +94,6 @@
 
 ;; cond-expand
 
-#|(define-library (cond)
-   (export test)
-   (cond-expand 
-      (slartibartfast
-         (import (only (norway) coasts))
-         (begin   
-            (define (test x) coasts)))
-      (else
-         (begin
-            (define (test x) x))))
-   (begin
-      (print (test "ok"))))
- |#        
-
 (define-library (cond)
    (export test)
    (cond-expand 
@@ -124,5 +110,15 @@
             (define (test x) "fail"))))
    (begin
       (print (test "ok"))))
+
+;; file include
+
+(define *include-dirs*  ;; try to include from the tests directory only
+   (list "tests"))
+
+(define-library (include test)
+   (export test)
+   (include "included.txt") ;; load tests/included.txt or fail
+   (begin (test)))          ;; call it to get output
 
 (print "END OF LINE")
