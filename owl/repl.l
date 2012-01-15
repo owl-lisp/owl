@@ -20,17 +20,13 @@
 
    (define (? x) True)
 
-   (define library-key '*libraries*)
-   (define features-key '*features*)
+   (define library-key '*libraries*)     ;; list of loaded libraries
+   (define features-key '*features*)     ;; list of implementation feature symbols
+   (define includes-key '*include-dirs*) ;; paths where to try to load includes from
 
 	(define definition? 
 		(let ((pat (list '_define symbol? (λ x True))))
-			(lambda (exp) (match pat exp))))
-
-	; (bla bla (blo blo (blu blu))) ->
-	; bla bla
-	;     blo blo
-	;         blu blu
+			(λ (exp) (match pat exp))))
 
    ;; toplevel variable which holds currently loaded (r7rs-style) libraries
    (define libraries-var '*libs*)
@@ -421,6 +417,21 @@
          (else
             (fail (list "Funny cond-expand node: " bs)))))
 
+   ;; try to find and parse contents of <path> and wrap to (begin ...) or call fail
+   (define (repl-include env path fail)
+      (lets
+         ((include-dirs (module-ref env includes-key null))
+          (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
+          (paths (map conv include-dirs))
+          (contentss (map file->vector paths))
+          (data (first (λ (x) x) contentss False)))
+         (if data
+            (let ((exps (vector->sexps data "library fail" path)))
+               (if exps ;; all of the file parsed to a list of sexps
+                  (cons 'begin exps)
+                  (fail (list "Failed to parse contents of " path))))
+            (fail "Couldn't find " path "from any of" include-dirs))))
+
    (define (repl-library exp env repl fail)
       (cond
          ((null? exp) (fail "no export?"))
@@ -439,6 +450,12 @@
          ((headed? 'export (car exp))
             ;; build the export out of current env
             (ok (build-export (cdar exp) env fail) env))
+         ((headed? 'include (car exp))
+            (repl-library 
+               (foldr 
+                  (λ (path exp) (cons (repl-include env path fail) exp))
+                  (cdr exp) (cdar exp))
+               env repl fail))
          ((headed? 'cond-expand (car exp))
             (repl-library
                (append (choose-branch (cdar exp) env fail) (cdr exp))
