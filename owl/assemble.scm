@@ -4,7 +4,6 @@
 
 ; ast -> bytecode, and keep a collection of the primitives
 
-;; todo: split primops away to lib-primop, which should be imporable early on in repl build
 ;; todo: handle allocation and retargeting in a separate pass
 
 ,r "owl/register.scm"
@@ -16,7 +15,8 @@
 
    (import-old lib-register allocate-registers n-registers)
    (import-old lib-memuse count-allocs)
-   (import-old lib-primop)
+
+   (import (owl primop))
 
    (define (self x) x)
 

@@ -49,30 +49,13 @@
 
 ,r "owl/primop.scm"
 
-;; todo: cut some of these out later
-;; todo: convert forget-all-but to drop also primops after lib-primop is done
-
-,forget-all-but (*vm-special-ops* *codes* wait *args* stdin stdout stderr set-ticker run lib-primop) ; wait needed in lib-parse atm
+,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run ) ; wait needed in lib-parse atm
 
 (define *loaded* '("owl/primop.scm")) ;; avoid reloading it
-(define *libraries* '()) ;; where define-library -stuff is stored
 
-(import-old lib-primop) ;; grab freshly defined primops 
+(define *libraries* (list (car *libraries*))) ;; keep just the just loaded primop library
 
-;; common things using primops
-(define-module lib-base
-   (export raw?)
-   (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
-)
-
-(import-old lib-base)
-
-(define-library (owl test)
-   (export foo bar)
-   (begin
-      (define foo 42)
-      (define bar 43)
-      ))
+(import (owl primop)) ;; grab freshly defined primops 
 
 ;; set a few flags which affect compilation or set static information
 (define *owl-version* "0.1.7a")
@@ -91,7 +74,6 @@
 
 (define (i x) x)
 (define (k x y) x)
-
 
 ;;; syscalls (interacting with the underlying thread controller implemented in lib/threads.scm and lib/mcp.scm)
 
@@ -1134,8 +1116,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-sort
          lib-bisect
          lib-random
-         lib-primop
-         lib-base
          lib-lazy   
          lib-fasl
          lib-suffix
@@ -1602,7 +1582,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (define initial-environment
    (library-import initial-environment
-      '((only (owl test) foo)
+      '((owl primop)
         )
       (λ (reason) (error "toplevel import error: " reason))))
 

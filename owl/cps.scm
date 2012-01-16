@@ -11,7 +11,7 @@
 
 	(import-old lib-ast)
 	(import-old lib-gensym)
-   (import-old lib-primop)
+   (import (owl primop))
 
 	;; fixme: information about cps-special primops could be stored elsewhere
 
