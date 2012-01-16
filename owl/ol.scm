@@ -1802,7 +1802,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         2)))
                ((error reason env)
                   (print-repl-error
-                     (list "Cannot compile " path " because " reason))
+                     (list "Cannot compile" path "because " reason))
                   2)
                (else
                   (print-repl-error "Weird eval outcome.")
