@@ -992,6 +992,103 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;;          '-- to be a fairly large subset of at least, so adding this
 
 
+;; library (just the value of) containing only special forms, primops and
+(define owl-core
+   (let
+      ((primitive
+         (λ (sym)
+            (cons sym
+               (tuple 'defined
+                  (tuple 'value (name->func sym)))))))
+      (list->ff
+         (list
+            ;; special forms.
+            (cons 'lambda  (tuple 'special 'lambda))
+            (cons 'quote   (tuple 'special 'quote))
+            (cons 'rlambda (tuple 'special 'rlambda)) 
+            (cons 'receive (tuple 'special 'receive)) 
+            (cons '_branch (tuple 'special '_branch)) 
+            (cons '_define (tuple 'special '_define)) 
+            (cons 'values   (tuple 'special 'values))
+
+            (primitive 'cons)
+            (primitive 'car)
+            (primitive 'cdr)
+            (primitive 'eq?)
+            (primitive 'type)
+            (primitive 'size)
+            (primitive 'cast)
+            (primitive 'fetch)
+            (primitive 'ref)
+            (primitive 'sys-prim)
+            (primitive 'refb)
+            (primitive 'pick)
+            (primitive 'mk)
+            (primitive 'mkr)
+            (primitive 'sys)
+            (primitive 'fxbor)
+            (primitive 'fxbxor)
+            (primitive 'fread)
+            (primitive '_fopen)
+            (primitive 'fclose)
+            (primitive 'fsend)
+            (primitive 'lraw)
+            (primitive 'raw)
+            (primitive '_connect)
+            (primitive '_sopen)
+            (primitive 'accept)
+            (primitive 'mkt)
+            (primitive 'bind)
+            (primitive 'set)
+            (primitive 'lesser?)
+            (primitive 'call-native)
+            (primitive 'mkred)
+            (primitive 'mkblack)
+            (primitive 'ff-bind)
+            (primitive 'ff-toggle)
+            (primitive 'ffcar)
+            (primitive 'ffcdr)
+            (primitive 'red?)
+            (primitive 'listuple)
+            (primitive 'fxband)         
+            (primitive 'fx+)
+            (primitive 'fxqr)
+            (primitive 'fx*)
+            (primitive 'fx-)
+            (primitive 'fx<<)
+            (primitive 'fx>>)
+            (primitive 'ncons)
+            (primitive 'ncar)
+            (primitive 'ncdr)
+            (primitive 'raw-mode)
+            (primitive '_sleep)
+            (primitive 'iomux)
+            (primitive 'clock)
+            (primitive 'time)
+            (primitive 'sizeb)
+            (primitive 'blit)
+            (primitive 'getev)
+            (primitive 'fill-rect)
+
+            ; needed to define the rest of the macros
+            ; fixme, could use macro-expand instead
+            (cons 'define-syntax
+               (tuple 'macro
+                  (make-transformer
+                     '(define-syntax syntax-rules add quote)
+                     '(
+                        ((define-syntax keyword 
+                           (syntax-rules literals (pattern template) ...))
+                     ()
+                     (quote syntax-operation add False 
+                           (keyword literals (pattern ...) 
+                           (template ...))))))))))))
+
+;; push it to libraries for sharing
+(define *libraries* 
+   (cons (cons '(owl core) owl-core) *libraries*))
+
+
 ;; todo: share the modules instead later
 (define shared-misc
    (share-bindings
@@ -1120,104 +1217,12 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          shared-extra-libs
          shared-misc)))
 
-;; initial primops and special forms 
-
-;; ,--- figure out how to be able to put this to a (owl core) library at the very beginning
-;; v    or at least just drop everything other than this at the beginning
 (define initial-environment-sans-macros
-   (let
-      ((primitive
-         (λ (sym)
-            (cons sym
-               (tuple 'defined
-                  (tuple 'value (name->func sym)))))))
-      (list->ff
-         (append
-            (list
-               ;; special forms.
-               (cons 'lambda  (tuple 'special 'lambda))
-               (cons 'quote   (tuple 'special 'quote))
-               (cons 'rlambda (tuple 'special 'rlambda)) 
-               (cons 'receive (tuple 'special 'receive)) 
-               (cons '_branch (tuple 'special '_branch)) 
-               (cons '_define (tuple 'special '_define)) 
-               (cons 'values   (tuple 'special 'values))
-
-               (primitive 'cons)
-               (primitive 'car)
-               (primitive 'cdr)
-               (primitive 'eq?)
-               (primitive 'type)
-               (primitive 'size)
-               (primitive 'cast)
-               (primitive 'fetch)
-               (primitive 'ref)
-               (primitive 'sys-prim)
-               (primitive 'refb)
-               (primitive 'pick)
-               (primitive 'mk)
-               (primitive 'mkr)
-               (primitive 'sys)
-               (primitive 'fxbor)
-               (primitive 'fxbxor)
-               (primitive 'fread)
-               (primitive '_fopen)
-               (primitive 'fclose)
-               (primitive 'fsend)
-               (primitive 'lraw)
-               (primitive 'raw)
-               (primitive '_connect)
-               (primitive '_sopen)
-               (primitive 'accept)
-               (primitive 'mkt)
-               (primitive 'bind)
-               (primitive 'set)
-               (primitive 'lesser?)
-               (primitive 'call-native)
-               (primitive 'mkred)
-               (primitive 'mkblack)
-               (primitive 'ff-bind)
-               (primitive 'ff-toggle)
-               (primitive 'ffcar)
-               (primitive 'ffcdr)
-               (primitive 'red?)
-               (primitive 'listuple)
-               (primitive 'fxband)         
-               (primitive 'fx+)
-               (primitive 'fxqr)
-               (primitive 'fx*)
-               (primitive 'fx-)
-               (primitive 'fx<<)
-               (primitive 'fx>>)
-               (primitive 'ncons)
-               (primitive 'ncar)
-               (primitive 'ncdr)
-               (primitive 'raw-mode)
-               (primitive '_sleep)
-               (primitive 'iomux)
-               (primitive 'clock)
-               (primitive 'time)
-               (primitive 'sizeb)
-               (primitive 'blit)
-               (primitive 'getev)
-               (primitive 'fill-rect)
-
-               ; needed to define the rest of the macros
-               ; fixme, could use macro-expand instead
-               (cons 'define-syntax
-                  (tuple 'macro
-                     (make-transformer
-                        '(define-syntax syntax-rules add quote)
-                        '(
-                           ((define-syntax keyword 
-                              (syntax-rules literals (pattern template) ...))
-                        ()
-                        (quote syntax-operation add False 
-                              (keyword literals (pattern ...) 
-                              (template ...)))))))))
-         shared-bindings))))
-
-
+   (fold 
+      (λ (env pair) (put env (car pair) (cdr pair)))
+      owl-core
+      shared-bindings))
+      
 (import-old lib-scheme-compat) ;; used in macros
 
 ,r "owl/repl.scm"
