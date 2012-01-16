@@ -66,6 +66,7 @@
 
 (import (owl syscall))
 
+(import (owl defmac))
 
 ;;; repl exit codes
 
@@ -1563,8 +1564,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (define initial-environment
    (library-import initial-environment
-      '((owl primop)
-        (owl syscall)
+      '((owl primop)   ;; primop wrappers
+        (owl syscall)  ;; calling mcp
+        (owl defmac)   ;; standard toplevel macros
         )
       (λ (reason) (error "bootstrap import error: " reason))
       (λ (env exp) (error "bootstrap import requires repl: " exp))))
