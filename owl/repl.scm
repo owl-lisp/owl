@@ -208,7 +208,7 @@
 						(let ((nan (tuple 'defined (tuple 'value 'undefined))))
 							(repl
 								(ff-fold
-									(λ env name val
+									(λ (env name val)
 										(tuple-case val
 											((defined x)
 												(cond
@@ -219,6 +219,10 @@
 													(else 
 														;(show " - forgetting " name)
 														(del env name))))
+                                 ;((macro x)
+                                 ;   (if (has? op name)
+                                 ;      env
+                                 ;      (del env name)))
 											(else env)))
 									env env)
 								in))
