@@ -23,19 +23,8 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
-;;; individual module compilation planning:
-;;  $ ol -o fasl/sfuz.fasl ol/sfuz.l  <- parallel
-;;  $ ol -o fasl/sgen.fasl ol/sgen.l  <- parallel
-;;  $ ol -o fasl/radamsa.fasl ol/radamsa.l fasl/sfuz.fasl fasl/sgen.fasl 
-;;  $ ol -o c/radamsa.c ol/radamsa.l fasl/*.fasl 
-;;
-;;; in repl build
-;;  $ ol --include fasl -o fasl/lib-lazy.fasl ol/lazy.l <- start loading and grab any missing libs from fasl/<name>.fasl
-
 ;; todo: missing optimization: convert all evaluated closures to procs (doable but a bit of work..)
-;; todo: having a constant-time (major) type dispatch opcode would help with generic routines
 ;; todo: there is no unit test for simultaneous async and sync mailing between threads
-;; bug: captured threads are not shown properly in thread listing
 
 ;; todo: remove some manually added C-code primops and see how much slower the equivalents are in compiled bytecode
 ;; bug: ovm.c gc trigger off until the upper bound is enforced at compile time
@@ -66,19 +55,24 @@
 ,forget-all-but (*vm-special-ops* *codes* wait *args* stdin stdout stderr set-ticker run lib-primop) ; wait needed in lib-parse atm
 
 (define *loaded* '("owl/primop.scm")) ;; avoid reloading it
+(define *libraries* '()) ;; where define-library -stuff is stored
+
 (import-old lib-primop) ;; grab freshly defined primops 
 
 ;; common things using primops
 (define-module lib-base
-
    (export raw?)
-
    (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
-
 )
 
 (import-old lib-base)
 
+(define-library (owl test)
+   (export foo bar)
+   (begin
+      (define foo 42)
+      (define bar 43)
+      ))
 
 ;; set a few flags which affect compilation or set static information
 (define *owl-version* "0.1.7a")
@@ -1088,6 +1082,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       profile
       *features*
       *include-dirs*
+      *libraries*      ;; all currently loaded libraries
       ))
 
 ,r "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
@@ -1595,12 +1590,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
             (call/cc (λ (var) (lets . body))))))
 ))
 
-
-
-;;;
-;;; REPL
-;;;
-
 ,r "owl/repl.scm"
 
 (import-old lib-repl)
@@ -1610,6 +1599,13 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       (define-macros
          initial-environment-sans-macros
          initial-macros)))
+
+(define initial-environment
+   (library-import initial-environment
+      '((only (owl test) foo)
+        )
+      (λ (reason) (error "toplevel import error: " reason))))
+
 
 ;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux
 

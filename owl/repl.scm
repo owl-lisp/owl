@@ -15,6 +15,7 @@
 		exported-eval						; fixme, here only temporarily
 		print-repl-error
 		bind-toplevel
+      library-import                ; env exps fail-cont → env' | (fail-cont <reason>)
 		)
 
    (import-old lib-regex string->regex)
