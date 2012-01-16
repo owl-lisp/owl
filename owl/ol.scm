@@ -27,13 +27,16 @@
 
 ;; everything is rebuilt using primops which have to be loaded first
 
-,r "owl/primop.scm"
+,r "owl/primop.scm" ;; <- to be (include "owl/primop.scm") soon
 
 ;; now forget almost everything to avoid heap leaks
 
 ,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run )
 
-(define *loaded* '("owl/primop.scm")) ;; avoid reloading it
+;; list of dirs from which to try to load files included in libraries
+(define *include-dirs* (list "."))
+
+(define *loaded* '()) ;; used by old ,require
 
 (define *libraries* (list (car *libraries*))) ;; keep just the just loaded primop library
 
@@ -59,9 +62,9 @@
 
 ;;; syscalls (interacting with the underlying thread controller implemented in lib/threads.scm and lib/mcp.scm)
 
-,r "owl/syscall.scm"
+;,r "owl/syscall.scm"
 
-(import-old lib-syscall)
+(import (owl syscall))
 
 
 ;;; repl exit codes
@@ -987,9 +990,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;;          ^
       ;;          '-- to be a fairly large subset of at least, so adding this
 
-;; list of dirs from which to try to load files included in libraries
-(define *include-dirs*
-   (list "."))
 
 ;; todo: share the modules instead later
 (define shared-misc
@@ -1106,7 +1106,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-regex
          lib-rlist
          lib-sys
-         lib-syscall
          lib-symbol
          lib-unsupported
          lib-char
@@ -1565,6 +1564,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define initial-environment
    (library-import initial-environment
       '((owl primop)
+        (owl syscall)
         )
       (λ (reason) (error "bootstrap import error: " reason))
       (λ (env exp) (error "bootstrap import requires repl: " exp))))

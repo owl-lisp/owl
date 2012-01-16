@@ -415,16 +415,37 @@
                         (cons #\/ tl))))
                null iset))))
 
+   ;; try to find and parse contents of <path> and wrap to (begin ...) or call fail
+   (define (repl-include env path fail)
+      (lets
+         ((include-dirs (module-ref env includes-key null))
+          (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
+          (paths (map conv include-dirs))
+          (contentss (map file->vector paths))
+          (data (first (λ (x) x) contentss False)))
+         (if data
+            (let ((exps (vector->sexps data "library fail" path)))
+               (if exps ;; all of the file parsed to a list of sexps
+                  (cons 'begin exps)
+                  (fail (list "Failed to parse contents of " path))))
+            (fail "Couldn't find " path "from any of" include-dirs))))
+
    ;; try to load a library based on it's name and current include prefixes if 
    ;; it is required by something being loaded and we don't have it yet
    (define (try-autoload env repl iset)
       (if (and (list? iset) (all symbol? iset)) ;; (foo bar baz) → try to load "./foo/bar/baz.scm"
-         (lets 
-            ((include-dirs (module-ref env includes-key null))
-             (path (library-name->path iset)))
-            (show "include dirs are " include-dirs)
-            (show "path is " path)
-            False)
+         (call/cc
+            (λ (ret)
+               (let ((exps (repl-include env (library-name->path iset) (λ (why) (ret False)))))
+                  (if exps
+                     (tuple-case (repl env (cdr exps)) ; drop begin
+                        ((ok value env)
+                           ;; we now have the library if it was defined in the file
+                           env)
+                        ((error reason env)
+                           ;; no way to distinquish errors in the library from missing library atm
+                           False))
+                     False))))
          False))
          
    (define (library-import env exps fail repl)
@@ -476,20 +497,6 @@
          (else
             (fail (list "Funny cond-expand node: " bs)))))
 
-   ;; try to find and parse contents of <path> and wrap to (begin ...) or call fail
-   (define (repl-include env path fail)
-      (lets
-         ((include-dirs (module-ref env includes-key null))
-          (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
-          (paths (map conv include-dirs))
-          (contentss (map file->vector paths))
-          (data (first (λ (x) x) contentss False)))
-         (if data
-            (let ((exps (vector->sexps data "library fail" path)))
-               (if exps ;; all of the file parsed to a list of sexps
-                  (cons 'begin exps)
-                  (fail (list "Failed to parse contents of " path))))
-            (fail "Couldn't find " path "from any of" include-dirs))))
 
    (define (repl-library exp env repl fail)
       (cond
