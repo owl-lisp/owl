@@ -23,33 +23,15 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
-;; todo: missing optimization: convert all evaluated closures to procs (doable but a bit of work..)
-;; todo: there is no unit test for simultaneous async and sync mailing between threads
-
-;; todo: remove some manually added C-code primops and see how much slower the equivalents are in compiled bytecode
-;; bug: ovm.c gc trigger off until the upper bound is enforced at compile time
-;; todo: send repl errors to stderr (cat foo.scm | owl -c - | gcc -x c -o ..)
-;; todo: add sources and binding meta-information to modules 
-;; todo: accept name and linkage as arguments to fork, not via separate syscalls
-;; todo: thread accepts should be the thread ids, not predicates
-;; todo: inter-mcp communications (with current lib-fasl) 
-;; todo: automatic constructor, binder and tester generation
-;; todo: typed binds, typed ref and pattern matching
-;; todo: inline with a partial evaluator (where to keep the sources and from which language level)
-;; todo: False should not be also Empty
-;; todo: rethink threads (tree structured computations seem much nicer)
-;; todo: sane register allocator and closure converter
-;; todo: port leaf prototype theorem prover later?
-
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
-;; todo: owl is starting to need support for compilation of individual modules. requiring one file to have one library and map the libraries to paths would make this easy, but it feels stupid and wrong. there are two tempting options (having owl fork() processes to load requirements, mark them as loading in requirements, and block to receive the fasl when it is necessary) or allow compiling the modules to .fasl:s and have a Makefile to make just the required recompilation.
-;; todo: extend the default loader to also handle fasls
-;; todo: allow both $ ol -o foo.[fasl|c] bar.[ol|fasl]
+;; everything is rebuilt using primops which have to be loaded first
 
 ,r "owl/primop.scm"
 
-,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run ) ; wait needed in lib-parse atm
+;; now forget almost everything to avoid heap leaks
+
+,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run )
 
 (define *loaded* '("owl/primop.scm")) ;; avoid reloading it
 
@@ -1584,7 +1566,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (library-import initial-environment
       '((owl primop)
         )
-      (λ (reason) (error "toplevel import error: " reason))))
+      (λ (reason) (error "bootstrap import error: " reason))
+      (λ (env exp) (error "bootstrap import requires repl: " exp))))
 
 
 ;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux

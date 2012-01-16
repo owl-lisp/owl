@@ -400,21 +400,52 @@
                      (string->symbol 
                         (string-append prefix (symbol->string var)))))))
          (else 
-            (fail (list "Cannot import " iset)))))
+            (fail iset))))
 
-   (define (library-import env exps fail)
+   ;; (foo bar baz) → "/foo/bar/baz.scm"
+   (define (library-name->path iset)
+      (list->string
+         (cons #\/
+            (foldr
+               (λ (thing tl)
+                  (append 
+                     (string->list (symbol->string thing))
+                     (if (null? tl) 
+                        (string->list ".scm")
+                        (cons #\/ tl))))
+               null iset))))
+
+   ;; try to load a library based on it's name and current include prefixes if 
+   ;; it is required by something being loaded and we don't have it yet
+   (define (try-autoload env repl iset)
+      (if (and (list? iset) (all symbol? iset)) ;; (foo bar baz) → try to load "./foo/bar/baz.scm"
+         (lets 
+            ((include-dirs (module-ref env includes-key null))
+             (path (library-name->path iset)))
+            (show "include dirs are " include-dirs)
+            (show "path is " path)
+            False)
+         False))
+         
+   (define (library-import env exps fail repl)
       (let ((libs (module-ref env library-key null)))
          (fold
             (λ (env iset) 
-               (env-fold put env 
-                  (import-set->library iset libs fail)))
+               (let ((libp (call/cc (λ (ret) (import-set->library iset libs ret)))))
+                  (if (pair? libp)
+                     (let ((env (try-autoload env repl libp)))
+                        (if env
+                           ;; something loaded by that name, try again (fixme, can cause loop)
+                           (library-import env exps fail repl)
+                           (fail (list "I dont' have" libp "and didn't find it from anywhere."))))
+                     (env-fold put env libp))))
             env exps)))
 
    ;; temporary toplevel import doing what library-import does within libraries
-   (define (toplevel-library-import env exps)
+   (define (toplevel-library-import env exps repl)
       (lets/cc ret
          ((fail (λ (x) (ret (cons "Import failed because " x)))))
-         (library-import env exps fail)))
+         (library-import env exps fail repl)))
 
    (define (match-feature req feats libs fail)
       (cond
@@ -465,7 +496,7 @@
          ((null? exp) (fail "no export?"))
          ((headed? 'import (car exp))
             (repl-library (cdr exp)
-               (library-import env (cdar exp) fail)
+               (library-import env (cdar exp) fail repl)
                repl fail))
          ((headed? 'begin (car exp))
             ;; run basic repl on it
@@ -497,7 +528,7 @@
 				(cond
 					((import? exp) ;; <- new library import, temporary version
                   (lets
-                     ((envp (toplevel-library-import env (cdr exp))))
+                     ((envp (toplevel-library-import env (cdr exp) repl)))
                      (if (pair? envp) ;; the error message
                         (fail envp)
                         (ok ";; imported" envp))))
