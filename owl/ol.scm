@@ -1583,6 +1583,10 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((_ . wtf)
             (syntax-error "Weird library contents: " (quote . (define-library . wtf))))))
 
+   ;; toplevel library operations expand to quoted values to be handled by the repl
+   ;(define-syntax import  (syntax-rules (_import)  ((import  thing ...) (_import  (quote thing) ...))))
+   ;(define-syntax include (syntax-rules (_include) ((include thing ...) (_include (quote thing) ...))))
+
    (define-syntax lets/cc
       (syntax-rules ()
          ((lets/cc (om . nom) . fail)

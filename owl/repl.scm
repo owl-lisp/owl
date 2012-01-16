@@ -308,7 +308,7 @@
 	
    (define import?  ; toplevel import using the new library system
 		(let 
-         ((patternp `(import ,symbol? . ,(λ (x) True))))
+         ((patternp `(import . ,(λ (x) True))))
 			(λ (exp) (match patternp exp))))
 
 	(define module-definition?
@@ -494,6 +494,12 @@
 		(tuple-case (macro-expand exp env)
 			((ok exp env)
 				(cond
+					((import? exp) ;; <- new library import, temporary version
+                  (lets
+                     ((envp (toplevel-library-import env (cdr exp))))
+                     (if (pair? envp) ;; the error message
+                        (fail envp)
+                        (ok ";; imported" envp))))
 					((definition? exp)
                   (mail 'intern (tuple 'set-name (string-append "in:" (symbol->string (cadr exp)))))  ;; tell intern to assign this name to all codes to come
 						(tuple-case (evaluate (caddr exp) env)
@@ -544,11 +550,6 @@
 										(fail "import failed"))))
 							((fail reason)
 								(fail (list "library not available: " (cadr exp))))))
-					((import? exp) ;; <- new library import, temporary version
-                  (let ((envp (toplevel-library-import env (cdr exp))))
-                     (if (pair? envp) ;; the error message
-                        (fail envp)
-                        (ok ";; imported" envp))))
 					(else
 						(evaluate exp env))))
 			((fail reason)
