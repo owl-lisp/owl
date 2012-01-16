@@ -25,20 +25,27 @@
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
-;; everything is rebuilt using primops which have to be loaded first
+;; inherit only (owl core) and (owl defmac) libraries 
+(define *libraries*
+   (keep 
+      (λ (lib) (or (equal? (car lib) '(owl core)) (equal? (car lib) '(owl defmac)))) 
+      *libraries*))
 
-,r "owl/primop.scm" ;; <- to be (include "owl/primop.scm") soon
+(print "Inherited libraries:")
+(for-each (λ (x) (show " - " (car x))) *libraries*)
 
-;; now forget almost everything to avoid heap leaks
+,r "owl/primop.scm" ;; todo: should be safe to remove soon
 
 ,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run )
+
+(import (owl core)) ; get special forms, primops and define-syntax
+
+(import (owl defmac)) ; get define, define-library, ...
 
 ;; list of dirs from which to try to load files included in libraries
 (define *include-dirs* (list "."))
 
 (define *loaded* '()) ;; used by old ,require
-
-(define *libraries* (list (car *libraries*))) ;; keep just the just loaded primop library
 
 (import (owl primop)) ;; grab freshly defined primops 
 
@@ -1084,10 +1091,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                            (keyword literals (pattern ...) 
                            (template ...))))))))))))
 
-;; push it to libraries for sharing
+;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
-   (cons (cons '(owl core) owl-core) *libraries*))
-
+   (cons 
+      (cons '(owl core) owl-core)
+      (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
 
 ;; todo: share the modules instead later
 (define shared-misc
