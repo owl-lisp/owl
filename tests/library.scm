@@ -135,3 +135,26 @@
    (begin (test)))          ;; call it to get output
 
 (print "END OF LINE")
+
+;; toplevel import
+
+(define a "o")
+(define b "o")
+
+(define-library (foo bar)
+   (export a b)
+   (begin
+      (define a "O")
+      (define b "O")))
+
+(print (list a '_ b))
+
+(import (only (foo bar) b))
+
+(print (list a '_ b)) ; 
+
+(import (except (foo bar) b))
+
+(print (list a '_ b))
+
+
