@@ -6,7 +6,7 @@
 ;	- calibrate blank run times with (lambda (a b) 42)
 ;		+ these cause some skew especially for the initial small numbers
 
-(import lib-random)
+(import-old lib-random)
 
 (define (rand-nbits rst n)
 	(lets

@@ -1023,7 +1023,7 @@
 
 
 ;
-;(import lib-grale)
+;(import-old lib-grale)
 ;(start-grale)
 ;
 ;

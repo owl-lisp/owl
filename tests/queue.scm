@@ -1,5 +1,5 @@
 
-(import lib-queue)
+(import-old lib-queue)
 
 ; test by mirroring random operations with lists and (append lst (list a)) for snoc
 

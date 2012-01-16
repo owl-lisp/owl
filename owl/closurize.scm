@@ -12,8 +12,8 @@
 
 	(export build-closures uncompiled-closure?)
 
-	(import lib-ast)
-	(import lib-assemble)
+	(import-old lib-ast)
+	(import-old lib-assemble)
 
 	(define (ok exp env) (tuple 'ok exp env))
 	(define (fail reason) (tuple 'fail reason))

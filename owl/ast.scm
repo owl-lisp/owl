@@ -7,7 +7,7 @@
 (define-module lib-ast
 
 	(export call? var? value-of sexp->ast mkcall mklambda mkvar mkval)
-	(import lib-env)
+	(import-old lib-env)
 
 	(define (ok exp env) (tuple 'ok exp env))
 	(define (fail reason) (tuple 'fail reason))

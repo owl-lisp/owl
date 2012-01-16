@@ -58,8 +58,8 @@
             (cons 80 (render-number (id->fd obj) tl 10))
             (render self obj tl))))
 
-   (import lib-queue)
-   (import lib-vector merge-chunks vec-leaves) ; needed TEMPORARIly
+   (import-old lib-queue)
+   (import-old lib-vector merge-chunks vec-leaves) ; needed TEMPORARIly
 
    ;; use type 12 for fds 
 

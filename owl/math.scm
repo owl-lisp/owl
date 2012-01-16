@@ -16,7 +16,7 @@
 
 (define-module lib-math
 
-   (import lib-iff)
+   (import-old lib-iff)
 
    (export 
       number? fixnum? integer?
@@ -2014,12 +2014,12 @@
          ((<= n 1) (big-bad-args 'log n a))
          (else (logn n a))))
 
-   ;(import lib-test)
+   ;(import-old lib-test)
    ;(test
    ;   (lmap (λ (i) (lets ((rst n (rand i 10000000000000000000))) n)) (lnums 1))
    ;   (λ (n) (log-naive 3 n))
    ;   (λ (n) (log 3 n)))
-   ;(import lib-test)
+   ;(import-old lib-test)
    ;(test
    ;   (lmap (λ (i) (lets ((rst n (rand i #x20000))) n)) (lnums 1))
    ;   (λ (n) (log 2 n))

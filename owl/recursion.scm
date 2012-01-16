@@ -5,8 +5,8 @@
 
    (export fix-points)
 
-   (import lib-ast)
-   (import lib-env)
+   (import-old lib-ast)
+   (import-old lib-env)
 
    ; return the least score by pred 
    (define (least pred lst)

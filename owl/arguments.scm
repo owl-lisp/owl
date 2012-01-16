@@ -224,7 +224,7 @@
 )
 
 
-(import lib-args)
+(import-old lib-args)
 
 (define cli-args
    (cl-rules

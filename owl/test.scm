@@ -18,7 +18,7 @@
 		elapsed-ms		; thunk -> ms + val
 		)
 
-	;(import lib-lazy)
+	;(import-old lib-lazy)
 
 	(define (elapsed-ms thunk) ; -> ms + value
 		(lets
@@ -101,7 +101,7 @@
 
 	;; examples for quick checks speed/correctness tests (with test)
 	;
-	;(import lib-random)
+	;(import-old lib-random)
 	;(test 
 	;	(lmap (λ (i) (lets ((rst n (rand i 10000000))) n)) (lnums 1))
 	;	(λ (n) (prime? n))
@@ -114,7 +114,7 @@
    ;   (λ (n) (fold (λ (ff i) (fupd ff i i)) ff nums))
    ;   (λ (n) (fold (λ (ff i) (put ff i i)) ff nums)))
       
-	;(import lib-random)
+	;(import-old lib-random)
 	;(test 
 	;	(lmap (λ (i) (lets ((rst n (rand i 10000))) n)) (lnums 1))
 	;	(λ (n) (<< 1 n))

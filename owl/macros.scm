@@ -8,8 +8,8 @@
    ; remove make-transformer when it is no longer referred 
    (export macro-expand match make-transformer)
 
-   (import lib-gensym)
-   (import lib-env)
+   (import-old lib-gensym)
+   (import-old lib-env)
 
    ;;; Misc
 

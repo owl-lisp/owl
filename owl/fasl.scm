@@ -70,8 +70,8 @@
       object-closure       ; obj -> ff of (obj -> _)
 		)
 
-	(import lib-lazy)
-	(import lib-rlist)
+	(import-old lib-lazy)
+	(import-old lib-rlist)
 
    (define enodata False) ;; reason to fail if out of data (progressive readers want this)
 

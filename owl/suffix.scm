@@ -20,8 +20,8 @@
       ssort-ternary      ;; ternary partitioning radix sort (bad)
       )
 
-   (import lib-iff)
-   (import lib-lazy force lzip lnums)
+   (import-old lib-iff)
+   (import-old lib-lazy force lzip lnums)
 
    (define sentinel "telomerase") ; something unique as in eq?
 

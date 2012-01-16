@@ -24,12 +24,12 @@
       fib
       )
 
-   (import lib-math)
-   (import lib-iff)
-   (import lib-list)
-   (import lib-list-extra)
-   (import lib-iff)
-   (import lib-sort)
+   (import-old lib-math)
+   (import-old lib-iff)
+   (import-old lib-list)
+   (import-old lib-list-extra)
+   (import-old lib-iff)
+   (import-old lib-sort)
 
    ;;;
    ;;; SQUARE ROOTS (stub)

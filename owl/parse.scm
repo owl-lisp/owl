@@ -7,8 +7,8 @@
 
 (define-module lib-parse
 
-   (import lib-lazy)
-   (import lib-unicode) ; decoding code points in get-rune and runes->string
+   (import-old lib-lazy)
+   (import-old lib-unicode) ; decoding code points in get-rune and runes->string
 
    ; (parser ll ok fail pos)
    ;      -> (ok ll' fail' val pos)
@@ -387,7 +387,7 @@
 )
 
 
-(import lib-parse)
+(import-old lib-parse)
 
 (define test-parser
    (let-parses

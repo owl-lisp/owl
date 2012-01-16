@@ -66,7 +66,7 @@
 ,forget-all-but (*vm-special-ops* *codes* wait *args* stdin stdout stderr set-ticker run lib-primop) ; wait needed in lib-parse atm
 
 (define *loaded* '("owl/primop.scm")) ;; avoid reloading it
-(import lib-primop) ;; grab freshly defined primops 
+(import-old lib-primop) ;; grab freshly defined primops 
 
 ;; common things using primops
 (define-module lib-base
@@ -77,7 +77,7 @@
 
 )
 
-(import lib-base)
+(import-old lib-base)
 
 
 ;; set a few flags which affect compilation or set static information
@@ -103,7 +103,7 @@
 
 ,r "owl/syscall.scm"
 
-(import lib-syscall)
+(import-old lib-syscall)
 
 
 ;;; repl exit codes
@@ -156,7 +156,7 @@
             ((eq? obj False) (ilist 70 97 108 115 101 tail))
             (else (render self obj tail))))))
 
-(import lib-boolean)
+(import-old lib-boolean)
 
 
 ;; todo: move these also to corresponding libraries
@@ -181,14 +181,14 @@
 
 ,r "owl/list.scm"
 
-(import lib-list)
+(import-old lib-list)
 
 ;;;
 ;;; Finite functions
 ;;;
 
 ,require "owl/ff.scm"
-(import lib-ff)
+(import-old lib-ff)
 
 
 ;;; integer stores, include in toplevel 
@@ -201,16 +201,16 @@
 ;;;
 
 ,r "owl/math.scm"   ; basic arithmetic
-(import lib-math) 
+(import-old lib-math) 
 
 ,r "owl/list-extra.scm"   ; list ops requiring basic math (length ...)
-(import lib-list-extra)
+(import-old lib-list-extra)
 
 ,r "owl/math-extra.scm"   ; less basic math (factor, ...)
-(import lib-math-extra)
+(import-old lib-math-extra)
 
 ,r "owl/lazy.scm"   ; things computed as needed (remember, no caching, these are not ok for dp)
-(import lib-lazy)
+(import-old lib-lazy)
 
 
 ;;;
@@ -219,7 +219,7 @@
 
 ,r "owl/sort.scm"
 
-(import lib-sort)
+(import-old lib-sort)
 
 
 ;;;
@@ -228,7 +228,7 @@
 
 ,r "owl/string.scm"
 
-(import lib-string)
+(import-old lib-string)
 
 (define (number->string n base)
    (list->string (render-number n null base)))
@@ -255,7 +255,7 @@
 
 ,r "owl/vector.scm"
 
-(import lib-vector)
+(import-old lib-vector)
 
 ;;;
 ;;; Functions
@@ -288,7 +288,7 @@
                   (cons 62 tl)))
             (render self obj tl)))))
 
-(import lib-function)
+(import-old lib-function)
 
 
 ;;;
@@ -336,7 +336,7 @@
 
 ,r "owl/symbol.scm"
 
-(import lib-symbol)
+(import-old lib-symbol)
 
 
 ;;;
@@ -409,7 +409,7 @@
 
 ,r "owl/rlist.scm"
 
-(import lib-rlist)
+(import-old lib-rlist)
 
 
 ;;;
@@ -513,15 +513,15 @@
                      (liota (size obj) -1 1))))
             (render self obj tl)))))
 
-(import lib-tuple)
+(import-old lib-tuple)
 
    
 
 ,r "owl/intern.scm"
 
-(import lib-intern)
+(import-old lib-intern)
 
-(import lib-unicode encode-point)
+(import-old lib-unicode encode-point)
 
 
 ;;;
@@ -541,7 +541,7 @@
             (ilist 69 111 102 tl)
             (render self obj tl)))))
 
-(import lib-eof)
+(import-old lib-eof)
 
 
 
@@ -552,7 +552,7 @@
 
 ,r "owl/io.scm"
 
-(import lib-io)
+(import-old lib-io)
 
 
 ;;;
@@ -606,11 +606,11 @@
 
 ,r "owl/parse.scm"
 
-(import lib-parse)
+(import-old lib-parse)
 
 ,r "owl/sexp.scm"
 
-(import lib-sexp)
+(import-old lib-sexp)
 
 
 ;;;
@@ -681,19 +681,19 @@
 
 )
 
-(import lib-scheme-compat)
+(import-old lib-scheme-compat)
 
 
 ,r "owl/env.scm"
 
-(import lib-env)
+(import-old lib-env)
 
 
 ;;; Gensyms and sexp utils 
 
 ,r "owl/gensym.scm"
 
-(import lib-gensym)
+(import-old lib-gensym)
 
 
 ;; does not belong here, but needed in macros for now 
@@ -715,7 +715,7 @@
 
 ,r "owl/macros.scm"
 
-(import lib-macros)
+(import-old lib-macros)
 
 
 ;;;
@@ -724,7 +724,7 @@
 
 ,r "owl/ast.scm"
 
-(import lib-ast)
+(import-old lib-ast)
 
 
 ;;;
@@ -733,7 +733,7 @@
 
 ,r "owl/recursion.scm"
 
-(import lib-recursion)
+(import-old lib-recursion)
 
 
 ;;;
@@ -742,7 +742,7 @@
 
 ,r "owl/cps.scm"
 
-(import lib-cps)
+(import-old lib-cps)
 
 
 ;;; 
@@ -751,7 +751,7 @@
 
 ,r "owl/alpha-convert.scm"
 
-(import lib-alpha-convert)
+(import-old lib-alpha-convert)
 
 ; a value that can be created by an instruction
 
@@ -769,7 +769,7 @@
 
 ,r "owl/closurize.scm"
 
-(import lib-closurize)
+(import-old lib-closurize)
 
 
 ;;;
@@ -778,7 +778,7 @@
 
 ,r "owl/assemble.scm"
 
-(import lib-assemble)
+(import-old lib-assemble)
 
 
 ;;;
@@ -787,7 +787,7 @@
 
 ,r "owl/compile.scm"
 
-(import lib-compile)
+(import-old lib-compile)
 
 
 ;;;
@@ -924,15 +924,15 @@
 ,r "owl/random.scm"
 ,r "owl/cgen.scm"
 
-(import lib-args)
+(import-old lib-args)
 
 ,r "owl/mcp.scm"
 
-(import lib-mcp)
+(import-old lib-mcp)
 
 ,r "owl/dump.scm"
 
-(import lib-dump make-compiler dump-fasl)
+(import-old lib-dump make-compiler dump-fasl)
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
    (make-compiler *vm-special-ops*))
@@ -947,7 +947,7 @@
             'saved))))
 
 ,r "owl/checksum.scm"
-(import lib-checksum checksum)
+(import-old lib-checksum checksum)
 
 
 ;;;
@@ -1106,7 +1106,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; included but not imported by default
 (define shared-extra-libs
    (share-bindings
-      lib-iff          ; (import lib-iff) if needed
+      lib-iff          ; (import-old lib-iff) if needed
       lib-args         ; ditto
       lib-parse        ; .
       ;lib-vt          ; .
@@ -1259,7 +1259,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          shared-bindings))))
 
 
-(import lib-scheme-compat) ;; used in macros
+(import-old lib-scheme-compat) ;; used in macros
 
 (define (define-macros env lst)
    (for env lst
@@ -1568,12 +1568,12 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
           (define-library x ... term (export . e) . tl))
 
          ;; lift all imports above begins
-         ;((define-library x ... (begin . b) (import . i) . tl)
-         ; (define-library x ... (import . i) (begin . b) . tl))
+         ;((define-library x ... (begin . b) (import-old . i) . tl)
+         ; (define-library x ... (import-old . i) (begin . b) . tl))
 
          ;; convert to special form understood by the repl
-         ;((define-library name (import . i) ... (begin . b) ... (export . e))
-         ; (_define-library 'name '(import . i) ... '(begin . b) ... '(export . e)))
+         ;((define-library name (import-old . i) ... (begin . b) ... (export . e))
+         ; (_define-library 'name '(import-old . i) ... '(begin . b) ... '(export . e)))
 
          ;; accept otherwise in whatever order
          ((define-library thing ...)
@@ -1599,7 +1599,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 ,r "owl/repl.scm"
 
-(import lib-repl)
+(import-old lib-repl)
 
 (define initial-environment
    (bind-toplevel
@@ -1719,11 +1719,11 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 ; special keys in mcp state 
 
-(import lib-mcp)
+(import-old lib-mcp)
 
 ,r "owl/threads.scm"
 
-(import lib-threads)
+(import-old lib-threads)
 
 
 ;; pick usual suspects in a module to avoid bringing them to toplevel here
@@ -1732,14 +1732,14 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define-module lib-usual-suspects
    (export usual-suspects)
    ; make sure the same bindings are visible that will be at the toplevel
-   (import lib-generic)
-   (import lib-suffix)
-   (import lib-math)
-   (import lib-random)
-   (import lib-bisect)
-   (import lib-io start-output-thread)
-   (import lib-threads thread-controller)
-   (import lib-sexp)
+   (import-old lib-generic)
+   (import-old lib-suffix)
+   (import-old lib-math)
+   (import-old lib-random)
+   (import-old lib-bisect)
+   (import-old lib-io start-output-thread)
+   (import-old lib-threads thread-controller)
+   (import-old lib-sexp)
    ; commonly needed functions 
    (define usual-suspects
       (list
@@ -1763,7 +1763,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             ;sexp-parser 
             rand seed->rands)))
 
-(import lib-usual-suspects usual-suspects)
+(import-old lib-usual-suspects usual-suspects)
 
 
 ;; handles $ ol -c stuff
@@ -1808,9 +1808,9 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;;; handling of --notes
 ,r "owl/notes.scm"
 
-(import lib-notes show-notes-of)
+(import-old lib-notes show-notes-of)
 
-(import lib-dump load-fasl)
+(import-old lib-dump load-fasl)
 
 (define (try-load-state path args)
    (let ((val (load-fasl path False)))
@@ -2028,7 +2028,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;; the rebuilt one here to make changes possible in 1 instead of 2 build cycles.
 ;; (this may be changed later)
 
-(import lib-args)
+(import-old lib-args)
 
 (define command-line-rules
    (cl-rules

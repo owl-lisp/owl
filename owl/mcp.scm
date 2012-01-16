@@ -17,9 +17,9 @@
       poll-tag buffer-tag link-tag mcp-tag   ; keys
       )
 
-   (import lib-dump dump-fasl) ; for state saving
-   (import lib-io start-base-threads)
-   (import lib-queue)
+   (import-old lib-dump dump-fasl) ; for state saving
+   (import-old lib-io start-base-threads)
+   (import-old lib-queue)
 
    ;;; NOTE: the mcp will execute as the only live thread, so no symbol 
    ;;; interning or function naming (used by printing) will be available.

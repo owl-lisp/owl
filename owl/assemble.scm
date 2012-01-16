@@ -14,9 +14,9 @@
 
    (export assemble-code inst->op)
 
-   (import lib-register allocate-registers n-registers)
-   (import lib-memuse count-allocs)
-   (import lib-primop)
+   (import-old lib-register allocate-registers n-registers)
+   (import-old lib-memuse count-allocs)
+   (import-old lib-primop)
 
    (define (self x) x)
 

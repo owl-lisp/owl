@@ -462,8 +462,8 @@
 
 
 ;(define-module lib-ff-unit
-;   (import lib-compare)
-;   (import lib-ff)
+;   (import-old lib-compare)
+;   (import-old lib-ff)
 ;
 ;   (define (loop rst ff al n)
 ;      (lets ((rst (rand rst n)))

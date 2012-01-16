@@ -67,9 +67,9 @@
       render
       )
 
-   (import lib-iff iput iget) ;; for char mappings
-   (import lib-unicode)
-   (import lib-lazy)
+   (import-old lib-iff iput iget) ;; for char mappings
+   (import-old lib-unicode)
+   (import-old lib-lazy)
 
    (define (string? x) (eq? (fxband (type x) 2300) 2076))
 

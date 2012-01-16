@@ -11,7 +11,7 @@
 
    (export iget iput ifold iff->list)
    
-   (import lib-ff)
+   (import-old lib-ff)
 
    (define (iputl ff num val)
       (if (null? num)

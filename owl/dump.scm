@@ -25,12 +25,12 @@
       dump-fasl 
       load-fasl)
 
-   (import lib-fasl)
-   (import lib-lazy lfoldr)
-   (import lib-cgen)
-   (import lib-unicode utf8-decode)
-   (import lib-threads thread-controller)
-   (import lib-queue qnull) ; <- for init thread mailbox
+   (import-old lib-fasl)
+   (import-old lib-lazy lfoldr)
+   (import-old lib-cgen)
+   (import-old lib-unicode utf8-decode)
+   (import-old lib-threads thread-controller)
+   (import-old lib-queue qnull) ; <- for init thread mailbox
 
    ;;; 
    ;;; Symbols must be properly interned in a repl.

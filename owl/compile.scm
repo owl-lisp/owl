@@ -15,10 +15,10 @@
       primops 
       prim-opcodes)
 
-   (import lib-ast)
-   (import lib-lazy)
-   (import lib-assemble)
-   (import lib-closurize uncompiled-closure?)
+   (import-old lib-ast)
+   (import-old lib-lazy)
+   (import-old lib-assemble)
+   (import-old lib-closurize uncompiled-closure?)
 
 	(define try-n-perms 1000)	 ;; how many load permutations to try before evicting more registers
 

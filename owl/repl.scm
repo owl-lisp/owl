@@ -1,5 +1,8 @@
 ;; todo: use a failure continuation or make the failure handling otherwise more systematic
 ;; todo: should (?) be factored to eval, repl and library handling
+;; todo: add lib-http and allow including remote resources
+;; todo:  ^ would need a way to sign libraries and/or SSL etc
+;; todo: autoload feature: when a library imports something not there, try to load (owl ff) from each $PREFIX/owl/ff.scm
 
 (define-module lib-repl
 
@@ -14,7 +17,7 @@
 		bind-toplevel
 		)
 
-   (import lib-regex string->regex)
+   (import-old lib-regex string->regex)
 
    ;; toplevel variable to which loaded libraries are added
 
@@ -298,9 +301,15 @@
 
    (define (_ x) True)
 
-	(define import? 
-		(let ((pattern `(import ,symbol? . ,(λ (x) True))))
-			(λ exp (match pattern exp))))
+	(define old-import? 
+		(let 
+         ((patternp `(import-old ,symbol? . ,(λ (x) True))))
+			(λ (exp) (match patternp exp))))
+	
+   (define import?  ; toplevel import using the new library system
+		(let 
+         ((patternp `(import ,symbol? . ,(λ (x) True))))
+			(λ (exp) (match patternp exp))))
 
 	(define module-definition?
 		(let ((pattern `(define-module ,symbol? . ,(λ (x) True))))
@@ -399,6 +408,12 @@
                (env-fold put env 
                   (import-set->library iset libs fail)))
             env exps)))
+
+   ;; temporary toplevel import doing what library-import does within libraries
+   (define (toplevel-library-import env exps)
+      (lets/cc ret
+         ((fail (λ (x) (ret (cons "Import failed because " x)))))
+         (library-import env exps fail)))
 
    (define (match-feature req feats libs fail)
       (cond
@@ -520,7 +535,7 @@
                         ((error reason not-env)
                            (fail 
                               (list "Library" name "failed to load because" reason))))))
-					((import? exp) ;; <- old module import, will be deprecated soon
+					((old-import? exp) ;; <- old module import, will be deprecated soon
 						(tuple-case (evaluate (cadr exp) env)
 							((ok mod envx)
 								(let ((new (import env mod (cddr exp))))
@@ -529,6 +544,11 @@
 										(fail "import failed"))))
 							((fail reason)
 								(fail (list "library not available: " (cadr exp))))))
+					((import? exp) ;; <- new library import, temporary version
+                  (let ((envp (toplevel-library-import env (cdr exp))))
+                     (if (pair? envp) ;; the error message
+                        (fail envp)
+                        (ok ";; imported" envp))))
 					(else
 						(evaluate exp env))))
 			((fail reason)

@@ -13,7 +13,7 @@
       make-checksummer
    )
 
-   ;(import lib-lazy)
+   ;(import-old lib-lazy)
 
    ;;; Adler32 checksum - simple and fast to calculate
 
@@ -192,7 +192,7 @@
          (else
             (cons (+ (car data) 1) (cdr data)))))
 
-;   (import lib-iff)
+;   (import-old lib-iff)
 ;   (define (test-duplicates txt data checksum)
 ;      (let loop ((n 0) (data null) (dups 0) (csums False))
 ;         (cond
@@ -241,9 +241,9 @@
    ;(show " => " (checksum '()))   ; check
 )
 
-;(import lib-iff)
-;(import lib-checksum)
-;(import lib-random)
+;(import-old lib-iff)
+;(import-old lib-checksum)
+;(import-old lib-random)
 ;
 ;(define (inc l)
 ;   (cond

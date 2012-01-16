@@ -13,7 +13,7 @@
 ;; not to be exported to toplevel, just for $ owl --notes [source] ...
 (define-module lib-notes
 
-	(import lib-lazy)
+	(import-old lib-lazy)
 	(export 
 		collect-notes 	;; paths -> (note ...)
 		show-notes		;; (note ..) -> side effects
@@ -119,5 +119,5 @@
 	(export collect-notes)
 )
 
-;(import lib-notes show-notes-of)
+;(import-old lib-notes show-notes-of)
 ;(show-notes-of '("owl.scm"))

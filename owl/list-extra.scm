@@ -9,7 +9,7 @@
       repeat
       )
 
-	(import lib-math) ; basix arithmetic
+	(import-old lib-math) ; basix arithmetic
 
 	;;; List ops using numbers
 

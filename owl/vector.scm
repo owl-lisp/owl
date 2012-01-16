@@ -83,7 +83,7 @@
       render
       )
 
-   (import lib-lazy)
+   (import-old lib-lazy)
 
    (define (byte-vector? x) (eq? (fxband (type x)     #b100011111000) 2136))
 

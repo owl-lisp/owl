@@ -32,8 +32,8 @@
 		string->complete-match-regex
       )
 
-   (import lib-parse)
-   (import lib-iff iput iget)    ;; for character classes with high code points
+   (import-old lib-parse)
+   (import-old lib-iff iput iget)    ;; for character classes with high code points
 
 
    ;;; 

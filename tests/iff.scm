@@ -1,6 +1,6 @@
 ;; integer finite functions test
 
-(import lib-iff)
+(import-old lib-iff)
 
 (define max-bits 1024)
 (define max-nums 100)

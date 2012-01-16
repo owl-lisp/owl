@@ -3,7 +3,7 @@
 
 ;; decode 1000 encoded (valid) strings
 
-(import lib-unicode last-code-point)
+(import-old lib-unicode last-code-point)
 
 (let loop ((rst (seed->rands seed)) (n 100))
 	(if (= n 0)

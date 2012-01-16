@@ -27,7 +27,7 @@
       drop     ;; l n → l'
 	)
 
-	(import lib-rlist)
+	(import-old lib-rlist)
 
 	(define (fold op st x)
 		(cond

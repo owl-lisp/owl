@@ -83,10 +83,10 @@
 )
 
 ;,r "lib/test.scm"
-;(import lib-test)
-;(import lib-random)
-;(import lib-lazy)
-;(import lib-bisect)
+;(import-old lib-test)
+;(import-old lib-random)
+;(import-old lib-lazy)
+;(import-old lib-bisect)
 ;(define (seed) (lets ((a b (clock))) (* a b)))
 ;
 ;(compare

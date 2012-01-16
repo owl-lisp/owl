@@ -12,9 +12,9 @@
 
 	(export alpha-convert)
 
-	(import lib-gensym)
-	(import lib-ast)
-	(import lib-env lookup)
+	(import-old lib-gensym)
+	(import-old lib-ast)
+	(import-old lib-env lookup)
 
 	(define (ok exp env) (tuple 'ok exp env))
 	(define (fail reason) (tuple 'fail reason))

@@ -19,7 +19,7 @@
 
    (export thread-controller wait)
 
-   (import lib-queue) ;; for mail queueing
+   (import-old lib-queue) ;; for mail queueing
 
 	;; fixme: wait should use fixnum math to be as light as possible
 	(define (wait n)

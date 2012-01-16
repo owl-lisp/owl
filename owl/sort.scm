@@ -101,8 +101,8 @@
 )
 
 ;;; a quick correctness test, assuming i got all the corner cases of isort right =D
-;(import lib-sort)
-;(import lib-random)
+;(import-old lib-sort)
+;(import-old lib-random)
 ;(define (index l n) (if (null? l) null (cons (cons (car l) n) (index (cdr l) (+ n 1)))))
 ;(define (comp a b) (< (car a) (car b)))
 ;(define (well-ordered? l)
@@ -141,8 +141,8 @@
 ;      (print "all ok (so far)")))
 
 ;;; a quick speed test
-;(import lib-sort)
-;(import lib-random)
+;(import-old lib-sort)
+;(import-old lib-random)
 ;(define (try-sort op lst)
 ;   (let loop ((n 0)) (flush-port 1) 
 ;      (if (= n 50) (mail stdout 10) (begin (mail 1 42) (op < lst) (loop (+ n 1))))))

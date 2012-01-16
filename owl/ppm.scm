@@ -163,5 +163,5 @@
 
 )
 
-;(import lib-ppm)
+;(import-old lib-ppm)
 ;(read-ppm "/tmp/black.ppm")

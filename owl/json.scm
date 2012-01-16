@@ -16,8 +16,8 @@
 
 	(export json-decode json-encode)
 
-	(import lib-parse)
-	(import lib-unicode encode-point)
+	(import-old lib-parse)
+	(import-old lib-unicode encode-point)
 
 	;;;
 	;;; Decoding
@@ -322,7 +322,7 @@
 
 (define-module lib-json-rpc
 
-	(import lib-json)
+	(import-old lib-json)
 
 	(export loltron)
 
@@ -441,7 +441,7 @@
 
 ;; a few tests
 
-(import lib-json)
+(import-old lib-json)
 
 (print "DECODING ------------------------------------------------")
 

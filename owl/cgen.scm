@@ -20,7 +20,7 @@
 		code->bytes             ;; obj extras → False | (byte ...)
 	)
 
-   (import lib-assemble inst->op)
+   (import-old lib-assemble inst->op)
 
    (define alloc-types
       (list->ff

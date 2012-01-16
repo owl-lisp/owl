@@ -463,15 +463,15 @@
 
 (define lib-rlist lib-rlist-skew)
 
-;(import lib-rlist-owl)
-;(import lib-rlist-skew)
+;(import-old lib-rlist-owl)
+;(import-old lib-rlist-skew)
 ;(let ((rl (fold (λ (rl n) (rcons n rl)) null (liota 0 1 100000))))
 ;   (print "running")
 ;   (fold (λ (sum n) (rget rl n 42)) 0 (liota 0 1 100000))
 ;   )
 
-;(import lib-lazy)
-;(import lib-rlist)
+;(import-old lib-lazy)
+;(import-old lib-rlist)
 ;(lfoldr (lambda (a b) (cons a b)) null (riterr (list->rlist '(1 2 3 4))))
 ;(begin (! 1000) (halt 1))
 
@@ -482,9 +482,9 @@
 ;
 ;(define-module lib-rlist-test
 ;
-;	(import lib-rlist)
-;	;(import lib-random)
-;	;(import lib-lazy)
+;	(import-old lib-rlist)
+;	;(import-old lib-random)
+;	;(import-old lib-lazy)
 ;
 ;	; lset could be on toplevel
 ;
@@ -569,8 +569,8 @@
 ;)
 ;
 ;;;; iterators vs direct walks: direct around 40% faster
-;;(import lib-lazy)
-;;(import lib-rlist)
+;;(import-old lib-lazy)
+;;(import-old lib-rlist)
 ;;(define lst (list->rlist (iota 0 1 100000)))
 ;;(define op
 ;;	;(lambda (rl) (rfold (lambda (a b) a) 42 rl)) ; direct, 6.0s

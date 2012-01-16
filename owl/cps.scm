@@ -9,9 +9,9 @@
 
 	(export cps)
 
-	(import lib-ast)
-	(import lib-gensym)
-   (import lib-primop)
+	(import-old lib-ast)
+	(import-old lib-gensym)
+   (import-old lib-primop)
 
 	;; fixme: information about cps-special primops could be stored elsewhere
 
