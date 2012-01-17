@@ -13,12 +13,13 @@
 ;; not to be exported to toplevel, just for $ owl --notes [source] ...
 (define-module lib-notes
 
-	(import-old lib-lazy)
 	(export 
 		collect-notes 	;; paths -> (note ...)
 		show-notes		;; (note ..) -> side effects
 		show-notes-of  ;; paths -> side effects
 	)
+   
+   (import (owl lazy))
 
 	; use a simple automata to read through data in one pass (ugly but reasonably fast, modulo owl)
 	;  collect -> reading a comment, buffer holds (char_n ... char_n0 <label>)

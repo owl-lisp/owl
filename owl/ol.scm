@@ -175,7 +175,7 @@
 (import (owl math-extra))
 
 ,r "owl/lazy.scm"   ; things computed as needed (remember, no caching, these are not ok for dp)
-(import-old lib-lazy)
+(import (owl lazy))
 
 
 ;;;
@@ -1213,7 +1213,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-vector
          lib-bisect
          lib-random
-         lib-lazy   
          lib-fasl
          lib-suffix
          lib-cgen
@@ -1258,6 +1257,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl ff)
            (owl math)
            (owl math-extra)
+           (owl lazy)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))

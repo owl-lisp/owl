@@ -16,7 +16,7 @@
       prim-opcodes)
 
    (import-old lib-ast)
-   (import-old lib-lazy)
+   (import (owl lazy))
    (import-old lib-assemble)
    (import-old lib-closurize uncompiled-closure?)
 

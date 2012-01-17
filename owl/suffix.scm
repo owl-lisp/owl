@@ -21,7 +21,7 @@
       )
 
    (import (owl iff))
-   (import-old lib-lazy force lzip lnums)
+   (import (owl lazy))
 
    (define sentinel "telomerase") ; something unique as in eq?
 

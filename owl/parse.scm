@@ -7,7 +7,7 @@
 
 (define-module lib-parse
 
-   (import-old lib-lazy)
+   (import (owl lazy))
    (import-old lib-unicode) ; decoding code points in get-rune and runes->string
 
    ; (parser ll ok fail pos)

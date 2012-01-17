@@ -69,7 +69,7 @@
 
    (import (owl iff))
    (import-old lib-unicode)
-   (import-old lib-lazy)
+   (import (owl lazy))
 
    (define (string? x) (eq? (fxband (type x) 2300) 2076))
 

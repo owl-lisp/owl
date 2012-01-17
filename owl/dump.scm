@@ -26,7 +26,7 @@
       load-fasl)
 
    (import-old lib-fasl)
-   (import-old lib-lazy lfoldr)
+   (import (owl lazy))
    (import-old lib-cgen)
    (import-old lib-unicode utf8-decode)
    (import-old lib-threads thread-controller)

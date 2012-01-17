@@ -83,7 +83,7 @@
       render
       )
 
-   (import-old lib-lazy)
+   (import (owl lazy))
 
    (define (byte-vector? x) (eq? (fxband (type x)     #b100011111000) 2136))
 
