@@ -28,7 +28,7 @@
    (import-old lib-fasl)
    (import (owl lazy))
    (import-old lib-cgen)
-   (import-old lib-unicode utf8-decode)
+   (import (only (owl unicode) utf8-decode))
    (import-old lib-threads thread-controller)
    (import-old lib-queue qnull) ; <- for init thread mailbox
 

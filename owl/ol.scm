@@ -486,7 +486,7 @@
 
 (import-old lib-intern)
 
-(import-old lib-unicode encode-point)
+(import (only (owl unicode) encode-point))
 
 
 ;;;
@@ -1193,7 +1193,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;lib-vt          ; .
       ;lib-system      ; 
       lib-rlist        ;
-      lib-unicode      ;
       lib-mcp
       lib-dump
       lib-checksum
@@ -1258,6 +1257,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl math)
            (owl math-extra)
            (owl lazy)
+           (owl unicode)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
