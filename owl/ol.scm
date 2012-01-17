@@ -226,34 +226,43 @@
 ;;; Functions
 ;;;
 
-(define-module lib-function
+(define-library (owl function)
 
    (export function? procedure? bytecode? render)
 
-   ;; raw bytecode vector, 1-level (proc) or 2-level (clos) function
-   (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
+   (import
+      (owl defmac)
+      (only (owl ff) ff?)
+      (only (owl vector) render)
+      (only (owl syscall) interact))
 
-   ;; something executable? being a function or a finite function
-   (define (procedure? obj) 
-      (or (function? obj) (ff? obj) (not obj)))
+   (begin
+      ;; raw bytecode vector, 1-level (proc) or 2-level (clos) function
+      (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
 
-   ;                                                               .-> ignore padding byte count
-   ;                            .-> raw data object              .-+
-   (define (bytecode? x) (eq? #b100000000110 (fxband (type x) #b100011111110))) 
-   ;                             '------+
-   ;                                    '-> 8-bit type/padding info
+      ;; something executable? being a function or a finite function
+      (define (procedure? obj) 
+         (or (function? obj) 
+             (ff? obj) 
+             (eq? obj False)))
 
-   (define render 
-      (λ (self obj tl)
-         (if (function? obj)
-            (ilist 35 60
-               (self self
-                  (let ((name (interact 'intern (tuple 'get-name obj))))
-                     (or name "function"))
-                  (cons 62 tl)))
-            (render self obj tl)))))
+      ;                                                               .-> ignore padding byte count
+      ;                            .-> raw data object              .-+
+      (define (bytecode? x) (eq? #b100000000110 (fxband (type x) #b100011111110))) 
+      ;                             '------+
+      ;                                    '-> 8-bit type/padding info
 
-(import-old lib-function)
+      (define render 
+         (λ (self obj tl)
+            (if (function? obj)
+               (ilist 35 60
+                  (self self
+                     (let ((name (interact 'intern (tuple 'get-name obj))))
+                        (or name "function"))
+                     (cons 62 tl)))
+               (render self obj tl))))))
+
+(import (owl function))
 
 
 ;;;
