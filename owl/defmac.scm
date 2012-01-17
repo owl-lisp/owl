@@ -12,6 +12,7 @@
       call/cc
       call/cc2
       call-with-current-continuation
+      not o i self
       )
 
    (begin
