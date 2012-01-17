@@ -388,6 +388,7 @@
                               False)))
                      (else False))))))
 
+      (define ≡ equal?)
 
       (define eqv? equal?)))
 
@@ -400,26 +401,6 @@
 ,r "owl/rlist.scm"
 
 (import (owl rlist))
-
-
-;;;
-;;; Generic versions of the universal common language words
-;;;
-
-;,r "owl/generic.scm"
-
-(define ≡ equal?)
-
-; once upon a time
-;(define (equal? a b)
-;   (cond
-;      ((eq? a b) True)
-;      ((pair? a)
-;         (and (pair? b)
-;            (equal? (car a) (car b))
-;            (equal? (cdr a) (cdr b))))
-;      (else False)))
-         
 
 ;; todo: move string->integer elsewhere
 ;;; string base -> number | False
@@ -469,41 +450,50 @@
 ;;; Tuples
 ;;;
 
-(define-module lib-tuple
+(define-library (owl tuple)
 
    (export tuple? render
       list->tuple tuple->list
       read-tuple)
 
-   (define (tuple? x) (eq? (type x) 22))
+   (import
+      (owl defmac)
+      (owl list-extra)
+      (owl list)
+      (owl math)
+      (only (owl syscall) error)
+      (only (owl rlist) render))
 
-   (define (list->tuple lst)
-      (let ((l (length lst)))
-         (if (teq? l fix+)
-            (listuple 2 l lst)
-            (error "list does not fit a tuple: length " l))))
+   (begin
+      (define (tuple? x) (eq? (type x) 22))
 
-   (define (read-tuple tuple pos lst)
-      (if (= pos 0)
-         lst
-         (read-tuple tuple (- pos 1)
-            (cons (ref tuple pos) lst))))
+      (define (list->tuple lst)
+         (let ((l (length lst)))
+            (if (teq? l fix+)
+               (listuple 2 l lst)
+               (error "list does not fit a tuple: length " l))))
 
-   (define (tuple->list tuple)
-      (read-tuple tuple (size tuple) null))
+      (define (read-tuple tuple pos lst)
+         (if (= pos 0)
+            lst
+            (read-tuple tuple (- pos 1)
+               (cons (ref tuple pos) lst))))
 
-   (define render
-      (λ (self obj tl)
-         (if (tuple? obj)
-            (ilist 40 84 117 112 108 101 32
-               (self self (ref obj 1)
-                  (lfold
-                     (λ (tl pos) (cons 32 (self self (ref obj pos) tl)))
-                     (cons 41 tl)
-                     (liota (size obj) -1 1))))
-            (render self obj tl)))))
+      (define (tuple->list tuple)
+         (read-tuple tuple (size tuple) null))
 
-(import-old lib-tuple)
+      (define render
+         (λ (self obj tl)
+            (if (tuple? obj)
+               (ilist 40 84 117 112 108 101 32
+                  (self self (ref obj 1)
+                     (fold
+                        (λ (tl pos) (cons 32 (self self (ref obj pos) tl)))
+                        (cons 41 tl)
+                        (iota (size obj) -1 1))))
+               (render self obj tl))))))
+
+(import (owl tuple))
 
    
 
@@ -1284,6 +1274,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl function)
            (owl symbol)
            (owl rlist)
+           (owl tuple)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
