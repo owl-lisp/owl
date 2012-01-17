@@ -3,9 +3,6 @@
 (define-library (owl primop)
    (export 
       primops
-      primitive?
-      primop-of
-      prim-opcodes
       multiple-return-variable-primops
       variable-input-arity?
       special-bind-primop?
@@ -22,7 +19,11 @@
       set-memory-limit get-word-size get-memory-limit start-seccomp
       )
 
+   (import
+      (owl defmac))
+
    (begin
+
       (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
 
       (define (func lst) (raw lst 0 F))
@@ -63,7 +64,7 @@
 
       ;; from cps
       (define (special-bind-primop? op)
-         (has? '(32 49) op))
+         (or (eq? op 32) (eq? op 49)))
 
       ;; fixme: handle multiple return value primops sanely (now a list)
       (define multiple-return-variable-primops
@@ -130,31 +131,12 @@
             (tuple 'set-ticker   62 1 1 set-ticker)
             (tuple 'sys-prim     63 4 1 sys-prim)))
 
+      ;; no append yet
       (define primops 
-         (append primops-1 primops-2))
-
-      ;; ff of wrapper-fn → opcode
-      (define prim-opcodes
-         (for False primops
-            (λ (ff node)
-               (put ff (ref node 5) (ref node 2)))))
-
-      ;; ff of opcode → wrapper
-      (define opcode->wrapper
-         (for False primops
-            (λ (ff node)
-               (put ff (ref node 2) (ref node 5)))))
-
-      ;; later check type, get first opcode and compare to primop wrapper 
-      (define (primop-of val)
-         (cond
-            ((get prim-opcodes val False) => (lambda (op) op))
-            ((equal? val mkt) 23)
-            ((equal? val bind) 32)
-            ((equal? val ff-bind) 49)
-            (else False)))
-         
-      (define primitive? primop-of)
+         (let loop ((in primops-1) (out primops-2))
+            (if (null? in)
+               out
+               (loop (cdr in) (cons (car in) out)))))
 
       ;; special things exposed by the vm
       (define (set-memory-limit n) (sys-prim 7 n n n))

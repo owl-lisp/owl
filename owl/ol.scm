@@ -32,10 +32,11 @@
 ;; keep only (owl core) and (owl defmac) libraries 
 (define *libraries*
    (keep 
-      (λ (lib) (or (equal? (car lib) '(owl core)) (equal? (car lib) '(owl defmac)))) 
+      (λ (lib) 
+         (or 
+            (equal? (car lib) '(owl core))
+            (equal? (car lib) '(owl defmac))))
       *libraries*))
-
-,r "owl/primop.scm" ;; todo: should be safe to remove soon
 
 ,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run )
 
@@ -52,7 +53,11 @@
 (define (i x) x)
 (define (k x y) x)
 
+,r "owl/syscall.scm"
+
 (import (owl syscall)) ;; syscalls use call/cc
+
+,r "owl/primop.scm"
 
 (import (owl primop)) ;; not yet sure when these should be included wrt inlining
 
@@ -70,15 +75,17 @@
 
 ;;; rendering 
 
-;; render unknown objects as <???>
-(define (render self obj tl)
-   (ilist 60 63 63 63 62 tl))
-
 
 ;; throw an error if some familiar but unsupported Scheme functions are called
 (define-library (owl unsupported)
 
-   (export set! set-car! set-cdr! string-set! vector-set!)
+   (export set! set-car! set-cdr! string-set! vector-set! 
+      render ;; rendering something unsupported
+      )
+
+   (import 
+      (owl defmac)
+      (owl syscall))
 
    (begin
       (define-syntax set!
@@ -91,28 +98,36 @@
       (define (set-car! pair val) (unsupported "set-car!"))
       (define (set-cdr! pair val) (unsupported "set-cdr!"))
       (define (vector-set! vec pos val) (unsupported "vector-set!"))
-      (define (string-set! str pos val) (unsupported "string-set!")))
+      (define (string-set! str pos val) (unsupported "string-set!"))
 
-)
+      ;; render unknown objects as <???>
+      (define (render self obj tl)
+         (ilist 60 63 63 63 62 tl))))
 
-(define-module lib-boolean
+
+(define-library (owl boolean)
 
    (export boolean? render)
 
-   (define (boolean? x) 
-      (cond
-         ((eq? x True) True)
-         ((eq? x False) True)
-         (else False)))
+   (import  
+      (owl defmac)
+      (owl unsupported))
 
-   (define render 
-      (lambda (self obj tail)
+   (begin
+      (define (boolean? x) 
          (cond
-            ((eq? obj True)  (ilist 84 114 117 101 tail))
-            ((eq? obj False) (ilist 70 97 108 115 101 tail))
-            (else (render self obj tail))))))
+            ((eq? x True) True)
+            ((eq? x False) True)
+            (else False)))
 
-(import-old lib-boolean)
+      (define render 
+         (λ (self obj tail)
+            (cond
+               ((eq? obj True)  (ilist 84 114 117 101 tail))
+               ((eq? obj False) (ilist 70 97 108 115 101 tail))
+               (else (render self obj tail))))))) ; <- goes to lib-unsupported
+
+(import (owl boolean))
 
 
 ;; todo: move these also to corresponding libraries
@@ -664,6 +679,28 @@
       (else
          (list "error: " 'instruction opcode 'info (tuple a b)))))
 
+      ;; ff of wrapper-fn → opcode
+      (define prim-opcodes
+         (for False primops
+            (λ (ff node)
+               (put ff (ref node 5) (ref node 2)))))
+
+      ;; ff of opcode → wrapper
+      (define opcode->wrapper
+         (for False primops
+            (λ (ff node)
+               (put ff (ref node 2) (ref node 5)))))
+
+      ;; later check type, get first opcode and compare to primop wrapper
+      (define (primop-of val)
+         (cond
+            ((get prim-opcodes val False) => (lambda (op) op))
+            ((equal? val mkt) 23)
+            ((equal? val bind) 32)  
+            ((equal? val ff-bind) 49)
+            (else False)))
+
+      (define primitive? primop-of)
 
 ;;;
 ;;; Macro expansion
@@ -717,7 +754,6 @@
       (eq? val True)
       (eq? val False)
       (eq? val null)))
-
 
 ;;;
 ;;; Closure Conversion + Literal Conversion
@@ -987,7 +1023,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 
 ;; library (just the value of) containing only special forms, primops and
-(define owl-core
+(define *owl-core*
    (let
       ((primitive
          (λ (sym)
@@ -1081,7 +1117,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
    (cons 
-      (cons '(owl core) owl-core)
+      (cons '(owl core) *owl-core*)
       (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
 
 ;; todo: share the modules instead later
@@ -1214,7 +1250,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define initial-environment-sans-macros
    (fold 
       (λ (env pair) (put env (car pair) (cdr pair)))
-      owl-core
+      *owl-core*
       shared-bindings))
       
 (import-old lib-scheme-compat) ;; used in macros
@@ -1638,6 +1674,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 (cons 'stdin  (fd->id 0))
                                                 (cons 'stdout (fd->id 1))
                                                 (cons 'stderr (fd->id 2))
+                                                (cons 'render render) ;; can be removed when all rendering is done via libraries
                                                 (cons '*vm-special-ops* vm-special-ops)
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
                                                 (cons '*owl-prompt* default-prompt)

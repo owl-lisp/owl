@@ -8,9 +8,20 @@
       lets let* or and list
       ilist tuple tuple-case type-case 
       call-with-values do define-library
-      lets/cc)
+      lets/cc
+      call/cc
+      call/cc3
+      call-with-current-continuation
+      )
 
    (begin
+
+      ;; a few usual suspects
+      (define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
+      (define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
+      (define call-with-current-continuation call/cc)
+      (define (i x) x)
+      (define (k x y) x)
 
       (define-syntax λ 
          (syntax-rules () 

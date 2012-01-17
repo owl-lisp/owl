@@ -570,18 +570,22 @@
 								(fail
 									(list "Module definition of" (cadr exp) "failed because" reason)))))
                ((library-definition? exp)
+                  ;; evaluate libraries in a blank *owl-core* env (only primops, specials and define-syntax)
+                  ;; include just loaded *libraries* and *include-paths* from the current one to share them
                   (lets/cc ret
                      ((exps (map cadr (cdr exp))) ;; drop the quotes
                       (name exps (uncons exps False))
                       (fail 
                         (λ (reason) 
-                           (ret (fail (list "Library" name "failed:" reason))))))
-                     (tuple-case (repl-library exps env repl fail) ;; anything else must be incuded explicitly
+                           (ret (fail (list "Library" name "failed:" reason)))))
+                      (lib-env (module-set *owl-core* library-key (module-ref env library-key null)))
+                      (lib-env (module-set lib-env includes-key (module-ref env includes-key null))))
+                     (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                         ((ok library lib-env)
                            (ok ";; Library added" 
                               (module-set env library-key 
                                  (cons (cons name library)
-                                    (module-ref env library-key null)))))
+                                    (module-ref lib-env library-key null))))) ; <- lib-env may also have just loaded dependency libs
                         ((error reason not-env)
                            (fail 
                               (list "Library" name "failed to load because" reason))))))

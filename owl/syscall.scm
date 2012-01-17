@@ -1,8 +1,20 @@
 (define-library (owl syscall)
 
-   (export syscall error interact fork accept-mail wait-mail check-mail exi-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling)
+   (export syscall error interact fork accept-mail wait-mail check-mail exit-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling)
+
+   (import 
+      (owl defmac))
 
    (begin
+
+      ;; a few usual suspects
+            (define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
+                  (define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
+                        (define call-with-current-continuation call/cc)
+                              (define (i x) x)
+                                    (define (k x y) x)
+
+
       (define (syscall op a b)
          (call/cc (λ (resume) (sys resume op a b))))
 
@@ -76,7 +88,7 @@
                      (return-from-wait default spam)
                      ;; no mail, request a thread switch and recurse, at which point all other threads have moved
                      (begin   
-                        (set-ticker 0)
+                        ;(set-ticker 0) ;; FIXME restore this when librarized
                         ;; no bignum math yet at this point
                         (lets ((rounds _ (fx- rounds 1)))
                            (loop (check-mail) spam rounds)))))
