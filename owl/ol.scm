@@ -23,7 +23,6 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
-
 ;; check that (owl defmac) is indeed from last generation
 
 ;; forget old defmac 
@@ -155,7 +154,6 @@
 ;; Finite functions
 
 ,require "owl/ff.scm"
-;(import-old lib-ff)
 (import (owl ff))
 
 ;;; integer stores, include in toplevel 
@@ -168,7 +166,7 @@
 ;;;
 
 ,r "owl/math.scm"   ; basic arithmetic
-(import-old lib-math) 
+(import (owl math))
 
 ,r "owl/list-extra.scm"   ; list ops requiring basic math (length ...)
 (import-old lib-list-extra)
@@ -1211,7 +1209,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-modules
       (list
          lib-generic   ;; use generic functions by defult. must be first to not be overridden.
-         lib-math
          lib-list-extra
          lib-math-extra
          lib-string
@@ -1260,6 +1257,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl unsupported) ;; things we don't have
            (owl list)
            (owl ff)
+           (owl math)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
@@ -1392,7 +1390,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    ; make sure the same bindings are visible that will be at the toplevel
    (import-old lib-generic)
    (import-old lib-suffix)
-   (import-old lib-math)
+   (import (owl math))
    (import-old lib-random)
    (import-old lib-bisect)
    (import-old lib-io start-output-thread)
