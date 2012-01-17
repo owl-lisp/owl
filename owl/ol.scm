@@ -137,7 +137,7 @@
             (cond
                ((eq? obj True)  (ilist 84 114 117 101 tail))
                ((eq? obj False) (ilist 70 97 108 115 101 tail))
-               (else (render self obj tail))))))) ; <- goes to lib-unsupported
+               (else (render self obj tail)))))))
 
 (import (owl boolean))
 
@@ -146,33 +146,17 @@
 
 (define max-object-size #xffff)
 
-
-;;; Misc
-
-(define (not x) 
-   (if x False True))
-
-(define o (λ f g (λ x (f (g x)))))
-
-(define i (λ x x))
-
-(define self i)
-
 ;;; Lists
-
-;; pure list stuff not depending on math or other external things
 
 ,r "owl/list.scm"
 
 (import (owl list))
 
-;;;
-;;; Finite functions
-;;;
+;; Finite functions
 
 ,require "owl/ff.scm"
-(import-old lib-ff)
-
+;(import-old lib-ff)
+(import (owl ff))
 
 ;;; integer stores, include in toplevel 
 
@@ -1206,7 +1190,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; included but not imported by default
 (define shared-extra-libs
    (share-bindings
-      lib-iff          ; (import-old lib-iff) if needed
       lib-args         ; ditto
       lib-parse        ; .
       ;lib-vt          ; .
@@ -1231,7 +1214,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-math
          lib-list-extra
          lib-math-extra
-         lib-ff
          lib-string
          lib-vector
          lib-sort
@@ -1277,6 +1259,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl defmac)      ;; standard toplevel macros
            (owl unsupported) ;; things we don't have
            (owl list)
+           (owl ff)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
@@ -1431,7 +1414,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             vec-ref vec-len vec-fold vec-foldr
             ;print 
             mail interact 
-            ;lib-rlist lib-iff
+            ;lib-rlist 
             iter iterr
             take keep remove 
             start-output-thread thread-controller

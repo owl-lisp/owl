@@ -67,7 +67,7 @@
       render
       )
 
-   (import-old lib-iff iput iget) ;; for char mappings
+   (import (owl iff))
    (import-old lib-unicode)
    (import-old lib-lazy)
 

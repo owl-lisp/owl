@@ -25,10 +25,9 @@
       )
 
    (import-old lib-math)
-   (import-old lib-iff)
+   (import (owl iff))
    (import (owl list))
    (import-old lib-list-extra)
-   (import-old lib-iff)
    (import-old lib-sort)
 
    ;;;

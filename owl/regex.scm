@@ -33,7 +33,7 @@
       )
 
    (import-old lib-parse)
-   (import-old lib-iff iput iget)    ;; for character classes with high code points
+   (import (owl iff))
 
 
    ;;; 

@@ -16,7 +16,7 @@
 
 (define-module lib-math
 
-   (import-old lib-iff)
+   ;(import-old lib-iff)
 
    (export 
       number? fixnum? integer?
