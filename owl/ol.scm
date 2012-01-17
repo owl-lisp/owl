@@ -220,7 +220,7 @@
 
 ,r "owl/vector.scm"
 
-(import-old lib-vector)
+(import (owl vector))
 
 ;;;
 ;;; Functions
@@ -1208,7 +1208,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-modules
       (list
          lib-generic   ;; use generic functions by defult. must be first to not be overridden.
-         lib-vector
          lib-bisect
          lib-random
          lib-fasl
@@ -1258,6 +1257,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl lazy)
            (owl unicode)
            (owl string)
+           (owl vector)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))

@@ -59,7 +59,7 @@
             (render self obj tl))))
 
    (import-old lib-queue)
-   (import-old lib-vector merge-chunks vec-leaves) ; needed TEMPORARIly
+   (import (only (owl vector) merge-chunks vec-leaves))
 
    ;; use type 12 for fds 
 

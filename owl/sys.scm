@@ -16,7 +16,8 @@
       getenv)
 
    (import (owl string))
-   (import-old lib-vector)
+   (import (owl vector))
+
    ;;;
    ;;; Unsafe operations not to be exported
    ;;;
