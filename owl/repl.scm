@@ -432,7 +432,7 @@
                (if exps ;; all of the file parsed to a list of sexps
                   (cons 'begin exps)
                   (fail (list "Failed to parse contents of " path))))
-            (fail "Couldn't find " path "from any of" include-dirs))))
+            (fail (list "Couldn't find " path "from any of" include-dirs)))))
 
    ;; try to load a library based on it's name and current include prefixes if 
    ;; it is required by something being loaded and we don't have it yet
@@ -457,12 +457,13 @@
          (fold
             (λ (env iset) 
                (let ((libp (call/cc (λ (ret) (import-set->library iset libs ret)))))
+                  ; (if (pair? libp) (show "will try autoload for " iset))
                   (if (pair? libp)
                      (let ((env (try-autoload env repl libp)))
                         (if env
                            ;; something loaded by that name, try again (fixme, can cause loop)
                            (library-import env exps fail repl)
-                           (fail (list "I dont' have" libp "and didn't find it from anywhere."))))
+                           (fail (list "I dont' have" libp "and didn't find it from anywhere.")))) ;; <- could show paths tried
                      (env-fold put env libp))))
             env exps)))
 
@@ -575,7 +576,7 @@
                       (fail 
                         (λ (reason) 
                            (ret (fail (list "Library" name "failed:" reason))))))
-                     (tuple-case (repl-library exps env repl fail)
+                     (tuple-case (repl-library exps env repl fail) ;; anything else must be incuded explicitly
                         ((ok library lib-env)
                            (ok ";; Library added" 
                               (module-set env library-key 
