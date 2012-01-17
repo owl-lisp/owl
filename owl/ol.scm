@@ -169,10 +169,10 @@
 (import (owl math))
 
 ,r "owl/list-extra.scm"   ; list ops requiring basic math (length ...)
-(import-old lib-list-extra)
+(import (owl list-extra))
 
 ,r "owl/math-extra.scm"   ; less basic math (factor, ...)
-(import-old lib-math-extra)
+(import (owl math-extra))
 
 ,r "owl/lazy.scm"   ; things computed as needed (remember, no caching, these are not ok for dp)
 (import-old lib-lazy)
@@ -184,7 +184,7 @@
 
 ,r "owl/sort.scm"
 
-(import-old lib-sort)
+(import (owl sort))
 
 
 ;;;
@@ -1209,11 +1209,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-modules
       (list
          lib-generic   ;; use generic functions by defult. must be first to not be overridden.
-         lib-list-extra
-         lib-math-extra
          lib-string
          lib-vector
-         lib-sort
          lib-bisect
          lib-random
          lib-lazy   
@@ -1256,8 +1253,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl defmac)      ;; standard toplevel macros
            (owl unsupported) ;; things we don't have
            (owl list)
+           (owl list-extra)
+           (owl sort)
            (owl ff)
            (owl math)
+           (owl math-extra)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
