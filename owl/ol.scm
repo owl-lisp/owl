@@ -23,6 +23,18 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
+
+;; check that (owl defmac) is indeed from last generation
+
+;; forget old defmac 
+(define *libraries*
+   (keep 
+      (λ (x) (not (equal? (car x) '(owl defmac))))
+      *libraries*))
+
+,r "owl/defmac.scm"
+(import (owl defmac))
+
 ;;;
 ;;; Step 1 - forget almost everything
 ;;;
