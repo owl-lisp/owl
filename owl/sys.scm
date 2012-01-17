@@ -15,7 +15,7 @@
       dir->list
       getenv)
 
-   (import-old lib-string)
+   (import (owl string))
    (import-old lib-vector)
    ;;;
    ;;; Unsafe operations not to be exported

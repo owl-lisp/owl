@@ -193,7 +193,7 @@
 
 ,r "owl/string.scm"
 
-(import-old lib-string)
+(import (owl string))
 
 (define (number->string n base)
    (list->string (render-number n null base)))
@@ -1208,7 +1208,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-modules
       (list
          lib-generic   ;; use generic functions by defult. must be first to not be overridden.
-         lib-string
          lib-vector
          lib-bisect
          lib-random
@@ -1258,6 +1257,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl math-extra)
            (owl lazy)
            (owl unicode)
+           (owl string)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
