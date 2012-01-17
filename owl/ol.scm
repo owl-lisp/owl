@@ -310,7 +310,7 @@
 
 ,r "owl/symbol.scm"
 
-(import-old lib-symbol)
+(import (owl symbol))
 
 
 ;;;
@@ -377,6 +377,7 @@
 
 
 (define eqv? equal?)
+
 ;;;
 ;;; Random access lists
 ;;;
@@ -1226,7 +1227,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-regex
          lib-rlist
          lib-sys
-         lib-symbol
          lib-char
          lib-scheme-compat
          )))
@@ -1257,6 +1257,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl syscall)     ;; calling mcp
            (owl defmac)      ;; standard toplevel macros
            (owl unsupported) ;; things we don't have
+           (owl boolean)
            (owl list)
            (owl list-extra)
            (owl sort)
@@ -1267,6 +1268,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl unicode)
            (owl string)
            (owl vector)
+           (owl function)
+           (owl symbol)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
