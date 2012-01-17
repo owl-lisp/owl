@@ -317,66 +317,81 @@
 ;;; Equality
 ;;;
 
-(define (eq-fields a b eq pos)
-   (cond
-      ((eq? pos 0)
-         True)
-      ((eq (ref a pos) (ref b pos))
-         (lets ((pos x (fx- pos 1)))
-            (eq-fields a b eq pos)))
-      (else False)))
+(define-library (owl equal)
 
-(define (eq-bytes a b pos)
-   (if (eq? (refb a pos) (refb b pos))
-      (if (eq? pos 0)
-         True
-         (receive (fx- pos 1)
-            (λ pos x (eq-bytes a b pos))))
-      False))
+   (import 
+      (owl defmac)
+      (owl string)
+      (owl symbol)
+      (owl math))
 
-;; fixme: ff:s should have a separate equality test too
-;; fixme: byte vector paddings not here
+   (export
+      equal?
+      eqv?)
 
-;; raw brute force object equality
-(define (equal? a b)
-   (cond
-      ((eq? a b)
-         True)
-      ((string? a)
-         (and (string? b) (string-eq? a b)))
-      ((symbol? a) False) ; would have been eq?, because they are interned
-      ((pair? a)
-         (if (pair? b)
-            (and (equal? (car a) (car b)) (equal? (cdr a) (cdr b)))
+   (begin
+      (define (eq-fields a b eq pos)
+         (cond
+            ((eq? pos 0)
+               True)
+            ((eq (ref a pos) (ref b pos))
+               (lets ((pos x (fx- pos 1)))
+                  (eq-fields a b eq pos)))
+            (else False)))
+
+      (define (eq-bytes a b pos)
+         (if (eq? (refb a pos) (refb b pos))
+            (if (eq? pos 0)
+               True
+               (receive (fx- pos 1)
+                  (λ pos x (eq-bytes a b pos))))
             False))
-      (else
-         (let ((sa (size a)))
-            (cond
-               ; a is immediate -> would have been eq?
-               ((eq? sa 0) 
-                  False)
-               ; same size
-               ((eq? sa (size b))
-                  (let ((ta (type a)))
-                     ; check equal types
-                     (if (eq? ta (type b))
-                        (if (eq? (fxband ta 2048) 0)
-                           ; equal ntuples, check fields
-                           (eq-fields a b equal? sa)
-                           ; equal raw objects, check bytes
-                           (lets
-                              ((ea (sizeb a)) ; raw objects may have padding bytes, so recheck the sizes
-                           (eb (sizeb b)))
-                              (if (eq? ea eb)
-                                 (if (eq? ea 0)
-                                    True
-                                    (eq-bytes a b (- ea 1)))
-                                 False)))
-                        False)))
-               (else False))))))
+
+      ;; fixme: ff:s should have a separate equality test too
+      ;; fixme: byte vector paddings not here
+
+      ;; raw brute force object equality
+      (define (equal? a b)
+         (cond
+            ((eq? a b)
+               True)
+            ((string? a)
+               (and (string? b) (string-eq? a b)))
+            ((symbol? a) False) ; would have been eq?, because they are interned
+            ((pair? a)
+               (if (pair? b)
+                  (and (equal? (car a) (car b)) (equal? (cdr a) (cdr b)))
+                  False))
+            (else
+               (let ((sa (size a)))
+                  (cond
+                     ; a is immediate -> would have been eq?
+                     ((eq? sa 0) 
+                        False)
+                     ; same size
+                     ((eq? sa (size b))
+                        (let ((ta (type a)))
+                           ; check equal types
+                           (if (eq? ta (type b))
+                              (if (eq? (fxband ta 2048) 0)
+                                 ; equal ntuples, check fields
+                                 (eq-fields a b equal? sa)
+                                 ; equal raw objects, check bytes
+                                 (lets
+                                    ((ea (sizeb a)) ; raw objects may have padding bytes, so recheck the sizes
+                                 (eb (sizeb b)))
+                                    (if (eq? ea eb)
+                                       (if (eq? ea 0)
+                                          True
+                                          (eq-bytes a b (- ea 1)))
+                                       False)))
+                              False)))
+                     (else False))))))
 
 
-(define eqv? equal?)
+      (define eqv? equal?)))
+
+(import (owl equal))
 
 ;;;
 ;;; Random access lists
@@ -384,14 +399,14 @@
 
 ,r "owl/rlist.scm"
 
-(import-old lib-rlist)
+(import (owl rlist))
 
 
 ;;;
 ;;; Generic versions of the universal common language words
 ;;;
 
-,r "owl/generic.scm"
+;,r "owl/generic.scm"
 
 (define ≡ equal?)
 
@@ -1202,7 +1217,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       lib-parse        ; .
       ;lib-vt          ; .
       ;lib-system      ; 
-      lib-rlist        ;
       lib-mcp
       lib-dump
       lib-checksum
@@ -1217,7 +1231,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define shared-default-modules
    (share-modules
       (list
-         lib-generic   ;; use generic functions by defult. must be first to not be overridden.
+         ;lib-generic   ;; use generic functions by defult. must be first to not be overridden.
          lib-bisect
          lib-random
          lib-fasl
@@ -1225,7 +1239,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-cgen
          lib-io
          lib-regex
-         lib-rlist
          lib-sys
          lib-char
          lib-scheme-compat
@@ -1270,6 +1283,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl vector)
            (owl function)
            (owl symbol)
+           (owl rlist)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
@@ -1400,7 +1414,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define-module lib-usual-suspects
    (export usual-suspects)
    ; make sure the same bindings are visible that will be at the toplevel
-   (import-old lib-generic)
+   ;(import-old lib-generic)
    (import-old lib-suffix)
    (import (owl math))
    (import-old lib-random)
@@ -1424,8 +1438,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             vec-ref vec-len vec-fold vec-foldr
             ;print 
             mail interact 
-            ;lib-rlist 
-            iter iterr
             take keep remove 
             start-output-thread thread-controller
             ;sexp-parser 

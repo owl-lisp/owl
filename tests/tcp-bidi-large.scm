@@ -59,7 +59,7 @@
                       (reqs (- reqs 1)))
                      (if (eof? msg)
                         (io fd rst data left reqs)
-                        (explode msg (io fd rst data (- left (len msg)) reqs))))
+                        (explode msg (io fd rst data (- left (vec-len msg)) reqs))))
                   ;; you have no new email
                   (io fd rst data left reqs))))
          ((and (eq? n 2) (pair? data));; send some data, if left

@@ -71,7 +71,7 @@
 		)
 
    (import (owl lazy))
-	(import-old lib-rlist)
+   (import (owl rlist))
 
    (define enodata False) ;; reason to fail if out of data (progressive readers want this)
 
