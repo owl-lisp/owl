@@ -10,18 +10,12 @@
       call-with-values do define-library
       lets/cc
       call/cc
-      call/cc3
+      call/cc2
       call-with-current-continuation
       )
 
    (begin
 
-      ;; a few usual suspects
-      (define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
-      (define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
-      (define call-with-current-continuation call/cc)
-      (define (i x) x)
-      (define (k x y) x)
 
       (define-syntax λ 
          (syntax-rules () 
@@ -343,5 +337,22 @@
             ((lets/cc (om . nom) . fail)
                (syntax-error "let/cc: continuation name cannot be " (quote (om . nom))))
             ((lets/cc var . body)
-               (call/cc (λ (var) (lets . body))))))))
+               (call/cc (λ (var) (lets . body))))))
 
+
+(define (not x)
+   (if x False True))
+
+(define o (λ f g (λ x (f (g x)))))
+
+(define i (λ x x))
+
+(define self i)
+
+      ;; a few usual suspects
+      (define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
+      (define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
+      (define call-with-current-continuation call/cc)
+      (define (i x) x)
+      (define (k x y) x)
+))

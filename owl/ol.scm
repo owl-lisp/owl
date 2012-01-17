@@ -152,7 +152,7 @@
 
 ,r "owl/list.scm"
 
-(import-old lib-list)
+(import-old lib-list) ;; <- needs to import render from lib-boolean
 
 ;;;
 ;;; Finite functions
