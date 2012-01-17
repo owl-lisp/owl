@@ -17,6 +17,7 @@
       bind
       ff-bind
 		mkt
+      halt
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
       )
@@ -160,5 +161,9 @@
       (define (get-word-size) (sys-prim 8 F F F))
       (define (get-memory-limit) (sys-prim 9 F F F))
       (define (start-seccomp) (sys-prim 10 F F F)) ; not enabled by defa
+
+      ;; stop the vm *immediately* without flushing input or anything else with return value n
+      (define (halt n) (sys-prim 6 n n n))
+
 
 ))

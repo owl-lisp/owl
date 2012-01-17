@@ -23,16 +23,17 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
+;;;
+;;; Step 1 - forget almost everything
+;;;
+
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
-;; inherit only (owl core) and (owl defmac) libraries 
+;; keep only (owl core) and (owl defmac) libraries 
 (define *libraries*
    (keep 
       (λ (lib) (or (equal? (car lib) '(owl core)) (equal? (car lib) '(owl defmac)))) 
       *libraries*))
-
-(print "Inherited libraries:")
-(for-each (λ (x) (show " - " (car x))) *libraries*)
 
 ,r "owl/primop.scm" ;; todo: should be safe to remove soon
 
@@ -40,45 +41,32 @@
 
 (import (owl core)) ; get special forms, primops and define-syntax
 
-(import (owl defmac)) ; get define, define-library, ...
+(import (owl defmac)) ; get define, define-library, import, ...
 
-;; list of dirs from which to try to load files included in libraries
-(define *include-dirs* (list "."))
+(define *include-dirs* (list ".")) ;; now we can (import <libname>) the rest from these dirs
 
-(define *loaded* '()) ;; used by old ,require
-
-(import (owl primop)) ;; grab freshly defined primops 
-
-;; set a few flags which affect compilation or set static information
-(define *owl-version* "0.1.7a")
-;(define *interactive* True) ;; causes file names to be printed when loading them
-
-; The symbol _sans_cps acts as a quote to the CPS transformer. This 
-; allows things like call/cc to be defined as library functions.
-
-(define call/cc 
-   ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
-
+;; a few usual suspects
+(define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
+(define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
 (define call-with-current-continuation call/cc)
-
-(define call/cc2
-   ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
-
 (define (i x) x)
 (define (k x y) x)
 
-;;; syscalls (interacting with the underlying thread controller implemented in lib/threads.scm and lib/mcp.scm)
+(import (owl syscall)) ;; syscalls use call/cc
 
-;,r "owl/syscall.scm"
+(import (owl primop)) ;; not yet sure when these should be included wrt inlining
 
-(import (owl syscall))
+(define *loaded* '()) ;; used by old ,require
 
-(import (owl defmac))
+;; shared parameters
 
-;;; repl exit codes
+(define *owl-version* "0.1.7a")
+(define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
 
-(define exit-seccomp-failed 2)     ;; --seccomp given but cannot do it
 
+;;;
+;;; Step 2 - rebuild everything necessary from the remaining core
+;;;
 
 ;;; rendering 
 
@@ -86,25 +74,24 @@
 (define (render self obj tl)
    (ilist 60 63 63 63 62 tl))
 
-;; stop the vm *immediately* without flushing input or anything else with return value n
-(define (halt n)
-   (sys-prim 6 n n n))
 
 ;; throw an error if some familiar but unsupported Scheme functions are called
-(define-module lib-unsupported
+(define-library (owl unsupported)
+
    (export set! set-car! set-cdr! string-set! vector-set!)
 
-   (define-syntax set!
-      (syntax-rules () 
-         ((set! var val) (error "set! is not supported: " '(set! var val)))))
+   (begin
+      (define-syntax set!
+         (syntax-rules () 
+            ((set! var val) (error "set! is not supported: " '(set! var val)))))
   
-   (define (unsupported name)
-      (error "Mutator not supported: " name))
+      (define (unsupported name)
+         (error "Mutator not supported: " name))
 
-   (define (set-car! pair val) (unsupported "set-car!"))
-   (define (set-cdr! pair val) (unsupported "set-cdr!"))
-   (define (vector-set! vec pos val) (unsupported "vector-set!"))
-   (define (string-set! str pos val) (unsupported "string-set!"))
+      (define (set-car! pair val) (unsupported "set-car!"))
+      (define (set-cdr! pair val) (unsupported "set-cdr!"))
+      (define (vector-set! vec pos val) (unsupported "vector-set!"))
+      (define (string-set! str pos val) (unsupported "string-set!")))
 
 )
 
@@ -1213,7 +1200,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-rlist
          lib-sys
          lib-symbol
-         lib-unsupported
          lib-char
          lib-scheme-compat
          )))
@@ -1240,9 +1226,10 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define initial-environment
    (bind-toplevel
       (library-import initial-environment-sans-macros
-         '((owl primop)   ;; primop wrappers
-           (owl syscall)  ;; calling mcp
-           (owl defmac)   ;; standard toplevel macros
+         '((owl primop)      ;; primop wrappers
+           (owl syscall)     ;; calling mcp
+           (owl defmac)      ;; standard toplevel macros
+           (owl unsupported) ;; things we don't have
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
@@ -1683,6 +1670,10 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       ((equal? str "some") usual-suspects)
       ((equal? str "all") all)
       (else (show "Bad native selection: " str))))
+
+;;;
+;;; Step 3 - profit
+;;;
 
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"
