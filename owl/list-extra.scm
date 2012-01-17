@@ -15,6 +15,8 @@
 
    ;; todo: these base list ops  should use fixnum math most of the time
 
+   (import (owl list))
+
 	(define (lref lst pos)
 		(cond
 			((null? lst) (error "lref: out of list" pos))

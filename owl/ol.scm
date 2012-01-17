@@ -164,7 +164,7 @@
 
 ,r "owl/list.scm"
 
-(import-old lib-list) ;; <- needs to import render from lib-boolean
+(import (owl list))
 
 ;;;
 ;;; Finite functions
@@ -1212,7 +1212,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;lib-vt          ; .
       ;lib-system      ; 
       lib-rlist        ;
-      lib-list         ;
       lib-unicode      ;
       lib-mcp
       lib-dump
@@ -1229,7 +1228,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-modules
       (list
          lib-generic   ;; use generic functions by defult. must be first to not be overridden.
-         lib-list
          lib-math
          lib-list-extra
          lib-math-extra
@@ -1278,6 +1276,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl syscall)     ;; calling mcp
            (owl defmac)      ;; standard toplevel macros
            (owl unsupported) ;; things we don't have
+           (owl list)
            )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
