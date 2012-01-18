@@ -247,22 +247,18 @@
 (define (string->integer str)
    (string->integer/base str 10))
 
-
 (import (owl intern))
 
-
-
-;;;
-;;; The eof object
-;;;
-
-(define-module lib-eof
+(define-library (owl eof) ;; these trivial things could be combined to a base lib now that they don't have a renderer
 
    (export eof?)
 
-   (define (eof? x) (eq? (type x) 34)))
+   (import (owl defmac))
 
-(import-old lib-eof)
+   (begin
+      (define (eof? x) (eq? (type x) 34))))
+
+(import (owl eof))
 
 
 
@@ -271,9 +267,10 @@
 ;;; IO
 ;;;
 
-,load "owl/io.scm"
 
-(import-old lib-io)
+; ,load "owl/io.scm"
+
+(import (owl io))
 
 
 ;;;
@@ -954,7 +951,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-fasl
          lib-suffix
          lib-cgen
-         lib-io
          lib-regex
          lib-sys
          lib-char
@@ -1001,6 +997,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl function)
            (owl symbol)
            (owl rlist)
+           (owl io)
            (owl tuple))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
@@ -1136,7 +1133,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (import (owl math))
    (import-old lib-random)
    (import-old lib-bisect)
-   (import-old lib-io start-output-thread)
+   (import (only (owl io) start-output-thread))
    (import-old lib-threads thread-controller)
    (import-old lib-sexp)
    ; commonly needed functions 

@@ -19,14 +19,7 @@
    (export thread-controller wait)
 
    (import (owl queue))
-
-	;; fixme: wait should use fixnum math to be as light as possible
-	(define (wait n)
-		(if (eq? n 0)
-			n
-			(begin 
-				(set-ticker 0)
-				(wait (- n 1)))))
+   (import (owl io))
 
    (define (bad-syscall id a b c todo done state)
       (system-println "mcp: got bad syscall")

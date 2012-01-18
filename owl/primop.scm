@@ -15,6 +15,7 @@
       ff-bind
 		mkt
       halt
+      wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
       )
@@ -61,6 +62,14 @@
       (define ref         (func '(3 47 4 5 6 24 6)))
       (define refb        (func '(3 48 4 5 6 24 6)))
       (define ff-toggle   (func '(2 46 4 5 24 5)))
+
+      ;; make thread sleep for a few thread scheduler rounds
+      (define (wait n) 
+         (if (eq? n 0)
+            n
+            (lets ((n _ (fx- n 1)))
+               (set-ticker 0)
+               (wait n))))
 
       ;; from cps
       (define (special-bind-primop? op)
@@ -146,6 +155,5 @@
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
-
 
 ))
