@@ -343,60 +343,69 @@
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
 
-(define-module lib-scheme-compat
+;; add these to proper places later
+(define-library (scheme misc)
    (export 
       member memq memv 
       assoc assv assq
       apply rationalize)
 
-   ;; scheme member functions don't follow the argument conventions of other functions 
-   (define (member x lst)
-      (cond
-         ((null? lst) False)
-         ((equal? x (car lst)) lst)
-         (else (member x (cdr lst)))))
+   (import 
+      (owl defmac)
+      (owl equal)
+      (owl list)
+      (only (owl syscall) error)
+      (owl math))
 
-   (define memv member)
+   (begin
+      ;; scheme member functions don't follow the argument conventions of other functions 
+      (define (member x lst)
+         (cond
+            ((null? lst) False)
+            ((equal? x (car lst)) lst)
+            (else (member x (cdr lst)))))
 
-   (define (memq x lst)
-      (cond
-         ((null? lst) False)
-         ((eq? x (car lst)) lst)
-         (else (memq x (cdr lst)))))
+      (define memv member)
 
-   (define (assq k l)
-      (cond
-         ((null? l) #f)
-         ((eq? (caar l) k) (car l))
-         (else (assq k (cdr l)))))
-   
-   (define (assv k l)
-      (cond
-         ((null? l) #f)
-         ((equal? (caar l) k) (car l))
-         (else (assv k (cdr l)))))
+      (define (memq x lst)
+         (cond
+            ((null? lst) False)
+            ((eq? x (car lst)) lst)
+            (else (memq x (cdr lst)))))
 
-   (define assoc assv)
+      (define (assq k l)
+         (cond
+            ((null? l) #f)
+            ((eq? (caar l) k) (car l))
+            (else (assq k (cdr l)))))
+      
+      (define (assv k l)
+         (cond
+            ((null? l) #f)
+            ((equal? (caar l) k) (car l))
+            (else (assv k (cdr l)))))
 
-   ;; a silly non-primitive apply
-   (define (apply func l)
-      (if (null? l)
-         (func)
-         (lets ((a l l)) (if (null? l) (func a)
-         (lets ((b l l)) (if (null? l) (func a b)
-         (lets ((c l l)) (if (null? l) (func a b c)
-         (lets ((d l l)) (if (null? l) (func a b c d)
-         (lets ((e l l)) (if (null? l) (func a b c d e)
-         (lets ((f l l)) (if (null? l) (func a b c d e f)
-            (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
+      (define assoc assv)
 
-   ;; owl doesn't have inexact numbers, so any argument
-   ;; coming in will always be rational differing by 0
-   (define (rationalize n max-delta) n)
+      ;; a silly non-primitive apply
+      (define (apply func l)
+         (if (null? l)
+            (func)
+            (lets ((a l l)) (if (null? l) (func a)
+            (lets ((b l l)) (if (null? l) (func a b)
+            (lets ((c l l)) (if (null? l) (func a b c)
+            (lets ((d l l)) (if (null? l) (func a b c d)
+            (lets ((e l l)) (if (null? l) (func a b c d e)
+            (lets ((f l l)) (if (null? l) (func a b c d e f)
+               (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
 
-)
+      ;; owl doesn't have inexact numbers, so any argument
+      ;; coming in will always be rational differing by 0
+      (define (rationalize n max-delta) n)
 
-(import-old lib-scheme-compat)
+   ))
+
+(import (scheme misc))
 
 
 ,load "owl/env.scm"
@@ -945,13 +954,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       (list
          lib-bisect
          lib-random
-         lib-fasl
          lib-suffix
          lib-cgen
          lib-regex
          lib-sys
-         lib-char
-         lib-scheme-compat)))
+         lib-char)))
 
 (define shared-bindings
    (foldr append null 
@@ -966,8 +973,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       *owl-core*
       shared-bindings))
       
-(import-old lib-scheme-compat) ;; used in macros
-
 ,load "owl/repl.scm"
 
 (import-old lib-repl)
@@ -993,10 +998,12 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl vector)
            (owl function)
            (owl symbol)
+           (owl fasl)
            (owl rlist)
            (owl io)
            ;(owl suffix)
-           (owl tuple))
+           (owl tuple)
+           (scheme misc))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
 

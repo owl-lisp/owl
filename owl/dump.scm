@@ -25,7 +25,7 @@
       dump-fasl 
       load-fasl)
 
-   (import-old lib-fasl)
+   (import (owl fasl))
    (import (owl lazy))
    (import-old lib-cgen)
    (import (only (owl unicode) utf8-decode))

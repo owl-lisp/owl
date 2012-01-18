@@ -13,8 +13,8 @@
 
    (export assemble-code inst->op)
 
-   (import-old lib-register allocate-registers n-registers)
-   (import-old lib-memuse count-allocs)
+   (import (only (owl register) allocate-registers n-registers))
+   ;(import-old lib-memuse count-allocs)
 
    (import (owl primop))
 
@@ -286,7 +286,8 @@
          ((code arity insts)
             (lets
                ((insts (allocate-registers insts))
-                (insts (count-allocs insts)))
+                ;(insts (count-allocs insts))
+                )
                ;(show "optimized code is " insts)
                (if (not insts)
                   (error "failed to allocate registers" "")
