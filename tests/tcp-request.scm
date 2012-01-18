@@ -15,7 +15,7 @@
 
 (print "Opened socket")
 
-(define message (render render "hello there" null))
+(define message (render "hello there" null))
 
 (fork-server 'socket-thread
    (lambda ()

@@ -14,7 +14,7 @@
 (define sock (car sp))
 (define port (cdr sp))
 
-(define message (render render "hello there" null))
+(define message (render "hello there" null))
 
 (fork-server 'socket-thread
    (lambda ()

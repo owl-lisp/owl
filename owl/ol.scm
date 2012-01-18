@@ -445,9 +445,6 @@
    (string->integer/base str 10))
 
 
-,r "owl/render.scm"
-(import (owl render))
-
 
 
 ;;;
@@ -1270,8 +1267,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl function)
            (owl symbol)
            (owl rlist)
-           (owl tuple)
-           (owl render))
+           (owl tuple))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
 
@@ -1631,6 +1627,9 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (display "> ")
    (flush-port stdout))
    
+,r "owl/print.scm"
+(import (owl print)) ; <- for testing a new toplevel render
+
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
       (lets

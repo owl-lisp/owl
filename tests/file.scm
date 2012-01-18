@@ -2,7 +2,7 @@
 
 (lets
    ((port (open-output-file "tmp/test")))
-   (mail port (render render "Hello, world!" null))
+   (mail port (render "Hello, world!" null))
    (close-port port))
 
 (lets
