@@ -192,31 +192,17 @@
 
 (import (owl symbol))
 
-; ,r "owl/tuple.scm"
 (import (owl tuple))
 
-; ,r "owl/function.scm"
 (import (owl function))
 
-; ,r "owl/equal.scm"
 (import (owl equal))
 
-; ,r "owl/rlist.scm"
 (import (owl rlist))
 
-; ,r "owl/print.scm"
-(import (owl print)) ; <- for testing a new toplevel render
-
-,load "owl/queue.scm"
-
-;;;
-;;; Equality
-;;;
-
-
-;;;
-;;; Random access lists
-;;;
+(import (owl print))
+ 
+(import (only (owl queue))) ; just load it
 
 
 ;; todo: move string->integer elsewhere
@@ -262,19 +248,7 @@
    (string->integer/base str 10))
 
 
-
-
-;;;
-;;; Tuples
-;;;
-
-
-
-   
-
-,load "owl/intern.scm"
-
-(import-old lib-intern)
+(import (owl intern))
 
 
 
