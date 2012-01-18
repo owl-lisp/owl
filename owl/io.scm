@@ -41,7 +41,7 @@
       vector->file
       write-vector            ;; vec port
       port->byte-stream       ;; fd → (byte ...) | thunk 
-      render fd? 
+      fd? 
       fd->id id->fd
 
       ;; temporary exports
@@ -51,12 +51,6 @@
    (define (fd? x) (eq? (type x) 98)) 
    (define (fd->id fd) (cast fd 12)) 
    (define (id->fd id) (cast id 0))
-
-   (define render
-      (λ (self obj tl)
-         (if (fd? obj)
-            (cons 80 (render-number (id->fd obj) tl 10))
-            (render self obj tl))))
 
    (import-old lib-queue)
    (import (only (owl vector) merge-chunks vec-leaves))
@@ -78,7 +72,7 @@
          ((debug . stuff)
             (system-stderr
                (list->vector
-                  (foldr renderer '(10) (list "IO: " . stuff)))))))
+                  (foldr render '(10) (list "IO: " . stuff)))))))
 
    (define-syntax debug
       (syntax-rules ()

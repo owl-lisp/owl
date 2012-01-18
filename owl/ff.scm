@@ -27,14 +27,13 @@
       ff-singleton? ; ff → bool (has just one key?)
       list->ff ff->list 
       empty-ff   ; could become Empty later
-      render
       
       getf       ; (getf ff key) == (get ff key False)
       )
 
    (import 
       (owl defmac)
-      (owl list)) ;; for use and render
+      (owl list))
 
    (begin
       ;
@@ -448,12 +447,6 @@
       ;; todo: placeholder ff-diff
       (define (ff-diff a b)
          (ff-fold (lambda (a b _) (if (get a b False) (del a b) a)) a b))
-
-      (define render
-         (λ (self obj tl)
-            (if (ff? obj)
-               (self self (cons "FF" (ff->list obj)) tl)
-               (render self obj tl))))
 
       ;; just one value? == is the root-node a black key-value pair
       (define (ff-singleton? ff)

@@ -46,11 +46,11 @@
                      (append (map (λ (x) 32) (iota 0 1 ind))
                         (format-error (car lst) ind)))))
 				((pair? lst)
-               (render render (car lst)
+               (render (car lst)
                   (cons 32
                      (format-error (cdr lst) ind))))
 				((null? lst) '(10))
-				(else (render render lst '(10)))))
+				(else (render lst '(10)))))
       (mail error-port
          (format-error lst 0)))
 
@@ -463,7 +463,10 @@
                         (if env
                            ;; something loaded by that name, try again (fixme, can cause loop)
                            (library-import env exps fail repl)
-                           (fail (list "I dont' have" libp "and didn't find it from anywhere.")))) ;; <- could show paths tried
+                           (fail    
+                              (list "I dont' have" libp 
+                                 "and didn't find" (library-name->path iset) 
+                                 "from" (module-ref env includes-key null) ".")))) ;; <- could show paths tried
                      (env-fold put env libp))))
             env exps)))
 

@@ -14,9 +14,6 @@
    ;;   'short -> -x
    ;;   'long  -> --xylitol
 
-   (define (renderer a b) 
-      (render render a b))
-
    ;; str (rule-ff ..) → False | rule-ff
 	(define (select-rule string rules)
 		(if (null? rules) 
@@ -38,7 +35,7 @@
 			False))
 
 	(define (fail fools)
-      (mail stderr (foldr renderer '(10) fools))
+      (mail stderr (foldr render '(10) fools))
 		False)
 
 	(define blank "nan") ; <- unique because allocated here
@@ -58,7 +55,7 @@
                   ok?
                   (begin
                      (mail stderr 
-                        (foldr (λ (a b) (render render a b)) '(10) 
+                        (foldr render '(10) 
                            (list "mandatory option not given: " (get rule 'long "(missing)"))))
                      False))
                ok?))
@@ -195,8 +192,7 @@
          (foldr 
             (λ (rule tl) 
                (foldr 
-                  (lambda (o t) 
-                     (render render o t))
+                  render
                   tl
                   (list "  " 
                      (let ((short (getf rule 'short)))

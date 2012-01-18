@@ -22,7 +22,6 @@
 		rlist->list ; O(n)
 		list->rlist ; O(n log n), temp
 		rlist			; (rlist ...) -> rl
-		render
 		) 
 		
 		; *   (equal? rl rl') = True, but not necessarily (eq? rl rl')
@@ -38,8 +37,7 @@
       (owl list)
       (owl math)
       (owl equal)
-      (only (owl syscall) error)
-      (only (owl symbol) render))
+      (only (owl syscall) error))
 
    (begin
       (define rnull? null?)
@@ -247,13 +245,6 @@
             ((rlist a . as) 
                (rcons a (rlist . as)))))
 
-      ;; todo: start switching constructors to uppercase syntax at some point
-      ;; todo: start adding generic extensible parsers, so that (RList 1 2 3 4) can be added here
-      (define render
-         (lambda (self ob tl)
-            (if (teq? ob (alloc 10)) ;; nonempty rlist
-               (self self (cons "RList" (rlist->list ob)) tl)
-               (render self ob tl))))
 
 ))
 

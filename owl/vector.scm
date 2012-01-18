@@ -80,7 +80,6 @@
       vec-leaves
       vec-cat             ;  vec x vec → vec
       vec-rev
-      render
       )
 
    (import 
@@ -89,9 +88,7 @@
       (owl list)
       (owl list-extra)
       (only (owl syscall) error)
-      (owl math)
-      (only (owl string) render) ;; inherit for complete chain
-      )
+      (owl math))
 
    (begin
       (define (byte-vector? x) (eq? (fxband (type x)     #b100011111000) 2136))
@@ -641,16 +638,6 @@
          (syntax-rules ()
             ((vector . things)
                (list->vector (list . things)))))
-
-      (define render
-         (λ (self obj tl)
-            (cond
-               ((byte-vector? obj)
-                  (self self (cons "BVector" (vector->list obj)) tl))
-               ((vector? obj)
-                  (self self (cons "Vector" (vector->list obj)) tl))
-               (else
-                  (render self obj tl)))))
 
       (define vector-length vec-len)
       (define vector-ref vec-ref)

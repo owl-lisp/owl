@@ -222,47 +222,6 @@
 
 (import (owl vector))
 
-;;;
-;;; Functions
-;;;
-
-(define-library (owl function)
-
-   (export function? procedure? bytecode? render)
-
-   (import
-      (owl defmac)
-      (only (owl ff) ff?)
-      (only (owl vector) render)
-      (only (owl syscall) interact))
-
-   (begin
-      ;; raw bytecode vector, 1-level (proc) or 2-level (clos) function
-      (define (function? x) (eq? #b110 (fxband (type x)  #b11111110)))
-
-      ;; something executable? being a function or a finite function
-      (define (procedure? obj) 
-         (or (function? obj) 
-             (ff? obj) 
-             (eq? obj False)))
-
-      ;                                                               .-> ignore padding byte count
-      ;                            .-> raw data object              .-+
-      (define (bytecode? x) (eq? #b100000000110 (fxband (type x) #b100011111110))) 
-      ;                             '------+
-      ;                                    '-> 8-bit type/padding info
-
-      (define render 
-         (λ (self obj tl)
-            (if (function? obj)
-               (ilist 35 60
-                  (self self
-                     (let ((name (interact 'intern (tuple 'get-name obj))))
-                        (or name "function"))
-                     (cons 62 tl)))
-               (render self obj tl))))))
-
-(import (owl function))
 
 
 ;;;
@@ -312,95 +271,30 @@
 
 (import (owl symbol))
 
+,r "owl/tuple.scm"
+(import (owl tuple))
+
+,r "owl/function.scm"
+(import (owl function))
+
+,r "owl/equal.scm"
+(import (owl equal))
+
+,r "owl/rlist.scm"
+(import (owl rlist))
+
+,r "owl/print.scm"
+(import (owl print)) ; <- for testing a new toplevel render
 
 ;;;
 ;;; Equality
 ;;;
 
-(define-library (owl equal)
-
-   (import 
-      (owl defmac)
-      (owl string)
-      (owl symbol)
-      (owl math))
-
-   (export
-      equal?
-      eqv?)
-
-   (begin
-      (define (eq-fields a b eq pos)
-         (cond
-            ((eq? pos 0)
-               True)
-            ((eq (ref a pos) (ref b pos))
-               (lets ((pos x (fx- pos 1)))
-                  (eq-fields a b eq pos)))
-            (else False)))
-
-      (define (eq-bytes a b pos)
-         (if (eq? (refb a pos) (refb b pos))
-            (if (eq? pos 0)
-               True
-               (receive (fx- pos 1)
-                  (λ pos x (eq-bytes a b pos))))
-            False))
-
-      ;; fixme: ff:s should have a separate equality test too
-      ;; fixme: byte vector paddings not here
-
-      ;; raw brute force object equality
-      (define (equal? a b)
-         (cond
-            ((eq? a b)
-               True)
-            ((string? a)
-               (and (string? b) (string-eq? a b)))
-            ((symbol? a) False) ; would have been eq?, because they are interned
-            ((pair? a)
-               (if (pair? b)
-                  (and (equal? (car a) (car b)) (equal? (cdr a) (cdr b)))
-                  False))
-            (else
-               (let ((sa (size a)))
-                  (cond
-                     ; a is immediate -> would have been eq?
-                     ((eq? sa 0) 
-                        False)
-                     ; same size
-                     ((eq? sa (size b))
-                        (let ((ta (type a)))
-                           ; check equal types
-                           (if (eq? ta (type b))
-                              (if (eq? (fxband ta 2048) 0)
-                                 ; equal ntuples, check fields
-                                 (eq-fields a b equal? sa)
-                                 ; equal raw objects, check bytes
-                                 (lets
-                                    ((ea (sizeb a)) ; raw objects may have padding bytes, so recheck the sizes
-                                 (eb (sizeb b)))
-                                    (if (eq? ea eb)
-                                       (if (eq? ea 0)
-                                          True
-                                          (eq-bytes a b (- ea 1)))
-                                       False)))
-                              False)))
-                     (else False))))))
-
-      (define ≡ equal?)
-
-      (define eqv? equal?)))
-
-(import (owl equal))
 
 ;;;
 ;;; Random access lists
 ;;;
 
-,r "owl/rlist.scm"
-
-(import (owl rlist))
 
 ;; todo: move string->integer elsewhere
 ;;; string base -> number | False
@@ -451,50 +345,7 @@
 ;;; Tuples
 ;;;
 
-(define-library (owl tuple)
 
-   (export tuple? render
-      list->tuple tuple->list
-      read-tuple)
-
-   (import
-      (owl defmac)
-      (owl list-extra)
-      (owl list)
-      (owl math)
-      (only (owl syscall) error)
-      (only (owl rlist) render))
-
-   (begin
-      (define (tuple? x) (eq? (type x) 22))
-
-      (define (list->tuple lst)
-         (let ((l (length lst)))
-            (if (teq? l fix+)
-               (listuple 2 l lst)
-               (error "list does not fit a tuple: length " l))))
-
-      (define (read-tuple tuple pos lst)
-         (if (= pos 0)
-            lst
-            (read-tuple tuple (- pos 1)
-               (cons (ref tuple pos) lst))))
-
-      (define (tuple->list tuple)
-         (read-tuple tuple (size tuple) null))
-
-      (define render
-         (λ (self obj tl)
-            (if (tuple? obj)
-               (ilist 40 84 117 112 108 101 32
-                  (self self (ref obj 1)
-                     (fold
-                        (λ (tl pos) (cons 32 (self self (ref obj pos) tl)))
-                        (cons 41 tl)
-                        (iota (size obj) -1 1))))
-               (render self obj tl))))))
-
-(import (owl tuple))
 
    
 
@@ -511,16 +362,9 @@
 
 (define-module lib-eof
 
-   (export eof? render)
+   (export eof?)
 
-   (define (eof? x) (eq? (type x) 34))
-
-   ;; eof
-   (define render
-      (λ (self obj tl)
-         (if (eof? obj)
-            (ilist 69 111 102 tl)
-            (render self obj tl)))))
+   (define (eof? x) (eq? (type x) 34)))
 
 (import-old lib-eof)
 
@@ -540,36 +384,32 @@
 ;;; Common object serializetion 
 ;;;
 
-;; old foldable api wrapper
-(define (renderer o tl) 
-   (render render o tl))
-
 
 (define (verb obj) 
-   (render render obj null))
+   (render obj null))
 
 (define (print-to obj to) 
-   (mail to (render render obj '(10))))
+   (mail to (render obj '(10))))
 
 (define (display-to obj to) 
-   (mail to (render render obj '())))
+   (mail to (render obj '())))
 
 (define (display x) 
    (display-to x stdout))
 
 (define (print obj)
    (mail stdout 
-      (render render obj '(10))))
+      (render obj '(10))))
 
 ; note, print* and show are both atomic
 ; for some reason a 2-arg show is still used although 
 ; it would make more sense just to make it a n-ary macro
 
 (define (print* lst)
-   (mail stdout (foldr renderer '(10) lst)))
+   (mail stdout (foldr render '(10) lst)))
 
 (define (print*-to lst to)
-   (mail to (foldr renderer '(10) lst)))
+   (mail to (foldr render '(10) lst)))
 
 (define-syntax output
    (syntax-rules ()
@@ -577,7 +417,7 @@
          (print* (list stuff)))))
 
 (define (show a b)
-   (mail stdout (render render a (render render b '(10)))))
+   (mail stdout (render a (render b '(10)))))
 
 
 
@@ -1188,6 +1028,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       *libraries*      ;; all currently loaded libraries
       ))
 
+
 ,r "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
 ,r "owl/checksum.scm" ; checksums for (lazy) lists of numbers
 ,r "owl/queue.scm"    ; double-ended lists
@@ -1197,9 +1038,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ,r "owl/regex.scm"    ; regular expressions
 ,r "owl/sys.scm"      ; more operating system interface
 ;,r "owl/sat.scm"      ; naive SAT solving
-
-;,r "owl/ppm.scm"      ; support for reading ppm image files
-;,r "owl/grale.scm"    ; simple 8-bit graphics if grale available (not in use until grale can use internal programs)
 
 ;; included but not imported by default
 (define shared-extra-libs
@@ -1348,7 +1186,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((error cont reason info)
             ; note, these could easily be made resumable by storing cont
             (mail stderr
-               (foldr renderer '(10) (list "error: " reason info)))
+               (foldr render '(10) (list "error: " reason info)))
             fail-val)
          (else is bad ;; should not happen
             (print-to (list "que? " bad) stderr)
@@ -1627,8 +1465,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (display "> ")
    (flush-port stdout))
    
-,r "owl/print.scm"
-(import (owl print)) ; <- for testing a new toplevel render
 
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes

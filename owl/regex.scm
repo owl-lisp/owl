@@ -50,13 +50,13 @@
    (define (fini ls buff ms cont)
       (cond
          ((null? ls) (cont ls buff ms))
-         ((pair? ls) False)
+         ((pair? ls) #false)
          (else (fini (ls) buff ms cont))))
 
    ;; ., match anyting (note, POSIX requires this to not match some value(s?))
    (define (dot ls buff ms cont)
       (cond
-         ((null? ls) False)
+         ((null? ls) #false)
          ((pair? ls) 
             (cont (cdr ls) (cons (car ls) buff) ms))
          (else (dot (ls) buff ms cont))))
@@ -65,11 +65,11 @@
    (define (imm cp) ;; match match a specific (fixnum) code point
       (define (accept ls buff ms cont)
          (cond
-            ((null? ls) False)
+            ((null? ls) #false)
             ((pair? ls)
                (if (eq? (car ls) cp)
                   (cont (cdr ls) (cons cp buff) ms)
-                  False))
+                  #false))
             (else 
                (accept (ls) buff ms cont))))
       (if (teq? cp fix+)
@@ -79,11 +79,11 @@
    (define (pred fn) ;; match match a specific (fixnum) code point
       (define (accept ls buff ms cont)
          (cond
-            ((null? ls) False)
+            ((null? ls) #false)
             ((pair? ls)
                (if (fn (car ls))
                   (cont (cdr ls) (cons (car ls) buff) ms)
-                  False))
+                  #false))
             (else 
                (accept (ls) buff ms cont))))
       accept)
@@ -92,11 +92,11 @@
    (define (accept-ff ff)
       (λ (ls buff ms cont)
          (cond
-            ((null? ls) False)
+            ((null? ls) #false)
             ((pair? ls)
-               (if (get ff (car ls) False)
+               (if (get ff (car ls) #false)
                   (cont (cdr ls) (cons (car ls) buff) ms)
-                  False))
+                  #false))
             (else
                ((accept-ff ff) (ls) buff ms cont)))))
 
@@ -104,11 +104,11 @@
    (define (accept-iff iff)
       (λ (ls buff ms cont)
          (cond
-            ((null? ls) False)
+            ((null? ls) #false)
             ((pair? ls)
-               (if (iget iff (car ls) False)
+               (if (iget iff (car ls) #false)
                   (cont (cdr ls) (cons (car ls) buff) ms)
-                  False))
+                  #false))
             (else
                ((accept-iff iff) (ls) buff ms cont)))))
 
@@ -116,23 +116,23 @@
    (define (reject-iff iff)
       (λ (ls buff ms cont)
          (cond
-            ((null? ls) False)
+            ((null? ls) #false)
             ((pair? ls)
-               (if (iget iff (car ls) False)
-                  False
+               (if (iget iff (car ls) #false)
+                  #false
                   (cont (cdr ls) (cons (car ls) buff) ms)))
             (else
                ((reject-iff iff) (ls) buff ms cont)))))
 
-   ;; (n ..) → ff of n → True | False, if one is outside of fixnum range
+   ;; (n ..) → ff of n → #true | #false, if one is outside of fixnum range
    (define (make-ff cs)
       (call/cc
          (λ (ret)
-            (for False cs
+            (for #false cs
                (λ (ff n) 
                   (if (teq? n fix+)
-                     (put ff n True)
-                     (ret False))))))) ;; code point outside of fixnum range
+                     (put ff n #true)
+                     (ret #false))))))) ;; code point outside of fixnum range
 
    ;; todo: large ranges would be more efficiently matched with something like interval trees
    (define (make-char-class complement? cs)
@@ -142,16 +142,16 @@
          (complement? 
             ;; always use an iff for now in [^...]
             (reject-iff
-               (for False cs
-                  (λ (iff val) (iput iff val True)))))
+               (for #false cs
+                  (λ (iff val) (iput iff val #true)))))
          ((null? (cdr cs))
             (imm (car cs)))
          ((make-ff cs) =>
             (λ (ff) (accept-ff ff)))
          (else 
             (accept-iff    
-               (for False cs
-                  (λ (iff val) (iput iff val True)))))))
+               (for #false cs
+                  (λ (iff val) (iput iff val #true)))))))
 
    ;; <ra>|<rb>
    (define (rex-or ra rb)  
@@ -296,7 +296,7 @@
    (define (lookahead-not rex)
       (λ (ls buff ms cont)
          (if (rex ls buff ms (λ (a b c) T))
-            False
+            #false
             (cont ls buff ms))))
 
    ;; todo: lookback requires storing the unmatched part, which is not there yet when matcher starts from the middle of data
@@ -311,7 +311,7 @@
             (cond
                ((rex try rev ms (λ (ls buff ms) (null? ls)))
                   (cont ls buff ms))
-               ((null? rev) False)
+               ((null? rev) #false)
                (else 
                   (lets ((char rev rev))
                      (loop rev (cons char try))))))))
@@ -322,17 +322,17 @@
          (let loop ((rev buff) (try null))
             (cond
                ((rex try rev ms (λ (ls buff ms) T))
-                  False)
+                  #false)
                ((null? rev)
                   (cont ls buff ms))
                (else 
                   (lets ((char rev rev))
                      (loop rev (cons char try))))))))
 
-   ;; ((a . bs) ...) n → bs | False
+   ;; ((a . bs) ...) n → bs | #false
    (define (ranges-ref ls n)
       (if (null? ls)
-         False
+         #false
          (let ((node (car ls)))
             (if (eq? n (car node))
                (cdr node)
@@ -342,7 +342,7 @@
    (define (match-list ls val buff)
       (cond
          ((null? val) (values ls buff))
-         ((null? ls) (values False False))
+         ((null? ls) (values #false #false))
          ((pair? ls)
             (lets ((next val val))
                (cond
@@ -351,9 +351,9 @@
                   ((teq? next int+) ;; try = for high code points
                      (if (= next (car ls))
                         (match-list (cdr ls) val (cons next buff))
-                        (values False False)))
+                        (values #false #false)))
                   (else ;; no match
-                     (values False False)))))
+                     (values #false #false)))))
          (else
             (match-list (ls) val buff))))
       
@@ -362,8 +362,8 @@
          (let ((val (ranges-ref (reverse ms) n)))
             (if val
                (lets ((ls buff (match-list ls val buff)))
-                  (if buff (cont ls buff ms) False))
-               False))))
+                  (if buff (cont ls buff ms) #false))
+               #false))))
 
    ;;;
    ;;; Running the regexen
@@ -379,16 +379,16 @@
 
    (define (null-ll? ll)
       (cond
-         ((null? ll) True)
-         ((pair? ll) False)
+         ((null? ll) #true)
+         ((pair? ll) #false)
          (else (null-ll? (ll)))))
 
    ;; rex str → bool (matches some prefix of ll)
    (define (rex-match-prefix? rex ll)
       (rex ll null blank-ranges
-         (λ (ls buff ms) True)))
+         (λ (ls buff ms) #true)))
    
-   ;; rex ll → False | #(ls buff ms), for replacing
+   ;; rex ll → #false | #(ls buff ms), for replacing
    (define (rex-match-prefix rex ll)
       (rex ll null blank-ranges
          (λ (ls buff ms) (tuple ls buff ms))))
@@ -400,7 +400,7 @@
             (rex-match-prefix? rex ll))
          ((pair? ll)
             (if (rex-match-prefix? rex ll)
-               True
+               #true
                (rex-match-anywhere? rex (cdr ll))))
          (else (rex-match-anywhere? rex (ll)))))
 
@@ -420,7 +420,7 @@
          (λ (target)
             (rex-match-anywhere? rex (iter target)))))
   
-   ;; another half-sensible but at the moment useful thing would be (m/<regex>/ iterable) -> False | (head . tail)
+   ;; another half-sensible but at the moment useful thing would be (m/<regex>/ iterable) -> #false | (head . tail)
    (define (make-copy-matcher rex start?)
       (if start?
          (λ (target)
@@ -447,7 +447,7 @@
                         (cons (runes->string (reverse out)) ;; non-matched up to now
                            (if start?
                               (list ls)
-                              (rex-cut rex ls False null)))))
+                              (rex-cut rex ls #false null)))))
                   (start?
                      (list ll))
                   (else
@@ -548,7 +548,7 @@
 
    ;; maybe get a ?
    (define get-altp 
-      (get-either (get-imm 63) (get-epsilon False)))
+      (get-either (get-imm 63) (get-epsilon #false)))
 
    ;; → (rex → rex')
    (define get-star 
@@ -652,7 +652,7 @@
          ((> x max) F)
          (else T)))
 
-   ;; byte → False | hex-value
+   ;; byte → #false | hex-value
    (define (char->hex b)
       (cond
          ((between? 48 b 57)  (- b 48))
@@ -726,7 +726,7 @@
    (define get-maybe-caret
       (get-either
          (get-imm 94)  ;; hack, returned 94 on match is also true
-         (get-epsilon False)))
+         (get-epsilon #false)))
       
    (define get-char-class
       (let-parses
@@ -849,7 +849,7 @@
       (let-parses 
          ((skip (get-imm #\m)) ;; [m]atch
           (skip (get-imm 47))  ;; opening /
-          (start? (get-either (get-imm 94) (get-epsilon False))) ;; maybe get leading ^ (special)
+          (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
           (rex (get-regex))
           (skip (get-imm 47))) ;; closing /
          (make-matcher rex start?)))
@@ -863,7 +863,7 @@
       (let-parses 
          ((skip (get-imm #\g)) ;; [g]rab
           (skip (get-imm 47))  ;; opening /
-          (start? (get-either (get-imm 94) (get-epsilon False))) ;; maybe get leading ^ (special)
+          (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
           (rex (get-regex))
           (skip (get-imm 47))) ;; closing /
          (make-copy-matcher rex start?)))
@@ -872,7 +872,7 @@
       (let-parses 
          ((skip (get-imm 99))  ;; [c]ut
           (skip (get-imm 47))  ;; opening /
-          (start? (get-either (get-imm 94) (get-epsilon False))) ;; maybe get leading ^ (special)
+          (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
           (rex (get-regex))
           (skip (get-imm 47)) ;; closing /
          ;(flags get-cut-flags) ;; [r]emove (default), keep as [p]refix, keep as [s]uffix
@@ -896,14 +896,14 @@
    (define get-maybe-g
       (get-either 
          (get-imm 103) 
-         (get-epsilon False)))
+         (get-epsilon #false)))
 
    ;; for testing, s/<regex>/<str>/[g]
    (define get-replace-regex
       (let-parses
          ((skip (get-imm 115))  ;; opening s
           (skip (get-imm 47))  ;; opening /
-          (start? (get-either (get-imm 94) (get-epsilon False))) ;; maybe get leading ^ (special)
+          (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
           (rex (get-regex))
           (skip (get-imm 47))  ;; delimiting /
           (rep (get-kleene* get-replace-char))
@@ -919,11 +919,11 @@
          get-copy-matcher-regex ;; m/<regex>/ -> like /<regex>/ but returns a list of the matched data
          ))
 
-	;; str -> rex|False, for conversion of strings to complete matchers
+	;; str -> rex|#false, for conversion of strings to complete matchers
 	(define (string->complete-match-regex str)
 		(try-parse get-body-regex (str-iter str) F F F))
 	
-   ;; str → rex|False, same as is used in owl parser
+   ;; str → rex|#false, same as is used in owl parser
    (define (string->extended-regexp str)
       (try-parse get-sexp-regex (str-iter str) F F F))
 

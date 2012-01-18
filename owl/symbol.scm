@@ -5,13 +5,12 @@
 
 (define-library (owl symbol)
 
-   (export symbol? symbol->string render)
+   (export symbol? symbol->string)
 
    (import
       (owl defmac)
       (owl string)
-      (only (owl syscall) error)
-      (only (owl function) render))
+      (only (owl syscall) error))
 
    (begin
       (define (symbol? x) (eq? (type x) 38))
@@ -25,10 +24,4 @@
                   ((m/ / str) ;; fixme: doesn't quote internal |:s yet
                      (string-append (string-append "|" str) "|"))
                   (else str)))
-            (error "Not a symbol: " x)))
-
-      (define render
-         (lambda (self obj tl)
-            (if (symbol? obj)
-               (self self (symbol->string obj) tl)
-               (render self obj tl))))))
+            (error "Not a symbol: " x)))))

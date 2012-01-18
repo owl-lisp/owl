@@ -123,10 +123,10 @@
             (cons 10
                (render-byte-array bytes 0)))
          ((null? (cdr bytes))
-            (render render (car bytes) null))
+            (render (car bytes) null))
          (else
             (let ((this (car bytes)))
-               (render render this 
+               (render this 
                   (cons 44
                      (render-byte-array (cdr bytes) (+ pos (width this)))))))))
 
@@ -159,7 +159,7 @@
 
    (define (render-native-ops nops)
       (runes->string
-         (foldr (lambda (o t) (render render o t)) null
+         (foldr render null
             (ff-fold
                (λ (tl func info)
                   (lets ((opcode new-func c-code info))

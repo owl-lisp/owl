@@ -33,7 +33,7 @@
       sum product
       numerator denumerator
       log log2
-      render render-number
+      render-number
       fx% ;; temp export until it is removed
       zero? exact? inexact?
       real? complex? rational?
@@ -2099,13 +2099,6 @@
                (remainder a b))))
 
       (define modulo mod)
-
-      (define render
-         (λ (self obj tl)
-            (if (number? obj) 
-               (render-number obj tl 10)
-               (render self obj tl))))
-
 
 
       ;;; 

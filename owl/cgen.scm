@@ -27,8 +27,6 @@
          '((1 . pair))))
 
 
-	(define (renderer o t) (render render o t))
-
    ;; represent some immediate as a string in C
 	(define (represent val fail)
 		(cond
@@ -37,7 +35,7 @@
 			((eq? val False) "IFALSE")
 			((and (teq? val fix+) (< val 256))
 				(bytes->string
-					(foldr renderer null
+					(foldr render null
 						(list "fixnum(" val ")"))))
 			(else 
 				(show "represent: cannot yet handle " val)
@@ -609,7 +607,7 @@
 					(λ (ret)
                   (cons (car ops)
                      (list->string
-                        (foldr renderer null
+                        (foldr render null
                            (emit-c (cdr ops) False (λ () (ret False)) null)))))))
          False))
   

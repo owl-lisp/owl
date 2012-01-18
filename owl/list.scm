@@ -15,7 +15,7 @@
       take-while                ;; pred, lst -> as, bs
       fold2
       first
-      render
+      
       diff union intersect 
 
       ;; and now for something fairly different
@@ -39,7 +39,7 @@
 
    (import
       (owl defmac)
-      (owl boolean)) ;; <- for render
+      (owl boolean))
 
    (begin
       (define null Null)
@@ -215,28 +215,6 @@
             ((null? l) def)
             ((pred (car l)) (car l))
             (else (first pred (cdr l) def))))
-
-      ;; rendering
-
-      (define (render-list-content render node tl)
-         (cond 
-            ((null? node) tl)
-            ((pair? node)
-               (cons 32
-                  (render render (car node) (render-list-content render (cdr node) tl))))
-            (else 
-               (ilist 32 46 32 (render render node tl)))))
-
-      (define render
-         (lambda (self obj tl)
-            (cond
-               ((null? obj)
-                  (ilist 40 41 tl))
-               ((pair? obj)
-                  (cons 40 (cdr (render-list-content self obj (cons 41 tl)))))
-               (else
-                  (render self obj tl)))))
-
 
       (define (diff a b)
          (cond

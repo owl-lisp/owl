@@ -73,7 +73,7 @@
 						(fail (list "funny defined value: " funny)))))
 			((undefined)
 				(fail (list "What is" 
-					(runes->string (foldr renderer '() (list "'" exp "'?"))))))
+					(runes->string (foldr render '() (list "'" exp "'?"))))))
 			(else is bad
 				(fail (list "The symbol '" exp "' has a funny value: '" bad "'")))))
 

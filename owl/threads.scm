@@ -40,7 +40,7 @@
             ((pair? st) ;; currently working, leave a mail to inbox queue
                (values (fupd state to (qsnoc envelope st)) False))
             ((not st) ;; no such thread, or just no inbox
-               (system-stderr (bytes->string (foldr renderer '(10) (list "ol: dropping envelope " envelope " to nonexistent local thread " to))))
+               (system-stderr (bytes->string (foldr render '(10) (list "ol: dropping envelope " envelope " to nonexistent local thread " to))))
                (values state False))
             (else ;; activate the state function
                (values 

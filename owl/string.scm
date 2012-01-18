@@ -63,7 +63,6 @@
       string-ci>=?       ; str str → bool
       unicode-fold-char  ; char tail → (char' ... tail)
       make-string        ; n char → str
-      render
       )
 
    (import (owl iff))
@@ -399,12 +398,6 @@
                   ((< a b) 1) ;; todo: lesser? and eq? after they are interned
                   ((= a b) (loop la lb))
                   (else 3)))))
-
-      (define render
-         (lambda (self obj tl)
-            (if (string? obj)
-               (render-string obj tl)
-               (render self obj tl))))
 
       ;; iff of codepoint → codepoint | (codepoint ...), the first being equal to (codepoint)
       (define char-fold-iff
