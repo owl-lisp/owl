@@ -666,10 +666,10 @@
 
 ,load "owl/arguments.scm"
 ,load "owl/random.scm"
-,load "owl/cgen.scm"
 
 (import-old lib-args)
 
+(import (owl cgen))
 
 ,load "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
 ,load "owl/mcp-tags.scm"
@@ -955,7 +955,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-bisect
          lib-random
          lib-suffix
-         lib-cgen
          lib-regex
          lib-sys
          lib-char)))
@@ -1001,6 +1000,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl fasl)
            (owl rlist)
            (owl io)
+           (owl cgen)
            ;(owl suffix)
            (owl tuple)
            (scheme misc))

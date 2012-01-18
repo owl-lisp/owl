@@ -12,12 +12,6 @@
 ;   |   '----------> type/variant (if any)
 ;   '--------------> rawness
 
-,r "owl/mcp-tags.scm"
-,r "owl/fasl.scm"
-,r "owl/unicode.scm"
-,r "owl/cgen.scm"
-,r "owl/threads.scm"
-
 (define-module lib-dump
 
    (export 
@@ -27,11 +21,10 @@
 
    (import (owl fasl))
    (import (owl lazy))
-   (import-old lib-cgen)
+   (import (owl cgen))
    (import (only (owl unicode) utf8-decode))
    (import-old lib-threads thread-controller)
    (import (only (owl queue) qnull))
-
    ;;; 
    ;;; Symbols must be properly interned in a repl.
    ;;; 
