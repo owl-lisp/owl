@@ -684,8 +684,7 @@
             (dump-fasl maybe-world path)
             'saved))))
 
-,load "owl/checksum.scm"
-(import-old lib-checksum checksum)
+(import (owl checksum))
 
 
 ;;;
@@ -925,12 +924,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ))
 
 
-,load "owl/checksum.scm" ; checksums for (lazy) lists of numbers
-,load "owl/suffix.scm"   ; suffix sorting
+
+,load "owl/suffix.scm"
 ,load "owl/bisect.scm"   ; binary searches 
 ,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
 ,load "owl/sys.scm"      ; more operating system interface
-;,r "owl/sat.scm"      ; naive SAT solving
 
 ;; included but not imported by default
 (define shared-extra-libs
@@ -939,7 +937,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       lib-parse        ; .
       lib-mcp
       lib-dump
-      lib-checksum
       lib-test))
 
 ;; included and and imported on toplevel
@@ -998,6 +995,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl symbol)
            (owl rlist)
            (owl io)
+           ;(owl suffix)
            (owl tuple))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))

@@ -587,8 +587,8 @@
                       (lib-env (module-set lib-env includes-key (module-ref env includes-key null))))
                      
                      (show "REPL: defining " (cadr exp))
-                     (show "REPL: keeping currently loaded modules " (map car (module-ref lib-env library-key null)))
-                     (show "REPL: keeping includes " (module-ref lib-env includes-key null))
+                     ;(show "REPL: keeping currently loaded modules " (map car (module-ref lib-env library-key null)))
+                     ;(show "REPL: keeping includes " (module-ref lib-env includes-key null))
 
                      (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                         ((ok library lib-env)
