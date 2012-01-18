@@ -445,6 +445,10 @@
    (string->integer/base str 10))
 
 
+,r "owl/render.scm"
+(import (owl render))
+
+
 
 ;;;
 ;;; Tuples
@@ -1205,23 +1209,16 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-bindings
       lib-args         ; ditto
       lib-parse        ; .
-      ;lib-vt          ; .
-      ;lib-system      ; 
       lib-mcp
       lib-dump
       lib-checksum
       lib-queue
-      lib-test
-      ;lib-sat
-      ;lib-grale
-      ;lib-ppm
-      ))
+      lib-test))
 
 ;; included and and imported on toplevel
 (define shared-default-modules
    (share-modules
       (list
-         ;lib-generic   ;; use generic functions by defult. must be first to not be overridden.
          lib-bisect
          lib-random
          lib-fasl
@@ -1231,8 +1228,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-regex
          lib-sys
          lib-char
-         lib-scheme-compat
-         )))
+         lib-scheme-compat)))
 
 (define shared-bindings
    (foldr append null 
@@ -1275,7 +1271,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl symbol)
            (owl rlist)
            (owl tuple)
-           )
+           (owl render))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
 
