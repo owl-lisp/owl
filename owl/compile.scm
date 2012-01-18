@@ -17,7 +17,7 @@
 
    (import-old lib-ast)
    (import (owl lazy))
-   (import-old lib-assemble)
+   (import (owl assemble))
    (import-old lib-closurize uncompiled-closure?)
 
 	(define try-n-perms 1000)	 ;; how many load permutations to try before evicting more registers

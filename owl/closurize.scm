@@ -13,7 +13,7 @@
 	(export build-closures uncompiled-closure?)
 
 	(import-old lib-ast)
-	(import-old lib-assemble)
+   (import (owl assemble))
 
 	(define (ok exp env) (tuple 'ok exp env))
 	(define (fail reason) (tuple 'fail reason))

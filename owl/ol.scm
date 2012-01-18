@@ -512,7 +512,7 @@
 ,load "owl/register.scm"
 ,load "owl/assemble.scm"
 
-(import-old lib-assemble)
+(import (owl assemble))
 
 ,load "owl/closurize.scm"
 
