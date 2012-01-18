@@ -9,7 +9,6 @@
 ;; the underlying system.
 
 ;; todo: make it a bug to send mail to a thread having no inbox.
-;; todo: switch thread inboxen to be lib-queue things instead of ad-hoc ones
 
 ,r "owl/mcp-tags.scm"
 ,r "owl/queue.scm"
@@ -19,7 +18,7 @@
 
    (export thread-controller wait)
 
-   (import-old lib-queue) ;; for mail queueing
+   (import (owl queue))
 
 	;; fixme: wait should use fixnum math to be as light as possible
 	(define (wait n)

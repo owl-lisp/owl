@@ -25,74 +25,52 @@
 
 ;; check that (owl defmac) is indeed from last generation
 
-;; forget old defmac 
-(define *libraries*
-   (keep 
-      (λ (x) (not (equal? (car x) '(owl defmac))))
-      *libraries*))
-
-,r "owl/defmac.scm"
-(import (owl defmac))
-
-;;;
-;;; Step 1 - forget almost everything
-;;;
+; (import (owl defmac))
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
-;; keep only (owl core) and (owl defmac) libraries 
+; forget all other libraries to have them be reloaded and rebuilt
+
 (define *libraries*
    (keep 
       (λ (lib) 
-         (or 
-            (equal? (car lib) '(owl core))
-            (equal? (car lib) '(owl defmac))))
+         (equal? (car lib) '(owl core)))
       *libraries*))
 
-,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run )
+(import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
-(import (owl core)) ; get special forms, primops and define-syntax
+;; forget everhything except these and core values (later list also them explicitly)
+,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run)
 
-(import (owl defmac)) ; get define, define-library, import, ...
 
-(define *include-dirs* (list ".")) ;; now we can (import <libname>) the rest from these dirs
+;;;
+;;; Time for a new REPL
+;;;
 
-;; a few usual suspects
-(define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
-(define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
-(define call-with-current-continuation call/cc)
-(define (i x) x)
-(define (k x y) x)
+(import (owl core))     ;; get special forms, primops and define-syntax
 
-; ,r "owl/syscall.scm"
+(import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
-(import (owl syscall)) ;; syscalls use call/cc
+(define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 
-; ,r "owl/primop.scm"
+(import (owl syscall))
 
-(import (owl primop)) ;; not yet sure when these should be included wrt inlining
+(import (owl primop))
 
-(define *loaded* '()) ;; used by old ,require
+(define *loaded* '())   ;; can be removed soon, was used by old ,load and ,require
 
-;; shared parameters
+
+;; shared parameters, librarize later or remove if possible
 
 (define *owl-version* "0.1.7a")
 (define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
-
-
-;;;
-;;; Step 2 - rebuild everything necessary from the remaining core
-;;;
-
-;;; rendering 
+(define max-object-size #xffff)
 
 
 ;; throw an error if some familiar but unsupported Scheme functions are called
 (define-library (owl unsupported)
 
-   (export set! set-car! set-cdr! string-set! vector-set! 
-      render ;; rendering something unsupported
-      )
+   (export set! set-car! set-cdr! string-set! vector-set!)
 
    (import 
       (owl defmac)
@@ -109,16 +87,13 @@
       (define (set-car! pair val) (unsupported "set-car!"))
       (define (set-cdr! pair val) (unsupported "set-cdr!"))
       (define (vector-set! vec pos val) (unsupported "vector-set!"))
-      (define (string-set! str pos val) (unsupported "string-set!"))
-
-      ;; render unknown objects as <???>
-      (define (render self obj tl)
-         (ilist 60 63 63 63 62 tl))))
+      (define (string-set! str pos val) (unsupported "string-set!"))))
 
 
+;; move these simple ones to a separate library later (owl immediate?)
 (define-library (owl boolean)
 
-   (export boolean? render)
+   (export boolean?)
 
    (import  
       (owl defmac)
@@ -129,33 +104,13 @@
          (cond
             ((eq? x True) True)
             ((eq? x False) True)
-            (else False)))
-
-      (define render 
-         (λ (self obj tail)
-            (cond
-               ((eq? obj True)  (ilist 84 114 117 101 tail))
-               ((eq? obj False) (ilist 70 97 108 115 101 tail))
-               (else (render self obj tail)))))))
+            (else False)))))
 
 (import (owl boolean))
 
-
-;; todo: move these also to corresponding libraries
-
-(define max-object-size #xffff)
-
-;;; Lists
-
-,r "owl/list.scm"
-
 (import (owl list))
 
-;; Finite functions
-
 (import (owl ff))
-
-;;; integer stores, include in toplevel 
 
 (import (only (owl iff))) ;; hack, load it but don't import anything
 
@@ -169,13 +124,12 @@
 
 (import (owl lazy))
 
-
-(define *include-dirs* (list "."))
-
 (import (only (owl unicode) encode-point))
 
 (import (owl string))
 
+
+;; move these elsewhere
 (define (number->string n base)
    (list->string (render-number n null base)))
 
@@ -236,28 +190,21 @@
            (foldr (λ (ob tl) (if (null? tl) (list ob) (ilist ob " -> " tl))) null (cdr (cont-chain cont)))))))
 |#
 
-;;;
-;;; Symbols
-;;;
-
-
-,r "owl/symbol.scm"
-
 (import (owl symbol))
 
-,r "owl/tuple.scm"
+; ,r "owl/tuple.scm"
 (import (owl tuple))
 
-,r "owl/function.scm"
+; ,r "owl/function.scm"
 (import (owl function))
 
-,r "owl/equal.scm"
+; ,r "owl/equal.scm"
 (import (owl equal))
 
-,r "owl/rlist.scm"
+; ,r "owl/rlist.scm"
 (import (owl rlist))
 
-,r "owl/print.scm"
+; ,r "owl/print.scm"
 (import (owl print)) ; <- for testing a new toplevel render
 
 ,load "owl/queue.scm"
@@ -1022,7 +969,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       lib-mcp
       lib-dump
       lib-checksum
-      lib-queue
       lib-test))
 
 ;; included and and imported on toplevel
@@ -1071,6 +1017,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl list-extra)
            (owl sort)
            (owl ff)
+           (owl queue)
            (owl math)
            (owl math-extra)
            (owl lazy)

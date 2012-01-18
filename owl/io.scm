@@ -52,7 +52,7 @@
    (define (fd->id fd) (cast fd 12)) 
    (define (id->fd id) (cast id 0))
 
-   (import-old lib-queue)
+   (import (owl queue))
    (import (only (owl vector) merge-chunks vec-leaves))
 
    ;; use type 12 for fds 

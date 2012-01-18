@@ -19,7 +19,7 @@
 
    (import-old lib-dump dump-fasl) ; for state saving
    (import-old lib-io start-base-threads)
-   (import-old lib-queue)
+   (import (owl queue))
 
    ;;; NOTE: the mcp will execute as the only live thread, so no symbol 
    ;;; interning or function naming (used by printing) will be available.
