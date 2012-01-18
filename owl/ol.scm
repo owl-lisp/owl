@@ -64,11 +64,11 @@
 (define (i x) x)
 (define (k x y) x)
 
-,r "owl/syscall.scm"
+; ,r "owl/syscall.scm"
 
 (import (owl syscall)) ;; syscalls use call/cc
 
-,r "owl/primop.scm"
+; ,r "owl/primop.scm"
 
 (import (owl primop)) ;; not yet sure when these should be included wrt inlining
 
@@ -153,45 +153,26 @@
 
 ;; Finite functions
 
-,require "owl/ff.scm"
 (import (owl ff))
 
 ;;; integer stores, include in toplevel 
 
-,r "owl/iff.scm"
+(import (only (owl iff))) ;; hack, load it but don't import anything
 
-
-;;;
-;;; Math
-;;;
-
-,r "owl/math.scm"   ; basic arithmetic
 (import (owl math))
 
-,r "owl/list-extra.scm"   ; list ops requiring basic math (length ...)
 (import (owl list-extra))
-
-,r "owl/math-extra.scm"   ; less basic math (factor, ...)
-(import (owl math-extra))
-
-,r "owl/lazy.scm"   ; things computed as needed (remember, no caching, these are not ok for dp)
-(import (owl lazy))
-
-
-;;;
-;;; Sorting
-;;;
-
-,r "owl/sort.scm"
 
 (import (owl sort))
 
+(import (owl math-extra))
 
-;;;
-;;; Strings
-;;;
+(import (owl lazy))
 
-,r "owl/string.scm"
+
+(define *include-dirs* (list "."))
+
+(import (only (owl unicode) encode-point))
 
 (import (owl string))
 
@@ -212,13 +193,6 @@
 
 (define (system-stderr str) ; <- str is a raw or pre-rendered string
    (sys-prim 0 2 str (sizeb str)))
-
-
-;;;
-;;; Vectors
-;;;
-
-,r "owl/vector.scm"
 
 (import (owl vector))
 
@@ -286,6 +260,8 @@
 ,r "owl/print.scm"
 (import (owl print)) ; <- for testing a new toplevel render
 
+,load "owl/queue.scm"
+
 ;;;
 ;;; Equality
 ;;;
@@ -349,11 +325,10 @@
 
    
 
-,r "owl/intern.scm"
+,load "owl/intern.scm"
 
 (import-old lib-intern)
 
-(import (only (owl unicode) encode-point))
 
 
 ;;;
@@ -375,7 +350,7 @@
 ;;; IO
 ;;;
 
-,r "owl/io.scm"
+,load "owl/io.scm"
 
 (import-old lib-io)
 
@@ -425,11 +400,12 @@
 ;;; S-expression parsing
 ;;; 
 
-,r "owl/parse.scm"
+,load "owl/parse.scm"
 
 (import-old lib-parse)
 
-,r "owl/sexp.scm"
+,load "owl/regex.scm"    ; regular expressions
+,load "owl/sexp.scm"
 
 (import-old lib-sexp)
 
@@ -505,14 +481,14 @@
 (import-old lib-scheme-compat)
 
 
-,r "owl/env.scm"
+,load "owl/env.scm"
 
 (import-old lib-env)
 
 
 ;;; Gensyms and sexp utils 
 
-,r "owl/gensym.scm"
+,load "owl/gensym.scm"
 
 (import-old lib-gensym)
 
@@ -556,7 +532,7 @@
 ;;; Macro expansion
 ;;;
 
-,r "owl/macros.scm"
+,load "owl/macros.scm"
 
 (import-old lib-macros)
 
@@ -565,7 +541,7 @@
 ;;; Sexp -> AST translation
 ;;;
 
-,r "owl/ast.scm"
+,load "owl/ast.scm"
 
 (import-old lib-ast)
 
@@ -574,7 +550,7 @@
 ;;; Computing fixed points
 ;;;
 
-,r "owl/recursion.scm"
+,load "owl/recursion.scm"
 
 (import-old lib-recursion)
 
@@ -583,7 +559,7 @@
 ;;; CPS
 ;;;
 
-,r "owl/cps.scm"
+,load "owl/cps.scm"
 
 (import-old lib-cps)
 
@@ -592,7 +568,7 @@
 ;;; Alpha conversion -- replace each formal with a unique symbol
 ;;; 
 
-,r "owl/alpha-convert.scm"
+,load "owl/alpha-convert.scm"
 
 (import-old lib-alpha-convert)
 
@@ -605,11 +581,13 @@
       (eq? val False)
       (eq? val null)))
 
-;;;
-;;; Closure Conversion + Literal Conversion
-;;;
+,load "owl/memuse.scm"
+,load "owl/register.scm"
+,load "owl/assemble.scm"
 
-,r "owl/closurize.scm"
+(import-old lib-assemble)
+
+,load "owl/closurize.scm"
 
 (import-old lib-closurize)
 
@@ -618,16 +596,13 @@
 ;;; Bytecode Assembler
 ;;;
 
-,r "owl/assemble.scm"
-
-(import-old lib-assemble)
 
 
 ;;;
 ;;; Register transfer language, hic sunt hackones...
 ;;;
 
-,r "owl/compile.scm"
+,load "owl/compile.scm"
 
 (import-old lib-compile)
 
@@ -708,7 +683,7 @@
 ; adding negative fixnums to sleep seconds and pick
 ; the minimum in ovm.
 
-,r "owl/time.scm"
+,load "owl/time.scm"
 
 ;; fixme: should sleep one round to get a timing, and then use avg of the last one(s) to make an educated guess
 (define (sleep ms)
@@ -762,19 +737,22 @@
       (λ envl mod
          (append (ff->list mod) envl))))
 
-,r "owl/arguments.scm"
-,r "owl/random.scm"
-,r "owl/cgen.scm"
+,load "owl/arguments.scm"
+,load "owl/random.scm"
+,load "owl/cgen.scm"
 
 (import-old lib-args)
 
-,r "owl/mcp.scm"
 
+,load "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
+,load "owl/mcp-tags.scm"
+,load "owl/threads.scm"
+,load "owl/dump.scm"
+(import-old lib-dump make-compiler dump-fasl)
+
+,load "owl/mcp.scm"
 (import-old lib-mcp)
 
-,r "owl/dump.scm"
-
-(import-old lib-dump make-compiler dump-fasl)
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
    (make-compiler *vm-special-ops*))
@@ -788,7 +766,7 @@
             (dump-fasl maybe-world path)
             'saved))))
 
-,r "owl/checksum.scm"
+,load "owl/checksum.scm"
 (import-old lib-checksum checksum)
 
 
@@ -1029,14 +1007,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ))
 
 
-,r "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
-,r "owl/checksum.scm" ; checksums for (lazy) lists of numbers
-,r "owl/queue.scm"    ; double-ended lists
-,r "owl/suffix.scm"   ; suffix sorting
-,r "owl/bisect.scm"   ; binary searches 
-,r "owl/test.scm"     ; a simple algorithm equality/benchmark tester
-,r "owl/regex.scm"    ; regular expressions
-,r "owl/sys.scm"      ; more operating system interface
+,load "owl/checksum.scm" ; checksums for (lazy) lists of numbers
+,load "owl/suffix.scm"   ; suffix sorting
+,load "owl/bisect.scm"   ; binary searches 
+,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
+,load "owl/sys.scm"      ; more operating system interface
 ;,r "owl/sat.scm"      ; naive SAT solving
 
 ;; included but not imported by default
@@ -1080,7 +1055,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       
 (import-old lib-scheme-compat) ;; used in macros
 
-,r "owl/repl.scm"
+,load "owl/repl.scm"
 
 (import-old lib-repl)
 
@@ -1307,7 +1282,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       False))
 
 ;;; handling of --notes
-,r "owl/notes.scm"
+,load "owl/notes.scm"
 
 (import-old lib-notes show-notes-of)
 

@@ -171,10 +171,12 @@
 	;; load unless already in *loaded*
 
 	(define (repl-require repl path in env)
-		(let ((node (ref (ref (get env '*loaded* (tuple 'defined (mkval null))) 2) 2)))
-			(if (mem string-eq? node path)
-            (repl env in)
-				(repl-load repl path in env))))
+		;(let ((node (ref (ref (get env '*loaded* (tuple 'defined (mkval null))) 2) 2)))
+		;	(if (mem string-eq? node path)
+      ;      (repl env in)
+		;		(repl-load repl path in env)))
+      (repl env in) ; no-op, lol
+      )
 
    (define repl-ops-help "Commands:
 ,help             - show this
@@ -583,6 +585,11 @@
                            (ret (fail (list "Library" name "failed:" reason)))))
                       (lib-env (module-set *owl-core* library-key (module-ref env library-key null)))
                       (lib-env (module-set lib-env includes-key (module-ref env includes-key null))))
+                     
+                     (show "REPL: defining " (cadr exp))
+                     (show "REPL: keeping currently loaded modules " (map car (module-ref lib-env library-key null)))
+                     (show "REPL: keeping includes " (module-ref lib-env includes-key null))
+
                      (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                         ((ok library lib-env)
                            (ok ";; Library added" 

@@ -17,9 +17,6 @@
 ;    iterators on the fly. both iterators only need to decompress each chunk once in a full 
 ;    run.
 
-,r "owl/unicode.scm"
-,r "owl/iff.scm"
-,r "owl/lazy.scm"
 
 (define-library (owl string)
 
