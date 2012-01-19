@@ -150,46 +150,6 @@
 
 (import (owl vector))
 
-
-
-;;;
-;;; Better error handler
-;;;
-
-;; reverse tuple & enlist
-#|
-(define (function->list func)
-   (if (bytecode? func)
-      (list func)
-      (map (λ (x) (ref func x)) (iota (size func) -1 0))))
-
-;; this isn't accurate enough
-;; needed: a way to know which value in a function is the continuation
-;; one solution, though not a simple one, would be to disassemble the code and figure out what is called at the end
-;; another option, write a version of the vm in owl and use that?
-;; third option: use a value browser and let the user look into the current continuation
-;; fourth option: just print the internals of the continuation for a hint of location
-(define (sub-cont cont)
-   (cond
-      ((not cont) False)
-      ((bytecode? cont) False)
-      ((not (function? cont)) False)
-      (else (first function? (function->list cont) False))))
-
-(define (cont-chain cont)
-   (if (function? cont)
-      (cons cont (cont-chain (sub-cont cont)))
-      null))
-
-(define error-syscall error)
-
-(define (error msg info)
-   (call/cc
-      (λ (cont)
-         (error-syscall (cons msg info) 
-           (foldr (λ (ob tl) (if (null? tl) (list ob) (ilist ob " -> " tl))) null (cdr (cont-chain cont)))))))
-|#
-
 (import (owl symbol))
 
 (import (owl tuple))
@@ -260,63 +220,7 @@
 
 (import (owl eof))
 
-
-
-
-;;;
-;;; IO
-;;;
-
-
-; ,load "owl/io.scm"
-
 (import (owl io))
-
-
-;;;
-;;; Common object serializetion 
-;;;
-
-
-(define (verb obj) 
-   (render obj null))
-
-(define (print-to obj to) 
-   (mail to (render obj '(10))))
-
-(define (display-to obj to) 
-   (mail to (render obj '())))
-
-(define (display x) 
-   (display-to x stdout))
-
-(define (print obj)
-   (mail stdout 
-      (render obj '(10))))
-
-; note, print* and show are both atomic
-; for some reason a 2-arg show is still used although 
-; it would make more sense just to make it a n-ary macro
-
-(define (print* lst)
-   (mail stdout (foldr render '(10) lst)))
-
-(define (print*-to lst to)
-   (mail to (foldr render '(10) lst)))
-
-(define-syntax output
-   (syntax-rules ()
-      ((output . stuff)
-         (print* (list stuff)))))
-
-(define (show a b)
-   (mail stdout (render a (render b '(10)))))
-
-
-
-;;;
-;;; S-expression parsing
-;;; 
 
 (import (owl parse))
 
@@ -324,90 +228,16 @@
 
 (import (owl sexp))
 
-
-;;;
-;;; Small utils
-;;;
-
 (define (string->number str fail)
    (list->number (string->list str) fail))
-
-;;;
-;;; Environment
-;;;
 
 (define (ok? x) (eq? (ref x 1) 'ok))
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
 
-;; add these to proper places later
-(define-library (scheme misc)
-   (export 
-      member memq memv 
-      assoc assv assq
-      apply rationalize)
-
-   (import 
-      (owl defmac)
-      (owl equal)
-      (owl list)
-      (only (owl syscall) error)
-      (owl math))
-
-   (begin
-      ;; scheme member functions don't follow the argument conventions of other functions 
-      (define (member x lst)
-         (cond
-            ((null? lst) False)
-            ((equal? x (car lst)) lst)
-            (else (member x (cdr lst)))))
-
-      (define memv member)
-
-      (define (memq x lst)
-         (cond
-            ((null? lst) False)
-            ((eq? x (car lst)) lst)
-            (else (memq x (cdr lst)))))
-
-      (define (assq k l)
-         (cond
-            ((null? l) #f)
-            ((eq? (caar l) k) (car l))
-            (else (assq k (cdr l)))))
-      
-      (define (assv k l)
-         (cond
-            ((null? l) #f)
-            ((equal? (caar l) k) (car l))
-            (else (assv k (cdr l)))))
-
-      (define assoc assv)
-
-      ;; a silly non-primitive apply
-      (define (apply func l)
-         (if (null? l)
-            (func)
-            (lets ((a l l)) (if (null? l) (func a)
-            (lets ((b l l)) (if (null? l) (func a b)
-            (lets ((c l l)) (if (null? l) (func a b c)
-            (lets ((d l l)) (if (null? l) (func a b c d)
-            (lets ((e l l)) (if (null? l) (func a b c d e)
-            (lets ((f l l)) (if (null? l) (func a b c d e f)
-               (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
-
-      ;; owl doesn't have inexact numbers, so any argument
-      ;; coming in will always be rational differing by 0
-      (define (rationalize n max-delta) n)
-
-   ))
-
 (import (scheme misc))
 
 (import (owl env))
-
-
-;;; Gensyms and sexp utils 
 
 (import (owl gensym))
 
@@ -447,37 +277,13 @@
 
       (define primitive? primop-of)
 
-;;;
-;;; Macro expansion
-;;;
-
 (import (owl macro))
-
-
-;;;
-;;; Sexp -> AST translation
-;;;
 
 (import (owl ast))
 
-
-;;;
-;;; Computing fixed points
-;;;
-
 (import (owl fixedpoint))
 
-
-;;;
-;;; CPS
-;;;
-
 (import (owl cps))
-
-
-;;; 
-;;; Alpha conversion -- replace each formal with a unique symbol
-;;; 
 
 (import (owl alpha))
 
@@ -497,34 +303,15 @@
 (import (owl assemble))
 
 ,load "owl/closurize.scm"
-
 (import-old lib-closurize)
 
-
-;;;
-;;; Bytecode Assembler
-;;;
-
-
-
-;;;
-;;; Register transfer language, hic sunt hackones...
-;;;
-
 ,load "owl/compile.scm"
-
 (import-old lib-compile)
-
-
-;;;
-;;; Master evaluator
-;;;
 
 (define error-tag "err")
 
 ; values are evaluated by a separate thread
 ; this way the errors do not affect the repl thread
-
 
 (define (error? x)
    (and (tuple? x)
@@ -532,12 +319,6 @@
 
 (define (execute exp env)
    (ok (exp) env))
-
-
-
-;;;
-;;; The compiler
-;;;
 
 ;; todo: add partial evaluation
 ;; todo: add type inference (Hindley-Milner for the primitive types, save and use result when inferable)
@@ -872,7 +653,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       call/cc2
       call-with-current-continuation
       display print-to print print* show
-      render verb
+      render 
       system-println
       sleep
       list->tuple

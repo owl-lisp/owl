@@ -51,6 +51,8 @@
       print-to
       display
       print
+      print*
+      print*-to
       show
    )
 
