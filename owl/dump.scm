@@ -23,8 +23,9 @@
    (import (owl lazy))
    (import (owl cgen))
    (import (only (owl unicode) utf8-decode))
-   (import-old lib-threads thread-controller)
+   (import (owl thread) thread-controller)
    (import (only (owl queue) qnull))
+
    ;;; 
    ;;; Symbols must be properly interned in a repl.
    ;;; 

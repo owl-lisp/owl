@@ -54,6 +54,8 @@
       print*
       print*-to
       show
+
+      system-print system-println system-stderr
    )
 
    (import
@@ -812,5 +814,16 @@
       (define (show a b)
          (mail stdout (render a (render b '(10)))))
 
+      ;; fixme: system-X do not belong here
+      (define (system-print str)
+         (sys-prim 0 1 str (sizeb str)))
+
+      (define (system-println str)
+         (system-print str)
+         (system-print "
+      "))
+
+      (define (system-stderr str) ; <- str is a raw or pre-rendered string
+         (sys-prim 0 2 str (sizeb str)))
 
 ))

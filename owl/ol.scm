@@ -138,18 +138,6 @@
 (define (fopen path mode)
    (syscall 7 (c-string path) mode))
 
-;; fixme: system-X do not belong here
-(define (system-print str)
-   (sys-prim 0 1 str (sizeb str)))
-
-(define (system-println str)
-   (system-print str)
-   (system-print "
-"))
-
-(define (system-stderr str) ; <- str is a raw or pre-rendered string
-   (sys-prim 0 2 str (sizeb str)))
-
 (import (owl vector))
 
 (import (owl symbol))
@@ -436,7 +424,6 @@
 
 ,load "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
 ,load "owl/mcp-tags.scm"
-,load "owl/threads.scm"
 ,load "owl/dump.scm"
 (import-old lib-dump make-compiler dump-fasl)
 
@@ -883,9 +870,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 (import-old lib-mcp)
 
-,r "owl/threads.scm"
-
-(import-old lib-threads)
+(import (owl thread))
 
 
 ;; pick usual suspects in a module to avoid bringing them to toplevel here
@@ -899,7 +884,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (import-old lib-random)
    (import-old lib-bisect)
    (import (only (owl io) start-output-thread))
-   (import-old lib-threads thread-controller)
+   (import (owl thread)
    (import (owl sexp))
    ; commonly needed functions 
    (define usual-suspects

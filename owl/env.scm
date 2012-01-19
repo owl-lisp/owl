@@ -4,7 +4,8 @@
 (define-library (owl env)
 
 	(export lookup env-bind env-set module-ref module-set apply-env env-fold
-      verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?)
+      verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
+      poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum)
 
    (import
       (owl ff)
@@ -20,6 +21,14 @@
       (owl defmac))
 
    (begin
+
+      (define poll-tag "mcp/polls")
+      (define buffer-tag "mcp/buffs")
+      (define link-tag "mcp/links")
+      (define mcp-tag "mcp/break")
+      (define (mcp-halt threads state) 1)
+      (define thread-quantum 10000)
+
       (define lookup
          (let ((undefined (tuple 'undefined)))
             (lambda (env key)
