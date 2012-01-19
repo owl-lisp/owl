@@ -47,6 +47,8 @@
 ;;; Time for a new REPL
 ;;;
 
+;; this should later be just a sequence of imports followed by a fasl dump
+
 (import (owl core))     ;; get special forms, primops and define-syntax
 
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
