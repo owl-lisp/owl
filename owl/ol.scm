@@ -189,6 +189,8 @@
 
 (import (owl gensym))
 
+(import (owl bisect))
+
 
 ;; does not belong here, but needed in macros for now 
 
@@ -480,8 +482,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 
 
+
 ,load "owl/suffix.scm"
-,load "owl/bisect.scm"   ; binary searches 
 ,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
 ,load "owl/sys.scm"      ; more operating system interface
 
@@ -494,7 +496,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define shared-default-modules
    (share-modules
       (list
-         lib-bisect
          lib-suffix
          lib-sys
          lib-char)))
@@ -546,6 +547,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl cgen)
            (owl random)
            ;(owl suffix)
+           (owl bisect)
            (owl tuple)
            (scheme misc))
          (λ (reason) (error "bootstrap import error: " reason))
@@ -672,7 +674,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (import-old lib-suffix)
    (import (owl math))
    (import (owl random))
-   (import-old lib-bisect)
+   (import (owl bisect))
    (import (only (owl io) start-output-thread))
    (import (owl thread))
    (import (owl sexp))
