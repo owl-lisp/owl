@@ -479,9 +479,7 @@
 ;;; Alpha conversion -- replace each formal with a unique symbol
 ;;; 
 
-,load "owl/alpha-convert.scm"
-
-(import-old lib-alpha-convert)
+(import (owl alpha))
 
 ; a value that can be created by an instruction
 
