@@ -4,10 +4,6 @@
 
 ;; todo: register dance prior to making a call really belongs to a separate register retargeting pass
 
-,r "owl/ast.scm"
-,r "owl/assemble.scm"
-,r "owl/closurize.scm"
-
 (define-module lib-compile
 
    (export 
@@ -18,7 +14,7 @@
    (import (owl ast))
    (import (owl lazy))
    (import (owl assemble))
-   (import-old lib-closurize uncompiled-closure?)
+   (import (owl closure))
 
 	(define try-n-perms 1000)	 ;; how many load permutations to try before evicting more registers
 

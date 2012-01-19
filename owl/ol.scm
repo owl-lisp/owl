@@ -304,8 +304,7 @@
 
 (import (owl assemble))
 
-,load "owl/closurize.scm"
-(import-old lib-closurize)
+(import (owl closure))
 
 ,load "owl/compile.scm"
 (import-old lib-compile)
