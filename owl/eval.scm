@@ -4,7 +4,7 @@
 ;; todo:  ^ would need a way to sign libraries and/or SSL etc
 ;; todo: autoload feature: when a library imports something not there, try to load (owl ff) from each $PREFIX/owl/ff.scm
 
-(define-module lib-repl
+(define-module lib-eval
 
 	(export 
 		repl-file 
@@ -16,10 +16,160 @@
 		print-repl-error
 		bind-toplevel
       library-import                ; env exps fail-cont → env' | (fail-cont <reason>)
+      evaluate
+      *owl-core*
 		)
 
    (import 
       (only (owl regex) string->regex))
+
+   (define (name->func name)
+      (some
+         (λ (x) (if (eq? (ref x 1) name) (ref x 5) False))
+         primops))
+
+   ;; library (just the value of) containing only special forms, primops and
+   (define *owl-core*
+      (let
+         ((primitive
+            (λ (sym)
+               (cons sym
+                  (tuple 'defined
+                     (tuple 'value (name->func sym)))))))
+         (list->ff
+            (list
+               ;; special forms.
+               (cons 'lambda  (tuple 'special 'lambda))
+               (cons 'quote   (tuple 'special 'quote))
+               (cons 'rlambda (tuple 'special 'rlambda)) 
+               (cons 'receive (tuple 'special 'receive)) 
+               (cons '_branch (tuple 'special '_branch)) 
+               (cons '_define (tuple 'special '_define)) 
+               (cons 'values   (tuple 'special 'values))
+
+               (primitive 'cons)
+               (primitive 'car)
+               (primitive 'cdr)
+               (primitive 'eq?)
+               (primitive 'type)
+               (primitive 'size)
+               (primitive 'cast)
+               (primitive 'fetch)
+               (primitive 'ref)
+               (primitive 'sys-prim)
+               (primitive 'refb)
+               (primitive 'pick)
+               (primitive 'mk)
+               (primitive 'mkr)
+               (primitive 'sys)
+               (primitive 'fxbor)
+               (primitive 'fxbxor)
+               (primitive 'fread)
+               (primitive '_fopen)
+               (primitive 'fclose)
+               (primitive 'fsend)
+               (primitive 'lraw)
+               (primitive 'raw)
+               (primitive '_connect)
+               (primitive '_sopen)
+               (primitive 'accept)
+               (primitive 'mkt)
+               (primitive 'bind)
+               (primitive 'set)
+               (primitive 'lesser?)
+               (primitive 'call-native)
+               (primitive 'mkred)
+               (primitive 'mkblack)
+               (primitive 'ff-bind)
+               (primitive 'ff-toggle)
+               (primitive 'ffcar)
+               (primitive 'ffcdr)
+               (primitive 'red?)
+               (primitive 'listuple)
+               (primitive 'fxband)         
+               (primitive 'fx+)
+               (primitive 'fxqr)
+               (primitive 'fx*)
+               (primitive 'fx-)
+               (primitive 'fx<<)
+               (primitive 'fx>>)
+               (primitive 'ncons)
+               (primitive 'ncar)
+               (primitive 'ncdr)
+               (primitive 'raw-mode)
+               (primitive '_sleep)
+               (primitive 'iomux)
+               (primitive 'clock)
+               (primitive 'time)
+               (primitive 'sizeb)
+               (primitive 'blit)
+               (primitive 'getev)
+               (primitive 'fill-rect)
+
+               ; needed to define the rest of the macros
+               ; fixme, could use macro-expand instead
+               (cons 'define-syntax
+                  (tuple 'macro
+                     (make-transformer
+                        '(define-syntax syntax-rules add quote)
+                        '(
+                           ((define-syntax keyword 
+                              (syntax-rules literals (pattern template) ...))
+                        ()
+                        (quote syntax-operation add False 
+                              (keyword literals (pattern ...) 
+                              (template ...))))))))))))
+(define (execute exp env)
+   (ok (exp) env))
+
+;; todo: add partial evaluation
+;; todo: add type inference (Hindley-Milner for the primitive types, save and use result when inferable)
+;; todo: move compiler code to a more appropriate place (like lib-compile, or lib-eval)
+
+; (op exp env) -> #(ok exp' env') | #(fail info)
+(define compiler-passes
+   (list 
+      apply-env       ;; apply previous definitions
+      sexp->ast       ;; safe sane tupled structure
+      fix-points      ;; make recursion explicit <3
+      alpha-convert   ;; assign separate symbols to all bound values
+      cps             ;; convert to continuation passing style
+      build-closures  ;; turn lambdas into closures where necessary
+      compile         ;; assemble to bytecode
+      execute         ;; call the resulting code
+      )) 
+
+; run the code in its own thread
+(define (evaluate-as exp env task)
+   ; run the compiler chain in a new task
+   (fork-linked task
+      (λ ()
+         (call/cc
+            (λ exit
+               (fold
+                  (λ state next
+                     (if (ok? state)
+                        (begin
+                           ;(show " - compiler at exp " (ref state 2))
+                           (next (ref state 2) (ref state 3)))
+                        (exit state)))
+                  (ok exp env)
+                  compiler-passes)))))
+   ; grab the result
+   (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) task))) 2)
+      ((finished result not used)
+         result) ; <- is already ok/fail
+      ((crashed opcode a b)
+         (fail (verbose-vm-error opcode a b)))
+      ((error cont reason info)
+         ; note, these could easily be made resumable by storing cont
+         (fail (list reason info)))
+      ((breaked)
+         (fail "breaked"))
+      (else is foo
+         (fail (list "Funny result for compiler " foo)))))
+
+(define (evaluate exp env) (evaluate-as exp env 'repl-eval))
 
    ;; toplevel variable to which loaded libraries are added
 
@@ -706,5 +856,6 @@
          (if exps
             (repl env exps)
             (tuple 'error "not parseable" env))))
+
 
 )

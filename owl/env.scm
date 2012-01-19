@@ -5,7 +5,8 @@
 
 	(export lookup env-bind env-set module-ref module-set apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
-      poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum)
+      poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum
+      )
 
    (import
       (owl ff)
@@ -195,6 +196,5 @@
             (else False)))
 
       (define primitive? primop-of)
-
 
 ))
