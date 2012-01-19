@@ -318,14 +318,11 @@
 ;;; S-expression parsing
 ;;; 
 
-,load "owl/parse.scm"
-
 (import (owl parse))
 
-,load "owl/regex.scm"    ; regular expressions
-,load "owl/sexp.scm"
+(import (owl regex))
 
-(import-old lib-sexp)
+(import (owl sexp))
 
 
 ;;;
@@ -1139,7 +1136,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (import-old lib-bisect)
    (import (only (owl io) start-output-thread))
    (import-old lib-threads thread-controller)
-   (import-old lib-sexp)
+   (import (owl sexp))
    ; commonly needed functions 
    (define usual-suspects
       (list
