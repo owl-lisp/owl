@@ -306,8 +306,7 @@
 
 (import (owl closure))
 
-,load "owl/compile.scm"
-(import-old lib-compile)
+(import (owl compile))
 
 (define error-tag "err")
 
