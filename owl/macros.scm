@@ -8,7 +8,7 @@
    ; remove make-transformer when it is no longer referred 
    (export macro-expand match make-transformer)
 
-   (import-old lib-gensym)
+   (import (owl gensym))
    (import (owl env))
 
    ;;; Misc

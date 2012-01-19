@@ -409,9 +409,7 @@
 
 ;;; Gensyms and sexp utils 
 
-,load "owl/gensym.scm"
-
-(import-old lib-gensym)
+(import (owl gensym))
 
 
 ;; does not belong here, but needed in macros for now 
@@ -1126,7 +1124,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define-module lib-usual-suspects
    (export usual-suspects)
    ; make sure the same bindings are visible that will be at the toplevel
-   ;(import-old lib-generic)
    (import-old lib-suffix)
    (import (owl math))
    (import-old lib-random)

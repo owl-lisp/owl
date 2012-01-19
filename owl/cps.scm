@@ -10,7 +10,7 @@
 	(export cps)
 
 	(import-old lib-ast)
-	(import-old lib-gensym)
+   (import (owl gensym))
    (import (owl primop))
 
 	;; fixme: information about cps-special primops could be stored elsewhere

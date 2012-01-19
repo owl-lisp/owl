@@ -4,15 +4,11 @@
 
 ; convert all variables to fresh symbols. makes compilation easier.
 
-,r "owl/gensym.scm"
-,r "owl/ast.scm"
-,r "owl/env.scm"
-
 (define-module lib-alpha-convert
 
 	(export alpha-convert)
 
-	(import-old lib-gensym)
+   (import (owl gensym))
 	(import-old lib-ast)
 	(import (only (owl env) lookup))
 
