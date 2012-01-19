@@ -491,19 +491,10 @@
 
       (define (_ x) True)
 
-      (define old-import? 
-         (let 
-            ((patternp `(import-old ,symbol? . ,(λ (x) True))))
-            (λ (exp) (match patternp exp))))
-      
       (define import?  ; toplevel import using the new library system
          (let 
             ((patternp `(import . ,(λ (x) True))))
             (λ (exp) (match patternp exp))))
-
-      (define module-definition?
-         (let ((pattern `(define-module ,symbol? . ,(λ (x) True))))
-            (λ exp (match pattern exp))))
 
       (define (library-definition? x)
          (and (pair? x) (list? x) (eq? (car x) '_define-library)))
@@ -749,14 +740,6 @@
                   ((export? exp)
                      (lets ((module (build-export (cdr exp) env (λ (x) x)))) ; <- to be removed soon, dummy fail cont
                         (ok module env)))
-                  ((module-definition? exp)
-                     (tuple-case (repl env (push-exports-deeper (cddr exp)))
-                        ((ok module module-env)
-                           (ok "module defined"
-                              (put env (cadr exp) (tuple 'defined (mkval module)))))
-                        ((error reason broken-env)
-                           (fail
-                              (list "Module definition of" (cadr exp) "failed because" reason)))))
                   ((library-definition? exp)
                      ;; evaluate libraries in a blank *owl-core* env (only primops, specials and define-syntax)
                      ;; include just loaded *libraries* and *include-paths* from the current one to share them
@@ -782,15 +765,6 @@
                            ((error reason not-env)
                               (fail 
                                  (list "Library" name "failed to load because" reason))))))
-                  ((old-import? exp) ;; <- old module import, will be deprecated soon
-                     (tuple-case (evaluate (cadr exp) env)
-                        ((ok mod envx)
-                           (let ((new (import env mod (cddr exp))))
-                              (if new
-                                 (ok "imported" new)
-                                 (fail "import failed"))))
-                        ((fail reason)
-                           (fail (list "library not available: " (cadr exp))))))
                   (else
                      (evaluate exp env))))
             ((fail reason)

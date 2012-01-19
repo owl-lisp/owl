@@ -6,72 +6,73 @@
 ;; still keeping the generated .c code portable, win32 being the main 
 ;; reason for worry.
 
-,r "owl/string.scm"
-,r "owl/vector.scm"
-
-(define-module lib-sys
+(define-library (owl sys)
    (export
       dir-fold
       dir->list
       getenv)
 
-   (import (owl string))
-   (import (owl vector))
+   (import
+      (owl defmac)
+      (owl string)
+      (owl math)
+      (owl eof)
+      (owl list)
+      (owl vector))
 
-   ;;;
-   ;;; Unsafe operations not to be exported
-   ;;;
+   (begin
+      ;;;
+      ;;; Unsafe operations not to be exported
+      ;;;
 
-   ;; string → False | unsafe-dirptr
-   (define (open-dir path)
-      (let ((cs (c-string path)))
-         (if (and cs (<= (string-length cs) #xffff))
-            (sys-prim 11 cs F F)
-            False)))
+      ;; string → False | unsafe-dirptr
+      (define (open-dir path)
+         (let ((cs (c-string path)))
+            (if (and cs (<= (string-length cs) #xffff))
+               (sys-prim 11 cs F F)
+               False)))
 
-   ;; unsafe-dirfd → False | eof | bvec
-   (define (read-dir obj)
-      (sys-prim 12 obj F F))
+      ;; unsafe-dirfd → False | eof | bvec
+      (define (read-dir obj)
+         (sys-prim 12 obj F F))
 
-   ;; _ → True
-   (define (close-dir obj)
-      (sys-prim 13 obj F F))
-
-
-   ;;; 
-   ;;; Safe derived operations
-   ;;; 
-
-   ;; dir elements are False or fake strings, which have the type of small raw ASCII 
-   ;; strings, but may in fact contain anything the OS happens to allow in a file name.
-
-   (define (dir-fold op st path)
-      (let ((dfd (open-dir path)))
-         (if dfd
-            (let loop ((st st))
-               (let ((val (read-dir dfd)))
-                  (if (eof? val) 
-                     st
-                     (loop (op st val)))))
-            st)))
-
-   (define (dir->list path)
-      (dir-fold (λ (seen this) (cons this seen)) null path))
+      ;; _ → True
+      (define (close-dir obj)
+         (sys-prim 13 obj F F))
 
 
-   ;;;
-   ;;; Environment variables
-   ;;;
+      ;;; 
+      ;;; Safe derived operations
+      ;;; 
 
-   ;; str → bvec | F
-   (define (getenv str)
-      (let ((str (c-string str)))
-         (if str 
-            (let ((bvec (sys-prim 16 str F F)))
-               (if bvec
-                  (bytes->string (vec->list bvec))
-                  False))
-            False)))
-            
-)
+      ;; dir elements are False or fake strings, which have the type of small raw ASCII 
+      ;; strings, but may in fact contain anything the OS happens to allow in a file name.
+
+      (define (dir-fold op st path)
+         (let ((dfd (open-dir path)))
+            (if dfd
+               (let loop ((st st))
+                  (let ((val (read-dir dfd)))
+                     (if (eof? val) 
+                        st
+                        (loop (op st val)))))
+               st)))
+
+      (define (dir->list path)
+         (dir-fold (λ (seen this) (cons this seen)) null path))
+
+
+      ;;;
+      ;;; Environment variables
+      ;;;
+
+      ;; str → bvec | F
+      (define (getenv str)
+         (let ((str (c-string str)))
+            (if str 
+               (let ((bvec (sys-prim 16 str F F)))
+                  (if bvec
+                     (bytes->string (vec->list bvec))
+                     False))
+               False)))))
 

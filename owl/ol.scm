@@ -313,7 +313,9 @@
          (append (ff->list mod) envl))))
 
 ;,load "owl/arguments.scm"
-,load "owl/random.scm"
+;,load "owl/random.scm"
+
+(import (owl random))
 
 (import (owl args))
 
@@ -337,6 +339,8 @@
             'saved))))
 
 (import (owl checksum))
+
+(import (owl sys))
 
 ;;;
 ;;; Entering seccomp 
@@ -381,12 +385,15 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          (halt exit-seccomp-failed))))
 
 
-(define-module lib-char 
+(define-library (owl char)
    (export char? char->integer integer->char)
-   (define char? number?)
-   (define char->integer self)
-   (define integer->char self)
-)
+   (import
+      (owl defmac)
+      (owl math))
+   (begin
+      (define char? number?)
+      (define char->integer self)
+      (define integer->char self)))
 
 ;; profiling doesn't yet have a good home. merge to lib-internals or lib-debug later?
 ;; run thunk and show n most called functions. no timings yet.
@@ -485,27 +492,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 
 
-,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
-,load "owl/sys.scm"      ; more operating system interface
+;,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
+;,load "owl/sys.scm"      ; more operating system interface
 
-;; included but not imported by default
-(define shared-extra-libs
-   (share-bindings
-      lib-test))
 
-;; included and and imported on toplevel
-(define shared-default-modules
-   (share-modules
-      (list
-         lib-sys
-         lib-char)))
-
-(define shared-bindings
-   (foldr append null 
-      (list 
-         shared-default-modules 
-         shared-extra-libs
-         shared-misc)))
+(define shared-bindings shared-misc)
 
 (define initial-environment-sans-macros
    (fold 
@@ -515,9 +506,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
      
 ;; owl core needed before eval
 
-
 ;; toplevel can be defined later
-
 
 (define initial-environment
    (bind-toplevel
@@ -547,6 +536,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl cgen)
            (owl random)
            (owl suffix)
+           (owl sys)
+           (owl char)
            (owl bisect)
            (owl tuple)
            (scheme misc))
