@@ -155,48 +155,6 @@
 (import (only (owl queue))) ; just load it
 
 
-;; todo: move string->integer elsewhere
-;;; string base -> number | False
-(define string->integer/base
-
-   (define (byte->digit val base)
-      (cond
-         ((and (<= 48 val) (<= val 57))
-            (let ((val (- val 48)))
-               (if (< val base) val False)))
-         ((and (<= 97 val) (<= val 122))
-            (let ((val (+ (- val 97) 10)))
-               (if (< val base) val False)))
-         (else False)))
-
-   (define (digits->number s pos n base)
-      (cond
-         ((= pos (string-length s))
-            n)
-         ((byte->digit (refb s pos) base) =>
-            (λ (this)
-               (digits->number s (+ pos 1) (+ (* n base) this) base)))
-         (else False)))
-
-   (λ (s base)
-      (let ((len (string-length s)))
-            (if (> len 0)
-               (let ((first (refb s 0)))
-                  (cond
-                     ((eq? first 43)
-                        (digits->number s 1 0 base))
-                     ((eq? first 45)
-                        (cond
-                           ((digits->number s 1 0 base) =>
-                              (λ (num) (- 0 num)))
-                           (else False)))
-                     (else
-                        (digits->number s 0 0 base))))
-               False))))
-
-(define (string->integer str)
-   (string->integer/base str 10))
-
 (import (owl intern))
 
 (define-library (owl eof) ;; these trivial things could be combined to a base lib now that they don't have a renderer
@@ -427,8 +385,7 @@
 
 (import (only (owl dump) make-compiler dump-fasl load-fasl))
 
-,load "owl/mcp.scm"
-(import-old lib-mcp)
+(import (owl mcp))
 
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
@@ -691,7 +648,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; included but not imported by default
 (define shared-extra-libs
    (share-bindings
-      lib-mcp
       lib-test))
 
 ;; included and and imported on toplevel
@@ -866,8 +822,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;;;
 
 ; special keys in mcp state 
-
-(import-old lib-mcp)
 
 
 ;; pick usual suspects in a module to avoid bringing them to toplevel here
