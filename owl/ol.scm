@@ -427,10 +427,10 @@
       (λ envl mod
          (append (ff->list mod) envl))))
 
-,load "owl/arguments.scm"
+;,load "owl/arguments.scm"
 ,load "owl/random.scm"
 
-(import-old lib-args)
+(import (owl args))
 
 (import (owl cgen))
 
@@ -704,7 +704,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; included but not imported by default
 (define shared-extra-libs
    (share-bindings
-      lib-args         ; ditto
       lib-mcp
       lib-dump
       lib-test))
@@ -1189,8 +1188,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;; note, one one could use the compiler of the currently running system, but using 
 ;; the rebuilt one here to make changes possible in 1 instead of 2 build cycles.
 ;; (this may be changed later)
-
-(import-old lib-args)
 
 (define command-line-rules
    (cl-rules
