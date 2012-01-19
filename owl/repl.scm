@@ -18,7 +18,8 @@
       library-import                ; env exps fail-cont → env' | (fail-cont <reason>)
 		)
 
-   (import-old lib-regex string->regex)
+   (import 
+      (only (owl regex) string->regex))
 
    ;; toplevel variable to which loaded libraries are added
 

@@ -16,7 +16,7 @@
 
    (import (owl parse))
    (import (only (owl intern) intern-symbols string->uninterned-symbol))
-   (import-old lib-regex get-sexp-regex) ;; for embedded regular expressions
+   (import (only (owl regex) get-sexp-regex))
 
    (define (between? lo x hi)
       (and (<= lo x) (<= x hi)))

@@ -695,7 +695,6 @@
 
 (import (owl checksum))
 
-
 ;;;
 ;;; Entering seccomp 
 ;;;
@@ -954,7 +953,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          lib-bisect
          lib-random
          lib-suffix
-         lib-regex
          lib-sys
          lib-char)))
 
@@ -971,9 +969,11 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       *owl-core*
       shared-bindings))
       
+
 ,load "owl/repl.scm"
 
 (import-old lib-repl)
+
 
 (define initial-environment
    (bind-toplevel
@@ -996,6 +996,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl vector)
            (owl function)
            (owl symbol)
+           (owl regex)
            (owl fasl)
            (owl rlist)
            (owl io)
@@ -1005,7 +1006,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (scheme misc))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
-
 
 ;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux
 

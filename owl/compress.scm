@@ -147,11 +147,11 @@
                      (loop (+ rounds 1) vecp)
                      (list->vector (cons rounds (vec->list vec)))))))))
 
-   (let ((vec (vector 1 2 3 1 2 3 2 2 1 2 3)))
-      (compress-data vec)
-      (show " - data is " vec))
+   ;(let ((vec (vector 1 2 3 1 2 3 2 2 1 2 3)))
+   ;   (compress-data vec)
+   ;   (show " - data is " vec))
 
-   (compress-data (file->vector "vm.c"))
+   ;(compress-data (file->vector "vm.c"))
 
    ; anything -> byte vector
    (define (compress thing)
