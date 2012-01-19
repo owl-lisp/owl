@@ -9,7 +9,7 @@
 
 	(export cps)
 
-	(import-old lib-ast)
+   (import (owl ast))
    (import (owl gensym))
    (import (owl primop))
 

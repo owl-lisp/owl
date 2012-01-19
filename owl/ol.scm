@@ -458,9 +458,7 @@
 ;;; Sexp -> AST translation
 ;;;
 
-,load "owl/ast.scm"
-
-(import-old lib-ast)
+(import (owl ast))
 
 
 ;;;

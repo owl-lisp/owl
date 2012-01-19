@@ -9,7 +9,7 @@
 	(export alpha-convert)
 
    (import (owl gensym))
-	(import-old lib-ast)
+   (import (owl ast))
 	(import (only (owl env) lookup))
 
 	(define (ok exp env) (tuple 'ok exp env))
