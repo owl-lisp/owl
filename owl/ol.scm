@@ -668,38 +668,51 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;; pick usual suspects in a module to avoid bringing them to toplevel here
 ;; mainly to avoid accidentalaly introducing bringing generic functions here  
 
-(define-module lib-usual-suspects
+(define-library (owl usuals)
+
    (export usual-suspects)
    ; make sure the same bindings are visible that will be at the toplevel
-   (import (owl suffix))
-   (import (owl math))
-   (import (owl random))
-   (import (owl bisect))
-   (import (only (owl io) start-output-thread))
-   (import (owl thread))
-   (import (owl sexp))
-   ; commonly needed functions 
-   (define usual-suspects
-      (list
-            put get del ff-fold fupd
-            - + * /
-            div gcd ediv
-            << < <= = >= > >> 
-            equal? has? mem
-            band bor bxor
-            sort suffix-array 
-            bisect bisect-range
-            fold foldr for map reverse length zip append unfold
-            lref lset iota
-            vec-ref vec-len vec-fold vec-foldr
-            ;print 
-            mail interact 
-            take keep remove 
-            start-output-thread thread-controller
-            ;sexp-parser 
-            rand seed->rands)))
 
-(import-old lib-usual-suspects usual-suspects)
+   (import
+      (owl defmac)
+      (owl suffix)
+      (owl math)
+      (owl random)
+      (owl bisect)
+      (only (owl io) start-output-thread)
+      (owl thread)
+      (owl list)
+      (owl list-extra)
+      (owl syscall)
+      (owl vector)
+      (owl sort)
+      (owl equal)
+      (owl ff)
+      (owl sexp))
+
+   (begin
+      ; commonly needed functions 
+      (define usual-suspects
+         (list
+               put get del ff-fold fupd
+               - + * /
+               div gcd ediv
+               << < <= = >= > >> 
+               equal? has? mem
+               band bor bxor
+               sort suffix-array 
+               bisect bisect-range
+               fold foldr for map reverse length zip append unfold
+               lref lset iota
+               vec-ref vec-len vec-fold vec-foldr
+               ;print 
+               mail interact 
+               take keep remove 
+               start-output-thread thread-controller
+               ;sexp-parser 
+               rand seed->rands))))
+
+(import (owl usuals))
 
 
 ;; handles $ ol -c stuff
