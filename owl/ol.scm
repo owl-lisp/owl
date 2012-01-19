@@ -424,8 +424,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;;          ^
       ;;          '-- to be a fairly large subset of at least, so adding this
 
-,load "owl/eval.scm"
-(import-old lib-eval)
+(import (owl eval))
 
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
