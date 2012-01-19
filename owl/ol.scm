@@ -561,7 +561,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (evaluate "-e" "--eval"     has-arg comment "evaluate expressions in the given string")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
-       (notes    "-n" "--notes"    comment "show notes from code (meaning \\n;; <label>:<text>\\n)")
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
        (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup or exit if it failed")
@@ -740,11 +739,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                   3))))
       False))
 
-;;; handling of --notes
-,load "owl/notes.scm"
-
-(import-old lib-notes show-notes-of)
-
 
 (define (try-load-state path args)
    (let ((val (load-fasl path False)))
@@ -794,7 +788,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                      (show "Owl Lisp " *owl-version*)
                      0)
                   ((get dict 'about False) (print about-owl) 0)
-                  ((get dict 'notes False) (show-notes-of others) 0)
                   ((get dict 'load False) =>
                      (λ (path) (try-load-state path others)))
                   ((or (get dict 'output F) (get dict 'output-format F))
