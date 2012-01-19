@@ -451,9 +451,7 @@
 ;;; Macro expansion
 ;;;
 
-,load "owl/macros.scm"
-
-(import-old lib-macros)
+(import (owl macro))
 
 
 ;;;
