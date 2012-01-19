@@ -9,7 +9,7 @@
    (export macro-expand match make-transformer)
 
    (import-old lib-gensym)
-   (import-old lib-env)
+   (import (owl env))
 
    ;;; Misc
 

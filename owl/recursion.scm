@@ -6,7 +6,7 @@
    (export fix-points)
 
    (import-old lib-ast)
-   (import-old lib-env)
+   (import (owl env))
 
    ; return the least score by pred 
    (define (least pred lst)

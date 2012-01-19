@@ -404,10 +404,7 @@
 
 (import (scheme misc))
 
-
-,load "owl/env.scm"
-
-(import-old lib-env)
+(import (owl env))
 
 
 ;;; Gensyms and sexp utils 
