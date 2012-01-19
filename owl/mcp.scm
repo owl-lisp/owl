@@ -13,11 +13,11 @@
 
    (export 
       mcp-repl mcp-halt                      ; signal handlers
-      halt-on-break mcp-on-break               ; signal handler setters
+      halt-on-break mcp-on-break             ; signal handler setters
       poll-tag buffer-tag link-tag mcp-tag   ; keys
       )
 
-   (import-old lib-dump dump-fasl) ; for state saving
+   (import (only (owl dump) dump-fasl))
    (import (only (owl io) start-base-threads))
    (import (owl queue))
 

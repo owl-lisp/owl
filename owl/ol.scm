@@ -425,10 +425,7 @@
 (import (owl cgen))
 
 
-,load "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
-,load "owl/mcp-tags.scm"
-,load "owl/dump.scm"
-(import-old lib-dump make-compiler dump-fasl)
+(import (only (owl dump) make-compiler dump-fasl load-fasl))
 
 ,load "owl/mcp.scm"
 (import-old lib-mcp)
@@ -695,7 +692,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define shared-extra-libs
    (share-bindings
       lib-mcp
-      lib-dump
       lib-test))
 
 ;; included and and imported on toplevel
@@ -955,7 +951,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 (import-old lib-notes show-notes-of)
 
-(import-old lib-dump load-fasl)
 
 (define (try-load-state path args)
    (let ((val (load-fasl path False)))
