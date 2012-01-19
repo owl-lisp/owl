@@ -254,6 +254,8 @@
 
 (import (owl compile))
 
+(import (owl suffix))
+
 (define error-tag "err")
 
 (define (error? x)
@@ -483,7 +485,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 
 
-,load "owl/suffix.scm"
 ,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
 ,load "owl/sys.scm"      ; more operating system interface
 
@@ -496,7 +497,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define shared-default-modules
    (share-modules
       (list
-         lib-suffix
          lib-sys
          lib-char)))
 
@@ -546,7 +546,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl io)
            (owl cgen)
            (owl random)
-           ;(owl suffix)
+           (owl suffix)
            (owl bisect)
            (owl tuple)
            (scheme misc))
@@ -671,7 +671,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define-module lib-usual-suspects
    (export usual-suspects)
    ; make sure the same bindings are visible that will be at the toplevel
-   (import-old lib-suffix)
+   (import (owl suffix))
    (import (owl math))
    (import (owl random))
    (import (owl bisect))
