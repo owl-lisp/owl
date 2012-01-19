@@ -45,7 +45,14 @@
 
       ;; temporary exports
       fclose                 ;; fd
-   ) 
+
+      stdin stdout stderr
+      display-to 
+      print-to
+      display
+      print
+      show
+   )
 
    (import
       (owl defmac)
@@ -53,6 +60,7 @@
       (owl queue)
       (owl string)
       (owl list-extra)
+      (owl print)
       (owl list)
       (owl math)
       (owl tuple)
@@ -65,6 +73,10 @@
       (define (fd? x) (eq? (type x) 98)) 
       (define (fd->id fd) (cast fd 12)) 
       (define (id->fd id) (cast id 0))
+
+      (define stdin (fd->id 0))
+      (define stdout (fd->id 1))
+      (define stderr (fd->id 2))
 
       ;; use type 12 for fds 
 
@@ -764,5 +776,39 @@
                      (values 'ok res)
                      (values 'write-error res))) ; <- we may have sent some bytes
                (values 'connect-error 0))))
+
+
+      ;;;
+      ;;; Rendering and sending
+      ;;;
+
+      ;; fixme: renderings will be lazy soon
+      (define (print-to obj to)
+         (mail to (render obj '(10)))) 
+
+      (define (display-to obj to)
+         (mail to (render obj '())))
+
+      (define (display x)
+         (display-to x stdout))
+
+      (define (print obj)
+         (mail stdout
+            (render obj '(10))))
+
+      (define (print* lst)
+         (mail stdout (foldr render '(10) lst)))
+
+      (define (print*-to lst to)
+         (mail to (foldr render '(10) lst)))
+
+      (define-syntax output
+         (syntax-rules () 
+            ((output . stuff)
+               (print* (list stuff)))))
+
+      (define (show a b)
+         (mail stdout (render a (render b '(10)))))
+
 
 ))

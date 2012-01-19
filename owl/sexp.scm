@@ -14,7 +14,7 @@
 		string->sexp
       vector->sexps)
 
-   (import-old lib-parse)
+   (import (owl parse))
    (import (only (owl intern) intern-symbols string->uninterned-symbol))
    (import-old lib-regex get-sexp-regex) ;; for embedded regular expressions
 

@@ -16,7 +16,7 @@
 
 	(export json-decode json-encode)
 
-	(import-old lib-parse)
+	(import (owl parse))
 	(import-old lib-unicode encode-point)
 
 	;;;

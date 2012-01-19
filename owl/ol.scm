@@ -320,7 +320,7 @@
 
 ,load "owl/parse.scm"
 
-(import-old lib-parse)
+(import (owl parse))
 
 ,load "owl/regex.scm"    ; regular expressions
 ,load "owl/sexp.scm"
@@ -943,7 +943,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define shared-extra-libs
    (share-bindings
       lib-args         ; ditto
-      lib-parse        ; .
       lib-mcp
       lib-dump
       lib-test))

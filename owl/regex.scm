@@ -32,7 +32,7 @@
 		string->complete-match-regex
       )
 
-   (import-old lib-parse)
+   (import (owl parse))
    (import (owl iff))
 
 

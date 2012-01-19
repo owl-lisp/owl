@@ -13,10 +13,10 @@
       (owl tuple)
       (owl function)
       (owl rlist)
+      (owl syscall)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
-      (only (owl string) render-string string?)
-      )
+      (only (owl string) render-string string?))
    
    (export 
       serialize       ;; obj tl → (byte ... . tl), lazy, suitable for write
@@ -83,4 +83,6 @@
 ;      (define render (λ (self obj tl) (if (function? obj) (ilist 35 60 (self self (let ((name (interact 'intern (tuple 'get-name obj)))) (or name "function")) (cons 62 tl))) (render self obj tl))))))
 
       (define serialize render)
+
+
 ))
