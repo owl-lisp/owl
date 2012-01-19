@@ -472,9 +472,7 @@
 ;;; CPS
 ;;;
 
-,load "owl/cps.scm"
-
-(import-old lib-cps)
+(import (owl cps))
 
 
 ;;; 

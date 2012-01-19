@@ -3,7 +3,8 @@
 
 (define-library (owl env)
 
-	(export lookup env-bind env-set module-ref module-set apply-env env-fold)
+	(export lookup env-bind env-set module-ref module-set apply-env env-fold
+      verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?)
 
    (import
       (owl ff)
@@ -15,6 +16,7 @@
       (owl list-extra)
       (owl math)
       (scheme misc)
+      (owl primop)
       (owl defmac))
 
    (begin
@@ -147,5 +149,43 @@
       (define env-set put)
 
       (define env-fold ff-fold)
+
+
+
+      ;;; these cannot be in primop since they use lists and ffs
+
+      (define (verbose-vm-error opcode a b)
+         (cond
+            ((eq? opcode 256)
+               ; fixme, add but got ...
+               (list 'function b 'expected a 'arguments))
+            ((eq? opcode 52) (list "car: bad pair: " a))
+            ((eq? opcode 53) (list "cdr: bad pair: " a))
+            (else
+               (list "error: " 'instruction opcode 'info (tuple a b)))))
+
+      ;; ff of wrapper-fn → opcode
+      (define prim-opcodes
+         (for False primops
+            (λ (ff node)
+               (put ff (ref node 5) (ref node 2)))))
+
+      ;; ff of opcode → wrapper
+      (define opcode->wrapper
+         (for False primops
+            (λ (ff node)
+               (put ff (ref node 2) (ref node 5)))))
+
+      ;; later check type, get first opcode and compare to primop wrapper
+      (define (primop-of val)
+         (cond
+            ((get prim-opcodes val False) => (lambda (op) op))
+            ((equal? val mkt) 23)
+            ((equal? val bind) 32)
+            ((equal? val ff-bind) 49)
+            (else False)))
+
+      (define primitive? primop-of)
+
 
 ))
