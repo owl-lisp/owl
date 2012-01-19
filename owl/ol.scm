@@ -290,6 +290,8 @@
 ,load "owl/register.scm"
 ,load "owl/assemble.scm"
 
+(import (owl thread))
+
 (import (owl assemble))
 
 (import (owl closure))
@@ -421,6 +423,7 @@
 (import (owl args))
 
 (import (owl cgen))
+
 
 ,load "owl/fasl.scm"     ; encoding and decoding arbitrary objects as lists of bytes
 ,load "owl/mcp-tags.scm"
@@ -870,8 +873,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 (import-old lib-mcp)
 
-(import (owl thread))
-
 
 ;; pick usual suspects in a module to avoid bringing them to toplevel here
 ;; mainly to avoid accidentalaly introducing bringing generic functions here  
@@ -884,7 +885,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (import-old lib-random)
    (import-old lib-bisect)
    (import (only (owl io) start-output-thread))
-   (import (owl thread)
+   (import (owl thread))
    (import (owl sexp))
    ; commonly needed functions 
    (define usual-suspects

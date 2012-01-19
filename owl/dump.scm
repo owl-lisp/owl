@@ -11,7 +11,6 @@
 ;   |   |    '-----> type/low 5 bits
 ;   |   '----------> type/variant (if any)
 ;   '--------------> rawness
-
 (define-module lib-dump
 
    (export 
@@ -23,7 +22,7 @@
    (import (owl lazy))
    (import (owl cgen))
    (import (only (owl unicode) utf8-decode))
-   (import (owl thread) thread-controller)
+   (import (only (owl thread) thread-controller))
    (import (only (owl queue) qnull))
 
    ;;; 

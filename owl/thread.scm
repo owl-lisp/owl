@@ -10,13 +10,9 @@
 
 ;; todo: make it a bug to send mail to a thread having no inbox.
 
-,r "owl/mcp-tags.scm"
-,r "owl/queue.scm"
-
-
 (define-library (owl thread)
 
-   (export thread-controller wait)
+   (export thread-controller)
 
    (import
       (owl defmac)
@@ -31,7 +27,6 @@
       (owl print)
       (owl env)
       (owl io))
-
 
    (begin
       (define (bad-syscall id a b c todo done state)
@@ -51,6 +46,7 @@
                   (values 
                      (fupd state to qnull) ;; leave an inbox
                      (tuple to (λ () (st envelope)))))))) ;; activate it
+
 
       (define (deliver-messages todo done state subs msg tc)
          (if (null? subs)
