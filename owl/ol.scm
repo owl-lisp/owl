@@ -465,9 +465,7 @@
 ;;; Computing fixed points
 ;;;
 
-,load "owl/recursion.scm"
-
-(import-old lib-recursion)
+(import (owl fixedpoint))
 
 
 ;;;
