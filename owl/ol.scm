@@ -244,10 +244,6 @@
       (eq? val False)
       (eq? val null)))
 
-,load "owl/memuse.scm"
-,load "owl/register.scm"
-,load "owl/assemble.scm"
-
 (import (owl thread))
 
 (import (owl assemble))
@@ -258,19 +254,11 @@
 
 (define error-tag "err")
 
-; values are evaluated by a separate thread
-; this way the errors do not affect the repl thread
-
 (define (error? x)
    (and (tuple? x)
       (eq? (ref x 1) error-tag)))
 
-
-; fixme, make more power-efficient later, for example by 
-; adding negative fixnums to sleep seconds and pick
-; the minimum in ovm.
-
-,load "owl/time.scm"
+(import (owl time))
 
 ;; fixme: should sleep one round to get a timing, and then use avg of the last one(s) to make an educated guess
 (define (sleep ms)
@@ -507,7 +495,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
    (share-modules
       (list
          lib-bisect
-         lib-random
          lib-suffix
          lib-sys
          lib-char)))
@@ -557,6 +544,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl rlist)
            (owl io)
            (owl cgen)
+           (owl random)
            ;(owl suffix)
            (owl tuple)
            (scheme misc))
@@ -684,7 +672,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    ; make sure the same bindings are visible that will be at the toplevel
    (import-old lib-suffix)
    (import (owl math))
-   (import-old lib-random)
+   (import (owl random))
    (import-old lib-bisect)
    (import (only (owl io) start-output-thread))
    (import (owl thread))
