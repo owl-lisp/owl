@@ -610,46 +610,56 @@
                      (fail (list "Failed to parse contents of " path))))
                (fail (list "Couldn't find " path "from any of" include-dirs)))))
 
+      ;; nonempty list of symbols or integers 
+      (define (valid-library-name? x)
+         (and (list? x) (pair? x) (all (λ (x) (or (integer? x) (symbol? x))) x)))
+
       ;; try to load a library based on it's name and current include prefixes if 
       ;; it is required by something being loaded and we don't have it yet
+      ;; → 'ok x env | 'error x reason | 'not-found x _
       (define (try-autoload env repl iset)
-         (if (and (list? iset) (all symbol? iset)) ;; (foo bar baz) → try to load "./foo/bar/baz.scm"
-            (call/cc
-               (λ (ret)
-                  (let ((exps (repl-include env (library-name->path iset) (λ (why) (ret False)))))
-                     (if exps
-                        (tuple-case (repl env (cdr exps)) ; drop begin
-                           ((ok value env)
-                              ;; we now have the library if it was defined in the file
-                              env)
-                           ((error reason env)
-                              ;; no way to distinquish errors in the library from missing library atm
-                              False))
-                        False))))
-            False))
-            
+         (if (valid-library-name? iset) ;; (foo bar baz) → try to load "./foo/bar/baz.scm"
+            (let
+               ((exps
+                  (call/cc 
+                     (λ (ret) 
+                        (repl-include env 
+                           (library-name->path iset) (λ (why) (ret False)))))))
+               (if exps
+                  (tuple-case (repl env (cdr exps)) ; drop begin
+                     ((ok value env)
+                        ;; we now have the library if it was defined in the file
+                        (values 'ok env))
+                     ((error reason env)
+                        ;; no way to distinquish errors in the library from missing library atm
+                        (values 'error reason)))
+                  (values 'not-found (library-name->path iset))))
+            (values 'error (list "Bad library name:" iset))))
+           
+      (define (any->string obj)
+         (list->string (render obj null)))
+
       (define (library-import env exps fail repl)
          (let ((libs (module-ref env library-key null)))
             (fold
                (λ (env iset) 
                   (let ((libp (call/cc (λ (ret) (import-set->library iset libs ret)))))
-                     ; (if (pair? libp) (show "will try autoload for " iset))
                      (if (pair? libp)
-                        (let ((env (try-autoload env repl libp)))
-                           (if env
-                              ;; something loaded by that name, try again (fixme, can cause loop)
-                              (library-import env exps fail repl)
-                              (fail    
-                                 (list "I dont' have" libp 
-                                    "and didn't find" (library-name->path iset) 
-                                    "from" (module-ref env includes-key null) ".")))) ;; <- could show paths tried
+                        (lets ((status env (try-autoload env repl libp)))
+                           (cond
+                              ((eq? status 'ok)
+                                 (library-import env exps fail repl))
+                              ((eq? status 'error)
+                                 (fail (list "Failed to load" libp "because" env)))
+                              (else
+                                 (fail (list "I didn't have or find library" (any->string libp))))))
                         (env-fold put env libp))))
                env exps)))
 
       ;; temporary toplevel import doing what library-import does within libraries
       (define (toplevel-library-import env exps repl)
          (lets/cc ret
-            ((fail (λ (x) (ret (cons "Import failed because " x)))))
+            ((fail (λ (x) (ret (cons "Import failed because" x)))))
             (library-import env exps fail repl)))
 
       (define (match-feature req feats libs fail)
