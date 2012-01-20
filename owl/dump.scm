@@ -33,7 +33,7 @@
       (owl string)
       (owl io)
       (owl math)
-      (owl print)
+      (owl render)
       (owl lazy)
       (owl cgen)
       (only (owl syscall) error mail exit-owl)

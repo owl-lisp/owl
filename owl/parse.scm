@@ -39,7 +39,7 @@
       (owl eof)
       (owl io)
       (owl vector)
-      (owl print)
+      (owl render)
       (only (owl primop) wait)
       (owl syscall))
 

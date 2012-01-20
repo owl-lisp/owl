@@ -10,7 +10,7 @@
       (only (owl syscall) error)
       (owl list)
       (owl tuple)
-      (owl print)
+      (owl render)
       (owl intern)
       (owl math))
 

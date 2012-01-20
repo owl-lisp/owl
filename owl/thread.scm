@@ -24,7 +24,7 @@
       (owl math)
       (owl tuple)
       (owl string)
-      (owl print)
+      (owl render)
       (owl env)
       (owl io))
 

@@ -1,7 +1,7 @@
 
 ;; making printable representations
 
-(define-library (owl print)
+(define-library (owl render)
 
    (import
       (owl defmac)
@@ -63,7 +63,12 @@
                (cons #\# (render (vector->list obj) tl)))
 
             ((function? obj)
-               (append (string->list "#<function>") tl))
+               ;; anonimas
+               ;(append (string->list "#<function>") tl)
+               (let ((symp (interact 'intern (tuple 'get-name obj))))
+                  (if symp
+                     (ilist #\# #\< (render symp (cons #\> tl)))
+                     (render "#<function>" tl))))
 
             ((tuple? obj)
                (ilist 40 84 117 112 108 101 32

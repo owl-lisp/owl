@@ -18,7 +18,7 @@
       (owl math)
       (owl syscall)
       (owl io)
-      (owl print)
+      (owl render)
       (owl list)
       (owl string)
       (owl equal)
