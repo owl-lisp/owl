@@ -10,6 +10,7 @@
       (owl list-extra)
       (owl boolean)
       (owl symbol)
+      (owl ff)
       (owl tuple)
       (owl function)
       (owl rlist)
@@ -57,7 +58,7 @@
 
             ;; these are a subclass of vectors in owl
             ((byte-vector? obj)
-               (ilist #\u #\8 (render (vector->list obj) tl)))
+               (ilist #\# #\u #\8 (render (vector->list obj) tl)))
 
             ((vector? obj)
                (cons #\# (render (vector->list obj) tl)))
@@ -78,9 +79,11 @@
                         (cons 41 tl)
                         (iota (size obj) -1 1)))))
 
-            ;; fixme: not parsed yet
-            ((rlist? obj)
+            ((rlist? obj) ;; fixme: rlist not parsed yet
                (ilist #\# #\r (render (rlist->list obj) tl)))
+
+            ((ff? obj) ;; fixme: ff not parsed yet this way
+               (cons #\# (render (ff->list obj) tl)))
 
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
