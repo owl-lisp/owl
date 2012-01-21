@@ -376,7 +376,7 @@
                            (not (get env sym False)))))
                    (transformer 
                      (make-transformer (cons keyword literals) rules)))
-                  (let ((env (env-set env keyword (tuple 'macro transformer))))
+                  (let ((env (env-set-macro env keyword transformer)))
                      (ok (list 'quote keyword) env))))
             (else
                (ok exp env))))

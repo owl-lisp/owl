@@ -476,7 +476,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       string->symbol
       close-port flush-port
       read-file
-      module-ref
+      env-ref
       string->integer
       set-memory-limit 
       get-word-size
@@ -812,7 +812,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         (try-repl-string env str))) ;; fixme, no error reporting
                   ((null? others)
                      (repl-trampoline repl 
-                        (module-set env '*seccomp* seccomp?)))
+                        (env-set env '*seccomp* seccomp?)))
                   (else
                      ;; load the given files
                      (define input

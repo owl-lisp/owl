@@ -301,9 +301,7 @@
 
       ;; just be quiet
       (define repl-load-prompt 
-         (tuple 'defined
-            (tuple 'value 
-               (λ (val) null))))
+         (λ (val) null))
 
       ;; load and save path to *loaded*
 
@@ -321,7 +319,7 @@
                   (if (env-get env '*interactive* F)
                      (show " + " path))
                   (lets
-                     ((prompt (env-get env '*owl-prompt* F)) ; <- switch prompt during loading
+                     ((prompt (env-ref env '*owl-prompt* F)) ; <- switch prompt during loading
                       (load-env 
                         (if prompt
                            (env-set env '*owl-prompt* repl-load-prompt) ;; <- switch prompt during load (if enabled)
@@ -330,7 +328,7 @@
                      (tuple-case outcome
                         ((ok val env)
                            ;(prompt env ";; loaded")
-                           (repl (mark-loaded (env-set env '*owl-prompt* (tuple 'defined (tuple 'value prompt))) path) in))
+                           (repl (mark-loaded (env-set env '*owl-prompt* prompt) path) in))
                         ((error reason partial-env)
                            ; fixme, check that the fd is closed!
                            ;(prompt env ";; failed to load")
@@ -437,7 +435,7 @@
                   (repl env in)))
             ((libs libraries)
                (print "Currently defined libraries:")
-               (for-each print (map car (module-ref env library-key null)))
+               (for-each print (map car (env-ref env library-key null)))
                (prompt env "")
                (repl env in))
             ((quit)
@@ -598,7 +596,7 @@
       ;; try to find and parse contents of <path> and wrap to (begin ...) or call fail
       (define (repl-include env path fail)
          (lets
-            ((include-dirs (module-ref env includes-key null))
+            ((include-dirs (env-ref env includes-key null))
              (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
              (paths (map conv include-dirs))
              (contentss (map file->vector paths))
@@ -640,7 +638,7 @@
          (list->string (render obj null)))
 
       (define (library-import env exps fail repl)
-         (let ((libs (module-ref env library-key null)))
+         (let ((libs (env-ref env library-key null)))
             (fold
                (λ (env iset) 
                   (let ((libp (call/cc (λ (ret) (import-set->library iset libs ret)))))
@@ -683,8 +681,8 @@
             ((pair? (car bs))
                (if (match-feature 
                         (caar bs) 
-                        (module-ref env features-key null)
-                        (module-ref env library-key null)
+                        (env-ref env features-key null)
+                        (env-ref env library-key null)
                         fail)
                   (cdar bs)
                   (choose-branch (cdr bs) env fail)))
@@ -759,19 +757,19 @@
                          (fail 
                            (λ (reason) 
                               (ret (fail (list "Library" name "failed:" reason)))))
-                         (lib-env (module-set *owl-core* library-key (module-ref env library-key null)))
-                         (lib-env (module-set lib-env includes-key (module-ref env includes-key null))))
+                         (lib-env (env-set *owl-core* library-key (env-ref env library-key null)))
+                         (lib-env (env-set lib-env includes-key (env-ref env includes-key null))))
                         
                         (show " - " (cadr (cadr exp)))
-                        ;(show "REPL: keeping currently loaded modules " (map car (module-ref lib-env library-key null)))
-                        ;(show "REPL: keeping includes " (module-ref lib-env includes-key null))
+                        ;(show "REPL: keeping currently loaded modules " (map car (env-ref lib-env library-key null)))
+                        ;(show "REPL: keeping includes " (env-ref lib-env includes-key null))
 
                         (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                            ((ok library lib-env)
                               (ok ";; Library added" 
-                                 (module-set env library-key 
+                                 (env-set env library-key 
                                     (cons (cons name library)
-                                       (module-ref lib-env library-key null))))) ; <- lib-env may also have just loaded dependency libs
+                                       (env-ref lib-env library-key null))))) ; <- lib-env may also have just loaded dependency libs
                            ((error reason not-env)
                               (fail 
                                  (list "Library" name "failed to load because" reason))))))
@@ -831,7 +829,7 @@
                               ))
                         stdin)
                      (cons 
-                        (if (module-ref env '*seccomp* F) "You see a prompt. You feel restricted." "You see a prompt")
+                        (if (env-ref env '*seccomp* F) "You see a prompt. You feel restricted." "You see a prompt")
                         stdin)))
                 (env (bind-toplevel env)))
                (tuple-case (repl env stdin)

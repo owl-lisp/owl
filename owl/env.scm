@@ -1,11 +1,11 @@
-; todo: 
-;	- add primop functions in apply-env and inline in later passes
+;; todo: rename old env-* to env-* 
 
 (define-library (owl env)
 
-	(export lookup env-bind env-set module-ref module-set apply-env env-fold
+	(export lookup env-bind env-ref env-set apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
       poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum
+      env-set-macro
       )
 
    (import
@@ -35,7 +35,7 @@
             (lambda (env key)
                (get env key undefined))))
 
-      (define (module-ref env key def)
+      (define (env-ref env key def)
          (tuple-case (lookup env key)
             ((defined val)
                (tuple-case val
@@ -43,15 +43,19 @@
                   (else def)))
             (else def)))
 
-      (define (module-set env key val)
+      (define (env-set env key val)
          (put env key
             (tuple 'defined 
                (tuple 'value val))))
 
+      (define (env-set-macro env key transformer)
+         (put env key
+            (tuple 'macro transformer)))
+
       (define-syntax invoke
          (syntax-rules ()
             ((invoke module name arg ...)
-               ((module-ref module (quote name)
+               ((env-ref module (quote name)
                   (lambda (arg ...)
                      (error "invoke: failed to invoke " 
                         (cons (quote name) 
@@ -156,8 +160,6 @@
                         (ret (fail reason))))
                      exp)))))
          
-      (define env-set put)
-
       (define env-fold ff-fold)
 
 
