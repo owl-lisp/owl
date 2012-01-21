@@ -5,7 +5,7 @@
 	(export lookup env-bind env-ref env-set apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
       poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum
-      env-set-macro
+      env-set-macro *tabula-rasa*
       )
 
    (import
@@ -197,6 +197,19 @@
             ((equal? val ff-bind) 49)
             (else False)))
 
-      (define primitive? primop-of)
+      ;; only special forms supported by the compiler, no primops etc
+      (define *tabula-rasa*
+         (list->ff
+            (list
+               ;; special forms.
+               (cons 'lambda  (tuple 'special 'lambda))
+               (cons 'quote   (tuple 'special 'quote))
+               (cons 'rlambda (tuple 'special 'rlambda))
+               (cons 'receive (tuple 'special 'receive))
+               (cons '_branch (tuple 'special '_branch))
+               (cons '_define (tuple 'special '_define))
+               (cons 'values   (tuple 'special 'values)))))
+
+   (define primitive? primop-of)
 
 ))

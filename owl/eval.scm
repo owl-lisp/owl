@@ -62,95 +62,29 @@
 
       ;; library (just the value of) containing only special forms, primops and
       (define *owl-core*
-         (let
-            ((primitive
-               (λ (sym)
-                  (cons sym
-                     (tuple 'defined
-                        (tuple 'value (name->func sym)))))))
-            (list->ff
-               (list
-                  ;; special forms.
-                  (cons 'lambda  (tuple 'special 'lambda))
-                  (cons 'quote   (tuple 'special 'quote))
-                  (cons 'rlambda (tuple 'special 'rlambda)) 
-                  (cons 'receive (tuple 'special 'receive)) 
-                  (cons '_branch (tuple 'special '_branch)) 
-                  (cons '_define (tuple 'special '_define)) 
-                  (cons 'values   (tuple 'special 'values))
+         (fold
+            (λ (env thing)
+               (env-set env thing (name->func thing)))
+            (env-set-macro
+               *tabula-rasa* ;; from (owl env), env with only special form tags, no primops
+               'define-syntax
+               (make-transformer
+                  '(define-syntax syntax-rules add quote)
+                  '(
+                     ((define-syntax keyword 
+                        (syntax-rules literals (pattern template) ...))
+                  ()
+                  (quote syntax-operation add False 
+                        (keyword literals (pattern ...) 
+                        (template ...)))))))
+            ;; note that these could now come straight from primops
+            '(cons car cdr eq? type size cast fetch ref sys-prim refb
+              pick mk mkr sys fxbor fxbxor fread _fopen fclose fsend lraw
+              raw _connect _sopen accept mkt bind set lesser? call-native
+              mkred mkblack ff-bind ff-toggle ffcar ffcdr red? listuple
+              fxband fx+ fxqr fx* fx- fx<< fx>> ncons ncar ncdr raw-mode
+              _sleep iomux clock time sizeb getev)))
 
-                  (primitive 'cons)
-                  (primitive 'car)
-                  (primitive 'cdr)
-                  (primitive 'eq?)
-                  (primitive 'type)
-                  (primitive 'size)
-                  (primitive 'cast)
-                  (primitive 'fetch)
-                  (primitive 'ref)
-                  (primitive 'sys-prim)
-                  (primitive 'refb)
-                  (primitive 'pick)
-                  (primitive 'mk)
-                  (primitive 'mkr)
-                  (primitive 'sys)
-                  (primitive 'fxbor)
-                  (primitive 'fxbxor)
-                  (primitive 'fread)
-                  (primitive '_fopen)
-                  (primitive 'fclose)
-                  (primitive 'fsend)
-                  (primitive 'lraw)
-                  (primitive 'raw)
-                  (primitive '_connect)
-                  (primitive '_sopen)
-                  (primitive 'accept)
-                  (primitive 'mkt)
-                  (primitive 'bind)
-                  (primitive 'set)
-                  (primitive 'lesser?)
-                  (primitive 'call-native)
-                  (primitive 'mkred)
-                  (primitive 'mkblack)
-                  (primitive 'ff-bind)
-                  (primitive 'ff-toggle)
-                  (primitive 'ffcar)
-                  (primitive 'ffcdr)
-                  (primitive 'red?)
-                  (primitive 'listuple)
-                  (primitive 'fxband)         
-                  (primitive 'fx+)
-                  (primitive 'fxqr)
-                  (primitive 'fx*)
-                  (primitive 'fx-)
-                  (primitive 'fx<<)
-                  (primitive 'fx>>)
-                  (primitive 'ncons)
-                  (primitive 'ncar)
-                  (primitive 'ncdr)
-                  (primitive 'raw-mode)
-                  (primitive '_sleep)
-                  (primitive 'iomux)
-                  (primitive 'clock)
-                  (primitive 'time)
-                  (primitive 'sizeb)
-                  (primitive 'blit)
-                  (primitive 'getev)
-                  (primitive 'fill-rect)
-
-                  ; needed to define the rest of the macros
-                  ; fixme, could use macro-expand instead
-                  (cons 'define-syntax
-                     (tuple 'macro
-                        (make-transformer
-                           '(define-syntax syntax-rules add quote)
-                           '(
-                              ((define-syntax keyword 
-                                 (syntax-rules literals (pattern template) ...))
-                           ()
-                           (quote syntax-operation add False 
-                                 (keyword literals (pattern ...) 
-                                 (template ...))))))))))))
    (define (execute exp env)
       (ok (exp) env))
 
