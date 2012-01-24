@@ -299,7 +299,7 @@
             (let ((fields (intern-symbols fields)))
                (if (first pair? fields False)
                   ;; vector may have unquoted stuff, so convert it to a sexp constructing a vector, which the macro handler can deal with
-                  (cons 'vector (map (λ (x) (list 'quote x)) fields))
+                  (cons '_sharp_vector fields) ; <- quasiquote macro expects to see this in vectors
                   (list->vector fields)))))
 
       (define (get-sexp)
@@ -309,7 +309,7 @@
                (get-any-of
                   get-hashbang
                   get-number         ;; more than a simple integer
-                  get-sexp-regex ;; must be before symbols, which also may start with /
+                  get-sexp-regex     ;; must be before symbols, which also may start with /
                   get-symbol
                   get-string
                   get-funny-word
