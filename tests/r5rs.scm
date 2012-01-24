@@ -199,11 +199,10 @@
       ;`#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)        
       ;                               ===>  #(10 5 2 4 3 8) ;; FIXME vector literals not yet handled
 
-     ;; FIXME nested quasiquotes are broken?
-     ;`(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          
-     ;                                ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
-     ;(let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))           
-     ;                                ===>  (a `(b ,x ,'y d) e)
+     `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          
+                                      ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
+     (let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))           
+                                      ===>  (a `(b ,x ,'y d) e)
 
 
       (quasiquote (list (unquote (+ 1 2)) 4))           

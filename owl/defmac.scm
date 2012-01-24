@@ -56,20 +56,6 @@
                   (begin . rest))
                   first))))
 
-      (define-syntax quasiquote
-         (syntax-rules (unquote quote unquote-splicing append)
-            ((quasiquote (unquote exp))
-               exp)
-            ((quasiquote ((unquote-splicing term) . tail))
-               (append term (quasiquote tail)))
-            ((quasiquote (op . args))
-               (cons
-                  (quasiquote op)
-                  (quasiquote args)))
-            ((quasiquote atom)
-               (quote atom))
-            ((quasiquote) '())))
-
       (define-syntax letrec
          (syntax-rules (rlambda)
             ((letrec ((?var ?val) ...) ?body) (rlambda (?var ...) (?val ...) ?body))
@@ -225,6 +211,25 @@
             ((list) '())
             ((list a . b)
                (cons a (list . b)))))
+
+      (define-syntax quasiquote
+         (syntax-rules (unquote quote unquote-splicing append _work)
+            ((quasiquote _work () (unquote exp)) exp)
+            ((quasiquote _work (a . b) (unquote exp))
+               (list 'unquote (quasiquote _work b exp)))
+            ((quasiquote _work d (quasiquote . e))
+               (list 'quasiquote
+                  (quasiquote _work (() . d) . e)))
+            ((quasiquote _work () ((unquote-splicing exp) . tl))
+               (append exp
+                  (quasiquote _work () tl)))
+            ((quasiquote _work d (a . b)) 
+               (cons (quasiquote _work d a) 
+                     (quasiquote _work d b)))
+            ((quasiquote _work d atom)
+               (quote atom))
+            ((quasiquote . stuff)
+               (quasiquote _work () . stuff))))
 
       (define-syntax ilist
          (syntax-rules ()
