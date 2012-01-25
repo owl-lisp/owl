@@ -131,7 +131,12 @@
                (foldr op st (cdr lst)))))
 
       (define (map fn lst)
-         (foldr (λ (a bs) (cons (fn a) bs)) null lst))
+         (if (null? lst)
+            null
+            (lets 
+               ((hd tl lst)
+                (hd (fn hd))) ;; compute head first
+               (cons hd (map fn tl)))))
 
       (define (for-each op lst)
          (if (null? lst)

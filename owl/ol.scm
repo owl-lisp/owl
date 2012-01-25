@@ -425,6 +425,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (import (owl eval))
 
+(import (owl base))
+
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
    (cons 
@@ -507,6 +509,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; owl core needed before eval
 
 ;; toplevel can be defined later
+
 
 (define initial-environment
    (bind-toplevel
