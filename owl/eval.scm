@@ -696,7 +696,7 @@
                          (lib-env (env-set *owl-core* library-key (env-ref env library-key null)))
                          (lib-env (env-set lib-env includes-key (env-ref env includes-key null))))
                         
-                        (show " - " (cadr (cadr exp)))
+                        ;(show " - " (cadr (cadr exp)))
                         ;(show "REPL: keeping currently loaded modules " (map car (env-ref lib-env library-key null)))
                         ;(show "REPL: keeping includes " (env-ref lib-env includes-key null))
 
