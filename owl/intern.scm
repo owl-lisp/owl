@@ -14,7 +14,8 @@
       symbol->string
       initialize-interner
       string->uninterned-symbol
-      intern-symbols)
+      intern-symbols
+      start-dummy-interner)
 
    (import
       (owl defmac)
@@ -246,6 +247,27 @@
                (else
                   (mail sender 'bad-kitty)
                   (interner root codes names)))))
+
+      ;; a placeholder interner for programs which don't need the other services
+      (define (dummy-interner)
+         (lets ((env (wait-mail))
+                (sender msg env))
+            (cond
+               ((bytecode? msg) 
+                  (mail sender msg)
+                  (dummy-interner))
+               ((tuple? msg)
+                  (tuple-case msg
+                     ((get-name x)
+                        (mail sender #false)))
+                  (dummy-interner))
+               ((null? msg)
+                  (mail sender 'dummy-interner))
+               (else
+                  (error "bad interner request: " msg)))))
+
+      (define (start-dummy-interner)
+         (fork-server 'intern dummy-interner))
 
       ;; make a thunk to be forked as the thread
       ;; (sym ...)  ((bcode . value) ...) old-interner-names → thunk

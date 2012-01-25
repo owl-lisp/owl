@@ -135,7 +135,8 @@
          (else is foo
             (fail (list "Funny result for compiler " foo)))))
 
-   (define (evaluate exp env) (evaluate-as exp env 'repl-eval))
+   (define (evaluate exp env) 
+      (evaluate-as exp env 'repl-eval))
 
       ;; toplevel variable to which loaded libraries are added
 
@@ -658,6 +659,7 @@
       (define (eval-repl exp env repl)
          (tuple-case (macro-expand exp env)
             ((ok exp env)
+               ;(show "macro: " exp)
                (cond
                   ((import? exp) ;; <- new library import, temporary version
                      (lets

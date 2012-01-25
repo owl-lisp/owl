@@ -103,7 +103,7 @@
                (fail (list "What is" 
                   (runes->string (foldr render '() (list "'" exp "'?"))))))
             (else is bad
-               (fail (list "The symbol '" exp "' has a funny value: '" bad "'")))))
+               (fail (list "The symbol" exp "has a funny value: '" bad "'")))))
 
       (define (formals-cool? call)
          (let ((formals (cadr call)))
