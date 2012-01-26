@@ -9,6 +9,7 @@
       zip for fold foldr map for-each
       has? getq last drop-while
       mem
+      fold-map foldr-map
       append reverse keep remove 
       all some
       smap unfold
@@ -220,6 +221,22 @@
             ((null? l) def)
             ((pred (car l)) (car l))
             (else (first pred (cdr l) def))))
+
+      (define (fold-map o s l)
+         (let loop ((s s) (l l) (r null))
+            (if (null? l)
+               (values s (reverse r))
+               (lets ((s a (o s (car l))))
+                  (loop s (cdr l) (cons a r))))))
+
+      (define (foldr-map o s l)
+         (if (null? l)
+            (values s null)
+            (lets
+               ((a (car l))
+                (s l (foldr-map o s (cdr l))))
+               (o a s))))
+
 
       (define (diff a b)
          (cond
