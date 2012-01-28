@@ -2,6 +2,9 @@
 ;;; Testing the intersection of R5RS and Owl
 ;;;
 
+(if (> (time) 1327773610)
+   (print "My, look at the time!"))
+
 (define (print thing)
    ;; silly R5RS & Owl version
    (display thing)
