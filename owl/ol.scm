@@ -900,8 +900,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (display "> ")
    (flush-port stdout))
   
-ay caramba
-
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
       (lets
