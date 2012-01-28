@@ -3,6 +3,7 @@
 
 (define-library (foo test) 
    (export bar) 
+   (import (owl base))
    (begin 
       (define mine "ALPHA")
       (define bar "BAR"))
@@ -10,7 +11,9 @@
 )
 
 (define-library (foo bar)
-   (import (foo test))
+   (import 
+      (owl base)
+      (foo test))
    (export baz)
    (begin
       (define mine "BRAVO")
@@ -20,6 +23,7 @@
 ;; test export + renaming
 
 (define-library (rename)
+   (import (owl base))
    (export 
       (rename foo bar)
       (rename bar foo))
@@ -28,7 +32,7 @@
       (define bar "foo")))
 
 (define-library (test)
-   (import (rename))
+   (import (owl base) (rename))
    (export out)
    (begin
       (define out 42)
@@ -37,6 +41,7 @@
 ;; test only import
 
 (define-library (foobar)
+   (import (owl base))
    (export foo bar)
    (begin
       (define foo "foo")
@@ -44,6 +49,7 @@
 
 (define-library (barfoo)
    (export foo bar)
+   (import (owl base))
    (begin
       (define foo "BAD")
       (define bar "bar")))
@@ -51,6 +57,7 @@
 (define-library (test)
    (export foobar)
    (import 
+      (owl base)
       (only (foobar) foo)
       (only (barfoo) bar))
    (begin
@@ -61,6 +68,7 @@
 (define-library (test)
    (export foobar)
    (import
+      (owl base)
       (except (foobar) bar)
       (except (barfoo) foo))
    (begin
@@ -71,12 +79,14 @@
 ;; nested and prefixing 
 
 (define-library (aa)
+   (import (owl base))
    (export foo bar)
    (begin
       (define foo "aa-foo")
       (define bar "aa-bar")))
 
 (define-library (bb)
+   (import (owl base))
    (export foo bar)
    (begin
       (define foo "bb-foo")
@@ -85,6 +95,7 @@
 (define-library (test)
    (export test)
    (import
+      (owl base)
       (prefix (except (aa) bar) aa-)
       (prefix (only (bb) bar) bb-))
    (begin
@@ -96,6 +107,7 @@
 
 (define-library (cond)
    (export test)
+   (import (owl base))
    (cond-expand 
       (pyramid-scheme
          (import (only (norway) coasts))
@@ -107,12 +119,13 @@
             (define (test x) "ok")))
       (else
          (begin
-            (define (test x) "fail"))))
+            (define (test x) "feature fail"))))
    (begin
       (print (test "ok"))))
 
 (define-library (cond logic)
    (export test)
+   (import (owl base))
    (cond-expand
       ((and owl-lisp (not owl-lisp))
          (begin (define foo "wrong")))
@@ -131,6 +144,7 @@
 
 (define-library (include test)
    (export test)
+   (import (owl base))
    (include "included.txt") ;; load tests/included.txt or fail
    (begin (test)))          ;; call it to get output
 
@@ -143,6 +157,7 @@
 
 (define-library (foo bar)
    (export a b)
+   (import (owl base))
    (begin
       (define a "O")
       (define b "O")))
