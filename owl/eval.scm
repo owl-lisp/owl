@@ -383,7 +383,16 @@
       (define (flush-stdout)
          (mail stdout 'flush))
 
-      ;; <export spec> = <identifier> | (rename <identifier_1> <identifier_2>)
+      ;; → (name ...) | #false
+      (define (exported-names env lib-name)
+         (let ((libp (assoc lib-name (env-ref env library-key null))))
+            (if libp
+               (env-fold (λ (out name value) (cons name out)) null (cdr libp))
+               #false)))
+
+      ;; <export spec> = <identifier> 
+      ;;               | (rename <identifier_1> <identifier_2>)
+      ;;               | (exports <lib)
       (define (build-export names env fail)
          (let loop ((names names) (unbound null) (module False))
             (cond
@@ -402,6 +411,11 @@
                    (get env (cadar names) False)) =>
                   (λ (value)
                      (loop (cdr names) unbound (put module (caddar names) value))))
+               ((match `(exports ,list?) (car names))
+                  (let ((exported (exported-names env (cadr (car names)))))
+                     (if exported
+                        (loop (append exported (cdr names)) unbound module)
+                        (fail (list "Didn't find " (cadar names) " for exporting.")))))
                (else
                   (loop (cdr names) (cons (car names) unbound) module)))))
 
