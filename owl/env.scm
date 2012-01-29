@@ -5,7 +5,7 @@
 	(export lookup env-bind env-ref env-set apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
       poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum
-      env-set-macro *tabula-rasa*
+      env-set-macro *tabula-rasa* env-del
       )
 
    (import
@@ -162,7 +162,7 @@
          
       (define env-fold ff-fold)
 
-
+      (define env-del del)
 
       ;;; these cannot be in primop since they use lists and ffs
 

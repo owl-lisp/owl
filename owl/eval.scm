@@ -86,58 +86,58 @@
               fxband fx+ fxqr fx* fx- fx<< fx>> ncons ncar ncdr raw-mode
               _sleep iomux clock time sizeb getev)))
 
-   (define (execute exp env)
-      (ok (exp) env))
+      (define (execute exp env)
+         (ok (exp) env))
 
-   ;; todo: add partial evaluation
-   ;; todo: add type inference (Hindley-Milner for the primitive types, save and use result when inferable)
-   ;; todo: move compiler code to a more appropriate place (like lib-compile, or lib-eval)
+      ;; todo: add partial evaluation
+      ;; todo: add type inference (Hindley-Milner for the primitive types, save and use result when inferable)
+      ;; todo: move compiler code to a more appropriate place (like lib-compile, or lib-eval)
 
-   ; (op exp env) -> #(ok exp' env') | #(fail info)
-   (define compiler-passes
-      (list 
-         apply-env       ;; apply previous definitions
-         sexp->ast       ;; safe sane tupled structure
-         fix-points      ;; make recursion explicit <3
-         alpha-convert   ;; assign separate symbols to all bound values
-         cps             ;; convert to continuation passing style
-         build-closures  ;; turn lambdas into closures where necessary
-         compile         ;; assemble to bytecode
-         execute         ;; call the resulting code
-         )) 
+      ; (op exp env) -> #(ok exp' env') | #(fail info)
+      (define compiler-passes
+         (list 
+            apply-env       ;; apply previous definitions
+            sexp->ast       ;; safe sane tupled structure
+            fix-points      ;; make recursion explicit <3
+            alpha-convert   ;; assign separate symbols to all bound values
+            cps             ;; convert to continuation passing style
+            build-closures  ;; turn lambdas into closures where necessary
+            compile         ;; assemble to bytecode
+            execute         ;; call the resulting code
+            )) 
 
-   ; run the code in its own thread
-   (define (evaluate-as exp env task)
-      ; run the compiler chain in a new task
-      (fork-linked task
-         (λ ()
-            (call/cc
-               (λ exit
-                  (fold
-                     (λ state next
-                        (if (ok? state)
-                           (begin
-                              ;(show " - compiler at exp " (ref state 2))
-                              (next (ref state 2) (ref state 3)))
-                           (exit state)))
-                     (ok exp env)
-                     compiler-passes)))))
-      ; grab the result
-      (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) task))) 2)
-         ((finished result not used)
-            result) ; <- is already ok/fail
-         ((crashed opcode a b)
-            (fail (verbose-vm-error opcode a b)))
-         ((error cont reason info)
-            ; note, these could easily be made resumable by storing cont
-            (fail (list reason info)))
-         ((breaked)
-            (fail "breaked"))
-         (else is foo
-            (fail (list "Funny result for compiler " foo)))))
+      ; run the code in its own thread
+      (define (evaluate-as exp env task)
+         ; run the compiler chain in a new task
+         (fork-linked task
+            (λ ()
+               (call/cc
+                  (λ exit
+                     (fold
+                        (λ state next
+                           (if (ok? state)
+                              (begin
+                                 ;(show " - compiler at exp " (ref state 2))
+                                 (next (ref state 2) (ref state 3)))
+                              (exit state)))
+                        (ok exp env)
+                        compiler-passes)))))
+         ; grab the result
+         (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) task))) 2)
+            ((finished result not used)
+               result) ; <- is already ok/fail
+            ((crashed opcode a b)
+               (fail (verbose-vm-error opcode a b)))
+            ((error cont reason info)
+               ; note, these could easily be made resumable by storing cont
+               (fail (list reason info)))
+            ((breaked)
+               (fail "breaked"))
+            (else is foo
+               (fail (list "Funny result for compiler " foo)))))
 
-   (define (evaluate exp env) 
-      (evaluate-as exp env 'repl-eval))
+      (define (evaluate exp env) 
+         (evaluate-as exp env 'repl-eval))
 
       ;; toplevel variable to which loaded libraries are added
 
@@ -461,18 +461,8 @@
                False)))
 
       (define (bind-toplevel env)
-         (put env '*toplevel* (tuple 'defined (mkval (del env '*toplevel*)))))
-
-      ; temp
-
-      (define (push-exports-deeper lst)
-         (cond
-            ((null? lst) lst)
-            ((export? (car lst))
-               (append (cdr lst) (list (car lst))))
-            (else
-               (cons (car lst)
-                  (push-exports-deeper (cdr lst))))))
+         (env-set env '*toplevel*
+            (env-del env '*toplevel)))
 
       ;; list starting with val?
       (define (headed? val exp)
