@@ -2,25 +2,37 @@
 
 cd $HOME/owl-lisp
 
-while true
-do
-   date
-   test -f $HOME/owl-updated && (
-      make clean; 
-      rm test-runs;
-      WHO=`cat $HOME/owl-updated`;
-      ME=$$;
-      OUT="~/aoh/owl/logs/build-$ME.txt"
-      rm $HOME/owl-updated $HOME/owl-ok;
-      git pull &> $OUT;
-      echo "" >> $OUT;
-      git show -s HEAD^{commit} >> $OUT;
-      echo "" >> $OUT;
-      MSG=`git show -s HEAD^{commit} | tail -n 1 | sed -e 's/^[ \t]*//' | dd bs=1 count=50 2>/dev/null`;
-      STATUS=`make &>> $OUT && echo -n "ok" || echo -n "BAD"`;
-      chmod oug+r ~/aoh/owl/logs/*.txt;
-      twidge update "Push by $WHO, status $STATUS: \"$MSG\" (http://haltp.org/aoh/owl/logs/build-$ME.txt)";
-   )
-   sleep 10
-   test -x bin/ol && (ME=$$; echo " - tests at `date`"; make test &> ~/aoh/owl/logs/test-$ME.txt && date >> test-runs || (twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/test-$ME.txt"; rm bin/ol-failed; mv bin/ol bin/ol-failed ;))
-done
+echo "Running on `date`"
+
+# maybe run a round of unit tests
+test -x bin/ol && (\
+   ME=$$; \
+   echo " - tests at `date`"; \
+   make test &> $HOME/aoh/owl/logs/test-$ME.txt \
+      && date >> test-runs \
+      || (twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/test-$ME.txt"; rm bin/ol-failed; mv bin/ol bin/ol-failed;))
+
+# don't use all cpu
+sleep 2
+
+# recurse unless updated
+test -f $HOME/owl-updated || exec bin/builder
+
+# pull, rebuild and report
+make clean;
+rm test-runs
+WHO=`cat $HOME/owl-updated`
+ME=$$
+OUT="$HOME/aoh/owl/logs/build-$ME.txt"
+rm $HOME/owl-updated $HOME/owl-ok
+git pull &> $OUT
+echo "" >> $OUT
+git show -s HEAD^{commit} >> $OUT
+echo "" >> $OUT
+MSG=`git show -s HEAD^{commit} | tail -n 1 | sed -e 's/^[ \t]*//' | dd bs=1 count=50 2>/dev/null`
+STATUS=`make &>> $OUT && echo -n "ok" || echo -n "BAD"`
+chmod oug+r ~/aoh/owl/logs/*.txt
+twidge update "Push by $WHO, status $STATUS: \"$MSG\" (http://haltp.org/aoh/owl/logs/build-$ME.txt)"
+
+# tailcall possibly updated self
+exec bin/builder
