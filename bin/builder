@@ -13,7 +13,7 @@ test -x bin/ol && (\
       || (twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/test-$ME.txt"; rm bin/ol-failed; mv bin/ol bin/ol-failed;))
 
 # don't use all cpu
-sleep 2
+sleep 10
 
 # recurse unless updated
 test -f $HOME/owl-updated || exec bin/builder
