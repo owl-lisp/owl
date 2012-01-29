@@ -268,7 +268,7 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at 
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049 
-                  (list "{word *ob=(word *)R["n"];word hdr=*ob>>3;if((hdr&31)!=TF#false){error(1049,ob,INULL);};R["k"]=ob[1];R["v"]=ob[2];if(hdr&FFLEF#true){R["l"]=ob[3];R["r"]=(hdr&FFRIGH#true)?ob[4]:IFALSE;}else{R["l"]=IFALSE;R["r"]=(hdr&FFRIGH#true)?ob[3]:IFALSE;}};"))
+                  (list "{word *ob=(word *)R["n"];word hdr=*ob>>3;if((hdr&31)!=TFF){error(1049,ob,INULL);};R["k"]=ob[1];R["v"]=ob[2];if(hdr&FFLEFT){R["l"]=ob[3];R["r"]=(hdr&FFRIGHT)?ob[4]:IFALSE;}else{R["l"]=IFALSE;R["r"]=(hdr&FFRIGHT)?ob[3]:IFALSE;}};"))
                bs 
                (fold del regs (list l k v r)))))
 
