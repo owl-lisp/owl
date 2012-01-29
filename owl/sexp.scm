@@ -30,9 +30,11 @@
       (define special-symbol-chars (string->bytes "+-=<>!*%?_/"))
 
       (define (symbol-lead-char? n) 
-         (or (between? 97 n 122)
-            (or (has? special-symbol-chars n)
-               (> n 127))))         ;; allow high code points in symbols
+         (or 
+            (between? #\a n #\z)
+            (between? #\A n #\Z)
+            (has? special-symbol-chars n)
+            (> n 127)))         ;; allow high code points in symbols
 
       (define (symbol-char? n) 
          (or (symbol-lead-char? n) 
@@ -278,14 +280,14 @@
       ;; most of these are to go via type definitions later
       (define get-funny-word
          (get-any-of
-            (get-word "Null" Null)
+            ;(get-word "Null" Null)
             (get-word "..." '...)
             ;(get-word "#true" #true)
             ;(get-word "#false" #false)
             ;; optional shorties
             ;(get-word "T" #true)
             ;(get-word "F" #false)
-            (get-word "N" Null)
+            ;(get-word "N" Null)
             (get-word "#true" #true)    ;; get the longer ones first if present
             (get-word "#false" #false)
             (get-word "#t" #true)

@@ -43,7 +43,7 @@
       (owl boolean))
 
    (begin
-      (define null Null)
+      (define null '())
 
       (define (pair? x) (eq? (type x) 14))
       (define (null? x) (eq? x null))
