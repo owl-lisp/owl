@@ -514,7 +514,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define initial-environment
    (bind-toplevel
       (library-import initial-environment-sans-macros
-         '((owl primop)      ;; primop wrappers
+         '( 
+            #|
+           (owl primop)      ;; primop wrappers
            (owl syscall)     ;; calling mcp
            (owl defmac)      ;; standard toplevel macros
            (owl unsupported) ;; things we don't have
@@ -543,7 +545,10 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
            (owl char)
            (owl bisect)
            (owl tuple)
-           (scheme misc))
+           (scheme misc)
+           |#
+           (owl base)
+           )
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
 

@@ -3,6 +3,7 @@
 ;; todo: add lib-http and allow including remote resources
 ;; todo:  ^ would need a way to sign libraries and/or SSL etc
 ;; todo: autoload feature: when a library imports something not there, try to load (owl ff) from each $PREFIX/owl/ff.scm
+;; todo: swap toplevel env to (owl base)
 
 (define-library (owl eval)
 
