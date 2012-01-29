@@ -104,9 +104,9 @@
    (begin
       (define (boolean? x) 
          (cond
-            ((eq? x True) True)
-            ((eq? x False) True)
-            (else False)))))
+            ((eq? x #true) #true)
+            ((eq? x #false) #true)
+            (else #false)))))
 
 (import (owl boolean))
 
@@ -206,24 +206,24 @@
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes
-         (for False primops
+         (for #false primops
             (λ (ff node)
                (put ff (ref node 5) (ref node 2)))))
 
       ;; ff of opcode → wrapper
       (define opcode->wrapper
-         (for False primops
+         (for #false primops
             (λ (ff node)
                (put ff (ref node 2) (ref node 5)))))
 
       ;; later check type, get first opcode and compare to primop wrapper
       (define (primop-of val)
          (cond
-            ((get prim-opcodes val False) => (lambda (op) op))
+            ((get prim-opcodes val #false) => (lambda (op) op))
             ((equal? val mkt) 23)
             ((equal? val bind) 32)  
             ((equal? val ff-bind) 49)
-            (else False)))
+            (else #false)))
 
       (define primitive? primop-of)
 
@@ -242,8 +242,8 @@
 (define (small-value? val)
    (or
       (and (fixnum? val) (>= val -127) (< val 127))   
-      (eq? val True)
-      (eq? val False)
+      (eq? val #true)
+      (eq? val #false)
       (eq? val null)))
 
 (import (owl thread))
@@ -331,7 +331,7 @@
 
 ; path -> 'loaded | 'saved
 (define (suspend path)
-   (let ((maybe-world (syscall 16 True True)))
+   (let ((maybe-world (syscall 16 #true #true)))
       (if (eq? maybe-world 'resumed)
          'loaded
          (begin
@@ -369,7 +369,7 @@
                (list->byte-vector bytes))
             (iota 0 1 n-blocks))
          ;; leave it as garbage
-         True)))
+         #true)))
 
 ;; enter seccomp with at least n-megs of free space in heap, or stop the world (including all other threads and io)
 (define (seccomp n-megs)
@@ -377,7 +377,7 @@
    ;; get any more memory after entering seccomp
    (if (and n-megs (> n-megs 0))
       (ensure-free-heap-space n-megs))
-   (or (sys-prim 10 F F F)
+   (or (sys-prim 10 #false #false #false)
       (begin
          (system-stderr "Failed to enter seccomp sandbox. 
 You must be on a newish Linux and have seccomp support enabled in kernel.
@@ -570,8 +570,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
        (profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
-       ;(linked  False "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
-       (no-threads False "--no-threads" comment "do not include threading and io to generated c-code")
+       ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
+       (no-threads #false "--no-threads" comment "do not include threading and io to generated c-code")
        )))
 
 (define brief-usage-text "Usage: ol [args] [file] ...")
@@ -595,13 +595,13 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (define (memory-limit-ok? n w)
    (cond
-      ((< n 1) (print "Too little memory allowed.") False)
-      ((and (= w 4) (> n 4096)) (print "This is a 32-bit executable, so you cannot use more than 4096Mb of memory.") False)
-      ((and (= w 8) (> n 65536)) (print "65536 is as high as you can go.") False)
-      (else True)))
+      ((< n 1) (print "Too little memory allowed.") #false)
+      ((and (= w 4) (> n 4096)) (print "This is a 32-bit executable, so you cannot use more than 4096Mb of memory.") #false)
+      ((and (= w 8) (> n 65536)) (print "65536 is as high as you can go.") #false)
+      (else #true)))
 
 (define (maybe-set-memory-limit args)
-   (let ((limit (get args 'memlimit False)))
+   (let ((limit (get args 'memlimit #false)))
       (if limit
          (if (memory-limit-ok? limit (get-word-size))
             (set-memory-limit limit)
@@ -727,19 +727,19 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         (compiler val 
                            ;; output path
                            (cond
-                              ((get opts 'output F) => (λ (given) given)) ; requested with -o
+                              ((get opts 'output #false) => (λ (given) given)) ; requested with -o
                               ((equal? path "-") path) ; stdin → stdout
                               (else (c-source-name path)))
                            ;; inverse option on command line, add here if set
-                           (if (get opts 'no-threads F)
+                           (if (get opts 'no-threads #false)
                               opts
-                              (put opts 'want-threads T))
+                              (put opts 'want-threads #true))
                            ;; to be customizable via command line opts
                            (let ((opt (abs (get opts 'optimize 0))))
                               (cond
                                  ((>= opt 2) val) ;; compile everything to native extended primops for -O2
                                  ((= opt 1) usual-suspects) ;; compile some if -O1
-                                 (else False)))) ;; otherwise use bytecode and plain vm
+                                 (else #false)))) ;; otherwise use bytecode and plain vm
                            0)
                      (begin
                         (show "The last value should be a function of one value (the command line arguments), but it is instead " val)
@@ -751,11 +751,11 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                (else
                   (print-repl-error "Weird eval outcome.")
                   3))))
-      False))
+      #false))
 
 
 (define (try-load-state path args)
-   (let ((val (load-fasl path False)))
+   (let ((val (load-fasl path #false)))
       (if (function? val)
          (try (λ () (val (cons path args))) 127)
          (begin
@@ -784,38 +784,38 @@ Check out http://code.google.com/p/owl-lisp for more information.")
          (λ (dict others)
             (let 
                ((env 
-                  (if (fold (λ (is this) (or is (get dict this F))) F '(quiet evaluate run output output-format))
+                  (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet evaluate run output output-format))
                      (del env '*owl-prompt*) 
-                     (put env '*interactive* True)))
+                     (put env '*interactive* #true)))
                 (seccomp?
-                  (if (get dict 'seccomp False)
+                  (if (get dict 'seccomp #false)
                      (let ((megs (get dict 'seccomp-heap 'bug)))
                         (seccomp megs) ;; <- process exits unless this succeeds 
-                        True)
-                     False)))
+                        #true)
+                     #false)))
                (cond
-                  ((get dict 'help False)
+                  ((get dict 'help #false)
                      (print brief-usage-text)
                      (print-rules command-line-rules)
                      0)
-                  ((get dict 'version False)
+                  ((get dict 'version #false)
                      (show "Owl Lisp " *owl-version*)
                      0)
-                  ((get dict 'about False) (print about-owl) 0)
-                  ((get dict 'load False) =>
+                  ((get dict 'about #false) (print about-owl) 0)
+                  ((get dict 'load #false) =>
                      (λ (path) (try-load-state path others)))
-                  ((or (get dict 'output F) (get dict 'output-format F))
+                  ((or (get dict 'output #false) (get dict 'output-format #false))
                      (if (< (length others) 2) ;; can take just one file or stdin
                         (repl-compile compiler env 
                            (if (null? others) "-" (car others)) dict)
                         (begin
                            (show "compile just one file for now please: " others)
                            1)))
-                  ((get dict 'run False) =>
+                  ((get dict 'run #false) =>
                      (λ (path)
-                        (owl-run (try (λ () (repl-file env path)) False) (cons "ol" others) path
-                           (get dict 'profile False))))
-                  ((get dict 'evaluate False) => 
+                        (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path
+                           (get dict 'profile #false))))
+                  ((get dict 'evaluate #false) => 
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting
                   ((null? others)
@@ -859,7 +859,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                   (set state 2 
                      (put (ref state 2) obj src))))
             ((get-source obj)
-               (let ((src (get (ref state 2) obj False)))
+               (let ((src (get (ref state 2) obj #false)))
                   (mail sender src)
                   (meta-storage state)))
             (else
@@ -879,7 +879,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         collected))
                   (else collected)))
             (else collected)))
-      False env))
+      #false env))
 
 ; *owl* points to owl root directory
 ; initally read from binary path (argv [0] )
@@ -933,7 +933,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
                                     ;; this thread will be removed later once 'intern does also the same
                                     (fork-server 'meta 
-                                       (λ () (meta-storage (tuple initial-names False))))
+                                       (λ () (meta-storage (tuple initial-names #false))))
 
                                     (exit-owl 
                                        (repl-start vm-args repl compiler
@@ -957,7 +957,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 (cons '*owl-prompt* default-prompt)
                                                 )))))))))
                      null 
-                     False)))))))
+                     #false)))))))
 
 ;; todo: dumping with fasl option should only dump the fasl and only fasl
 
@@ -998,9 +998,9 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                (compiler heap-entry "unused historical thingy"
                   (list->ff
                      `((output . ,(get opts 'output 'bug))
-                       (want-symbols . True)
-                       (want-codes . True)
-                       (want-native-ops . True)))
+                       (want-symbols . #true)
+                       (want-codes . #true)
+                       (want-native-ops . #true)))
                   (choose-natives 
                      (get opts 'specialize "none")
                      heap-entry))

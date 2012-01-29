@@ -133,22 +133,22 @@
             ; promote natural seeds to random states
             ((teq? seed fix+)
                (let ((seed (ncons 1 (ncons seed null))))
-                  (tuple True (rand-walk rand-modulus seed null) seed)))
+                  (tuple #true (rand-walk rand-modulus seed null) seed)))
             ((teq? seed int+)
-               (tuple True (rand-walk rand-modulus seed null) seed))
+               (tuple #true (rand-walk rand-modulus seed null) seed))
             (else
                (lets ((st a b seed))
                   (cond
                      ((= a b)
                         (let ((ap (ncons 1 a)))
                            ;(show "rand loop at " a)
-                           (tuple True (rand-walk rand-modulus ap null) ap)))
+                           (tuple #true (rand-walk rand-modulus ap null) ap)))
                      (st
-                        (tuple False
+                        (tuple #false
                            (rand-walk rand-modulus a null)
                            (rand-walk rand-modulus b null)))
                      (else
-                        (tuple True (rand-walk rand-modulus a null) b)))))))
+                        (tuple #true (rand-walk rand-modulus a null) b)))))))
 
       ;;; Mersenne Twister (missing)
 
@@ -195,7 +195,7 @@
 
       (define (rand-big rs n)
          (if (null? n)
-            (values rs null True)
+            (values rs null #true)
             (lets 
                ((rs head eq (rand-big rs (ncdr n)))
                 (this rs (uncons rs 0)))
@@ -205,8 +205,8 @@
                         (values rs (if (null? head) null (ncons 0 head)) (eq? (ncar n) 0))
                         (values rs (ncons val head) (eq? val (ncar n)))))
                   (if (eq? this 0)
-                     (values rs (if (null? head) null (ncons 0 head)) False)
-                     (values rs (ncons this head) False))))))
+                     (values rs (if (null? head) null (ncons 0 head)) #false)
+                     (values rs (ncons this head) #false))))))
 
       ; rs n → rs m, 0 <= m < n
 
@@ -226,7 +226,7 @@
       (define (rand-fixnum rs n)
          (let loop ((rs rs) (mask (bitmask n)))
             (lets
-               ((digit rs (uncons rs F))
+               ((digit rs (uncons rs #false))
                 (m (fxband digit mask)))
                (if (lesser? m n)
                   (values rs m)
@@ -236,7 +236,7 @@
       (define (rand-bignum-topdigit rs n)
          (let loop ((rs rs) (mask (bitmask n)))
             (lets
-               ((digit rs (uncons rs F))
+               ((digit rs (uncons rs #false))
                 (m (fxband digit mask)))
                (cond
                   ((lesser? m n) (values rs m))
@@ -255,7 +255,7 @@
                         ;; we made 0 <= try < n
                         (values rs try)
                         (rand-bignum rs n)))
-                  (lets ((digit rs (uncons rs F)))
+                  (lets ((digit rs (uncons rs #false)))
                      (loop rs left (cons digit out)))))))
 
       ;; todo: add (n-bits fixnum), use it to construct fixnum and bignum top digits, and compare&reject instead of modulo to avoid bias
@@ -448,7 +448,7 @@
       (define (random-bvec rs n)
          (let loop ((rs rs) (out null) (n n))
             (if (eq? n 0)
-               (values rs (raw out 11 True)) ; reverses to keep order
+               (values rs (raw out 11 #true)) ; reverses to keep order
                (lets 
                   ((d rs (uncons rs 0))
                    (n _ (fx- n 1))) 
@@ -469,7 +469,7 @@
                         (loop rs (- n block)))))
                (begin
                   (show "failed to open " path)
-                  False))))
+                  #false))))
 
 
       (define (rand-occurs? rs prob)
@@ -481,12 +481,12 @@
                         (values rs (eq? n 0)))
                      (lets ((rs n (rand rs denom)))
                         (values rs (< n nom))))))
-            (fix- (values rs F))
-            (int- (values rs F))
+            (fix- (values rs #false))
+            (int- (values rs #false))
             (else
                (if (eq? prob 0)
-                  (values rs F)
-                  (values rs T))))) ;; <- natural number > 0 -> >= 100%
+                  (values rs #false)
+                  (values rs #true))))) ;; <- natural number > 0 -> >= 100%
 
       ;(lets ((rs l (shuffle (seed->rands 42) (iota 0 1 100))))
       ;   (show " xxx " l))

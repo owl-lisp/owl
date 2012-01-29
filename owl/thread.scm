@@ -33,15 +33,15 @@
          (system-println "mcp: got bad syscall")
          (values todo done state))
 
-      ; -> state x False|waked-thread
+      ; -> state x #false|waked-thread
       (define (deliver-mail state to envelope)
-         (let ((st (get state to False)))
+         (let ((st (get state to #false)))
             (cond
                ((pair? st) ;; currently working, leave a mail to inbox queue
-                  (values (fupd state to (qsnoc envelope st)) False))
+                  (values (fupd state to (qsnoc envelope st)) #false))
                ((not st) ;; no such thread, or just no inbox
                   (system-stderr (bytes->string (foldr render '(10) (list "ol: dropping envelope " envelope " to nonexistent local thread " to))))
-                  (values state False))
+                  (values state #false))
                (else ;; activate the state function
                   (values 
                      (fupd state to qnull) ;; leave an inbox
@@ -59,7 +59,7 @@
       ; remove the thread and report to any interested parties about the event 
       (define (drop-delivering todo done state id msg tc)
          (lets
-            ((links (get state link-tag False))
+            ((links (get state link-tag #false))
              (subscribers (get links id null)))
             (if (null? subscribers)
                (if (eq? (ref (ref msg 2) 1) 'finished)
@@ -87,10 +87,10 @@
             (drop-from-list done id)
             state id msg tc))
 
-      ; l id → False|thread l', O(n) running threads
+      ; l id → #false|thread l', O(n) running threads
       (define (catch-thread l id)
          (if (null? l) 
-            (values False l)
+            (values #false l)
             (let ((this (car l)))
                (if (eq? id (ref this 1))
                   (values this (cdr l))
@@ -133,7 +133,7 @@
                            (cond
                               ((eq? req 'link)
                                  ;; forker wants to receive any issues the thread runs into
-                                 (let ((links (get state link-tag False)))
+                                 (let ((links (get state link-tag #false)))
                                     (put state link-tag
                                        (put links new-id (list id)))))
                               ((eq? req 'mailbox)
@@ -190,7 +190,7 @@
                               ;; mcp forks the io threads it needs
                               ((get state mcp-tag mcp-halt) ; default to standard mcp 
                                  all-threads state thread-controller))))
-                     null False)))
+                     null #false)))
 
             
             ; 11, reset mcp state (usually means exit from mcp repl)
@@ -202,18 +202,18 @@
             ; 12, set break action
             (λ (id cont choice x todo done state tc)
                (tc tc  
-                  (cons (tuple id (λ () (cont True))) todo)
+                  (cons (tuple id (λ () (cont #true))) todo)
                   done (put state mcp-tag choice)))
 
             ; 13, look for mail in my inbox at state
             (λ (id cont foo nonblock? todo done state tc)
-               (lets ((valp queue (quncons (get state id qnull) F)))
+               (lets ((valp queue (quncons (get state id qnull) #false)))
                   (cond
                      (valp      ;; envelope popped from inbox
                         (tc tc (cons (tuple id (λ () (cont valp))) todo) done
                            (fupd state id queue)))
-                     (nonblock? ;; just tell there is no mail with False
-                        (tc tc (cons (tuple id (λ () (cont False))) todo) done state))
+                     (nonblock? ;; just tell there is no mail with #false
+                        (tc tc (cons (tuple id (λ () (cont #false))) todo) done state))
                      (else      ;; leave thread continuation waiting
                         (tc tc todo done (put state id cont))))))
 
@@ -273,8 +273,8 @@
             ; 21, end profiling, resume old ones, pass profiling info 
             (λ (id cont b c todo done state tc) 
                (lets
-                  ((prof (get state 'prof False)) ;; ff storing profiling info
-                   (tc (get prof 'tc False))      ;; normal thread scheduler
+                  ((prof (get state 'prof #false)) ;; ff storing profiling info
+                   (tc (get prof 'tc #false))      ;; normal thread scheduler
                    (prof (del prof 'tc)))         ;; give just the collected data to thread
                   (tc tc (cons (tuple id (λ () (cont prof))) todo) done 
                      (del state 'prof))))
@@ -300,7 +300,7 @@
          (if (tuple? exec) ;; vm thread suspensions are tuples
             (lets
                ((bcode (bytecode-of (ref exec (size exec)) 'not-a-function)) ;; identify place based in bytecode which is inert
-                (prof (get state 'prof F))
+                (prof (get state 'prof #false))
                 (count (get prof bcode 0))
                 (prof (put prof bcode (+ count 1)))
                 (state (fupd state 'prof prof)))
@@ -332,7 +332,7 @@
 
                      (scheduler scheduler (cons (tuple id (λ () (cont 'started-profiling))) todo) done 
                         (put state 'prof           ;; profiling data is stored under key 'prof
-                           (put False 'tc tc)))))) ;; store normal scheduler there for resuming on syscall 21
+                           (put #false 'tc tc)))))) ;; store normal scheduler there for resuming on syscall 21
              (syscalls
                (set syscalls 21 ;; end-profiling syscall doesn't do anything when not profiling
                   (λ (id cont b c todo done state tc) 
@@ -347,7 +347,7 @@
                   (λ ()
                      ((get state mcp-tag mcp-halt) ; exit by default
                         threads state controller))))
-            null False))
+            null #false))
 
 
       ; (enter-mcp thread-controller done state) -- no way to go here without the poll, rethink that

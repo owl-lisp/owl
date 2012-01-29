@@ -102,10 +102,10 @@
 ;                        (ilist (inst->op 'ld) 
 ;                           (if (< val 0) (+ 256 val) val)
 ;                           (reg to) code)))
-;                  ((eq? val False)
+;                  ((eq? val #false)
 ;                     (ilist (inst->op 'ldf) (reg to)
 ;                        (assemble cont fail)))
-;                  ((eq? val True)
+;                  ((eq? val #true)
 ;                     (ilist (inst->op 'ldt) (reg to)
 ;                        (assemble cont fail)))
 ;                  (else
@@ -170,7 +170,7 @@
 ;                        (error "need a bigger jrt instruction: length is " len)))))
 ;            (else
 ;               (show "assemble: what is " code)
-;               (fail False)))))
+;               (fail #false)))))
 ;
 ;   ;; insts 
 ;   (define (count-allocs insts)

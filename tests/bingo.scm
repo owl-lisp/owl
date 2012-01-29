@@ -17,7 +17,7 @@
 
 ;; ff of all numbers
 (define wanted 
-   (fold (λ (ff n) (put ff n n)) False (iota 0 1 n)))
+   (fold (λ (ff n) (put ff n n)) #false (iota 0 1 n)))
 
 (define (drop-mails)
    (wait-mail)

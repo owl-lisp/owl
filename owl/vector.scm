@@ -54,7 +54,7 @@
       vec-len             ; v → n
       vec-ref             ; v x p → v[p] | error
       list->vector
-      list->byte-vector   ; (byte ...) -> bvec | False
+      list->byte-vector   ; (byte ...) -> bvec | #false
       vector->list
       vec->list
       vec-iter
@@ -66,8 +66,8 @@
       vec-map             ; (val → val') x vec → vec'
 
       ; these assume a sorted vector (as used by pred) having matches in one continuous range
-      ;vec-match-range         ; vec x val-pred -> lo x hi | False x False
-      ;vec-match-range-between ; vec x pred x hi x lo -> lo x hi | False x False
+      ;vec-match-range         ; vec x val-pred -> lo x hi | #false x #false
+      ;vec-match-range-between ; vec x pred x hi x lo -> lo x hi | #false x #false
 
       ;vec-equal?         ; v x v → bool
       ;vec-render         ; v x tail → tail'
@@ -216,39 +216,39 @@
 
       (define (vector-leaf-ok? vec)
          (type-case vec
-            ((raw 11) True)
-            ((alloc 11) True)
+            ((raw 11) #true)
+            ((alloc 11) #true)
             (else 
-               False)))
+               #false)))
 
       (define (vector-fields-ok? vec p)
          (if (> p (size vec))
-            True
+            #true
             (let ((sub (ref vec p)))
                (and
                   (type-case sub
-                     ((raw 11) True)
-                     ((alloc 11) True)
+                     ((raw 11) #true)
+                     ((alloc 11) #true)
                      ((alloc 43)
                         (and
                            (vector-leaf-ok? (ref sub 1))
                            (vector-fields-ok? sub 2)))
                      (else 
                         (error " - bad fiedld " sub)
-                        False))
+                        #false))
                   (vector-fields-ok? vec (+ p 1))))))
 
       (define (vector-nodes-ok? vec)
          (type-case vec
-            ((raw 11) True)
-            ((alloc 11) True)
+            ((raw 11) #true)
+            ((alloc 11) #true)
             ((alloc 43) 
                (and (> (size vec) 2)
                   (vector-leaf-ok? (ref vec 1)) ;; root leaf
                   (number? (ref vec 2)) ;; size
                   (vector-fields-ok? vec 3)))
             (else 
-               False)))
+               #false)))
 
       (define (valid-vector? vec)
          (and 
@@ -261,10 +261,10 @@
       ; note, a blank vector must use a raw one, since there are no such things as 0-tuples
 
       (define empty-vector 
-         (raw null 11 False))
+         (raw null 11 #false))
 
       (define (list->byte-vector bs)
-         (raw bs 11 False))
+         (raw bs 11 #false))
 
       (define (make-leaf rvals n raw?)
          (if raw?
@@ -281,7 +281,7 @@
          (cond
             ((eq? n 256) ; flush out to leaves
                (let ((leaf (make-leaf out n raw?)))
-                  (chunk-list lst null (cons (make-leaf out n raw?) leaves) 0 True (+ len n))))
+                  (chunk-list lst null (cons (make-leaf out n raw?) leaves) 0 #true (+ len n))))
             ((null? lst) ; partial (last) leaf
                (if (null? out)
                   (values (reverse leaves) len)
@@ -289,7 +289,7 @@
             ((pair? lst)
                (if raw?
                   (chunk-list (cdr lst) (cons (car lst) out) leaves (+ n 1) (byte? (car lst)) len)
-                  (chunk-list (cdr lst) (cons (car lst) out) leaves (+ n 1) False len)))
+                  (chunk-list (cdr lst) (cons (car lst) out) leaves (+ n 1) #false len)))
             (else (chunk-list (lst) out leaves n raw? len))))
 
       (define (grab l n)
@@ -391,20 +391,20 @@
             empty-vector
             ;; leaves are chunked specially, so do that in a separate pass. also 
             ;; compute length to avoid possibly forcing a computation twice.
-            (lets ((chunks len (chunk-list l null null 0 True 0)))
+            (lets ((chunks len (chunk-list l null null 0 #true 0)))
                ;; convert the list of leaf vectors to a tree
                (merge-chunks chunks len))))
 
       ;; deprecated
       ;(define bytes->vector list->vector)
-      ;   ;(raw bs 11 False)
+      ;   ;(raw bs 11 #false)
 
       (define (vector? x) ; == raw or a variant of major type 11?
          (cond
-            ((teq? x (raw 11)) True)   ; leaf byte vector
-            ((teq? x (alloc 11)) True) ; wide leaf
-            ((teq? x (alloc 43)) True) ; root dispatch node
-            (else False)))
+            ((teq? x (raw 11)) #true)   ; leaf byte vector
+            ((teq? x (alloc 11)) #true) ; wide leaf
+            ((teq? x (alloc 43)) #true) ; root dispatch node
+            (else #false)))
 
       ;; a separate function for listifying byte vectors, which may not be valid vectos (can be > leaf node size)
 

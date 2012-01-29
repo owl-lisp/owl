@@ -42,19 +42,19 @@
    ; a run of the same value?
    (define (run? bs)
       (if (null? bs)
-         True
+         #true
          (let loop ((a (car bs)) (bs (cdr bs)))
             (cond
-               ((null? bs) True)
+               ((null? bs) #true)
                ((eq? a (car bs)) (loop a (cdr bs)))
-               (else False)))))
+               (else #false)))))
 
    ; bs -> (byte ..) | (offset ...), null x null if nothing of interest
    (define (frequent-subseq vec)
       (lets
          ((sufs (suffix-array vec))
           (end (vec-len vec))
-          (read (λ (spos depth) (let ((p (+ (vec-ref sufs spos) depth))) (if (< p end) (vec-ref vec p) F)))))
+          (read (λ (spos depth) (let ((p (+ (vec-ref sufs spos) depth))) (if (< p end) (vec-ref vec p) #false)))))
          ; lead = (score . #(from to depth))
          (define (seek from to depth bs lead)
             ;(print (list 'seek from to depth bs lead))
@@ -76,7 +76,7 @@
                            (seek from to (+ depth 1) (cons this bs) lead))) ;; all the same
                      (seek (+ from 1) to depth bs lead)))))
          ;; min score = 2*2
-         (let ((node (cdr (seek 0 (vec-len sufs) 0 null (cons 4 False)))))
+         (let ((node (cdr (seek 0 (vec-len sufs) 0 null (cons 4 #false)))))
             (if node
                (lets ((from to len node))
                   (values len (map (λ (sp) (vec-ref sufs sp)) (iota from 1 to))))
@@ -91,11 +91,11 @@
 
    ; push a representation of natural number n to byte list tl
    (define (natural n tl)
-      (let loop ((ds (base128 n)) (tl tl) (first? True))
+      (let loop ((ds (base128 n)) (tl tl) (first? #true))
          (cond
             ((null? ds) tl)
-            (first? (loop (cdr ds) (cons (car ds) tl) False))
-            (else (loop (cdr ds) (cons (bor 128 (car ds)) tl) False)))))
+            (first? (loop (cdr ds) (cons (car ds) tl) #false))
+            (else (loop (cdr ds) (cons (bor 128 (car ds)) tl) #false)))))
 
    (define (intervals poss tl)
       (let loop ((last 0) (poss poss))

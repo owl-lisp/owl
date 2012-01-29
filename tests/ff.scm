@@ -26,10 +26,10 @@
 
 (define (check-equal? ff lst alpha)
 	(if (equal? (ff->list ff) lst)
-		True
+		#true
 		(begin
 			(print (list 'badness 'alpha alpha 'ff ff 'lst lst))
-			False)))
+			#false)))
 
 (define (work rst ff lst end alpha)
 	(if (> (time-ms) end)
@@ -55,5 +55,5 @@
 	 (rst (seed->rands seed))
 	 (rst n (rand-range rst 4 15))
 	 (rst alpha (rand-nbit rst n)))
-	(work rst False null (+ (time-ms) 100) alpha))
+	(work rst #false null (+ (time-ms) 100) alpha))
 		

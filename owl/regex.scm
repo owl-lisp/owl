@@ -305,7 +305,7 @@
       
       (define (lookahead-not rex)
          (λ (ls buff ms cont)
-            (if (rex ls buff ms (λ (a b c) T))
+            (if (rex ls buff ms (λ (a b c) #true))
                #false
                (cont ls buff ms))))
 
@@ -331,7 +331,7 @@
          (λ (ls buff ms cont)
             (let loop ((rev buff) (try null))
                (cond
-                  ((rex try rev ms (λ (ls buff ms) T))
+                  ((rex try rev ms (λ (ls buff ms) #true))
                      #false)
                   ((null? rev)
                      (cont ls buff ms))
@@ -645,8 +645,8 @@
       (define get-digit
          (let-parses
             ((b get-byte)
-             (verify (lesser? 47 b) F)
-             (verify (lesser? b 58) F))
+             (verify (lesser? 47 b) #false)
+             (verify (lesser? b 58) #false))
             (- b 48)))
 
       (define get-number
@@ -658,9 +658,9 @@
 
       (define (between? min x max)
          (cond
-            ((< x min) F)
-            ((> x max) F)
-            (else T)))
+            ((< x min) #false)
+            ((> x max) #false)
+            (else #true)))
 
       ;; byte → #false | hex-value
       (define (char->hex b)
@@ -668,12 +668,12 @@
             ((between? 48 b 57)  (- b 48))
             ((between? 97 b 102) (- b 87))
             ((between? 65 b 70)  (- b 55))
-            (else F)))
+            (else #false)))
 
       (define get-hex
          (let-parses
             ((b get-byte)
-             (verify (char->hex b) F))
+             (verify (char->hex b) #false))
             (char->hex b)))
 
       (define get-8bit 
@@ -716,7 +716,7 @@
             parse-quoted-char 
             (let-parses
                ((char get-byte)
-                (verify (not (eq? char 93)) F))
+                (verify (not (eq? char 93)) #false))
                char)))
 
       ;; get a range or a single letter of a char class (treat single letter as ranges of length 1)
@@ -867,7 +867,7 @@
       ;; a parser for terms like ab{1,3}a* with implicit ^ and $
       (define get-body-regex
          (let-parses ((rex (get-regex)))
-            (make-matcher (rex-and rex fini) T)))
+            (make-matcher (rex-and rex fini) #true)))
 
       (define get-copy-matcher-regex
          (let-parses 
@@ -900,7 +900,7 @@
                char)
             (let-parses ;; something other than /
                ((char get-byte)
-                (verify (not (eq? char 47)) F))
+                (verify (not (eq? char 47)) #false))
                char)))
 
       (define get-maybe-g
@@ -931,15 +931,15 @@
 
       ;; str -> rex|#false, for conversion of strings to complete matchers
       (define (string->complete-match-regex str)
-         (try-parse get-body-regex (str-iter str) F F F))
+         (try-parse get-body-regex (str-iter str) #false #false #false))
       
       ;; str → rex|#false, same as is used in owl parser
       (define (string->extended-regexp str)
-         (try-parse get-sexp-regex (str-iter str) F F F))
+         (try-parse get-sexp-regex (str-iter str) #false #false #false))
 
       ;; testing
       (define (string->replace-regex str)
-         (try-parse get-replace-regex (str-iter str) F F F))
+         (try-parse get-replace-regex (str-iter str) #false #false #false))
 
       ;; POSIX (ERE)
       (define string->regex

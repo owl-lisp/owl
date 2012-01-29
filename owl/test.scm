@@ -108,7 +108,7 @@
 	;	(λ (n) (let ((f (factor n))) (and (null? (cdr f)) (= 1 (cdar f))))))
 
    ;(define nums (iota 0 1 100000))
-   ;(define ff (fold (λ (ff n) (put ff n n)) False nums))
+   ;(define ff (fold (λ (ff n) (put ff n n)) #false nums))
    ;(test
 	;	(lmap (λ (i) (lets ((rst n (rnd (seed->rands i) #x10000))) n)) (lnums 1))
    ;   (λ (n) (fold (λ (ff i) (fupd ff i i)) ff nums))

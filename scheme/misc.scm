@@ -17,7 +17,7 @@
       ;; scheme member functions don't follow the argument conventions of other functions 
       (define (member x lst)
          (cond
-            ((null? lst) False)
+            ((null? lst) #false)
             ((equal? x (car lst)) lst)
             (else (member x (cdr lst)))))
 
@@ -25,7 +25,7 @@
 
       (define (memq x lst)
          (cond
-            ((null? lst) False)
+            ((null? lst) #false)
             ((eq? x (car lst)) lst)
             (else (memq x (cdr lst)))))
 
@@ -60,18 +60,18 @@
       (define (rationalize n max-delta) n)
 
 ;; todo: move string->integer elsewhere
-;;; string base -> number | False
+;;; string base -> number | #false
 (define string->integer/base
 
    (define (byte->digit val base)
       (cond
          ((and (<= 48 val) (<= val 57))
             (let ((val (- val 48)))
-               (if (< val base) val False)))
+               (if (< val base) val #false)))
          ((and (<= 97 val) (<= val 122))
             (let ((val (+ (- val 97) 10)))
-               (if (< val base) val False)))
-         (else False)))
+               (if (< val base) val #false)))
+         (else #false)))
 
    (define (digits->number s pos n base)
       (cond
@@ -80,7 +80,7 @@
          ((byte->digit (refb s pos) base) =>
             (λ (this)
                (digits->number s (+ pos 1) (+ (* n base) this) base)))
-         (else False)))
+         (else #false)))
 
    (λ (s base)
       (let ((len (string-length s)))
@@ -93,10 +93,10 @@
                         (cond
                            ((digits->number s 1 0 base) =>
                               (λ (num) (- 0 num)))
-                           (else False)))
+                           (else #false)))
                      (else
                         (digits->number s 0 0 base))))
-               False))))
+               #false))))
 
 (define (string->integer str)
    (string->integer/base str 10))

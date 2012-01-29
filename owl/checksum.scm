@@ -136,7 +136,7 @@
                       (s _ (fx+ s 1)))
                      (walk (cdr lst) a b s)))))
 
-         (λ (lst) (walk lst 0 0 True)))
+         (λ (lst) (walk lst 0 0 #true)))
 
       ;;;
       ;;; Default operations

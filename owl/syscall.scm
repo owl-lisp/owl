@@ -40,26 +40,26 @@
          (syscall 9 id msg))
 
       (define (kill id) 
-         (syscall 15 id False))
+         (syscall 15 id #false))
 
       (define (single-thread?)
-         (syscall 7 True True))
+         (syscall 7 #true #true))
          
       (define (set-signal-action choice)
-         (syscall 12 choice False))
+         (syscall 12 choice #false))
 
       (define (catch-thread id)
-         (syscall 17 True id))
+         (syscall 17 #true id))
 
       (define (release-thread thread)
-         (syscall 17 False thread))
+         (syscall 17 #false thread))
 
       (define (exit-owl value)
          (syscall 19 value value) ;; set exit value proposal in thread scheduler
          (exit-thread value))     ;; stop self and leave the rest (io etc) running to completion
 
-      (define (wait-mail)           (syscall 13 False False))
-      (define (check-mail)          (syscall 13 False True))
+      (define (wait-mail)           (syscall 13 #false #false))
+      (define (check-mail)          (syscall 13 #false #true))
 
       (define (accept-mail pred)
          (let loop ((this (wait-mail)) (rev-spam '()))
@@ -119,8 +119,8 @@
          (syscall 5 reason info))
 
       (define (start-profiling)
-         (syscall 20 T T))
+         (syscall 20 #true #true))
 
       (define (stop-profiling)
-         (syscall 21 T T))
+         (syscall 21 #true #true))
 ))

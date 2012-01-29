@@ -88,11 +88,11 @@
          (values rs c))))
 
 (define (fixnum rs)
-   (lets ((d rs (uncons rs F)))
+   (lets ((d rs (uncons rs #false)))
       (values rs d)))
 
 (define (fixnum-nz rs)
-   (lets ((d rs (uncons rs F)))
+   (lets ((d rs (uncons rs #false)))
       (if (eq? d 0)
          (fixnum-nz rs)
          (values rs d))))
@@ -204,10 +204,10 @@
 		;(tuple 'binary nat nat-nz 'invmod-ok ; fixme, ints
 		;	(lambda (a b)
 		;		(let ((ai (inv-mod a b)))
-		;			(if ai (= (rem (* a ai) b) 1) True))))
+		;			(if ai (= (rem (* a ai) b) 1) #true))))
 		(tuple 'unary nat-nz 'isqrt-ok
 			(lambda (a)
-				(if (eq? a 1) True
+				(if (eq? a 1) #true
 					(= a (isqrt (* a a))))))
 		(tuple 'trinary any any any 'add-assoc
 			(lambda (a b c)
@@ -230,9 +230,9 @@
 		;				(if (= y (expt-mod a x n))
 		;					(begin
 		;						(show "dlp ok " (tuple y a x n))
-		;						True)
-		;					False)
-		;				True))))
+		;						#true)
+		;					#false)
+		;				#true))))
 ))
 
 (define (run-test rst test)
@@ -243,7 +243,7 @@
 				(lambda (rst a)
 					;(print (list name a))
 					(if (test a) 
-						True 
+						#true 
 						(error "Math unreliable: " (list 'test name 'a a 'rst rst))))))
 		((binary gen-a gen-b name test)
 			(let* 
@@ -251,7 +251,7 @@
 				 ((rst b) (gen-b rst)))
 				;(print (list name a b))
 				(if (test a b) 
-					True 
+					#true 
 					(error "Math unreliable: " 
 						(list 'test name 'a a 'b b 'rst rst)))))
 		((trinary gen-a gen-b gen-c name test)
@@ -261,7 +261,7 @@
 				 ((rst c) (gen-c rst)))
 				;(print (list name a b c))
 				(if (test a b c) 
-					True 
+					#true 
 					(error "Math unreliable: " 
 						(list 'test name 'a a 'b b 'c c 'rst rst)))))
 		(else
@@ -277,15 +277,15 @@
 
 (define (type-ok? gen n) ; n is an integer from funny numbers
 	(cond
-		((eq? gen rat) True)	
+		((eq? gen rat) #true)	
 		((eq? gen rat-nz) (not (= n 0)))
 		((eq? gen nat) (>= n 0))
 		((eq? gen nat-nz) (> n 0))
-		((eq? gen int) True)
+		((eq? gen int) #true)
 		((eq? gen int-nz) (not (= n 0)))
-		((eq? gen comp) True)
+		((eq? gen comp) #true)
 		((eq? gen comp-nz) (not (= n 0)))
-		((eq? gen any) True)
+		((eq? gen any) #true)
 		((eq? gen any-nz) (not (= n 0)))
 		(else (error "type-ok: unknown generator: " gen))))
 

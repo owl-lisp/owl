@@ -10,10 +10,10 @@
 
   (export 
       ;; thread-oriented non-blocking io
-      open-output-file        ;; path → thread-id | False
-      open-input-file         ;; path → thread-id | False
-      open-socket             ;; port → thread-id | False
-      open-connection         ;; ip port → thread-id | False
+      open-output-file        ;; path → thread-id | #false
+      open-input-file         ;; path → thread-id | #false
+      open-socket             ;; port → thread-id | #false
+      open-connection         ;; ip port → thread-id | #false
       start-output-thread     ;; fd source → thread-id
       start-input-thread      ;; fd source → thread-id
       fd->id                  ;; file descriptor → thread id
@@ -32,7 +32,7 @@
       ;blocks->file           ;; ll path → ditto
       ;fd->blocks             ;; fd → ll + close at eof
       ;file->blocks           ;; path → ditto
-      tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, False → error
+      tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
       ;tcp-socket-fold        ;; fd op state port fail → (op state' fd ip) | state" | fail
    
@@ -85,13 +85,13 @@
       ;; use type 12 for fds 
 
       (define (fclose fd)
-         (sys-prim 2 fd F F))
+         (sys-prim 2 fd #false #false))
 
       (define (fopen path mode)
          (cond
             ((c-string path) => 
-               (λ (raw) (sys-prim 1 raw mode F)))
-            (else False)))
+               (λ (raw) (sys-prim 1 raw mode #false)))
+            (else #false)))
 
       ;; special way to send messages to stderr directly bypassing the normal IO, which we are implementing here
       (define-syntax debug-not
@@ -103,7 +103,7 @@
 
       (define-syntax debug
          (syntax-rules ()
-            ((debug . stuff) True)))
+            ((debug . stuff) #true)))
 
       ;;;
       ;;; File descriptor thread id type 
@@ -131,7 +131,7 @@
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) 11 False))
+         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) 11 #false))
 
       ;; fixme: partial write info is not returned from write-really*
       (define (write-really bvec fd)
@@ -141,13 +141,13 @@
                (let loop ()
                   (let ((wrote (sys-prim 0 fd bvec end)))
                      (cond
-                        ((eq? wrote end) True) ;; ok, wrote the whole chunk
+                        ((eq? wrote end) #true) ;; ok, wrote the whole chunk
                         ((eq? wrote 0) ;; 0 = EWOULDBLOCK
                            (interact sid 2) ;; fixme: adjustable delay rounds 
                            (loop))
                         (wrote ;; partial write
                            (write-really (bvec-tail bvec wrote) fd))
-                        (else False))))))) ;; write error or other failure
+                        (else #false))))))) ;; write error or other failure
 
       (define (write-really/socket bvec fd) ;; same but use a primop to send() instead of write()
          (let ((end (sizeb bvec)))
@@ -156,20 +156,20 @@
                (let loop ()
                   (let ((wrote (sys-prim 15 fd bvec end)))
                      (cond
-                        ((eq? wrote end) True) ;; ok, wrote the whole chunk
+                        ((eq? wrote end) #true) ;; ok, wrote the whole chunk
                         ((eq? wrote 0) ;; 0 = EWOULDBLOCK
                            (interact sid 2) ;; fixme: adjustable delay rounds 
                            (loop))
                         (wrote ;; partial write
                            (write-really (bvec-tail bvec wrote) fd))
-                        (else False)))))))
+                        (else #false)))))))
 
       ;; how many bytes (max) to add to output buffer before flushing it to the fd
       (define output-buffer-size 4096)
 
       ;; pack bytes to a raw chunk of memory and start trying to write() it
       (define (flush-output-buffer buff len fd)
-         (let ((bvec (raw (reverse buff) 11 False)))
+         (let ((bvec (raw (reverse buff) 11 #false)))
             (write-really bvec fd)))
 
       ;; fixme: autoflush here on newline
@@ -241,7 +241,7 @@
 
       (define (open-output-file path)
          (let ((fd (fopen path 1)))
-            (if fd (start-output-thread fd path) False)))
+            (if fd (start-output-thread fd path) #false)))
 
 
 
@@ -258,14 +258,14 @@
             (debug "reader: reading fd " fd " for " thread)
             (let ((res (sys-prim 5 fd block-size 0)))
                (cond
-                  ((eq? res True) ;; would block
+                  ((eq? res #true) ;; would block
                      (debug "reader: fd " fd " has no data, sleeping")
                      (interact sid 5)
                      (loop rounds)) ;; delay rounds not used atm
-                  (else ;; is False, eof or bvec
+                  (else ;; is #false, eof or bvec
                      (debug "reader: read " res " from fd " fd ", sending to " thread)
                      (mail thread res)
-                     True)))))
+                     #true)))))
 
       (define (make-reader fd source)
          (let loop () ;; how many rounds 
@@ -279,7 +279,7 @@
                            (loop)
                            (begin
                               (debug "reader: read from fd " fd " for " from " failed. terminating reader.")
-                              (mail from False) ;; fixme: does a response even make sense
+                              (mail from #false) ;; fixme: does a response even make sense
                               (error "read error " (list 'fd fd 'from source)))))
                      ((teq? msg fix+) ;; 0-65535, read max n+1 bytes, being 1-65536
                         (debug "reader: thread " from " asks for input with max size " msg " from reader " source " (fd " fd ")")
@@ -287,7 +287,7 @@
                            (loop)
                            (begin
                               (debug "reader: read from fd " fd " for " from " failed. terminating reader.")
-                              (mail from False) ;; fixme: does a response even make sense
+                              (mail from #false) ;; fixme: does a response even make sense
                               (error "read error " (list 'fd fd 'from source)))))
                      ((eq? msg 'close)
                         (debug "reader: thread " from " told me to close.")
@@ -309,7 +309,7 @@
 
       (define (open-input-file path)
          (let ((fd (fopen path 0)))
-            (if fd (start-input-thread fd path) False)))
+            (if fd (start-input-thread fd path) #false)))
 
 
 
@@ -321,7 +321,7 @@
       ;; trivial than it sounds.
 
       ;; if write in progress, try it
-      ; ws fd → ws' | False
+      ; ws fd → ws' | #false
       (define (maybe-write ws fd)
          (and ws
             (lets 
@@ -331,7 +331,7 @@
                 )
                (cond
                   ((eq? wrote (- (sizeb bvec) pos)) ;; wrote all -> no write op left
-                     False)
+                     #false)
                   (wrote (cons bvec (+ pos wrote)))
                   (else ws)))))
 
@@ -364,31 +364,31 @@
             inq
             (let ((res (sys-prim 5 fd 256 fd)))
                (cond
-                  ((eq? res True) ;; would block, read nothing
+                  ((eq? res #true) ;; would block, read nothing
                      inq)
                   (else
-                     (lets ((thread inq (quncons inq F)))
-                        (mail thread res) ; False, eof or bvec
+                     (lets ((thread inq (quncons inq #false)))
+                        (mail thread res) ; #false, eof or bvec
                         inq))))))
 
       ;; (n ... c b a) → raw byte vector #[a b c ... n] (max len 65536)
 
       (define (chunk-buffer rbs p)
          (if (null? rbs)
-            False
-            (tuple (raw (reverse rbs) 11 False) 0)))
+            #false
+            (tuple (raw (reverse rbs) 11 #false) 0)))
 
       (define (select-buffer outq rbs p info)
          (cond
             ((qnull? outq)
                (if (null? rbs)
-                  (values outq False)
+                  (values outq #false)
                   (values outq (chunk-buffer rbs p)))) ;; note: auto-flushes 
             ((eq? p output-buffer-size)
                ;; start writing this suitably large chunk of data.
                (values outq (chunk-buffer rbs p)))
             (else
-               (lets ((b outq-tl (quncons outq F)))
+               (lets ((b outq-tl (quncons outq #false)))
                   (cond
                      ((teq? b fix+)
                         ;; add a byte to output queue
@@ -408,7 +408,7 @@
                                     (values outq req))
                                  (else
                                     ;; bad request
-                                    (mail from False)
+                                    (mail from #false)
                                     (select-buffer outq-tl rbs p info))))
                            ;; usually must get rid of the remaining data before handling the request
                            (values outq (chunk-buffer rbs p))))
@@ -458,7 +458,7 @@
                      ;; input or output 
                      (io-step inq outq ws (check-mail))))))
 
-         (io-step qnull qnull False (wait-mail)))
+         (io-step qnull qnull #false (wait-mail)))
 
 
       (define (start-bidirectional-thread fd source)
@@ -473,11 +473,11 @@
 
       (define (send-next-connection thread fd)
          (let loop ((rounds 0)) ;; count for temporary sleep workaround
-            (let ((res (sys-prim 4 fd F F)))
+            (let ((res (sys-prim 4 fd #false #false)))
                (if res ; did get connection
                   (lets ((ip fd res))
                      (mail thread (start-bidirectional-thread fd ip))
-                     True)
+                     #true)
                   (begin
                      (interact sid 5) ;; delay rounds
                      (loop rounds))))))
@@ -491,7 +491,7 @@
                         (if (send-next-connection from fd)
                            (loop)
                            (begin
-                              (mail from False) ;; fixme: does a response even make sense
+                              (mail from #false) ;; fixme: does a response even make sense
                               (error "socket read error" (list 'fd fd 'port source)))))
                      ((eq? msg 'close)
                         (fclose fd)
@@ -509,10 +509,10 @@
             id))
 
       (define (open-socket port)
-         (let ((sock (sys-prim 3 port F F)))
+         (let ((sock (sys-prim 3 port #false #false)))
             (if sock 
                (start-socket-thread sock port)
-               False)))
+               #false)))
 
 
       ;;;
@@ -527,15 +527,15 @@
       (define (open-connection ip port)
          (cond
             ((not (teq? port fix+))
-               False)
+               #false)
             ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
                      (start-bidirectional-thread fd (tuple 'tcp ip port))
-                     False)))
+                     #false)))
             (else 
                ;; note: could try to autoconvert formats to be a bit more user friendly
-               False)))
+               #false)))
 
 
 
@@ -644,24 +644,24 @@
                      (reverse buff)
                      (fold + 0 (map sizeb buff))))
                ((not val)
-                  False)
+                  #false)
                (last-full?
                   (read-blocks port
                      (cons val buff)
                      (eq? (sizeb val) 256)))
                (else
                   ;(show "read-blocks: partial chunk received before " val)
-                  False))))
+                  #false))))
 
-      (define (file->vector path) ; path -> vec | False
+      (define (file->vector path) ; path -> vec | #false
          (let ((port (open-input-file path)))
             (if port
-               (let ((data (read-blocks port null True)))
+               (let ((data (read-blocks port null #true)))
                   (close-port port)
                   data)
                (begin
                   ;(show "file->vector: cannot open " path)
-                  False))))
+                  #false))))
 
       ;; write each leaf chunk separately (note, no raw type testing here -> can fail)
       (define (write-vector vec port)
@@ -670,7 +670,7 @@
                ((pair? ll)
                   (mail port (car ll))
                   (loop (cdr ll)))
-               ((null? ll) True)
+               ((null? ll) #true)
                (else (loop (ll))))))
 
       ;; fixme: no way to poll success yet. last message should be ok-request, which are not there yet.
@@ -681,7 +681,7 @@
                (let ((outcome (write-vector vec port)))
                   (close-port port)
                   outcome)
-               False)))
+               #false)))
 
       (define (wait-write fd)
          (interact fd 'wait))
@@ -711,7 +711,7 @@
          (let ((fd (open-input-file path)))
             (if fd
                (port->byte-stream fd)
-               False)))
+               #false)))
 
 
       ;;;
@@ -730,14 +730,14 @@
             (cond
                ((null? ll) ;; all written ok
                   (fclose fd)
-                  (values T n))
+                  (values #true n))
                ((pair? ll)
                   (let ((r (write-really (car ll) fd)))
                      (if r
                         (loop (cdr ll) (+ n (sizeb (car ll))))
                         (begin 
                            (fclose fd) 
-                           (values F n)))))
+                           (values #false n)))))
                (else (loop (ll) n)))))
 
       (define (blocks->socket ll fd) ;; fd != sockets in win32
@@ -745,18 +745,18 @@
             (cond
                ((null? ll) ;; all written ok
                   (fclose fd)
-                  (values T n))
+                  (values #true n))
                ((pair? ll)
                   (let ((r (write-really/socket (car ll) fd)))
                      (if r
                         (loop (cdr ll) (+ n (sizeb (car ll))))
                         (begin 
                            (fclose fd) 
-                           (values F n)))))
+                           (values #false n)))))
                (else (loop (ll) n)))))
 
       (define (socket-clients sock)
-         (let ((res (sys-prim 4 sock F F)))
+         (let ((res (sys-prim 4 sock #false #false)))
             (if res 
                (lets ((ip fd res))
                   (pair (cons ip fd) (socket-clients sock)))
@@ -764,14 +764,14 @@
                   (interact sid socket-read-delay) ;; causes this thread to sleep for a few thread scheduler rounds (or ms)
                   (socket-clients sock)))))
 
-      ;; port → ((ip . fd) ... . null|False), CLOSES SOCKET
+      ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
       (define (tcp-clients port)
-         (let ((sock (sys-prim 3 port F F)))
+         (let ((sock (sys-prim 3 port #false #false)))
             (if sock
                (λ () (socket-clients sock)) ;; don't get first client yet
-               False))) ;; out of fds, no permissions etc
+               #false))) ;; out of fds, no permissions etc
 
-      ;; ip port (bvec ...) → True n-written | False error-sym
+      ;; ip port (bvec ...) → #true n-written | #false error-sym
       (define (tcp-send ip port ll)
          (let ((fd (_connect ip port)))
             (if fd

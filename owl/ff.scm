@@ -28,7 +28,7 @@
       list->ff ff->list 
       empty-ff   ; could become Empty later
       
-      getf       ; (getf ff key) == (get ff key False)
+      getf       ; (getf ff key) == (get ff key #false)
       )
 
    (import 
@@ -49,7 +49,7 @@
       (define (ff? obj)
          (eq? 64 (fxband (type obj) #b11111000)))
 
-      (define empty-ff False)   
+      (define empty-ff #false)   
 
       (define-syntax wiff
          (syntax-rules ()
@@ -145,11 +145,11 @@
                         (mkblack left key val right))
                      (else
                         (mkblack-bright left this this-val (putn right key val))))))
-            (mkred False key val False)))
+            (mkred #false key val #false)))
 
 
       ;(define (put ff key val)
-      ;   (if (get ff key False)
+      ;   (if (get ff key #false)
       ;      (ff-update ff key val)
       ;      (let ((ff (putn ff key val)))
       ;         (if (red? ff)
@@ -177,7 +177,7 @@
       (define (get ff key def) 
          (ff key def))
 
-      ;; ff key val -> ff' | False
+      ;; ff key val -> ff' | #false
       (define (ff-update ff key val)
          (if ff
             (wiff (ff l k v r)
@@ -185,20 +185,20 @@
                   ((lesser? key k)
                      (if l   ; #(k v l ...)
                         (set ff 3 (ff-update l key val))
-                        False))
+                        #false))
                   ((eq? key k)
                      ; #(k v ...)
                      (set ff 2 val))
                   (l
                      (if r   ; #(k v l r)
                         (set ff 4 (ff-update r key val))
-                        False))
+                        #false))
                   (r
                      (if r ; #(k v r)
                         (set ff 3 (ff-update r key val))
-                        False))
-                  (else False)))
-            False))
+                        #false))
+                  (else #false)))
+            #false))
 
       ;; ff key val -> ff', update in place if there, otherwise insert and rebalance
       (define (put ff key val)
@@ -220,7 +220,7 @@
                      (mkblack left key val right))
                   (else
                      (mkblack left ak av (put-unbalanced right key val)))))
-            (mkblack False key val False)))
+            (mkblack #false key val #false)))
                   
 
       ;;;
@@ -288,7 +288,7 @@
       ;; note: ff-map will switch argument order in the generic equivalent
       (define (ff-map ff op)
          (if (not ff)
-            False
+            #false
             (wiff (ff l k v r)
                (if (red? ff)
                   (mkred (ff-map l op) k (op k v) (ff-map r op))
@@ -411,7 +411,7 @@
                               (mkred left this-key val sub))
                            (else
                               (ball-right left this-key val sub)))))))
-            False))
+            #false))
 
 
       (define (del ff key)
@@ -438,7 +438,7 @@
       (define (ff-union a b collide)
          (ff-fold
             (lambda (a bk bv)
-               (let ((av (get a bk False)))
+               (let ((av (get a bk #false)))
                   (if av
                      (put a bk (collide av bv))
                      (put a bk bv))))
@@ -446,7 +446,7 @@
 
       ;; todo: placeholder ff-diff
       (define (ff-diff a b)
-         (ff-fold (lambda (a b _) (if (get a b False) (del a b) a)) a b))
+         (ff-fold (lambda (a b _) (if (get a b #false) (del a b) a)) a b))
 
       ;; just one value? == is the root-node a black key-value pair
       (define (ff-singleton? ff)
@@ -454,6 +454,6 @@
 
       (define-syntax getf
          (syntax-rules ()
-            ((getf ff key) (get ff key False))))
+            ((getf ff key) (get ff key #false))))
 
 ))

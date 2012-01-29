@@ -54,7 +54,7 @@
          (define (walk trail node)
             (cond
                ((immediate? node) trail)
-               ((get trail node False) trail)
+               ((get trail node #false) trail)
                ((symbol? node) 
                   (let ((trail (put trail node 1)))
                      (put trail tag 
@@ -62,13 +62,13 @@
                ((raw? node) trail)
                (else
                   (fold walk 
-                     (put trail node True)
+                     (put trail node #true)
                      (tuple->list node)))))
          (define trail
-            (walk (put False tag null) node))
+            (walk (put #false tag null) node))
 
          (get 
-            (walk (put False tag null) node)
+            (walk (put #false tag null) node)
             tag null))
 
       (define (file->string path)
@@ -84,7 +84,7 @@
       (define rts-source 
          (file->string "c/ovm.c"))
 
-      ; str -> str' | False
+      ; str -> str' | #false
       (define (utf8-decode-string str)
          (let ((cps (utf8-decode (lfoldr cons '() (str-iterr str)))))
             (if cps
@@ -102,9 +102,9 @@
          (if (lesser? (refb str pos) 128)
             (lets ((pos underflow? (fx- pos 1)))
                (if underflow?
-                  False
+                  #false
                   (high-point? str pos)))
-            True))
+            #true))
            
       ;; utf-8 decode if necessary (avoids some constant overhead, which is useful if there are 2 quadriollion args)
       (define (maybe-utf8-decode str)
@@ -149,12 +149,12 @@
                   (cond
                      ((null? data) 
                         (close-port port)
-                        True)
+                        #true)
                      ((pair? data)
                         (mail port (car data))
                         (loop (cdr data)))
                      (else (loop (data)))))
-               False)))
+               #false)))
 
       (define (dump-fasl obj path)
          (dump-data (fasl-encode-stream obj (lambda (x) x)) path))
@@ -185,7 +185,7 @@
 
       ; nodes = ((func . #(opcode warpper src)) ...)
 
-      ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment|False))
+      ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment|#false))
       (define (choose-native-ops entry extras)
          (let ((all (objects-below entry)))
             (if (null? all)
@@ -205,17 +205,17 @@
                         (λ (arity-src)
                            (lets 
                               ((arity src arity-src)
-                               (wrapper (raw (list arity 0 (>> code 8) (band code 255)) 0 False)))
+                               (wrapper (raw (list arity 0 (>> code 8) (band code 255)) 0 #false)))
                               (loop (+ code 1) (cdr obs)
                                  (cons (cons (car obs) (tuple code wrapper src)) out)))))
                      (else
                         (loop code (cdr obs) out)))))))
 
-      ; obj -> fixnum|False
+      ; obj -> fixnum|#false
       (define (extended-opcode obj)
          (if (and (bytecode? obj) (eq? 0 (refb obj 1)))
             (+ (<< (refb obj 2) 8) (refb obj 3))
-            False))
+            #false))
 
       (define (show-func val)
          (cons 'bytecode
@@ -227,7 +227,7 @@
          (λ (obj)
             (cond
                ;; if chosen to be a macro instruction in the new vm, replace with new bytecode calling it
-               ((get native-ops obj False) =>
+               ((get native-ops obj #false) =>
                   (λ (vals) 
                      ; write a reference to the wrapper function instead of the original bytecode
                      (ref vals 2)))
@@ -236,7 +236,7 @@
                ((extended-opcode obj) =>
                   (λ (opcode)
                      ;(show " * mapping superinstruction back to to bytecode: " opcode)
-                     (or (get extras opcode False)
+                     (or (get extras opcode #false)
                         (error "could not find bytecode for opcode " opcode))))
                (else obj))))
 
@@ -250,7 +250,7 @@
                ; the opcodes must be described with vanilla bytecode 
                ; this does not belong here...
                (λ (opcode)
-                  (let ((original (get extras opcode False)))
+                  (let ((original (get extras opcode #false)))
                      (if original 
                         (clone-code original extras)
                         (error "bug: no original code found for superinstruction " opcode)))))
@@ -258,7 +258,7 @@
                (let ((bytes (map (λ (p) (refb bc p)) (iota 0 1 (sizeb bc)))))
                   (if (eq? (cadr bytes) 0)
                      (error "bug: vm speciazation instruction probably referencing code from current vm: " bytes))
-                  (raw bytes 0 False))))) ; <- reallocate it
+                  (raw bytes 0 #false))))) ; <- reallocate it
 
       (define (original-sources native-ops extras)
          (ff-fold
@@ -266,7 +266,7 @@
                (lets ((opcode wrapper c-code info))
                   (put sources opcode 
                      (clone-code bytecode extras))))
-            False native-ops))
+            #false native-ops))
 
 
          ;;;
@@ -275,13 +275,13 @@
 
          (define (code-refs seen obj)
             (cond
-               ((immediate? obj) (values seen False))
+               ((immediate? obj) (values seen #false))
                ((bytecode? obj)
-                  (values seen (put False obj 1)))
-               ((get seen obj False) =>
+                  (values seen (put #false obj 1)))
+               ((get seen obj #false) =>
                   (λ (here) (values seen here)))
                (else
-                  (let loop ((seen seen) (lst (tuple->list obj)) (here False))
+                  (let loop ((seen seen) (lst (tuple->list obj)) (here #false))
                      (if (null? lst)
                         (values (put seen obj here) here)
                         (lets ((seen this (code-refs seen (car lst))))
@@ -290,12 +290,12 @@
 
       ; ob → ((nrefs . ob) ..) 
       (define (all-code-refs ob)
-         (lets ((refs this (code-refs False ob)))
+         (lets ((refs this (code-refs #false ob)))
             (ff-fold (λ (out x n) (cons (cons n x) out)) null this)))
 
       ;; _ → ((bytecode . bytecode) ...)
       (define (codes-of ob) 
-         (lets ((refs this (code-refs False ob)))
+         (lets ((refs this (code-refs #false ob)))
             (ff-fold (λ (out x n) (cons (cons x x) out)) null this)))
 
       ;; ob percent → (codevec ...)
@@ -328,14 +328,14 @@
          (cond
             ((equal? str "c") 'c)
             ((equal? str "fasl") 'fasl)
-            (else F)))
+            (else #false)))
 
       ; → c | fasl (| s)
       (define (choose-output-format opts maybe-path)
          (lets ((path (get opts 'output maybe-path)))
             (if (string? path)
                (cook-format (s/^.*\.([a-z]+)$/\1/ path))
-               F)))
+               #false)))
 
 
       ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
@@ -347,22 +347,22 @@
                ((path (get opts 'output "-")) ; <- path argument deprecated
                 (format 
                   ;; use given format (if valid) or choose using output file suffix
-                  (or (cook-format (get opts 'output-format F))
+                  (or (cook-format (get opts 'output-format #false))
                      (choose-output-format opts path)))
 
                 ;(_ (show " - output format " format))
                 (entry ;; start threading if requested (note how this affects the other args)
-                  (if (get opts 'want-threads F) 
+                  (if (get opts 'want-threads #false) 
                      (with-threading entry)
                      entry)) ; <- continue adding this next
                
                 (entry ;; pass symbols to entry if requested (repls need this)
-                  (if (get opts 'want-symbols F) 
+                  (if (get opts 'want-symbols #false) 
                      (entry (symbols-of entry))
                      entry))
                   
                 (entry ;; pass code vectors to entry if requested (repls need this)
-                  (if (get opts 'want-codes F) 
+                  (if (get opts 'want-codes #false) 
                      (entry (codes-of entry))
                      entry))
                   
@@ -374,16 +374,16 @@
                 ;     (else (most-linked-code entry 10)))) ; pick most linked 10% (testing)
 
                 (native-ops ;; choose which bytecode vectors to add as extended vm instructions
-                  (choose-native-ops (if (get opts 'native F) entry native) extras))
+                  (choose-native-ops (if (get opts 'native #false) entry native) extras))
 
                 (entry ;; possibly tell the entry function about extended opcodes 
-                  (if (get opts 'want-native-ops F)
+                  (if (get opts 'want-native-ops #false)
                      ;; entry is actually ((ff of extended-opcode → vanilla-bytecode) → entry)
                      (entry (original-sources native-ops extras))
                      entry))
 
                 (entry ;; possibly add code to utf-8 decode command line arguments
-                  (if (get opts 'no-utf8-decode F)
+                  (if (get opts 'no-utf8-decode #false)
                      (begin
                         (print " - not decoding command line arguments")
                         entry)
@@ -402,15 +402,15 @@
                (cond
                   ((not port)
                      (print "Could not open path for writing")
-                     False)
+                     #false)
                   ((not format)
                      (print "I do not know how to write that.")
                      (print "Use -o file.c, -o file.fasl, or defined format with -x c or -x fasl")
-                     False)
+                     #false)
                   ((eq? format 'fasl) ;; just save the fasl dump
                      (mail port bytes)
                      (close-port port)
-                     T)
+                     #true)
                   ((eq? format 'c) 
                      (mail port ;; output fasl-encoded heap as an array
                         (append

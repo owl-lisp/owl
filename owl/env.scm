@@ -178,24 +178,24 @@
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes
-         (for False primops
+         (for #false primops
             (λ (ff node)
                (put ff (ref node 5) (ref node 2)))))
 
       ;; ff of opcode → wrapper
       (define opcode->wrapper
-         (for False primops
+         (for #false primops
             (λ (ff node)
                (put ff (ref node 2) (ref node 5)))))
 
       ;; later check type, get first opcode and compare to primop wrapper
       (define (primop-of val)
          (cond
-            ((get prim-opcodes val False) => (lambda (op) op))
+            ((get prim-opcodes val #false) => (lambda (op) op))
             ((equal? val mkt) 23)
             ((equal? val bind) 32)
             ((equal? val ff-bind) 49)
-            (else False)))
+            (else #false)))
 
       ;; only special forms supported by the compiler, no primops etc
       (define *tabula-rasa*

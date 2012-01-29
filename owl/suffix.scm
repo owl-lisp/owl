@@ -38,8 +38,8 @@
       (define (carless a b) 
          (let ((a (car a)) (b (car b)))
             (cond
-               ((eq? a sentinel) True) ; sentinel is teh minimum
-               ((eq? b sentinel) False) ; ditto
+               ((eq? a sentinel) #true) ; sentinel is teh minimum
+               ((eq? b sentinel) #false) ; ditto
                (else (lesser? a b)))))
 
       (define (cdr< a b) (< (cdr a) (cdr b))) 
@@ -51,14 +51,14 @@
 
       (define (lex-less? a b)
          (cond
-            ((null? a) True)
-            ((null? b) False)
+            ((null? a) #true)
+            ((null? b) #false)
             (else
                (lets ((a as a) (b bs b))
                   (cond
-                     ((lesser? a b) True) ; was <
+                     ((lesser? a b) #true) ; was <
                      ((eq? a b) (lex-less? as bs)) ; was =
-                     (else False))))))
+                     (else #false))))))
 
       (define (indexed-suffixes lst)
          (let loop ((lst lst) (pos 0) (out null))
@@ -87,8 +87,8 @@
 
       (define (len>? l n)
          (cond
-            ((null? l) False)
-            ((= n 0) True)
+            ((null? l) #false)
+            ((= n 0) #true)
             (else (len>? (cdr l) (- n 1)))))
 
       (define (head l) (if (null? (cdr l)) sentinel (cadr l)))
@@ -160,7 +160,7 @@
       (define (ssort-bucket l bs tl n)
          (chunk 
             (sort car< (map (λ (p) (cons (iget bs (+ p n) sentinel) p)) l)) ; was (sort carless ..)
-            bs tl (- (iget bs (car l) False) (length l))))
+            bs tl (- (iget bs (car l) #false) (length l))))
 
       (define (ssort-step ss bs n) ; -> ls' + bs'
          (if (null? ss)
@@ -187,7 +187,7 @@
             ((sb (add-poss lst 0))
              (sb (cons (cons sentinel (length sb)) sb)) ; add sentinel
              (sb (sort carless sb))
-             (ls bs (chunk sb False null -1)))
+             (ls bs (chunk sb #false null -1)))
             (cdr (ssort-steps ls bs 1)))) ; drop the sentinel (is just length of list at car)
 
       ;;;

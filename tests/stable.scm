@@ -4,7 +4,7 @@
 
 ;; (i ...) → ((i . nth-i) ...)
 (define (index lst)
-   (let loop ((lst lst) (ff False))
+   (let loop ((lst lst) (ff #false))
       (if (null? lst)
          null
          (lets 
@@ -17,9 +17,9 @@
 
 (define (carcdr< a b) 
    (cond
-      ((< (car a) (car b)) True)
+      ((< (car a) (car b)) #true)
       ((= (car a) (car b)) (< (cdr a) (cdr b)))
-      (else False)))
+      (else #false)))
 
 (lets
    ((rst (seed->rands (time-ms)))

@@ -7,7 +7,7 @@
 
 (define-module lib-i386
 	(export 
-		compile-to-asm          ;; obj extras → False | asm-code-string
+		compile-to-asm          ;; obj extras → #false | asm-code-string
 	)
 
    (define alloc-types
@@ -18,8 +18,8 @@
 	(define (represent val fail)
 		(cond
 			;((eq? val null) "INULL")
-			;((eq? val True) "ITRUE")
-			;((eq? val False) "IFALSE")
+			;((eq? val #true) "ITRUE")
+			;((eq? val #false) "IFALSE")
 			((teq? val fix+) ;; $<num>, being a tagged fixnum like in owl
 				(bytes->string
                (cons 36 (render (+ 2 (<< val 12)) null))))
@@ -30,19 +30,19 @@
 	;; fixme: raw? cut n pasted here
 	(define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
 
-	; -> list of bytes | False
+	; -> list of bytes | #false
 	(define (code->bytes code extras)
 		(if (and (function? code) (raw? code))
 			(let ((bytes (map (λ (p) (refb code p)) (iota 0 1 (sizeb code)))))
 				(if (eq? (cadr bytes) 0) ;; (<arity> 0 <hi8> <lo8>) == call extra instruction
                (lets
                   ((opcode (+ (<< (caddr bytes) 8) (car (cdddr bytes))))
-                   (bytecode (get extras opcode False)))
+                   (bytecode (get extras opcode #false)))
                   (if bytecode
                      (code->bytes bytecode extras) ;; <- vanilla bytecode (modulo boostrap bugs)
                      (error "code->bytes: cannot find original bytecode for opcode " opcode)))
                bytes))
-			False))
+			#false))
 
    (define (unknown bs regs fail)
       ;(show " - cgen does not grok opcode " (car bs))
@@ -88,7 +88,7 @@
                (else ;; instruction compiled, handle the rest
                   (append res (emit-asm tl regs fail tail)))))))
 
-   ;; obj extras → False | (arity . c-code-string), to become #[arity 0 hi8 lo8] + c-code in vm
+   ;; obj extras → #false | (arity . c-code-string), to become #[arity 0 hi8 lo8] + c-code in vm
 	(define (compile-to-asm code extras)
 		(if (and (function? code) (raw? code)) ;; todo: add bytecode? elsewhere
          (let ((ops (code->bytes code extras)))
@@ -97,8 +97,8 @@
                   (cons (car ops)
                      (list->string
                         (foldr render null
-                           (emit-c (cdr ops) False (λ () (ret False)) null)))))))
-         False))
+                           (emit-c (cdr ops) #false (λ () (ret #false)) null)))))))
+         #false))
 
    (compile-to-asm (λ (args) 42))
 

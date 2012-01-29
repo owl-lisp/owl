@@ -11,6 +11,6 @@
             (map 
                (λ (p) (expt (car p) (cdr p)))
                fs)))
-      True
+      #true
       (cons n fs)))
    

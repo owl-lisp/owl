@@ -74,7 +74,7 @@
       (define (bytes->number digits base)
          (fold
             (lambda (n digit)
-               (let ((d (get digit-values digit False)))
+               (let ((d (get digit-values digit #false)))
                   (cond
                      ((or (not d) (>= d base))
                         (error "bad digit " digit))
@@ -251,9 +251,9 @@
             ((type 
                (get-either
                   (let-parses ((_ (get-imm 44)) (_ (get-imm 64))) 'splice) ; ,@
-                  (get-byte-if (lambda (x) (get quotations x False)))))
+                  (get-byte-if (lambda (x) (get quotations x #false)))))
              (value parser))
-            (list (get quotations type False) value)))
+            (list (get quotations type #false) value)))
      
       (define get-named-char
          (get-any-of
@@ -280,16 +280,16 @@
          (get-any-of
             (get-word "Null" Null)
             (get-word "..." '...)
-            (get-word "True" True)
-            (get-word "False" False)
+            ;(get-word "#true" #true)
+            ;(get-word "#false" #false)
             ;; optional shorties
-            (get-word "T" True)
-            (get-word "F" False)
+            ;(get-word "T" #true)
+            ;(get-word "F" #false)
             (get-word "N" Null)
-            (get-word "#true" True)    ;; get the longer ones first if present
-            (get-word "#false" False)
-            (get-word "#t" True)
-            (get-word "#f" False)
+            (get-word "#true" #true)    ;; get the longer ones first if present
+            (get-word "#false" #false)
+            (get-word "#t" #true)
+            (get-word "#f" #false)
             ))
 
       (define (get-vector-of parser)
@@ -297,7 +297,7 @@
             ((skip (get-imm #\#))
              (fields (get-list-of parser)))
             (let ((fields (intern-symbols fields)))
-               (if (first pair? fields False)
+               (if (first pair? fields #false)
                   ;; vector may have unquoted stuff, so convert it to a sexp constructing a vector, which the macro handler can deal with
                   (cons '_sharp_vector fields) ; <- quasiquote macro expects to see this in vectors
                   (list->vector fields)))))
@@ -348,10 +348,10 @@
 
 
       (define (list->number lst fail)
-         (try-parse get-number lst F F fail))
+         (try-parse get-number lst #false #false fail))
 
       (define (string->sexp str fail)
-         (try-parse (get-sexp) (str-iter str) F F fail))
+         (try-parse (get-sexp) (str-iter str) #false #false fail))
 
       ;; parse all contents of vector to a list of sexps, or fail with 
       ;; fail-val and print error message with further info if errmsg 
@@ -359,6 +359,6 @@
 
       (define (vector->sexps vec fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
-         (try-parse get-sexps (vector->list vec) False errmsg False))
+         (try-parse get-sexps (vector->list vec) #false errmsg #false))
 
    ))

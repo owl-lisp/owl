@@ -6,15 +6,15 @@
    (let ((end (vec-len vec)))
       (let loop ((a a) (b b))
          (cond
-            ((= a end) True)
-            ((= b end) False)
+            ((= a end) #true)
+            ((= b end) #false)
             (else
                (let ((av (vec-ref vec a)) (bv (vec-ref vec b)))
                   (cond
-                     ((< av bv) True)
+                     ((< av bv) #true)
                      ((= av bv) (loop (+ a 1) (+ b 1)))
                      (else 
-                        False))))))))
+                        #false))))))))
 
 (define (naive-array data)
    (list->vector

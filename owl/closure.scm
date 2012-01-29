@@ -27,8 +27,8 @@
       (define (small-value? val)
          (or
             (and (fixnum? val) (>= val -127) (< val 127))
-            (eq? val True)
-            (eq? val False)
+            (eq? val #true)
+            (eq? val #false)
             (eq? val null)))
 
       (define (value-primop val)
@@ -40,7 +40,7 @@
          (if (null? exps)
             (values null used)
             (lets
-               ((this used (closurize (car exps) used True))
+               ((this used (closurize (car exps) used #true))
                 (tail used (closurize-list closurize (cdr exps) used)))
                (values (cons this tail) used))))
 
@@ -53,7 +53,7 @@
                   (tuple-case (car rands)
                      ((lambda formals body)
                         (lets
-                           ((cont used (closurize (car rands) used False))
+                           ((cont used (closurize (car rands) used #false))
                             (rands used (closurize-list closurize (cdr rands) used)))
                            (values (mkcall rator (cons cont rands)) used)))
                      ((var name)
@@ -70,7 +70,7 @@
                      (else
                         (error "Bad primitive continuation: " (car rands)))))
                (lets
-                  ((rator used (closurize rator used False))
+                  ((rator used (closurize rator used #false))
                    (rands used (closurize-list closurize rands used)))
                   (values (mkcall rator rands) used)))))
 
@@ -85,14 +85,14 @@
             ((branch kind a b then else)
                ; type 4 (binding compare) branches do not closurize then-case
                (lets
-                  ((a used (closurize a used True))
-                   (b used (closurize b used True))
+                  ((a used (closurize a used #true))
+                   (b used (closurize b used #true))
                    (then used
                      (closurize then used 
                         (if (eq? 4 kind) 
-                           (begin (show "Not closurizing " then) False)
-                           True)))
-                   (else used (closurize else used True)))
+                           (begin (show "Not closurizing " then) #false)
+                           #true)))
+                   (else used (closurize else used #true)))
                   (values
                      (tuple 'branch kind a b then else)
                      used)))
@@ -101,7 +101,7 @@
             ((lambda formals body)
                (lets
                   ((body bused
-                     (closurize body null True))
+                     (closurize body null #true))
                    (clos (diff bused formals)))
                   (values
                      (if close?
@@ -180,7 +180,7 @@
 
       (define (build-closures exp env)
          (lets
-            ((exp used (closurize exp null True))
+            ((exp used (closurize exp null #true))
              (exp lits (literalize exp null)))
             (if (and (pair? lits) (uncompiled-closure? (car lits)))
                (ok (cdar lits) env)

@@ -58,7 +58,7 @@
 
       (define (name->func name)
          (some
-            (λ (x) (if (eq? (ref x 1) name) (ref x 5) False))
+            (λ (x) (if (eq? (ref x 1) name) (ref x 5) #false))
             primops))
 
       ;; library (just the value of) containing only special forms, primops and
@@ -75,7 +75,7 @@
                      ((define-syntax keyword 
                         (syntax-rules literals (pattern template) ...))
                   ()
-                  (quote syntax-operation add False 
+                  (quote syntax-operation add #false 
                         (keyword literals (pattern ...) 
                         (template ...)))))))
             ;; note that these could now come straight from primops
@@ -141,14 +141,14 @@
 
       ;; toplevel variable to which loaded libraries are added
 
-      (define (? x) True)
+      (define (? x) #true)
 
       (define library-key '*libraries*)     ;; list of loaded libraries
       (define features-key '*features*)     ;; list of implementation feature symbols
       (define includes-key '*include-dirs*) ;; paths where to try to load includes from
 
       (define definition? 
-         (let ((pat (list '_define symbol? (λ x True))))
+         (let ((pat (list '_define symbol? (λ x #true))))
             (λ (exp) (match pat exp))))
 
       ;; toplevel variable which holds currently loaded (r7rs-style) libraries
@@ -189,7 +189,7 @@
                         (cons path loaded)))))))
 
       (define (env-get env name def)
-         (let ((node (get env name False)))
+         (let ((node (get env name #false)))
             (if node
                (if (eq? (ref node 1) 'defined)
                   (ref (ref node 2) 2)
@@ -197,7 +197,7 @@
                def)))
 
       (define (prompt env val)
-         (let ((prompt (env-get env '*owl-prompt* F)))
+         (let ((prompt (env-get env '*owl-prompt* #false)))
             (if prompt
                (prompt val))))
             
@@ -252,10 +252,10 @@
                      "" sexp-parser syntax-fail))))
             (if exps
                (begin
-                  (if (env-get env '*interactive* F)
+                  (if (env-get env '*interactive* #false)
                      (show " + " path))
                   (lets
-                     ((prompt (env-ref env '*owl-prompt* F)) ; <- switch prompt during loading
+                     ((prompt (env-ref env '*owl-prompt* #false)) ; <- switch prompt during loading
                       (load-env 
                         (if prompt
                            (env-set env '*owl-prompt* repl-load-prompt) ;; <- switch prompt during load (if enabled)
@@ -274,7 +274,7 @@
                      (list path (string-append (env-get env '*owl* "") path))
                      "for loading.")))))
 
-      ;; regex-fn | string | symbol → regex-fn | False
+      ;; regex-fn | string | symbol → regex-fn | #false
       (define (thing->rex thing)
          (cond
             ((function? thing) thing)
@@ -283,7 +283,7 @@
                   (foldr string-append "" (list "m/" thing "/"))))
             ((symbol? thing)
                (thing->rex (symbol->string thing)))
-            (else False)))
+            (else #false)))
 
       ;; load unless already in *loaded*
 
@@ -313,7 +313,7 @@
                (prompt env repl-ops-help)
                (repl env in))
             ((load l)
-               (lets ((op in (uncons in False)))
+               (lets ((op in (uncons in #false)))
                   (cond
                      ((symbol? op)
                         (repl-load repl (symbol->string op) in env))
@@ -322,7 +322,7 @@
                      (else
                         (repl-fail env (list "Not loadable: " op))))))
             ((forget-all-but)
-               (lets ((op in (uncons in False)))
+               (lets ((op in (uncons in #false)))
                   (if (and (list? op) (all symbol? op))
                      (let ((nan (tuple 'defined (tuple 'value 'undefined))))
                         (repl
@@ -348,7 +348,7 @@
                      (repl-fail env (list "bad word list: " op)))))
             ((require r)
                ; load unless already loaded
-               (lets ((op in (uncons in False)))
+               (lets ((op in (uncons in #false)))
                   (cond
                      ((symbol? op)
                         (repl-require repl (symbol->string op) in env)) 
@@ -361,7 +361,7 @@
                (repl env in))
             ((find)
                (lets 
-                  ((thing in (uncons in False))
+                  ((thing in (uncons in #false))
                    (rex (thing->rex thing)))
                   (cond
                      ((function? rex)
@@ -395,7 +395,7 @@
       ;;               | (rename <identifier_1> <identifier_2>)
       ;;               | (exports <lib)
       (define (build-export names env fail)
-         (let loop ((names names) (unbound null) (module False))
+         (let loop ((names names) (unbound null) (module #false))
             (cond
                ((null? names)
                   (cond
@@ -404,12 +404,12 @@
                         (fail (list "Undefined exported value: " (car unbound))))
                      (else
                         (fail (list "Undefined exports: " unbound)))))
-               ((get env (car names) False) =>
+               ((get env (car names) #false) =>
                   (λ (value)
                      (loop (cdr names) unbound (put module (car names) value))))
                ((and  ;; swap name for (rename <local> <exported>)
                    (match `(rename ,symbol? ,symbol?) (car names))
-                   (get env (cadar names) False)) =>
+                   (get env (cadar names) #false)) =>
                   (λ (value)
                      (loop (cdr names) unbound (put module (caddar names) value))))
                ((match `(exports ,list?) (car names))
@@ -437,11 +437,11 @@
                   (put env key (get mod key 'undefined-lol))) 
                env names)))
 
-      (define (_ x) True)
+      (define (_ x) #true)
 
       (define import?  ; toplevel import using the new library system
          (let 
-            ((patternp `(import . ,(λ (x) True))))
+            ((patternp `(import . ,(λ (x) #true))))
             (λ (exp) (match patternp exp))))
 
       (define (library-definition? x)
@@ -456,9 +456,9 @@
                   ((ok value env) 
                      value)
                   ((fail reason)
-                     False)))
+                     #false)))
             ((fail reason)
-               False)))
+               #false)))
 
       (define (bind-toplevel env)
          (env-set env '*toplevel*
@@ -489,7 +489,7 @@
             (λ (env name value)
                (let ((name (namer name)))
                   (if name (put env name value) env)))
-            False lib))
+            #false lib))
          
       (define (import-set->library iset libs fail)
          (cond
@@ -499,17 +499,17 @@
             ((match `(only ,? . ,symbols?) iset)
                (choose 
                   (import-set->library (cadr iset) libs fail)
-                  (λ (var) (if (has? (cddr iset) var) var False))))
+                  (λ (var) (if (has? (cddr iset) var) var #false))))
             ((match `(except ,? . ,symbols?) iset)
                (choose 
                   (import-set->library (cadr iset) libs fail)
-                  (λ (var) (if (has? (cddr iset) var) False var))))
+                  (λ (var) (if (has? (cddr iset) var) #false var))))
             ((match `(rename ,? . ,pairs?) iset)
                (choose
                   (import-set->library (cadr iset) libs fail)
                   (λ (var) 
                      (let ((val (assq var (cddr iset))))
-                        (if val (cdr val) False)))))
+                        (if val (cdr val) #false)))))
             ((match `(prefix ,? ,symbol?) iset)
                (let ((prefix (symbol->string (caddr iset))))
                   (choose
@@ -540,7 +540,7 @@
              (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
              (paths (map conv include-dirs))
              (contentss (map file->vector paths))
-             (data (first (λ (x) x) contentss False)))
+             (data (first (λ (x) x) contentss #false)))
             (if data
                (let ((exps (vector->sexps data "library fail" path)))
                   (if exps ;; all of the file parsed to a list of sexps
@@ -562,7 +562,7 @@
                   (call/cc 
                      (λ (ret) 
                         (repl-include env 
-                           (library-name->path iset) (λ (why) (ret False)))))))
+                           (library-name->path iset) (λ (why) (ret #false)))))))
                (if exps
                   (tuple-case (repl env (cdr exps)) ; drop begin
                      ((ok value env)
@@ -602,9 +602,9 @@
 
       (define (match-feature req feats libs fail)
          (cond
-            ((memv req feats) True) ;; a supported implementation feature
-            ((symbol? req) False)
-            ((assv req libs) True) ;; an available (loaded) library
+            ((memv req feats) #true) ;; a supported implementation feature
+            ((symbol? req) #false)
+            ((assv req libs) #true) ;; an available (loaded) library
             ((and (headed? 'not req) (= (length req) 2))
                (not (match-feature (cadr req) feats libs fail)))
             ((headed? 'and req)
@@ -678,7 +678,7 @@
                         ((ok value env2)
                            ;; get rid of the meta thread later
                            (mail 'meta (tuple 'set-name value (cadr exp)))
-                           (mail 'intern (tuple 'set-name False)) ;; we stopped evaluating the value
+                           (mail 'intern (tuple 'set-name #false)) ;; we stopped evaluating the value
                            (if (function? value)
                               (mail 'intern (tuple 'name-object value (cadr exp)))) ;; name function object explicitly
                            (let ((env (put env (cadr exp) (tuple 'defined (mkval value)))))
@@ -694,7 +694,7 @@
                      ;; include just loaded *libraries* and *include-paths* from the current one to share them
                      (lets/cc ret
                         ((exps (map cadr (cdr exp))) ;; drop the quotes
-                         (name exps (uncons exps False))
+                         (name exps (uncons exps #false))
                          (fail 
                            (λ (reason) 
                               (ret (fail (list "Library" name "failed:" reason)))))
@@ -730,7 +730,7 @@
                ((null? in)
                   (repl-ok env last))
                ((pair? in)
-                  (lets ((this in (uncons in False)))
+                  (lets ((this in (uncons in #false)))
                      (cond
                         ((eof? this)
                            (repl-ok env last))
@@ -759,26 +759,26 @@
          (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail bounced?)))
 
       (define (repl-trampoline repl env)
-         (let boing ((repl repl) (env env) (bounced? False))
+         (let boing ((repl repl) (env env) (bounced? #false))
             (lets
                ((stdin (stdin-sexp-stream bounced?))
                 (stdin  
                   (if bounced? 
                      (begin ;; we may need to reprint a prompt here
-                        (if (env-get env '*owl-prompt* F) 
+                        (if (env-get env '*owl-prompt* #false) 
                            (begin 
                               (wait 10)  ;; wait for error message to be printed in stderr (hack)
                               (display "> ") (flush-port stdout)  ;; reprint prompt
                               ))
                         stdin)
                      (cons 
-                        (if (env-ref env '*seccomp* F) "You see a prompt. You feel restricted." "You see a prompt")
+                        (if (env-ref env '*seccomp* #false) "You see a prompt. You feel restricted." "You see a prompt")
                         stdin)))
                 (env (bind-toplevel env)))
                (tuple-case (repl env stdin)
                   ((ok val env)
                      ; the end
-                     (if (env-get env '*owl-prompt* F)
+                     (if (env-get env '*owl-prompt* #false)
                         (print "bye bye _o/~"))
                      (wait 100) ;; todo: get rid of the pending stdin read (planned to be changed anyway) or flush and sync stdout&err properly
                      (halt 0))
@@ -787,19 +787,19 @@
                      (cond
                         ((list? reason)
                            (print-repl-error reason)
-                           (boing repl env True))
+                           (boing repl env #true))
                         (else
                            (print reason)
-                           (boing repl env True))))
+                           (boing repl env #true))))
                   (else is foo
                      (show "Repl is rambling: " foo)
-                     (boing repl env True))))))
+                     (boing repl env #true))))))
 
       (define (repl-port env fd)
          (repl env
             (if (eq? fd stdin)
-               (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail F))
-               (fd->exp-stream fd "> " sexp-parser syntax-fail F))))
+               (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail #false))
+               (fd->exp-stream fd "> " sexp-parser syntax-fail #false))))
          
       (define (repl-file env path)
          (let ((fd (open-input-file path)))
@@ -808,7 +808,7 @@
                (tuple 'error "cannot open file" env))))
 
       (define (repl-string env str)
-         (lets ((exps (try-parse (get-kleene+ sexp-parser) (str-iter str) False syntax-fail False)))
+         (lets ((exps (try-parse (get-kleene+ sexp-parser) (str-iter str) #false syntax-fail #false)))
             ;; list of sexps
             (if exps
                (repl env exps)

@@ -43,11 +43,11 @@
          (and (null? (car cl)) (null? (cdr cl))))
 
       (define (half-rev l)
-         (let loop ((l l) (h l) (s False) (o null)) ;; todo: check that at least one is always moved, like () (a)
+         (let loop ((l l) (h l) (s #false) (o null)) ;; todo: check that at least one is always moved, like () (a)
             (cond
                ((null? h) (values (reverse l) (reverse o)))
-               (s (loop l (cdr h) False o))
-               (else (loop (cdr l) (cdr h) True (cons (car l) o))))))
+               (s (loop l (cdr h) #false o))
+               (else (loop (cdr l) (cdr h) #true (cons (car l) o))))))
 
       (define (qlen cl)
          (+ (length (car cl)) (length (cdr cl))))

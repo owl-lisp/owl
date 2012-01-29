@@ -14,7 +14,7 @@
 		 (rst perm-2 (random-permutation rst keys))
 
 		 ;; create a read-black tree in random order
-		 (ff (fold (lambda (ff n) (put ff n n)) False perm-1))
+		 (ff (fold (lambda (ff n) (put ff n n)) #false perm-1))
 
 		 ;; delete keys in insertion, reverse, rtl and ltr order
 		 (blank-fifo (fold (lambda (ff n) (del ff n)) ff perm-1))

@@ -9,8 +9,8 @@
 (define-library (owl unicode)
 
    (export
-      utf8-encode             ;; ll -> list | False
-      utf8-decode             ;; ll -> list | False
+      utf8-encode             ;; ll -> list | #false
+      utf8-decode             ;; ll -> list | #false
       utf8-sloppy-decode      ;; ll -> list
       ;utf8-normalize         ;; ll -> list
       encode-point
@@ -76,10 +76,10 @@
 
       (define (valid-code-point? val)
          (cond
-            ((teq? val fix+) True) ; 0 <= n < 65536
+            ((teq? val fix+) #true) ; 0 <= n < 65536
             ((teq? val int+) ;; 0 <= n <= last-code-point
                (<= val last-code-point))
-            (else False)))
+            (else #false)))
 
       ;(define (encode-point rout val)
       ;   (cond
@@ -90,7 +90,7 @@
       ;         (extra-encode rout val #b11100000 2 #b1111))
       ;      ((< val #b1000000000000000000000) ; fits in 3 + 3*6 bits with 4-byte encoding
       ;         (extra-encode rout val #b11110000 #b111))
-      ;      (else False)))
+      ;      (else #false)))
 
       (define extension #b10000000)
 
@@ -124,7 +124,7 @@
             (else
                (error "utf8 encode: code point too high " point))))
 
-      ; ll -> list | False
+      ; ll -> list | #false
       (define (utf8-encode thing)
          (foldr encode-point null thing))
 
@@ -145,25 +145,25 @@
       (define min-4byte (min-nbyte 4))
 
       ;; read n extension bytes and add values as low bits to val
-      ; lst n val min -> val'|False lst', val' >= min
+      ; lst n val min -> val'|#false lst', val' >= min
       (define (get-extension-bytes lst n val min)
          (cond
             ((eq? n 0)
                (if (< val min)
-                  (values False lst) ; <- overly wide encoding
+                  (values #false lst) ; <- overly wide encoding
                   (values val lst)))
             ((null? lst)
-               (values False lst))
+               (values #false lst))
             ((pair? lst)
                (let ((hd (car lst)))
                   (if (eq? #b10000000 (fxband #b11000000 hd))
                      (get-extension-bytes (cdr lst) (- n 1) (bor (<< val 6) (band hd #b111111)) min)
                      ;; not a valid continuation byte -> error
-                     (values False lst))))
+                     (values #false lst))))
             (else
                (get-extension-bytes (lst) n val min))))
 
-      ;; bs -> char x bs' | False x bs', being after the last bad value or already null
+      ;; bs -> char x bs' | #false x bs', being after the last bad value or already null
       (define (decode-char lst)
          (let ((hd (car lst)))
             (cond
@@ -180,9 +180,9 @@
                   (get-extension-bytes (cdr lst) 3 (fxband #b111 hd) min-4byte))
                (else
                   ; invalid leading byte
-                  (values False (cdr lst))))))
+                  (values #false (cdr lst))))))
 
-      ;; bs default-codepoint -> unicode-code-points | False if error and no default-codepoint
+      ;; bs default-codepoint -> unicode-code-points | #false if error and no default-codepoint
       (define (decoder lst out default)
          (cond
             ((null? lst)
@@ -194,14 +194,14 @@
                         (decoder lst (cons val out) default))
                      (default ;; broken value replaced by given default one, if given
                         (decoder lst (cons default out) default))
-                     (else ;; return False for broken UTF-8 when no replacing symbol is given
-                        False))))
+                     (else ;; return #false for broken UTF-8 when no replacing symbol is given
+                        #false))))
             (else
                (decoder (lst) out default))))
 
-      ; ll -> lst' | False
+      ; ll -> lst' | #false
       (define (utf8-decode lst)
-         (decoder lst null False))
+         (decoder lst null #false))
 
       ; ll -> lst', rewrite all errors with #
       (define (utf8-sloppy-decode lst)

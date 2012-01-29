@@ -86,9 +86,9 @@
 
       (define (list? l)
          (cond
-            ((null? l) True)
+            ((null? l) #true)
             ((pair? l) (list? (cdr l)))
-            (else False)))
+            (else #false)))
 
       (define (zip op a b)
          (cond
@@ -148,13 +148,13 @@
 
       (define (has? lst x)
          (cond
-            ((null? lst) False)
+            ((null? lst) #false)
             ((eq? (car lst) x) lst)
             (else (has? (cdr lst) x))))
 
       (define (getq lst k)
          (cond
-            ((null? lst) False)
+            ((null? lst) #false)
             ((eq? k (car (car lst))) (car lst))
             (else (getq (cdr lst) k))))
 
@@ -163,7 +163,7 @@
 
       (define (mem cmp lst elem)
          (cond
-            ((null? lst) False)
+            ((null? lst) #false)
             ((cmp (car lst) elem) lst)
             (else (mem cmp (cdr lst) elem))))
 
@@ -200,11 +200,11 @@
 
       (define (all pred lst)
          (withcc ret
-            (fold (λ (ok x) (if (pred x) ok (ret False))) True lst)))
+            (fold (λ (ok x) (if (pred x) ok (ret #false))) #true lst)))
 
       (define (some pred lst) 
          (withcc ret
-            (fold (λ (_ x) (let ((v (pred x))) (if v (ret v) False))) False lst)))
+            (fold (λ (_ x) (let ((v (pred x))) (if v (ret v) #false))) #false lst)))
 
       ; map carrying one state variable down like fold
       (define (smap op st lst)

@@ -191,7 +191,7 @@
          (tuple-case node
             ((value this)
                (eq? this val))
-            (else False)))
+            (else #false)))
 
       ; pass fail to cps later and exit via it on errors
 

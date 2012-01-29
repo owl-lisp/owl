@@ -19,28 +19,28 @@
    (begin
       (define (iputl ff num val)
          (if (null? num)
-            (put ff False val)
-            (let ((these (get ff (ncar num) False)))
+            (put ff #false val)
+            (let ((these (get ff (ncar num) #false)))
                (put ff (ncar num)
                   (iputl these (ncdr num) val)))))
 
       (define (iput ff num val)
          (if (teq? num fix+)
-            (let ((small (get ff False False)))
-               (put ff False
+            (let ((small (get ff #false #false)))
+               (put ff #false
                   (put small num val)))
             (iputl ff num val)))
 
       (define (igetl ff num def)
          (if ff
             (if (null? num)
-               (get ff False def)
-               (igetl (get ff (ncar num) False) (ncdr num) def))
+               (get ff #false def)
+               (igetl (get ff (ncar num) #false) (ncdr num) def))
             def))
 
       (define (iget ff num def)
          (if (teq? num fix+)
-            (get (get ff False False) num def)
+            (get (get ff #false #false) num def)
             (igetl ff num def)))
 
       ; private allocated things are private
@@ -56,7 +56,7 @@
 
       (define (iff-walk op st ff taken)
          (lets
-            ((this (get ff False iff-nan))
+            ((this (get ff #false iff-nan))
              (st (if (eq? this iff-nan) st  
                      (op st (nrev null taken) this))))
             (ff-fold
@@ -72,7 +72,7 @@
                (if k 
                   (iff-walk op st v (ncons k null))
                   st))
-            (ff-fold op st (get ff False False))
+            (ff-fold op st (get ff #false #false))
             ff))
 
       (define (iff->list iff)

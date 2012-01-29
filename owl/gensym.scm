@@ -19,7 +19,7 @@
       ;(define (string->symbol str) (interact 'intern str))
       ;(define (symbol->string x) (ref x 1))
 
-      ; return the gensym id of exp (number) or False
+      ; return the gensym id of exp (number) or #false
 
       (define (count-gensym-id str pos end n)
          (if (= pos end)
@@ -28,7 +28,7 @@
                (cond
                   ((and (< 47 this) (< this 58))
                      (count-gensym-id str (+ pos 1) end (+ (* n 10) (- this 48))))
-                  (else False)))))
+                  (else #false)))))
 
       (define (gensym-id exp)
          (if (symbol? exp)
@@ -36,8 +36,8 @@
                (let ((len (string-length str)))
                   (if (and (> len 1) (eq? (refb str 0) 103))
                      (count-gensym-id str 1 len 0)
-                     False)))
-            False))
+                     #false)))
+            #false))
 
       (define (max-gensym-id exp max)
          (cond  

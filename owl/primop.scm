@@ -27,7 +27,7 @@
 
       (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
 
-      (define (func lst) (raw lst 0 F))
+      (define (func lst) (raw lst 0 #false))
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
@@ -88,8 +88,8 @@
             (tuple 'sys          27 4 1 sys)
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
             (tuple 'raw          60 3 1 raw)   ;; make raw object, and *add padding byte count to type variant*
-            (tuple '_connect     34 2 1 _connect)   ;; (connect host port) -> False | socket-fd
-            (tuple '_sleep       37 1 1 _sleep)   ;; (_sleep nms) -> True
+            (tuple '_connect     34 2 1 _connect)   ;; (connect host port) -> #false | socket-fd
+            (tuple '_sleep       37 1 1 _sleep)   ;; (_sleep nms) -> #true
             (tuple 'cons         51 2 1 cons)
             (tuple 'car          52 1 1 car)
             (tuple 'cdr          53 1 1 cdr)
@@ -119,14 +119,14 @@
 
       (define primops-2
          (list
-            (tuple 'bind         32 1 F bind)  ;; (bind thing (lambda (name ...) body)), fn is at CONT so arity is really 1
+            (tuple 'bind         32 1 #false bind)  ;; (bind thing (lambda (name ...) body)), fn is at CONT so arity is really 1
             (tuple 'set          45 3 1 set)   ;; (set tuple pos val) -> tuple'
             (tuple 'lesser?      44 2 1 lesser?)  ;; (lesser? a b)
             (tuple 'listuple     35 3 1 listuple)  ;; (listuple type size lst)
             (tuple 'mkblack      42 4 1 mkblack)   ; (mkblack l k v r)
             (tuple 'mkred        43 4 1 mkred)   ; ditto
-            (tuple 'ff-bind      49 1 F ff-bind)  ;; SPECIAL ** (ffbind thing (lambda (name ...) body)) 
-            (tuple 'red?         41 1 F red?)  ;; (red? node) -> bool
+            (tuple 'ff-bind      49 1 #false ff-bind)  ;; SPECIAL ** (ffbind thing (lambda (name ...) body)) 
+            (tuple 'red?         41 1 #false red?)  ;; (red? node) -> bool
             (tuple 'fxqr         26 3 3 'fxqr)   ;; (fxdiv ah al b) -> qh ql r
             (tuple 'fx+          38 2 2 fx+)   ;; (fx+ a b)      ;; 2 out 
             (tuple 'fx*          39 2 2 fx*)   ;; (fx* a b)      ;; 2 out
@@ -149,9 +149,9 @@
 
       ;; special things exposed by the vm
       (define (set-memory-limit n) (sys-prim 7 n n n))
-      (define (get-word-size) (sys-prim 8 F F F))
-      (define (get-memory-limit) (sys-prim 9 F F F))
-      (define (start-seccomp) (sys-prim 10 F F F)) ; not enabled by defa
+      (define (get-word-size) (sys-prim 8 #false #false #false))
+      (define (get-memory-limit) (sys-prim 9 #false #false #false))
+      (define (start-seccomp) (sys-prim 10 #false #false #false)) ; not enabled by defa
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))

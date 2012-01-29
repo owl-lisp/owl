@@ -42,8 +42,8 @@
 
       (define (unique? lst)
          (cond
-            ((null? lst) True)
-            ((has? (cdr lst) (car lst)) False)
+            ((null? lst) #true)
+            ((has? (cdr lst) (car lst)) #false)
             (else (unique? (cdr lst)))))
 
       (define (formals-ok? lst)

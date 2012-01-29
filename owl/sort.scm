@@ -113,13 +113,13 @@
 ;(define (comp a b) (< (car a) (car b)))
 ;(define (well-ordered? l)
 ;   (call/cc (lambda (fail)
-;      (if (null? l) True
+;      (if (null? l) #true
 ;         (for (car l) (cdr l)
 ;            (lambda (a b)
 ;               (if (= (car a) (car b))
 ;                  (if (< (cdr a) (cdr b))
 ;                     b
-;                     (begin (show "order fail: " (list 'a a 'b b)) (fail False)))
+;                     (begin (show "order fail: " (list 'a a 'b b)) (fail #false)))
 ;                  b)))))))
 ;(let loop ((rst 111111111111) (n 1))
 ;   (show " * check " n)

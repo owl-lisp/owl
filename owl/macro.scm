@@ -42,23 +42,23 @@
       ;;; Basic pattern matching for matching the rule pattern against sexp
       ;;;
 
-      (define (? x) True)
+      (define (? x) #true)
 
       (define (match pattern exp)
 
          (define (match-pattern pattern exp vals)
             (cond
-               ((not vals) False)
+               ((not vals) #false)
                ((pair? pattern)
                   (if (pair? exp)
                      (match-pattern (car pattern) (car exp)
                         (match-pattern (cdr pattern) (cdr exp) vals))
-                     False))
+                     #false))
                ((eq? pattern exp) vals)
                ((eq? pattern '_) vals)
                ((function? pattern)
-                  (if (pattern exp) (cons exp vals) False))
-               (else False)))
+                  (if (pattern exp) (cons exp vals) #false))
+               (else #false)))
 
          (match-pattern pattern exp null))
 
@@ -91,7 +91,7 @@
 
       (define (match-pattern pattern literals form fail)
          (let loop 
-            ((pattern pattern) (form form) (collect? False) 
+            ((pattern pattern) (form form) (collect? #false) 
                (fail fail) (dictionary null))
             (cond
                ((symbol? pattern)
@@ -129,21 +129,21 @@
                               (call/cc
                                  (lambda (ret)
                                  (if (and new-dict (pair? form))
-                                    (loop (cddr pattern) form False
+                                    (loop (cddr pattern) form #false
                                        (lambda (argh)
                                           (ret 
                                              (next new-dict form
                                                 (call/cc
                                                    (lambda (ret)
                                                       (loop (car pattern) (car form) 
-                                                         True (lambda (x) (ret False))
+                                                         #true (lambda (x) (ret #false))
                                                          new-dict)))
                                                 (cdr form))))
                                        new-dict)
                                  ; no more matches
                                  (loop (cddr pattern) 
                                     (if new-dict form old-form) 
-                                    False 
+                                    #false 
                                     fail 
                                     (if new-dict new-dict prev-dict))))))))
                      ((pair? form)
@@ -159,7 +159,7 @@
          (call/cc
             (lambda (ret)
                (match-pattern pattern literals form 
-                  (lambda (argh) (ret False))))))
+                  (lambda (argh) (ret #false))))))
 
       (define (rewrite-ellipsis rewrite form vars)
          (call/cc
@@ -214,7 +214,7 @@
       (define toplevel-macro-definition?
          (let 
             ((pattern 
-               `(quote syntax-operation add False (,symbol? ,list? ,list? ,list?))))
+               `(quote syntax-operation add #false (,symbol? ,list? ,list? ,list?))))
             ;; -> keyword literals patterns templates
             (lambda (exp)
                (match pattern exp))))
@@ -244,7 +244,7 @@
                               (add-fresh-bindings (cadr rule) free dictionary))
                             (new (rewrite dictionary (caddr rule))))
                            (tuple new free))
-                        False)))
+                        #false)))
                rules)))
 
       ; add fresh symbol list -> ((pattern fresh template) ...)
@@ -373,7 +373,7 @@
                    (rules 
                      (make-pattern-list literals patterns templates 
                         (lambda (sym)
-                           (not (get env sym False)))))
+                           (not (get env sym #false)))))
                    (transformer 
                      (make-transformer (cons keyword literals) rules)))
                   (let ((env (env-set-macro env keyword transformer)))

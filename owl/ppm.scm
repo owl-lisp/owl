@@ -4,7 +4,7 @@
 
 (define-module lib-ppm
 	(export
-		read-ppm 			; path → #(rgb888-pixel-list width height) | False
+		read-ppm 			; path → #(rgb888-pixel-list width height) | #false
 		)
 
 	; drop anything up to and including the next newine (if any)
@@ -74,12 +74,12 @@
 	; <a single whitespace character>
 	; width*height times 3/6-byte triplets representing red, green and blue intensities
 
-	; bs -> bs val|False
+	; bs -> bs val|#false
 	(define (get-byte bs)
 		(cond
 			((null? bs)
 				(print "ppm: out of data")
-				(values bs False))
+				(values bs #false))
 			((pair? bs)
 				(values (cdr bs) (car bs)))
 			(else (get-byte (bs)))))
@@ -94,7 +94,7 @@
 					;; fixme: assumed 8-bit here
 					(values bs
 						(bor (bor (<< r 16) (<< g 8)) b))
-					(values bs False)))))
+					(values bs #false)))))
 
 	;; fixme: rgb8 color bounding missing (very simple but ENOTIME, just pass the multiplier to both readers, 1 for 255)
 	(define (get-rgb8 maxval)
@@ -113,7 +113,7 @@
 				(lets ((bs this (get bs)))
 					(if this
 						(loop bs (- n 1) (cons this out))
-						False)))))
+						#false)))))
 
 	; note, this will somewhat misleadingly report bad parses as having values 0
 	(define (parse-ppm-p6 bs)
@@ -125,13 +125,13 @@
 			(cond
 				((or (< width 1) (< height 1) (> width 65536) (> height 65536))
 					(show "refusing to load image of proportions " (cons width height))
-					False)
+					#false)
 				((= maxval 0)
 					(print "ppm: maximum color cannot be 0")
-					False)
+					#false)
 				((> maxval 65535)
 					(show "ppm: too many colours: " maxval)
-					False)
+					#false)
 				(else
 					(lets
 						((get-color (if (< maxval 256) (get-rgb8 maxval) (get-rgb16 maxval)))
@@ -139,7 +139,7 @@
 						 (data (get-pixels bs get-pixel (* width height))))
 						(if data
 							(tuple data width height)
-							False))))))
+							#false))))))
 
 	(define (parse-ppm bs)
 		(lets ((bs magic (get-bytes bs magic-byte?)))
@@ -149,7 +149,7 @@
 				;; fixme: only supports P6 atm
 				(else
 					(show "bad magic in file: " magic)
-					False))))
+					#false))))
 
 	(define (read-ppm path)
 		(let ((port (open-input-file path)))
@@ -159,7 +159,7 @@
 					stuff)
 				(begin
 					(show "failed to open " path)
-					False))))
+					#false))))
 
 )
 

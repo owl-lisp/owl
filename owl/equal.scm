@@ -14,19 +14,19 @@
       (define (eq-fields a b eq pos)
          (cond
             ((eq? pos 0)
-               True)
+               #true)
             ((eq (ref a pos) (ref b pos))
                (lets ((pos x (fx- pos 1)))
                   (eq-fields a b eq pos)))
-            (else False)))
+            (else #false)))
 
       (define (eq-bytes a b pos)
          (if (eq? (refb a pos) (refb b pos))
             (if (eq? pos 0)
-               True
+               #true
                (receive (fx- pos 1)
                   (λ pos x (eq-bytes a b pos))))
-            False))
+            #false))
 
       ;; fixme: ff:s should have a separate equality test too
       ;; fixme: byte vector paddings not here
@@ -35,20 +35,20 @@
       (define (equal? a b)
          (cond
             ((eq? a b)
-               True)
+               #true)
             ((string? a)
                (and (string? b) (string-eq? a b)))
-            ((symbol? a) False) ; would have been eq?, because they are interned
+            ((symbol? a) #false) ; would have been eq?, because they are interned
             ((pair? a)
                (if (pair? b)
                   (and (equal? (car a) (car b)) (equal? (cdr a) (cdr b)))
-                  False))
+                  #false))
             (else
                (let ((sa (size a)))
                   (cond
                      ; a is immediate -> would have been eq?
                      ((eq? sa 0) 
-                        False)
+                        #false)
                      ; same size
                      ((eq? sa (size b))
                         (let ((ta (type a)))
@@ -63,11 +63,11 @@
                                  (eb (sizeb b)))
                                     (if (eq? ea eb)
                                        (if (eq? ea 0)
-                                          True
+                                          #true
                                           (eq-bytes a b (- ea 1)))
-                                       False)))
-                              False)))
-                     (else False))))))
+                                       #false)))
+                              #false)))
+                     (else #false))))))
 
       (define ≡ equal?)
 

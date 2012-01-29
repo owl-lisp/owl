@@ -74,7 +74,7 @@
          (syntax-rules 
             (not eq? and null? pair? teq? imm alloc raw
                fix+ fix- int+ int- pair rat comp)
-            ((if test exp) (if test exp False))
+            ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
             ((if (pair? test) then else) (if (teq? test (alloc 1)) then else))
@@ -95,13 +95,13 @@
             ((if (a . b) then else) (let ((x (a . b))) (if x then else)))
             ((if (teq? a b) then else) (teq? a b then else))
             ;((if (eq? a a) then else) then) ; <- could be functions calls and become non-eq?
-            ((if False then else) else)
-            ((if True then else) then)
-            ((if test then else) (_branch 0 test False else then))))
+            ((if #false then else) else)
+            ((if #true then else) then)
+            ((if test then else) (_branch 0 test #false else then))))
 
       (define-syntax cond
          (syntax-rules (else =>)
-            ((cond) False)
+            ((cond) #false)
             ((cond (else exp . rest))
                (begin exp . rest))
             ((cond (clause => exp) . rest) 
@@ -119,7 +119,7 @@
             ((case (op . args) . clauses)
                (let ((fresh (op . args)))
                   (case fresh . clauses)))
-            ((case thing) False)
+            ((case thing) #false)
             ((case thing ((a) => exp) . clauses)
                (if (eqv? thing (quote a))
                   (exp thing)
@@ -192,7 +192,7 @@
 
       (define-syntax or
          (syntax-rules ()
-            ((or) False)
+            ((or) #false)
             ((or (a . b) . c)
                (let ((x (a . b)))
                   (or x . c)))
@@ -201,10 +201,10 @@
 
       (define-syntax and
          (syntax-rules ()
-            ((and) True)
+            ((and) #true)
             ((and a) a)
             ((and a . b)
-               (if a (and . b) False))))
+               (if a (and . b) #false))))
 
       (define-syntax list
          (syntax-rules ()
@@ -352,7 +352,7 @@
 
 
 (define (not x)
-   (if x False True))
+   (if x #false #true))
 
 (define o (λ f g (λ x (f (g x)))))
 

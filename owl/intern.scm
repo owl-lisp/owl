@@ -30,17 +30,17 @@
 
    (begin
       (define symbol-store
-         (tuple False 'lambda False))
+         (tuple #false 'lambda #false))
 
       ; hack warning, could use normal = and < here, but 
       ; using primitives speeds up parsing a bit
 
-      ; False = s1 is less, 0 = equal, 1 = s1 is more
+      ; #false = s1 is less, 0 = equal, 1 = s1 is more
       (define (walk s1 s2)
          (cond
             ((null? s1)
                (cond
-                  ((pair? s2) False)
+                  ((pair? s2) #false)
                   ((null? s2) 0)
                   (else (walk s1 (s2)))))
             ((pair? s1)
@@ -51,8 +51,8 @@
                          (b bs s2))
                         (cond
                            ((eq? a b) (walk as bs))
-                           ((lesser? a b) False)
-                           (else True))))
+                           ((lesser? a b) #false)
+                           (else #true))))
                   ((null? s2) 1)
                   (else (walk s1 (s2)))))
             (else (walk (s1) s2))))
@@ -82,7 +82,7 @@
                      (maybe-lookup-symbol (ref node 1) str))
                   (else
                      (maybe-lookup-symbol (ref node 3) str))))
-            False))
+            #false))
 
       ;; node is an unbalanced trie of symbols (F | (Tuple L sym R))
       (define (put-symbol node sym)
@@ -99,7 +99,7 @@
                   (else
                      (set node 3
                         (put-symbol (ref node 3) sym)))))
-            (tuple False sym False)))
+            (tuple #false sym #false)))
          
       ;; note, only leaf strings for now
       (define (string->interned-symbol root str)
@@ -109,7 +109,7 @@
                (let ((new (string->uninterned-symbol str)))
                   (values (put-symbol root new) new)))))
 
-      (define symbol-store (tuple False))
+      (define symbol-store (tuple #false))
 
       ; interner is started before the repl at vm boot
 
@@ -121,8 +121,8 @@
       ;;; BYTECODE INTERNING
       ;;;
 
-      (define is-less False)
-      (define is-equal True)
+      (define is-less #false)
+      (define is-equal #true)
       (define is-greater null)
 
       (define (compare-bytes a b pos end)
@@ -159,9 +159,9 @@
                            (mkblack (insert-code l bcode value) k v r))
                         (else
                            (mkblack l k v (insert-code r bcode value)))))))
-            (mkblack False bcode value False)))
+            (mkblack #false bcode value #false)))
 
-       ;; codes bcode → bcode' | False
+       ;; codes bcode → bcode' | #false
        (define (lookup-code codes bcode)
          (if codes
             (ff-bind codes
@@ -171,7 +171,7 @@
                         ((eq? res is-equal) v)
                         ((eq? res is-less) (lookup-code l bcode))
                         (else (lookup-code r bcode))))))
-            False))
+            #false))
 
       ;; codes bcode → codes(') bcode(')
       (define (intern-code codes bcode)
@@ -198,12 +198,12 @@
             (else sexp)))
         
 
-      ;; obj → bytecode | False
+      ;; obj → bytecode | #false
       (define (bytecode-of func)
          (cond
             ((bytecode? func) func)
             ((function? func) (bytecode-of (ref func 1)))
-            (else False)))
+            (else #false)))
 
       ;; thread with string → symbol, ...
       (define (interner root codes names)
@@ -218,10 +218,10 @@
                ((bytecode? msg) ;; find an old equal bytecode sequence, extended wrapper, or add a new code fragment
                   (lets 
                      ((codes code (intern-code codes msg))
-                      (name (get names 'name False)))
+                      (name (get names 'name #false)))
                      (mail sender code)
                      (interner root codes 
-                        (if (get names code False)
+                        (if (get names code #false)
                            names
                            (put names code name)))))    ;; name after first finding
                ((tuple? msg)
@@ -230,14 +230,14 @@
                         (interner root codes (put names 'name name)))
                      ((get-name func)
                         (mail sender 
-                           (or (get names func False)  ;; in case it is named as such
-                               (get names (bytecode-of func) False))) ;; in case we know what this belongs to
+                           (or (get names func #false)  ;; in case it is named as such
+                               (get names (bytecode-of func) #false))) ;; in case we know what this belongs to
                         (interner root codes names))
                      ((name-object obj name) ;; name any object, overriding anything, for user definitions
                         (interner root codes 
                            (put names obj name)))
                      ((flush) ;; clear names before boot
-                        (interner root codes False))
+                        (interner root codes #false))
                      (else
                         ;(show "unknown interner op: " msg)
                         (interner root codes names))))
@@ -273,8 +273,8 @@
       ;; (sym ...)  ((bcode . value) ...) old-interner-names → thunk
       (define (initialize-interner symbol-list codes names)
          (let 
-            ((sym-root (fold put-symbol False symbol-list))
-             (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) False codes)))
+            ((sym-root (fold put-symbol #false symbol-list))
+             (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
             (λ () (interner sym-root code-root names))))
 
 ))

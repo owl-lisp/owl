@@ -16,8 +16,8 @@
 
 (define-library (owl cgen)
 	(export 
-		compile-to-c            ;; obj extras → False | (arity . c-code-string)
-		code->bytes             ;; obj extras → False | (byte ...)
+		compile-to-c            ;; obj extras → #false | (arity . c-code-string)
+		code->bytes             ;; obj extras → #false | (byte ...)
 	)
 
    (import
@@ -43,8 +43,8 @@
       (define (represent val fail)
          (cond
             ((eq? val null) "INULL")
-            ((eq? val True) "ITRUE")
-            ((eq? val False) "IFALSE")
+            ((eq? val #true) "ITRUE")
+            ((eq? val #false) "IFALSE")
             ((and (teq? val fix+) (< val 256))
                (bytes->string
                   (foldr render null
@@ -53,19 +53,19 @@
                ;(show "represent: cannot yet handle " val)
                (fail))))
 
-      ; -> list of bytes | False
+      ; -> list of bytes | #false
       (define (code->bytes code extras)
          (if (bytecode? code)
             (let ((bytes (map (λ (p) (refb code p)) (iota 0 1 (sizeb code)))))
                (if (eq? (cadr bytes) 0) ;; (<arity> 0 <hi8> <lo8>) == call extra instruction
                   (lets
                      ((opcode (+ (<< (caddr bytes) 8) (car (cdddr bytes))))
-                      (bytecode (get extras opcode False)))
+                      (bytecode (get extras opcode #false)))
                      (if bytecode
                         (code->bytes bytecode extras) ;; <- vanilla bytecode (modulo boostrap bugs)
                         (error "code->bytes: cannot find original bytecode for opcode " opcode)))
                   bytes))
-            False))
+            #false))
 
       (define (unknown bs regs fail)
          ;(show " - cgen does not grok opcode " (car bs))
@@ -92,19 +92,19 @@
             (values (car l) b c d e f tl)))
 
       ;; register values
-      ;;    False | not set = no idea what is here
+      ;;    #false | not set = no idea what is here
       ;;    one of immediate (bool, fixnum) -> immediate (of this type)
       ;;    one of alloc (pair) -> allocated object (of this type)
 
       (define (alloc? v)
          (cond
-            ((not v) F)
-            ((has? '(pair alloc) v) T)
-            (else F)))
+            ((not v) #false)
+            ((has? '(pair alloc) v) #true)
+            (else #false)))
 
       ;; drop code to check that value in ref is a pointer (not immediate) unless this is already known in regs
       (define (assert-alloc regs reg op tl)
-         (if (alloc? (get regs reg False))
+         (if (alloc? (get regs reg #false))
             (begin
                ;(print " >>> no need to assert <<<")
                tl)
@@ -140,7 +140,7 @@
                (else 
                   (values 
                      (list "R["to"]=(immediatep(R["ob"]))?IFALSE:prim_cast((word *)R["ob"],(V(R["ob"])>>3)^FFRED);")
-                     bs (put regs to (get regs ob False)))))))
+                     bs (put regs to (get regs ob #false)))))))
 
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-size bs regs fail) 
@@ -261,14 +261,14 @@
                (fold del regs targets))))
 
          
-      ; bind node left key val right, filling in False when implicit
+      ; bind node left key val right, filling in #false when implicit
       (define (cify-bindff bs regs fail)
          ;; note, may overwrite n while binding
          (lets ((n l k v r bs (get5 (cdr bs))))
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at 
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049 
-                  (list "{word *ob=(word *)R["n"];word hdr=*ob>>3;if((hdr&31)!=TFF){error(1049,ob,INULL);};R["k"]=ob[1];R["v"]=ob[2];if(hdr&FFLEFT){R["l"]=ob[3];R["r"]=(hdr&FFRIGHT)?ob[4]:IFALSE;}else{R["l"]=IFALSE;R["r"]=(hdr&FFRIGHT)?ob[3]:IFALSE;}};"))
+                  (list "{word *ob=(word *)R["n"];word hdr=*ob>>3;if((hdr&31)!=TF#false){error(1049,ob,INULL);};R["k"]=ob[1];R["v"]=ob[2];if(hdr&FFLEF#true){R["l"]=ob[3];R["r"]=(hdr&FFRIGH#true)?ob[4]:IFALSE;}else{R["l"]=IFALSE;R["r"]=(hdr&FFRIGH#true)?ob[3]:IFALSE;}};"))
                bs 
                (fold del regs (list l k v r)))))
 
@@ -374,8 +374,8 @@
                      (lets 
                         ((from1 to1 bs (get2 (cdr bs)))
                          (from2 to2 bs (get2 bs))
-                         (regs (put regs to1 (get regs from1 False)))
-                         (regs (put regs to2 (get regs from2 False))))
+                         (regs (put regs to1 (get regs from1 #false)))
+                         (regs (put regs to2 (get regs from2 #false))))
                         (cond
                            (else (values (list "R[" to1 "]=R[" from1 "];R[" to2 "]=R[" from2 "];") bs regs))))))
                (cons 6 (cify-closer-1 "TCLOS"))
@@ -389,8 +389,8 @@
                (cons 9 ;; move to from
                   (λ (bs regs fail)
                      (lets ((from to bs (get2 (cdr bs))))
-                        (cond ;                                                        .--> note, maybe have False value set
-                           (else (values (list "R[" to "]=R[" from "];") bs (put regs to (get regs from False))))))))
+                        (cond ;                                                        .--> note, maybe have #false value set
+                           (else (values (list "R[" to "]=R[" from "];") bs (put regs to (get regs from #false))))))))
                (cons 10 cify-type)
                (cons 11 ;; jump-if-immediate-type a type lo8 hi8
                   (λ (bs regs fail)
@@ -509,7 +509,7 @@
                   (λ (bs regs fail)
                      (lets 
                         ((from to bs (get2 (cdr bs)))
-                         (known-type (get regs from False)))
+                         (known-type (get regs from #false)))
                         (cond
                            ((eq? 'pair known-type)
                               ;(print " >>> omitting pair check from car <<< ")
@@ -529,7 +529,7 @@
                   (λ (bs regs fail)
                      (lets 
                         ((from to bs (get2 (cdr bs)))
-                         (known-type (get regs from False)))
+                         (known-type (get regs from #false)))
                         (cond
                            ((eq? 'pair known-type)
                               ;(print " >>> omitting pair check from cdr <<< ")
@@ -555,8 +555,8 @@
                                  bs regs))))))
                (cons (+ 16 (<< 0 6)) (cify-jump-imm 0))
                (cons (+ 16 (<< 1 6)) (cify-jump-imm null))
-               (cons (+ 16 (<< 2 6)) (cify-jump-imm True))
-               (cons (+ 16 (<< 3 6)) (cify-jump-imm False))
+               (cons (+ 16 (<< 2 6)) (cify-jump-imm #true))
+               (cons (+ 16 (<< 3 6)) (cify-jump-imm #false))
                (cons 55 cify-fxband)
                (cons 56 cify-fxbor)
                (cons 57 cify-fxbxor)
@@ -590,11 +590,11 @@
             tail
             (lets ((res tl regs ((get translators (car ops) unknown) ops regs fail)))
                (cond
-                  ;((eq? res True) ;; introduce missing local register for writing
+                  ;((eq? res #true) ;; introduce missing local register for writing
                   ;   (let ((reg tl)) ;; needed register
                   ;      (ilist "{word r" reg ";" 
                   ;         (emit-c ops (put regs reg reg) fail (cons "}" tail)))))
-                  ;((eq? res False) ;; read the register from vm register array
+                  ;((eq? res #false) ;; read the register from vm register array
                   ;   (let ((reg tl))
                   ;      (ilist "{word r" reg "=R[" reg "];" 
                   ;         (emit-c ops (put regs reg reg) fail (cons "}" tail)))))
@@ -610,7 +610,7 @@
                   (else ;; instruction compiled, handle the rest
                      (append res (emit-c tl regs fail tail)))))))
 
-      ;; obj extras → False | (arity . c-code-string), to become #[arity 0 hi8 lo8] + c-code in vm
+      ;; obj extras → #false | (arity . c-code-string), to become #[arity 0 hi8 lo8] + c-code in vm
       (define (compile-to-c code extras)
          (if (bytecode? code)
             (let ((ops (code->bytes code extras)))
@@ -620,8 +620,8 @@
                      (cons (car ops)
                         (list->string
                            (foldr render null
-                              (emit-c (cdr ops) False (λ () (ret False)) null)))))))
-            False))
+                              (emit-c (cdr ops) #false (λ () (ret #false)) null)))))))
+            #false))
      
    ))
 

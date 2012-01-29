@@ -37,7 +37,7 @@
    ;;; use of them will result in number of active threads dropping to 0
    ;;; since there is no-one to respond.
 
-   ; thread-node = (pos . #(active id state mail-queue|False))
+   ; thread-node = (pos . #(active id state mail-queue|#false))
    ;             = (pos . #(passive id cont-fn))
    ;             = (pos . #(drop _))
    (begin
@@ -245,7 +245,7 @@
                      (halt 0)))
                ((mem equal? '("c" "continue" "resume" "proceed") (car in))
                   (print "| END OF LINE")
-                  (exit-mcp threads state False))
+                  (exit-mcp threads state #false))
                ((mem equal? '("t" "threads") (car in))
                   (mcp-show-threads threads)
                   (mcp threads state cont))
@@ -283,13 +283,13 @@
                   (del state (ref (car threads) 1))
                   (cdr threads)
                   (lets ((thread (car threads)) (id thread-state thread))
-                     (cons (tuple 'active id thread-state (get state id False)) out))))))
+                     (cons (tuple 'active id thread-state (get state id #false)) out))))))
 
       (define (grab-passive-threads state)
          (lets
             ; special non-thread things in the state
             ((specials (list poll-tag buffer-tag link-tag mcp-tag))
-             (new-state (fold (lambda (new key) (put new key (get state key False))) False specials))
+             (new-state (fold (lambda (new key) (put new key (get state key #false))) #false specials))
              (state (fold (lambda (state key) (del state key)) state specials)))
             (values
                new-state

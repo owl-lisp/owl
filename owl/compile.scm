@@ -33,8 +33,8 @@
       (define (small-value? val)
          (or
             (and (fixnum? val) (>= val -127) (< val 127))
-            (eq? val True)
-            (eq? val False)
+            (eq? val #true)
+            (eq? val #false)
             (eq? val null)))
 
       (define (ok exp env) (tuple 'ok exp env))
@@ -66,13 +66,13 @@
       ; lst = (l0 l1 ... ln) -> #(header <code/proc> l0 ... ln)
       (define (index-of thing lst pos)
          (cond
-            ((null? lst) False)
+            ((null? lst) #false)
             ((eq? (car lst) thing) pos)
             (else (index-of thing (cdr lst) (+ pos 1)))))
 
       (define (find-any regs sym type subtype)
          (if (null? regs)
-            False
+            #false
             (let ((this (car regs)))
                (cond
                   ((and (eq? type (ref this 1))
@@ -87,7 +87,7 @@
                            ;; FIXME, 2 will not be correct for shared envs
                            (if sub
                               (cons (ref this 3) sub)
-                              False))))
+                              #false))))
                   (else
                      (find-any (cdr regs) sym type subtype))))))
 
@@ -212,9 +212,9 @@
                (many regs args null cont))))
 
 
-      (define rtl-simple (rtl-arguments True))
+      (define rtl-simple (rtl-arguments #true))
 
-      (define rtl-args (rtl-arguments False))
+      (define rtl-args (rtl-arguments #false))
 
       ; -> [reg] + regs'
       (define (rtl-bind regs formals)
@@ -266,9 +266,9 @@
 
       (define (rtl-moves-ok? moves)
          (cond
-            ((null? moves) True)
+            ((null? moves) #true)
             ((getq (cdr moves) (cdar moves))
-               False)
+               #false)
             (else
                (rtl-moves-ok? (cdr moves)))))
 
@@ -307,9 +307,9 @@
                   (λ (nth perm)
                      (cond
                         ((rtl-moves-ok? perm) (ret perm))
-                        ((eq? nth try-n-perms) (ret False))
+                        ((eq? nth try-n-perms) (ret #false))
                         (else (+ nth 1)))))
-                  False)))
+                  #false)))
 
       ;;; find the first set of saves that works
       (define (rtl-try-saves saves free call rest)
@@ -327,18 +327,18 @@
                (rtl-make-moves
                   (append (zip cons saves free) ok-moves)
                   rest)
-               False)))
+               #false)))
 
       (define (rtl-make-jump call free rest)
          (call/cc
             (λ (ret)
                (or
-                  (lfor False (subsets call)
+                  (lfor #false (subsets call)
                      (λ (foo subset) 
                         (cond
                            ((rtl-try-saves subset free call rest)
                               => (λ (call) (ret call)))
-                           (else False))))
+                           (else #false))))
                   ; has never happened in practice
                   (error "failed to compile call: " call)))))
 
@@ -381,7 +381,7 @@
 
       (define bad-arity "Bad arity: ")
 
-      ; rator nargs → better call opcode | False = no better known option, just call | throw error if bad function or arity
+      ; rator nargs → better call opcode | #false = no better known option, just call | throw error if bad function or arity
       (define (rtl-pick-call regs rator nargs)
          ;(show "picking call for " rator)
          ;(show "regs " regs)
@@ -401,13 +401,13 @@
                         (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
                   (else
                      (if (or (not rator) (ff? rator)) ;; finite functions are also applicable
-                        False
+                        #false
                         (error "Bad operator: " rator)))))
             (else 
                ;(show "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
                ;(print "ENV:")
                ;(for-each (λ (x) (show " - " x)) regs)
-               False)))
+               #false)))
 
       (define (rtl-call regs rator rands)
          ; rator is here possibly #(value #<func>) and much of the call can be inlined
@@ -422,10 +422,10 @@
          (λ (val)
             (tuple-case val
                ((value val) (pred val))
-               (else False))))
+               (else #false))))
 
       (define null-value? (value-pred null?))
-      (define false-value? (value-pred (λ (x) (eq? x False))))
+      (define false-value? (value-pred (λ (x) (eq? x #false))))
       (define zero-value? (value-pred (λ (x) (eq? x 0))))
 
       (define (simple-first a b cont)
@@ -439,14 +439,14 @@
       (define (extract-value node)
          (tuple-case node
             ((value val) val)
-            (else False)))
+            (else #false)))
 
       ;; fixme: ??? O(n) search for opcode->primop. what the...
       (define (opcode->primop op)
          (let 
             ((node
                (some 
-                  (λ (x) (if (eq? (ref x 2) op) x False))
+                  (λ (x) (if (eq? (ref x 2) op) x #false))
                   primops)))
             (if node node (error "Unknown primop: " op))))
 
@@ -454,9 +454,9 @@
          (bind (opcode->primop op)
             (λ (name op in out fn)
                (cond
-                  ((eq? in n) True)
-                  ((eq? in 'any) True)
-                  (else False)))))
+                  ((eq? in n) #true)
+                  ((eq? in 'any) #true)
+                  (else #false)))))
 
       ;; compile any AST node node to RTL
       (define (rtl-any regs exp)
@@ -668,7 +668,7 @@
                   (rtl-procedure exp)
                   (error "rtl-exp: free variables in entry closure: " clos)))
             (else
-               False)))
+               #false)))
 
       ;; todo: exit via fail cont on errors
       (define (compile exp env)

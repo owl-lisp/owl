@@ -30,10 +30,10 @@
       ;;   'short -> -x
       ;;   'long  -> --xylitol
 
-      ;; str (rule-ff ..) → False | rule-ff
+      ;; str (rule-ff ..) → #false | rule-ff
       (define (select-rule string rules)
          (if (null? rules) 
-            False
+            #false
             (let ((this (car rules)))
                (if (or (equal? string (getf this 'short))
                        (equal? string (getf this 'long)))
@@ -42,17 +42,17 @@
 
       (define (self x) x)
 
-      ;; "-foo" → ("-f" "-o" "-o") | False
+      ;; "-foo" → ("-f" "-o" "-o") | #false
       (define (explode str)
          (if (m/^-[^-]{2,}/ str)
             (map
                (λ (char) (runes->string (list 45 char)))
                (cdr (string->bytes str)))
-            False))
+            #false))
 
       (define (fail fools)
          (mail stderr (foldr render '(10) fools))
-         False)
+         #false)
 
       (define blank "nan") ; <- unique because allocated here
 
@@ -73,9 +73,9 @@
                         (mail stderr 
                            (foldr render '(10) 
                               (list "mandatory option not given: " (get rule 'long "(missing)"))))
-                        False))
+                        #false))
                   ok?))
-            True rules))
+            #true rules))
 
       ;; set set all default which are not set explicitly
       (define (fill-defaults dict rules)
@@ -93,7 +93,7 @@
       (define (dashy? str)
          (let ((s (sizeb str)))
             (if (lesser? s 1)
-               F
+               #false
                (eq? 45 (refb str 0)))))
          
       (define (walk rules args dict others)
@@ -101,7 +101,7 @@
             ((null? args)
                (if (mandatory-args-given? dict rules)
                   (tuple (fill-defaults dict rules) (reverse others))
-                  False))
+                  #false))
             ((dashy? (car args))
                (cond
                   ((string-eq? (car args) "--")
@@ -147,24 +147,24 @@
       ; + cook, pred, terminal, multi, id
 
       (define (process-arguments args rules error-msg cont)
-         (let ((res (walk rules args False null)))
+         (let ((res (walk rules args #false null)))
             (if res
                (lets ((dict others res))
                   (cont dict others))
                (begin
                   (print-to error-msg stderr)
-                  False))))
+                  #false))))
 
       ;; and now a friendlier way to define the rules 
 
       (define (cl-rule node lst)
          (if (null? lst)
             node
-            (lets ((op lst (uncons lst F)))
+            (lets ((op lst (uncons lst #false)))
                (cond
-                  ((eq? op 'mandatory) (cl-rule (put node op T) lst))
-                  ((eq? op 'plural)    (cl-rule (put node 'plural T) lst))
-                  ((eq? op 'terminal)  (cl-rule (put node op T) lst))
+                  ((eq? op 'mandatory) (cl-rule (put node op #true) lst))
+                  ((eq? op 'plural)    (cl-rule (put node 'plural #true) lst))
+                  ((eq? op 'terminal)  (cl-rule (put node op #true) lst))
                   ((eq? op 'has-arg) ;; short for cook id
                      (cl-rule node (ilist 'cook self lst)))
                   ((eq? op 'cook)

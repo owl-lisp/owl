@@ -25,27 +25,27 @@
       ;;; Unsafe operations not to be exported
       ;;;
 
-      ;; string → False | unsafe-dirptr
+      ;; string → #false | unsafe-dirptr
       (define (open-dir path)
          (let ((cs (c-string path)))
             (if (and cs (<= (string-length cs) #xffff))
-               (sys-prim 11 cs F F)
-               False)))
+               (sys-prim 11 cs #false #false)
+               #false)))
 
-      ;; unsafe-dirfd → False | eof | bvec
+      ;; unsafe-dirfd → #false | eof | bvec
       (define (read-dir obj)
-         (sys-prim 12 obj F F))
+         (sys-prim 12 obj #false #false))
 
-      ;; _ → True
+      ;; _ → #true
       (define (close-dir obj)
-         (sys-prim 13 obj F F))
+         (sys-prim 13 obj #false #false))
 
 
       ;;; 
       ;;; Safe derived operations
       ;;; 
 
-      ;; dir elements are False or fake strings, which have the type of small raw ASCII 
+      ;; dir elements are #false or fake strings, which have the type of small raw ASCII 
       ;; strings, but may in fact contain anything the OS happens to allow in a file name.
 
       (define (dir-fold op st path)
@@ -70,9 +70,9 @@
       (define (getenv str)
          (let ((str (c-string str)))
             (if str 
-               (let ((bvec (sys-prim 16 str F F)))
+               (let ((bvec (sys-prim 16 str #false #false)))
                   (if bvec
                      (bytes->string (vec->list bvec))
-                     False))
-               False)))))
+                     #false))
+               #false)))))
 

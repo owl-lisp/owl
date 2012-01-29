@@ -19,7 +19,7 @@
       ; return the least score by pred 
       (define (least pred lst)
          (if (null? lst)
-            False   
+            #false   
             (cdr
                (for (cons (pred (car lst)) (car lst)) (cdr lst)
                   (λ (lead x)
@@ -73,7 +73,7 @@
       (define (pick-binding deps env)
 
          (define (maybe type vals)
-            (if (null? vals) False  (tuple type vals)))
+            (if (null? vals) #false  (tuple type vals)))
 
          (or
             ; things which have no dependences
@@ -128,7 +128,7 @@
       (define (var-eq? node sym)
          (tuple-case node
             ((var s) (eq? s sym))
-            (else False)))
+            (else #false)))
 
       ; convert all (name ..) to (name .. name), and make wrappers when name 
       ; is used as a value

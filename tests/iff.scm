@@ -16,7 +16,7 @@
        (rst nums (random-numbers rst (<< 1 shift) (max 1 nnums)))
        ;(_ (print nums))
        (pairs (zip cons nums (iota 0 1 nnums)))
-       (iff (fold (λ (iff pair) (iput iff (car pair) (cons (cdr pair) (iget iff (car pair) null)))) False pairs))
+       (iff (fold (λ (iff pair) (iput iff (car pair) (cons (cdr pair) (iget iff (car pair) null)))) #false pairs))
        (ok
          (fold
             (λ (iff pair)

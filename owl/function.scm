@@ -16,7 +16,7 @@
       (define (procedure? obj)
          (or (function? obj)
              (ff? obj)
-             (eq? obj False)))
+             (eq? obj #false)))
 
       ;                                                               .-> ignore padding byte count
       ;                            .-> raw data object              .-+

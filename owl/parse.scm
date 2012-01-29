@@ -21,7 +21,7 @@
       get-kleene+
       get-greedy*
       get-greedy+
-      try-parse         ; parser x ll x path|False x errmsg|False x fail-val
+      try-parse         ; parser x ll x path|#false x errmsg|#false x fail-val
       peek
       fd->exp-stream
       file->exp-stream
@@ -49,8 +49,8 @@
       ;      -> (fail fail-pos fail-msg')
       (define (null-stream? ll)
          (cond
-            ((null? ll) True)
-            ((pair? ll) False)
+            ((null? ll) #true)
+            ((pair? ll) #false)
             (else (null-stream? (ll)))))
 
       (define eof-error "end of input")
@@ -103,7 +103,7 @@
             b))
 
       (define peek-mark "loltron")
-      (define (peek-val? x) (if (pair? x) (eq? (car x) peek-mark) False))
+      (define (peek-val? x) (if (pair? x) (eq? (car x) peek-mark) #false))
 
       ; make sure the next thing is *not* accepted by parser (unfortunate name, change later)
       (define (peek parser) ; fixme, add error message
@@ -172,8 +172,8 @@
                         (fail fpos freason))) ; could fail differently when zero and requested at least one
                   pos))))
 
-      (define (get-greedy* parser) (get-greedy parser True))
-      (define (get-greedy+ parser) (get-greedy parser False))
+      (define (get-greedy* parser) (get-greedy parser #true))
+      (define (get-greedy+ parser) (get-greedy parser #false))
 
       (define (get-kleene+ what)
          (let-parses
@@ -256,23 +256,23 @@
                         ((not chunk)
                            ; read error in port
                            ;(show "fd->exp-stream: stopping reading after read error at port " fd)
-                           (values rchunks True))
+                           (values rchunks #true))
                         ((eof? chunk)
                            ; normal end if input, no need to call me again
                            (if (not (stdio-port? fd))
                               (close-port fd))
-                           (values rchunks True))
+                           (values rchunks #true))
                         (else
                            ; a chunk of data was received
                            (mail fd 'input) ; request more of it when available
                            (wait 1)
                            ; read it if available
-                           (maybe-get-input (cons chunk rchunks) fd False prompt)))
+                           (maybe-get-input (cons chunk rchunks) fd #false prompt)))
                      (begin
                         ;(show " *** ERROR ERROR ERROR parser thread got mail from non-hoped-fd thread: " sender)
                         ;(! 10000)
                         (maybe-get-input rchunks fd block? prompt))))
-               (values rchunks False))))
+               (values rchunks #false))))
 
       (define (push-chunks data rchunks)
          (if (null? rchunks)
@@ -292,16 +292,16 @@
             (mail fd 'input)) ; always keep one input reading request going to the fd
          (wait 1)
          ; finished means a request for more data is pending, and it makes sense to wait for a response
-         (let loop ((old-data null) (block? True) (finished? False)) ; old-data not successfullt parseable (apart from epsilon)
+         (let loop ((old-data null) (block? #true) (finished? #false)) ; old-data not successfullt parseable (apart from epsilon)
             (lets 
                ((rchunks end? 
                   (if finished? 
-                     (values null True) 
+                     (values null #true) 
                      (maybe-get-input null fd (or (null? old-data) block?) 
                         (if (null? old-data) prompt "|   "))))
                 (data (push-chunks old-data rchunks)))
                (if (null? data)
-                  (if end? null (loop data True False))
+                  (if end? null (loop data #true #false))
                   (parse data
                      (λ (data-tail backtrack val pos)
                         (pair val 
@@ -315,7 +315,7 @@
                               (list (fail pos info data)))
                            ((= pos (length data))
                               ; parse error at eof and not all read -> get more data
-                              (loop data True end?))
+                              (loop data #true end?))
                            (else
                               ; better leave port closing to those who also open them
                               ;(close-port fd) ; wouldn't want to close port 0 on syntax errors.
@@ -330,8 +330,8 @@
       (define (file->exp-stream path prompt parse fail)
          (let ((fd (open-input-file path)))
             (if fd
-               (fd->exp-stream fd prompt parse fail False)
-               False)))
+               (fd->exp-stream fd prompt parse fail #false)
+               #false)))
 
       (define (print-syntax-error reason bytes posn)
          (print reason)
@@ -361,16 +361,16 @@
 
       (define (has-newline? ll)   
          (cond
-            ((null? ll) False)
+            ((null? ll) #false)
             ((not (pair? ll)) (has-newline? (ll)))
-            ((eq? (car ll) 10) True)
+            ((eq? (car ll) 10) #true)
             (else (has-newline? (cdr ll)))))
 
       ; can be unforced
       (define (null-ll? ll)
          (cond
-            ((null? ll) True)
-            ((pair? ll) False)
+            ((null? ll) #true)
+            ((pair? ll) #false)
             (else (null-ll? (ll)))))
 
       ; try to parse all of data with given parser, or return fail-val

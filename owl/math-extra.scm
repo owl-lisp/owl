@@ -172,18 +172,18 @@
          (lets ((q k (miller-qk (- n 1) 0)))
             (let loop ((y (expt-mod x q n)) (j 0))
                (cond
-                  ((= j k) False)
-                  ((and (eq? j 0) (eq? y 1)) True)
-                  ((= y (- n 1)) True)
-                  ((and (> j 0) (= y 1)) False)
+                  ((= j k) #false)
+                  ((and (eq? j 0) (eq? y 1)) #true)
+                  ((= y (- n 1)) #true)
+                  ((and (> j 0) (= y 1)) #false)
                   (else (loop (expt-mod y 2 n) (+ j 1)))))))
 
       (define (miller-rabin-cases-ok? num tests)
          (fold
             (lambda (status a) (and status (miller-rabin num a)))
-            True tests))
+            #true tests))
 
-      (define assume-riemann-hypothesis? True)
+      (define assume-riemann-hypothesis? #true)
 
       ; write n as 2^s*d by factoring out powers of 2 from n-1
       ; for all a in [2 .. min(n-1, floor(2*(ln n)^2))]
@@ -218,21 +218,21 @@
              (aover (min n (<< (expt (ln+ n) 2) 1))))
             (let loop ((a 2))
                (cond
-                  ((= a aover) True)
+                  ((= a aover) #true)
                   ((= 1 (expt-mod a d n)) (loop (+ a 1)))
                   (else
                      (let loopr ((r (- s 1)))
                         (cond
-                           ((= r -1) False)   ; composite 
+                           ((= r -1) #false)   ; composite 
                            ((= (expt-mod a (<< d r) n) np) (loop (+ a 1)))
                            (else (loopr (- r 1))))))))))
 
       (define (prime? n)
          (cond
-            ((eq? n 1) False)
-            ((eq? n 2) True)
-            ((eq? 0 (band n 1)) False)
-            ((get first-primes n False) True)
+            ((eq? n 1) #false)
+            ((eq? n 2) #true)
+            ((eq? 0 (band n 1)) #false)
+            ((get first-primes n #false) #true)
             ((< n 1373653) (miller-rabin-cases-ok? n '(2 3)))
             ((< n 9080191) (miller-rabin-cases-ok? n '(31 73)))
             ((< n 4759123141) (miller-rabin-cases-ok? n '(2 7 61)))
@@ -244,18 +244,18 @@
       ;; Atkin sieve 
 
       (define (atkin-flip ff num)
-         (iput ff num (not (iget ff num False))))
+         (iput ff num (not (iget ff num #false))))
 
       (define (between? a x b)
          (cond
-            ((> a x) False)
-            ((< b x) False)
-            (else True)))
+            ((> a x) #false)
+            ((< b x) #false)
+            (else #true)))
 
       ; later apply the knowledge about limits
       (define (atkin-candidates lo max)
          (let ((lim (isqrt max)))
-            (let loox ((store False) (x 1))
+            (let loox ((store #false) (x 1))
                (if (> x lim)
                   store
                   (let looy ((store store) (y 1))
@@ -288,7 +288,7 @@
             (let loop ((store store) (val xx))
                (cond
                   ((> val max) store)
-                  ((iget store val False)
+                  ((iget store val #false)
                      (loop (atkin-flip store val) (+ val xx)))
                   (else
                      (loop store (+ val xx)))))))
@@ -457,20 +457,20 @@
       ;; find ? such that (expt-mod a ? n) = y
 
       (define (dlp-naive y a n)
-         (let loop ((x 0) (seen False))
+         (let loop ((x 0) (seen #false))
             (let ((this (expt-mod a x n)))
                (cond
                   ((= y this) x)
-                  ((iget seen this False) False) ; looped, not solvable
-                  (else (loop (+ x 1) (iput seen this True)))))))
+                  ((iget seen this #false) #false) ; looped, not solvable
+                  (else (loop (+ x 1) (iput seen this #true)))))))
 
       ;; like naive, but avoids useless multiplications and remainders 
       (define (dlp-simple y a n)
-         (let loop ((x 0) (v 1) (seen False))
+         (let loop ((x 0) (v 1) (seen #false))
             (cond
                ((>= v n) (loop x (rem v n) seen))      ; overflow
                ((= v y) x)                             ; solved
-               ((iget seen v False) False)             ; looped -> not solvable
+               ((iget seen v #false) #false)             ; looped -> not solvable
                (else                                   ; try next
                   (loop (+ x 1) (* v a) (iput seen v v))))))
 
@@ -482,16 +482,16 @@
       (define (dlp-th y a n)
          (if (= y 1)
             0
-            (let loop ((x1 0) (v1 1) (x2 1) (v2 a) (step? False))
+            (let loop ((x1 0) (v1 1) (x2 1) (v2 a) (step? #false))
                (cond
                   ((= v2 y) x2)                          ; hare finds carot \o/
-                  ((= v1 v2) False)                      ; hare finds tortoise o_O
+                  ((= v1 v2) #false)                      ; hare finds tortoise o_O
                   (step?                                 ; fast hare is fast
-                     (loop x1 v1 (+ x2 1) (dlp-th-step v2 a n) False))
+                     (loop x1 v1 (+ x2 1) (dlp-th-step v2 a n) #false))
                   (else                                    ; enhance
                      (loop 
                         (+ x1 1) (dlp-th-step v1 a n)
-                        (+ x2 1) (dlp-th-step v2 a n) True))))))
+                        (+ x2 1) (dlp-th-step v2 a n) #true))))))
      
 
       ;; Shanks' baby-step giant-step algorithm (still not quite working properly)
@@ -500,8 +500,8 @@
 
       (define (find-match b g pred)
          (cond
-            ((null? b) False)
-            ((null? g) False)
+            ((null? b) #false)
+            ((null? g) #false)
             ((= (caar b) (caar g)) 
                (let ((x (- (cdar g) (cdar b))))
                   (if (pred x)

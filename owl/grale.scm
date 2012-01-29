@@ -20,7 +20,7 @@
 		grale-put 			; x, y, col (no result)
 		grale-update		; x, y, width, height (no result)
 		grale-wait-event	; -> event
-		grale-check-event	; -> event | False
+		grale-check-event	; -> event | #false
 		grale-fill-rect	; x, y, w, h, col 
 		grale-paint			; x y (data)
 		grale-puts			; x y col (n move ...)
@@ -32,7 +32,7 @@
 		;; support stuff
 		font-8px	;; partial, not monospace, not there yet
 		owl-logo		;; a test for puts
-		build-sprite	;; (width pixel ...) -> False | (len move ...)
+		build-sprite	;; (width pixel ...) -> #false | (len move ...)
 		grale-put-text		; font, x, y, col, text
 		grale-text-width	; font, string -> n
 		cursor
@@ -48,19 +48,19 @@
 		(let loop ((in in) (n 0))
 			(cond
 				((null? in)
-					(values in False False))
+					(values in #false #false))
 				((pair? in)
 					(lets
 						((a (car in))
 						 (ap (fxband a 127)))
 						(if (eq? a ap)
 							(if (eq? n 0)
-								(values (cdr in) True a)
-								(values (cdr in) True (+ (<< n 7) ap)))
+								(values (cdr in) #true a)
+								(values (cdr in) #true (+ (<< n 7) ap)))
 							(loop (cdr in) (+ (<< n 7) ap)))))
 				(else (loop (in) n)))))
 
-	(define no-event False)
+	(define no-event #false)
 
 	;; todo: switch to a ff of parsing combinators
 	(define (event-response in)
@@ -74,15 +74,15 @@
 							 (in ok x (natural in))
 							 (in ok y (natural in)))
 							(if ok
-								(values in True (tuple 'click btn x y))
-								(values in False False))))
+								(values in #true (tuple 'click btn x y))
+								(values in #false #false))))
 					((eq? type 2) ; mouse motion - x y
 						(lets
 							((in ok x (natural in))
 							 (in ok y (natural in)))
 							(if ok
-								(values in True (tuple 'mouse-move x y))
-								(values in False False))))
+								(values in #true (tuple 'mouse-move x y))
+								(values in #false #false))))
 					((eq? type 3) ; key down - unicode-codepoint
 						(lets ((in ok cp (natural in)))
 							(values in ok (tuple 'key cp))))
@@ -94,13 +94,13 @@
 						(values in ok no-event))
 					(else
 						(error "Connection out of sync or unknown (to owl) event type from grale: " type)))
-				(values in False False))))
+				(values in #false #false))))
 
 	(define (init-response in)
 		(cond
-			((null? in) (values in False False))
+			((null? in) (values in #false #false))
 			((pair? in) 
-				(values (cdr in) True 
+				(values (cdr in) #true 
 					(if (eq? (car in) 0)
 						(tuple 'connected)
 						(tuple 'failed))))
@@ -123,7 +123,7 @@
 				((pair? msg)
 					;(show " -> to grale " msg)
 					(mail out msg)
-					(let ((res-parse (get response-parsers (car msg) False)))
+					(let ((res-parse (get response-parsers (car msg) #false)))
 						(if res-parse
 							(begin
 								(flush-port out) ; make sure the request was actually sent
@@ -211,17 +211,17 @@
 						(grale-thread (ref node 2) (port->byte-stream (ref node 3)))
 						(begin
 							(show "cuold not start grale server with command " grale-server-path)
-							False))))))
+							#false))))))
 
 
-	; dx dy -> move-byte | False
+	; dx dy -> move-byte | #false
 	(define (move dx dy)
 		(if (and (<= dx 7) (>= dx -7) (<= dy 7) (>= dy -7))
 			(+ (<< (+ dx 8) 4) (+ dy 8))
-			False))
+			#false))
 
 	(define (maybe-cons hd maybe-tl)
-		(if maybe-tl (cons hd maybe-tl) False))
+		(if maybe-tl (cons hd maybe-tl) #false))
 	
 	(define (jump a b w)
 		(lets
@@ -229,7 +229,7 @@
 			 (by bx (quotrem b w)))
 			(move (- ax bx) (- ay by))))
 
-	; -> moves | False
+	; -> moves | #false
 	(define (build-moves pos lst width)
 		(if (null? lst)
 			null 
@@ -240,8 +240,8 @@
 							(if this
 								(maybe-cons this 
 									(build-moves to (remove (λ (x) (eq? x to)) lst) width))
-								False))))
-				False lst)))
+								#false))))
+				#false lst)))
 
 	; list of tokens -> (len move ...), intended for drawing single-coloured images (letters etc) using grale-puts
 	; lst = (width thing ...) where
@@ -250,7 +250,7 @@
 	;  + = start drawing here (where the puts x/y coordinates point to) but don't paint anything there
 	;  o = start drawing here, and also colour it
 
-	; -> (len move ...) | False
+	; -> (len move ...) | #false
 	(define (build-sprite lst)
 		(show " - building " lst)
 		(lets
@@ -261,7 +261,7 @@
 			 (start ; find starting place
 			 	(fold 
 					(λ (found this) (if (has? '(+ o) (cdr this)) (car this) found))
-					False lst))
+					#false lst))
 			 (lst  ; drop start information and get just drawables
 			 	(fold
 					(λ (out p) 
@@ -273,14 +273,14 @@
 			(cond
 				((not start)
 					(show "no start symbol found in sprite data " lst)
-					False)
+					#false)
 				((build-moves start lst width) =>
 					(λ (moves) ; \o/
 						(show " - sprite encoded as " moves)
 						(number->bytes (length moves) moves)))
 				(else
 					(show "this sprite cannot be drawn easily (drawing each pixel just once): " lst)
-					False))))
+					#false))))
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -997,7 +997,7 @@
 		(str-fold
 			(λ (w char)
 				(cond
-					((get font char False) => (λ (c) (+ w (car c))))
+					((get font char #false) => (λ (c) (+ w (car c))))
 					((get font char -1) => (λ (c) (+ w (car c))))
 					(else w)))
 			0 text))
@@ -1007,11 +1007,11 @@
 		(str-fold
 			(λ (x char)
 				(cond
-					((get font char False) =>
+					((get font char #false) =>
 						(λ (info)
 							(grale-puts x y col (cdr info))
 							(+ x (car info))))
-					((get font -1 False) =>
+					((get font -1 #false) =>
 						(λ (info)
 							(grale-puts x y col (cdr info))
 							(+ x (car info))))
@@ -1141,7 +1141,7 @@
 ;								(if (eq? cp 13) ; carriage, return!
 ;									(loop 0 (+ ty 10))
 ;									(lets 
-;										((char (get font-8px cp False))
+;										((char (get font-8px cp #false))
 ;										 (col (if (has? '(40 41) cp) #b11111100 #b00011100)))
 ;										(if char
 ;											(let ((xp (+ tx (car char))))

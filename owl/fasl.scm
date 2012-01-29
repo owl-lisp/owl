@@ -75,7 +75,7 @@
       (owl rlist))
 
    (begin
-      (define enodata False) ;; reason to fail if out of data (progressive readers want this)
+      (define enodata #false) ;; reason to fail if out of data (progressive readers want this)
 
       (define (read-tuple tuple pos lst)
          (if (= pos 0)
@@ -122,7 +122,7 @@
          ;(show "clos type " (type obj))
          (cond
             ((immediate? obj) seen)
-            ((get seen obj False) seen)
+            ((get seen obj #false) seen)
             (else
                ;(print " - grabbing contents")
                (let ((seen (put seen obj 0)))
@@ -133,7 +133,7 @@
       (define (objects-below obj)	
          (ff-fold
             (λ (out obj _) (cons obj out))
-            null (object-closure False obj)))
+            null (object-closure #false obj)))
 
       (define (index-closure clos) ; carry (fp . clos)
          (cdr
@@ -166,7 +166,7 @@
       (define (encode-allocated clos cook)
          (λ (out val-orig pos)
             (lets
-               ( ; (val-orig (if (eq? val-orig <tochange>) (raw '(<new bytecode>) 0 F) val-orig))  ; <- for changing special primops
+               ( ; (val-orig (if (eq? val-orig <tochange>) (raw '(<new bytecode>) 0 #false) val-orig))  ; <- for changing special primops
                 (val (cook val-orig)))
                (if (raw? val)
                   (lets
@@ -208,7 +208,7 @@
       (define (encoder obj cook)
          (encoder-output
             (index-closure
-               (object-closure False obj))
+               (object-closure #false obj))
             cook))
 
       ; -> byte stream
@@ -315,7 +315,7 @@
                             (ll size (get-nat ll fail 0))
                             (foo (if (> size 65535) (fail "bad raw object size")))
                             (ll rbytes (get-bytes ll size fail null))
-                            (obj (raw (reverse rbytes) type False)))
+                            (obj (raw (reverse rbytes) type #false)))
                            (decoder ll (rcons obj got) fail)))
                      ((eq? kind 0) ;; fasl stream end marker 
                         ;; object done
@@ -326,7 +326,7 @@
                             (ll size (get-nat ll fail 0))
                             (foo (if (> size 65535) (fail "bad raw object size")))
                             (ll rbytes (get-bytes ll size fail null))
-                            (obj (raw (reverse rbytes) type False)))
+                            (obj (raw (reverse rbytes) type #false)))
                            (decoder ll (rcons obj got) fail)))
                      (else
                         (fail (list "unknown object tag: " kind))))))
@@ -413,8 +413,8 @@
    ;				(begin
    ;					(mail port (fasl-encode val))
    ;					(close-port port)
-   ;					True)
-   ;				False)))
+   ;					#true)
+   ;				#false)))
    ;
    ;	(define (fasl-read-file path fail)
    ;		(show "fasl-read " path)

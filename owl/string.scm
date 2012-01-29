@@ -31,7 +31,7 @@
       string->list       ; aka string->runes
       string-eq?
       string-append
-      c-string           ; str → False | UTF-8 encoded null-terminated raw data string
+      c-string           ; str → #false | UTF-8 encoded null-terminated raw data string
       null-terminate     ; see ^
       finish-string      ; useful to construct a string with sharing
       render-string
@@ -85,12 +85,12 @@
       (define (string? x) 
          (cond
             ; leaf string
-            ((raw-string? x) True)
+            ((raw-string? x) #true)
             ; wide leaf string
-            ((teq? x (alloc 13)) True)
+            ((teq? x (alloc 13)) #true)
             ; tree node
-            ((teq? x (alloc 45)) True)
-            (else False)))
+            ((teq? x (alloc 45)) #true)
+            (else #false)))
 
       (define (string-length str)
          (cond
@@ -223,13 +223,13 @@
 
       (define (make-chunk rcps len ascii?)
          (if ascii?
-            (let ((str (raw (reverse rcps) 3 False)))
+            (let ((str (raw (reverse rcps) 3 #false)))
                (if str
                   str
                   (error "Failed to make string: " rcps)))
             (listuple 13 len (reverse rcps))))
 
-      ;; ll|list out n ascii? chunk → string | False
+      ;; ll|list out n ascii? chunk → string | #false
       (define (stringify runes out n ascii? chu)
          (cond
             ((null? runes)
@@ -237,25 +237,25 @@
                   (reverse (cons (make-chunk out n ascii?) chu))))
             ; make 4Kb chunks by default
             ((eq? n 4096)
-               (stringify runes null 0 True
+               (stringify runes null 0 #true
                   (cons (make-chunk out n ascii?) chu)))
             ((pair? runes)
                (cond
                   ((and ascii? (< 128 (car runes)) (> n 256))
                      ; allow smaller leaf chunks 
-                     (stringify runes null 0 True
+                     (stringify runes null 0 #true
                         (cons (make-chunk out n ascii?) chu)))
                   ((valid-code-point? (car runes))
                      (let ((rune (car runes)))
                         (stringify (cdr runes) (cons rune out) (+ n 1) 
                            (and ascii? (< rune 128))
                            chu)))
-                  (else False)))
+                  (else #false)))
             (else (stringify (runes) out n ascii? chu))))
 
-      ;; (codepoint ..) → string | False
+      ;; (codepoint ..) → string | #false
       (define (runes->string lst) 
-         (stringify lst null 0 True null))
+         (stringify lst null 0 #true null))
 
       (define bytes->string 
          (o runes->string utf8-decode))
@@ -276,17 +276,17 @@
                   ((pair? b) 
                      (if (= (car a) (car b))
                         (string-eq-walk (cdr a) (cdr b))
-                        False))
-                  ((null? b) False)
+                        #false))
+                  ((null? b) #false)
                   (else
                      (let ((b (b)))
                         (if (and (pair? b) (= (car b) (car a)))
                            (string-eq-walk (cdr a) (cdr b))
-                           False)))))
+                           #false)))))
             ((null? a) 
                (cond
-                  ((pair? b) False)
-                  ((null? b) True)
+                  ((pair? b) #false)
+                  ((null? b) #true)
                   (else (string-eq-walk a (b)))))
             (else (string-eq-walk (a) b))))
 
@@ -294,7 +294,7 @@
          (let ((la (string-length a)))
             (if (= (string-length b) la)
                (string-eq-walk (str-iter a) (str-iter b))
-               False)))
+               #false)))
 
       (define string-append str-app)
       (define string->list string->runes)
@@ -305,7 +305,7 @@
             ((string . things)
                (list->string (list . things)))))
 
-      (define (c-string str) ; -> bvec | False
+      (define (c-string str) ; -> bvec | #false
          (if (raw-string? str)
             ;; do not re-encode raw strings. these are normally ASCII strings 
             ;; which would not need encoding anyway, but explicitly bypass it 
@@ -313,12 +313,12 @@
             ;; allows bad non UTF-8 strings coming for example from command 
             ;; line arguments (like paths having invalid encoding) to be used 
             ;; for opening files.
-            (raw (str-foldr cons '(0) str) 3 False)
+            (raw (str-foldr cons '(0) str) 3 #false)
             (let ((bs (str-foldr encode-point '(0) str)))
                ; check that the UTF-8 encoded version fits one raw chunk (64KB)
                (if (<= (length bs) #xffff) 
-                  (raw bs 3 False)
-                  False))))
+                  (raw bs 3 #false)
+                  #false))))
 
       (define null-terminate c-string)
 
@@ -330,13 +330,13 @@
       ;; todo: let l be a lazy list and iterate with it over whatever
       ;; todo: regex matcher would be fun to write. regular languages ftw.
 
-      ; -> False | tail after p
+      ; -> #false | tail after p
       (define (grab l p)
          (cond
             ((null? p) l)
-            ((null? l) False)
+            ((null? l) #false)
             ((eq? (car l) (car p)) (grab (cdr l) (cdr p)))
-            (else False)))
+            (else #false)))
 
       ; O(nm), but irrelevant for current use
       (define (replace-all lst pat val)
@@ -387,8 +387,8 @@
       (define (str-compare cook sa sb)
          (let loop ((la (cook (str-iter sa))) (lb (cook (str-iter sb))))
             (lets 
-               ((a la (uncons la F))
-                (b lb (uncons lb F)))
+               ((a la (uncons la #false))
+                (b lb (uncons lb #false)))
                (cond
                   ((not a) (if b 1 2))
                   ((not b) 3)
@@ -403,7 +403,7 @@
                (if (= (length node) 2) 
                   (iput iff (car node) (cadr node)) 
                   (iput iff (car node) (cdr node))))
-            False char-folds))
+            #false char-folds))
 
       (define (unicode-fold-char codepoint tail)
          (let ((mapping (iget char-fold-iff codepoint codepoint)))
@@ -417,7 +417,7 @@
 
       (define (upcase ll)
          (lets 
-            ((cp ll (uncons ll F)))
+            ((cp ll (uncons ll #false)))
             (if cp
                (let ((cp (iget char-fold-iff cp cp)))
                   (if (pair? cp)

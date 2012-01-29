@@ -50,8 +50,8 @@
 
 	(define (cook-number sign main frac exp)
 		(cond
-			((eq? sign 45) (- 0 (cook-number False main frac exp)))
-			(frac (cook-number sign (rationalize main frac 10) False exp))
+			((eq? sign 45) (- 0 (cook-number #false main frac exp)))
+			(frac (cook-number sign (rationalize main frac 10) #false exp))
 			(exp (* main (expt 10 exp)))
 			(else main)))
 
@@ -75,14 +75,14 @@
 						((skip (get-imm 46)) ; dot
 						 (frac (get-greedy-kleene+ (get-byte-if digit?))))
 						frac)
-					(get-epsilon False)))
+					(get-epsilon #false)))
 			(exp
 				(get-either
 					(let-parses
 						((s get-exponent-sign)
 						 (exp get-natural))
 						(* s exp))
-					(get-epsilon False))))
+					(get-epsilon #false))))
 			(cook-number sign main frac exp)))
 
 	;; strings
@@ -109,14 +109,14 @@
 					(zip cons (iota 65 1 71)  (iota 10 1 16)))))) ; A-F
 
 	(define get-hex 
-		(let-parses ((digit (get-byte-if (λ (x) (get hex-val x False)))))
+		(let-parses ((digit (get-byte-if (λ (x) (get hex-val x #false)))))
 			(get hex-val digit 0)))
 
 	(define get-quoted-char
 		(let-parses
 			((skip (get-imm 92))
-			 (char (get-byte-if (λ (x) (get string-specials x False)))))
-			(get string-specials char False)))
+			 (char (get-byte-if (λ (x) (get string-specials x #false)))))
+			(get string-specials char #false)))
 
 	(define get-hex16-char
 		(let-parses
@@ -193,8 +193,8 @@
 		(get-either
 			(get-word "null" 'nothing)
 			(get-either
-				(get-word "true" True)
-				(get-word "false" False))))
+				(get-word "true" #true)
+				(get-word "false" #false))))
 
 	;; entry
 
@@ -214,8 +214,8 @@
 				((string? data) (string->runes data))
 				((list? data) data)
 				(else (error "json-decode: funny data: " data)))
-			(lambda (data fail val) (values True val data))
-			(lambda (data reason) (values False reason False))))
+			(lambda (data fail val) (values #true val data))
+			(lambda (data reason) (values #false reason #false))))
 
 
 
@@ -268,7 +268,7 @@
 			(str-foldr
 				(lambda (char tail)
 					(cond
-						((get string-special-chars char False) =>
+						((get string-special-chars char #false) =>
 							(λ (char) (ilist 92 char tail)))
 						(else
 							(encode-point char tail))))
@@ -283,11 +283,11 @@
 
 	(define (compatible-number? n)
 		(type-case n
-			(fix+ True)
-			(fix- True)
-			(int+ True)
-			(int- True)
-			(else False))) ; namely rationals and later complex
+			(fix+ #true)
+			(fix- #true)
+			(int+ #true)
+			(int- #true)
+			(else #false))) ; namely rationals and later complex
 
 	(define (jsonify-number n tail)
 		(if (compatible-number? n)
@@ -308,8 +308,8 @@
 						(error "jsonify: bad pair head: " (car val)))))
 			((number? val)
 				(jsonify-number val tail))
-			((eq? val True) (render "true" tail))
-			((eq? val False) (render "false" tail))
+			((eq? val #true) (render "true" tail))
+			((eq? val #false) (render "false" tail))
 			((eq? val 'nothing) (render "null" tail))
 			(else (error "jsonify: cannot encode " val))))
 
@@ -375,9 +375,9 @@
 
 	(define (initialize-json-rpc-thread fd)
 		(mail fd 'input)	; accept input (notifications can come sponateously)
-		(json-rpc-handler fd False 0 null))
+		(json-rpc-handler fd #false 0 null))
 	
-	; host x port → thread-name | False
+	; host x port → thread-name | #false
 	(define (json-rpc-connection host port) 
 		(let ((fd (connect host port)))
 			(if fd
@@ -385,7 +385,7 @@
 					(λ () (initialize-json-rpc-thread fd)))
 				(begin
 					(show "json-rpc: connection failed to " (cons host port))
-					False))))
+					#false))))
 
 
 	; Syntax:
@@ -493,10 +493,10 @@
 		(show " => " (bytes->string (json-encode obj)))
 		(print ""))
 	(list
-		True
-		False
-		(list 'array True False)
-		(list 'array True (list 'array False False) True)
+		#true
+		#false
+		(list 'array #true #false)
+		(list 'array #true (list 'array #false #false) #true)
 		(list 'array 1 2 3 4)
 		(list 'array -10000000000000000 -100 0 100 +100000000000000000)
 		"loltron"

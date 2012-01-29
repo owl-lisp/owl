@@ -64,7 +64,7 @@
 
       (define (inst->op name)
          (or
-            (get vm-instructions name False)
+            (get vm-instructions name #false)
             (error "inst->op: unknown instruction " name)))
 
       (define (reg a)
@@ -182,10 +182,10 @@
                         (ilist (inst->op 'ld) 
                            (if (< val 0) (+ 256 val) val)
                            (reg to) code)))
-                  ((eq? val False)
+                  ((eq? val #false)
                      (ilist (inst->op 'ldf) (reg to)
                         (assemble cont fail)))
-                  ((eq? val True)
+                  ((eq? val #true)
                      (ilist (inst->op 'ldt) (reg to)
                         (assemble cont fail)))
                   (else
@@ -271,11 +271,11 @@
                         (error "need a bigger jrt instruction: length is " len)))))
             (else
                ;(show "assemble: what is " code)
-               (fail False))))
+               (fail #false))))
 
       ;; make bytecode and intern it (to improve sharing, not mandatory)
       (define (bytes->bytecode bytes)
-         (interact 'intern (raw bytes 0 False)))
+         (interact 'intern (raw bytes 0 #false)))
 
       ; code rtl object -> executable code
       ;; todo: exit via fail cont

@@ -32,7 +32,7 @@
       ; (must be in some register)
 
       (define (reg-touch usages reg)
-         (let ((val (get usages reg False)))
+         (let ((val (get usages reg #false)))
             (if val
                usages
                (put usages reg null))))
@@ -148,7 +148,7 @@
          (if (or (null? news) (and (has? news old) (< old highest-register)))
             (cont old code)         ; no remapping happened
             (let ((new (car news)))
-               (if (or (eq? old new) (get uses new False))
+               (if (or (eq? old new) (get uses new #false))
                   (retarget-first code old (cdr news) uses cont)
                   (let ((new-code 
                      (call/cc
@@ -156,7 +156,7 @@
                            (rtl-rename code 
                               (λ (reg) (if (eq? reg old) new reg))
                               new
-                              (lambda () (drop False)))))))
+                              (lambda () (drop #false)))))))
                      (if new-code
                         (cont new new-code) ; remapping success
                         (retarget-first code old (cdr news) uses cont)))))))
@@ -198,9 +198,9 @@
                (if (> a highest-register)
                   ;; needs to be relocated lower, so return here a wish to put is somewhere lower
                   (values code
-                     (put (reg-root False 3) a (iota 4 1 highest-register))) ; please move me anywhere lower
+                     (put (reg-root #false 3) a (iota 4 1 highest-register))) ; please move me anywhere lower
                   (values code
-                     (reg-touch (reg-root False 3) a))))
+                     (reg-touch (reg-root #false 3) a))))
 
             ((move a b more)
                (cond
@@ -289,21 +289,21 @@
                            (rtl-retard
                               (tuple 'refi from offset to-new more-new)))))))
             ((goto op nargs)
-               (values code (fold reg-root False (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-code op nargs)
-               (values code (fold reg-root False (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-proc op nargs)
-               (values code (fold reg-root False (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-clos op nargs)
-               (values code (fold reg-root False (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
             ((jeq a b then else)
                (rtl-retard-jump rtl-retard 'jeq a b     then else))
             ((jn a then else)
-               (rtl-retard-jump rtl-retard 'jn a False  then else))
+               (rtl-retard-jump rtl-retard 'jn a #false  then else))
             ((jf a then else)
-               (rtl-retard-jump rtl-retard 'jf a False  then else))
+               (rtl-retard-jump rtl-retard 'jf a #false  then else))
             ((jz a then else)
-               (rtl-retard-jump rtl-retard 'jz a False  then else))
+               (rtl-retard-jump rtl-retard 'jz a #false  then else))
             ((jit a type then else)
                (rtl-retard-jump rtl-retard 'jit a type then else))
             ((jat a type then else)
