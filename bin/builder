@@ -10,10 +10,13 @@ test -x bin/ol && (\
    echo " - tests at `date`"; \
    make test &> $HOME/aoh/owl/logs/test-$ME.txt \
       && date >> test-runs \
-      || (twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/test-$ME.txt"; rm bin/ol-failed; mv bin/ol bin/ol-failed;))
+      || ( cp $HOME/aoh/owl/logs/test-$ME.txt $HOME/aoh/owl/logs/fail-$ME.txt; \
+           twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
+           rm bin/ol-failed; \
+           mv bin/ol bin/ol-failed;))
 
 # don't use all cpu
-sleep 10
+sleep 2
 
 # recurse unless updated
 test -f $HOME/owl-updated || exec bin/builder
