@@ -4,6 +4,7 @@
    (export
       λ syntax-error begin 
       quasiquote letrec let if 
+      letrec* let*-values
       cond case define define*
       lets let* or and list
       ilist tuple tuple-case type-case 
@@ -60,6 +61,14 @@
          (syntax-rules (rlambda)
             ((letrec ((?var ?val) ...) ?body) (rlambda (?var ...) (?val ...) ?body))
             ((letrec vars body ...) (letrec vars (begin body ...)))))
+
+      (define-syntax letrec*
+         (syntax-rules ()
+            ((letrec () . body)
+               (begin . body))
+            ((letrec* ((var val) . rest) . body)
+               (letrec ((var val))
+                  (letrec* rest . body)))))
 
       (define-syntax let
             (syntax-rules ()
@@ -183,6 +192,14 @@
             ((lets ()) exp)
             ((lets () exp . rest) (begin exp . rest))))
 
+      (define-syntax let*-values
+         (syntax-rules ()
+            ((let*-values (((var ...) gen) . rest) . body)
+               (receive gen
+                  (λ (var ...) (let*-values rest . body))))
+            ((let*-values () . rest)
+               (begin . rest))))
+               
       ; i hate special characters, especially in such common operations.
       ; lets (let sequence) is way prettier and a bit more descriptive 
 

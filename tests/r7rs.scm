@@ -52,5 +52,21 @@ Testing block comments. They could also be nested on second thought...
    ((1) => (lambda (x) (print (list 'bad x))))
    (else => (lambda (x) 42)))
 
+;; let*-values
+(let*-values
+   (((a b) (values 11 22))
+    ((b a) (values a b))
+    ((x)   (values (- a b))))
+   (if (not (= x 11))
+      (print (list 'let*-values 'got x))))
+
+;; letrec*
+(letrec*
+   ((foo (λ (x) 0))
+    (bar (λ (x) (if (= x 1) x (bar (- x 1)))))
+    (foo (λ (x) (if (= x 1) x (foo (- x (bar x)))))))
+   (if (not (= (foo 10) 1))
+      (print (list 'letrec* 'got (foo 10)))))
+
 ;; shouldn't have printed anything before this
 (print "all done")
