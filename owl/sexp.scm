@@ -253,7 +253,7 @@
                      (getf quoted-values char))
                   (let-parses
                      ((skip (get-imm #\x))
-                      (hexes (get-kleene+ (get-byte-if digit-char?)))
+                      (hexes (get-kleene+ (get-byte-if (digit-char? 16))))
                       (skip (get-imm #\;)))
                      (bytes->number hexes 16)))))
             char))
@@ -262,10 +262,10 @@
          (let-parses
             ((skip (get-imm #\"))
              (chars
-               (get-greedy*
+               (get-kleene*
                   (get-either
-                     (get-rune-if (lambda (x) (not (has? '(34 92) x))))
-                     get-quoted-string-char)))
+                     get-quoted-string-char
+                     (get-rune-if (lambda (x) (not (has? '(#\" #\\) x)))))))
              (skip (get-imm #\")))
             (runes->string chars)))
 
@@ -379,6 +379,7 @@
       (define (string->sexp str fail)
          (try-parse (get-sexp) (str-iter str) #false #false fail))
 
+
       ;; parse all contents of vector to a list of sexps, or fail with 
       ;; fail-val and print error message with further info if errmsg 
       ;; is non-false 
@@ -387,4 +388,4 @@
          ; try-parse parser data maybe-path maybe-error-msg fail-val
          (try-parse get-sexps (vector->list vec) #false errmsg #false))
 
-   ))
+))

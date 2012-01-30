@@ -11,7 +11,7 @@ test -x bin/ol && (\
    make test &> $HOME/aoh/owl/logs/test-$ME.txt \
       && date >> test-runs \
       || ( cp $HOME/aoh/owl/logs/test-$ME.txt $HOME/aoh/owl/logs/fail-$ME.txt; \
-           twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
+           twidge update "¡Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
            rm bin/ol-failed; \
            mv bin/ol bin/ol-failed;))
 
