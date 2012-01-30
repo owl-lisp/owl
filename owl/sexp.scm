@@ -58,14 +58,16 @@
 
       (define (digit-char? x) 
          (or (between? 48 x 57)
+            (between? 65 x 70)
             (between? 97 x 102)))
 
       (define digit-values 
          (list->ff
             (foldr append null
                (list
-                  (map (lambda (d) (cons d (- d 48))) (iota 48 1 58))
-                  (map (lambda (d) (cons d (- d 87))) (iota 97 1 103))
+                  (map (lambda (d) (cons d (- d 48))) (iota 48 1 58))  ;; 0-9
+                  (map (lambda (d) (cons d (- d 55))) (iota 65 1 71))  ;; A-F
+                  (map (lambda (d) (cons d (- d 87))) (iota 97 1 103)) ;; a-f
                   ))))
 
       (define (digit-char? base)
@@ -231,18 +233,40 @@
                things
                (append things tail))))
 
+      (define quoted-values
+         (list->ff
+            '((#\a . #x0007)
+              (#\b . #x0008)
+              (#\t . #x0009)
+              (#\n . #x000a)
+              (#\r . #x000d)
+              (#\" . #x0022)
+              (#\\ . #x005c))))
+
+      (define get-quoted-string-char 
+         (let-parses
+            ((skip (get-imm #\\))
+             (char 
+               (get-either
+                  (let-parses
+                     ((char (get-byte-if (λ (byte) (getf quoted-values byte)))))
+                     (getf quoted-values char))
+                  (let-parses
+                     ((skip (get-imm #\x))
+                      (hexes (get-kleene+ (get-byte-if digit-char?)))
+                      (skip (get-imm #\;)))
+                     (bytes->number hexes 16)))))
+            char))
+
       (define get-string
          (let-parses
-            ((skip (get-imm 34))
+            ((skip (get-imm #\"))
              (chars
-               (get-kleene*
+               (get-greedy*
                   (get-either
                      (get-rune-if (lambda (x) (not (has? '(34 92) x))))
-                     (let-parses
-                        ((skip (get-imm 92))
-                         (char get-rune))
-                        char))))
-             (skip (get-imm 34)))
+                     get-quoted-string-char)))
+             (skip (get-imm #\")))
             (runes->string chars)))
 
       (define quotations
