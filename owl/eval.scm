@@ -148,7 +148,11 @@
       (define includes-key '*include-dirs*) ;; paths where to try to load includes from
 
       (define definition? 
-         (let ((pat (list '_define symbol? (λ x #true))))
+         (let ((pat (list '_define symbol? ?)))
+            (λ (exp) (match pat exp))))
+
+      (define multi-definition? 
+         (let ((pat (list '_define list? ?)))
             (λ (exp) (match pat exp))))
 
       ;; toplevel variable which holds currently loaded (r7rs-style) libraries
@@ -683,6 +687,23 @@
                               (mail 'intern (tuple 'name-object value (cadr exp)))) ;; name function object explicitly
                            (let ((env (put env (cadr exp) (tuple 'defined (mkval value)))))
                               (ok (cadr exp) (bind-toplevel env))))
+                        ((fail reason)
+                           (fail
+                              (list "Definition of" (cadr exp) "failed because" reason)))))
+                  ((multi-definition? exp)
+                     (tuple-case (evaluate (caddr exp) env)
+                        ((ok value env2)
+                           (let ((names (cadr exp)))
+                              (if (and (list? value) 
+                                    (= (length value) (length names)))
+                                 (ok names
+                                    (fold 
+                                       (λ (env pair) 
+                                          (env-set env (car pair) (cdr pair)))
+                                       env 
+                                       (zip cons names value)))
+                                 (fail 
+                                    (list "Didn't get expected values for definition of " names)))))
                         ((fail reason)
                            (fail
                               (list "Definition of" (cadr exp) "failed because" reason)))))

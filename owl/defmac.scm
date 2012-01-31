@@ -12,6 +12,7 @@
       lets/cc
       call/cc
       call/cc2
+      define-values
       call-with-current-continuation
       not o i self
       )
@@ -163,6 +164,7 @@
             ((define op a . b)
                (define op (begin a . b)))))
 
+
       ;; fixme, should use a print-limited variant for debugging
 
       (define-syntax define*
@@ -194,6 +196,14 @@
                      (lets rest . code))))
             ((lets ()) exp)
             ((lets () exp . rest) (begin exp . rest))))
+
+      ;; the internal one is handled by begin. this is just for toplevel.
+      (define-syntax define-values
+         (syntax-rules (list)
+            ((define-values (val ...) . body)
+               (_define (val ...)
+                  (lets ((val ... (begin . body)))
+                     (list val ...))))))
 
       (define-syntax let*-values
          (syntax-rules ()
