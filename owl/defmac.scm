@@ -30,8 +30,9 @@
             ((syntax-error . stuff)
                (error "Syntax error: " (quote stuff)))))
 
+      ;; note, no let-values yet, so using let*-values in define-values
       (define-syntax begin
-         (syntax-rules (define define-syntax letrec)
+         (syntax-rules (define define-syntax letrec define-values let*-values)
             ;((begin
             ;   (define-syntax key1 rules1)
             ;   (define-syntax key2 rules2) ... . rest)
@@ -40,6 +41,8 @@
             ((begin exp) exp)
             ((begin (define . a) (define . b) ... . rest)
                (begin 42 () (define . a) (define . b) ... . rest))
+            ((begin (define-values (val ...) . body) . rest)
+               (let*-values (((val ...) (begin . body))) . rest))
             ((begin 42 done (define (var . args) . body) . rest)
                (begin 42 done (define var (lambda args . body)) . rest))
             ((begin 42 done (define var exp1 exp2 . expn) . rest)
