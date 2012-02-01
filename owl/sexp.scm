@@ -6,7 +6,7 @@
       list->number
       get-sexps       ;; greedy* get-sexp
 		string->sexp
-      vector->sexps)
+      vector->sexps) ;; for string->number
 
    (import
       (owl parse)
@@ -124,11 +124,11 @@
                (λ (x) x)
                (λ (x) (- 0 x)))))
 
-      ;; a sub-rational (other than as decimal notation) number
-      (define get-number-unit
+
+      ;; separate parser with explicitly given base for string->number
+      (define (get-number-in-base base)
          (let-parses
-            ((sign get-signer) ;; default +
-             (base get-base)   ;; default 10
+            ((sign get-signer) ;; default + <- could allow also an optional base here
              (num (get-natural base))
              (tail ;; optional after dot part be added
                (get-either
@@ -140,6 +140,13 @@
                   (get-epsilon 0)))
              (pow (get-exponent base)))
             (sign (* (+ num tail) pow))))
+
+      ;; a sub-rational (other than as decimal notation) number
+      (define get-number-unit
+         (let-parses
+            ((base get-base) ;; default 10
+             (val (get-number-in-base base)))
+            val))
 
       ;; anything up to a rational
       (define get-rational
@@ -373,8 +380,8 @@
             0))
 
 
-      (define (list->number lst fail)
-         (try-parse get-number lst #false #false fail))
+      (define (list->number lst base)
+         (try-parse (get-number-in-base base) lst #false #false #false))
 
       (define (string->sexp str fail)
          (try-parse (get-sexp) (str-iter str) #false #false fail))

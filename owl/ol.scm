@@ -176,8 +176,8 @@
 
 (import (owl sexp))
 
-(define (string->number str fail)
-   (list->number (string->list str) fail))
+(define (string->number str base)
+   (list->number (string->list str) base))
 
 (define (ok? x) (eq? (ref x 1) 'ok))
 (define (ok exp env) (tuple 'ok exp env))
