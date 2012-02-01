@@ -1,5 +1,7 @@
 #!/bin/bash
 
+renice +20 $$
+
 cd $HOME/owl-lisp
 
 echo "Running on `date`"
@@ -15,6 +17,9 @@ test -x bin/ol && (\
            rm bin/ol-failed; \
            mv bin/ol bin/ol-failed;))
 
+ROUNDS=`cat test-runs | wc -l`
+echo $ROUNDS | grep "[05]000$" && twidge update "$ROUNDS unit test rounds passed since last commit."
+
 # don't use all cpu
 sleep 2
 
@@ -23,7 +28,7 @@ test -f $HOME/owl-updated || exec bin/builder
 
 # pull, rebuild and report
 make clean;
-rm test-runs
+echo "" > test-runs
 WHO=`cat $HOME/owl-updated`
 ME=$$
 OUT="$HOME/aoh/owl/logs/build-$ME.txt"
