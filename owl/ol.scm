@@ -901,8 +901,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 ;; call by repl to render result of evaluation and ask for more input
 (define (default-prompt val)
-   (print val)
-   (display "> ")
+   (write val)
+   (display "\n> ")
    (flush-port stdout))
   
 (define (heap-entry symbol-list)

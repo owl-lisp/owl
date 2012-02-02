@@ -35,6 +35,7 @@
       null-terminate     ; see ^
       finish-string      ; useful to construct a string with sharing
       render-string
+      render-quoted-string
       str-iter           ; "a .. n" -> lazy (a .. n) list
       str-iterr          ; "a .. n" -> lazy (n .. a) list
       str-fold           ; fold over code points, as in lists
@@ -188,10 +189,19 @@
 
       ;; list conversions
 
+      ;; quote just ":s for now
+      (define (encode-quoted-point p tl)
+         (if (eq? p #\")
+            (ilist #\\ p tl)
+            (encode-point p tl)))
+
       ; note: it is assumed string construction has checked that all code points are valid and thus encodable
       (define (string->bytes str)    (str-foldr encode-point null str))
       (define (render-string str tl) (str-foldr encode-point tl str))
       (define (string->runes str)    (str-foldr cons null str))
+      (define (render-quoted-string str tl) 
+         (str-foldr encode-quoted-point tl str))
+
 
       ;; making strings (temp)
 

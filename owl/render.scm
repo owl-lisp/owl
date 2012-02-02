@@ -88,9 +88,79 @@
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
 
-;      (define render (λ (self obj tl) (if (function? obj) (ilist 35 60 (self self (let ((name (interact 'intern (tuple 'get-name obj)))) (or name "function")) (cons 62 tl))) (render self obj tl))))))
 
-      (define serialize render)
+      ;;; serialize suitably for parsing, not yet sharing preserving
 
+      (define (ser obj tl)
+         (cond
 
+            ((null? obj)
+               (ilist #\' #\( #\) tl))
+
+            ((number? obj)
+               (render-number obj tl 10))
+
+            ((string? obj)
+               (cons #\" 
+                  (render-quoted-string obj 
+                     (cons #\" tl))))
+
+            ((pair? obj)
+               (cons #\(
+                  (cdr
+                     (let loop ((obj obj) (tl (cons #\) tl)))
+                        (cond
+                           ((null? obj) tl)
+                           ((pair? obj)
+                              (cons #\space 
+                                 (ser (car obj) (loop (cdr obj) tl))))
+                           (else
+                              (ilist #\space #\. #\space (ser obj tl))))))))
+
+            ((boolean? obj)
+               (append (string->list (if obj "#true" "#false")) tl))
+               
+            ((symbol? obj)
+               (render (symbol->string obj) tl))
+
+            ;; these are a subclass of vectors in owl
+            ;((byte-vector? obj)
+            ;   (ilist #\# #\u #\8 (render (vector->list obj) tl)))
+
+            ((vector? obj)
+               (cons #\# (ser (vector->list obj) tl)))
+
+            ((function? obj)
+               ;; anonimas
+               ;(append (string->list "#<function>") tl)
+               (let ((symp (interact 'intern (tuple 'get-name obj))))
+                  (if symp
+                     (ilist #\# #\< (render symp (cons #\> tl)))
+                     (render "#<function>" tl))))
+
+            ((tuple? obj)
+               (ilist 40 84 117 112 108 101 32
+                  (render (ref obj 1)
+                     (fold
+                        (λ (tl pos) (cons 32 (render (ref obj pos) tl)))
+                        (cons 41 tl)
+                        (iota (size obj) -1 1)))))
+
+            ((rlist? obj) ;; fixme: rlist not parsed yet
+               (ilist #\# #\r (ser (rlist->list obj) tl)))
+
+            ((ff? obj) ;; fixme: ff not parsed yet this way
+               (cons #\# (ser (ff->list obj) tl)))
+
+            (else 
+               (append (string->list "#<WTF>") tl))))
+
+      (define (maybe-quote val lst)
+         (if (or (number? val) (string? val) (boolean? val))
+            lst
+            (cons #\' lst)))
+
+      (define (serialize val tl)
+         (maybe-quote val 
+            (ser val tl)))
 ))

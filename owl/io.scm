@@ -53,6 +53,8 @@
       print
       print*
       print*-to
+      write 
+      write-to
       show
 
       system-print system-println system-stderr
@@ -790,15 +792,17 @@
       (define (print-to obj to)
          (mail to (render obj '(10)))) 
 
+      (define (write-to obj to)
+         (mail to (serialize obj '()))) 
+
       (define (display-to obj to)
          (mail to (render obj '())))
 
       (define (display x)
          (display-to x stdout))
 
-      (define (print obj)
-         (mail stdout
-            (render obj '(10))))
+      (define (print obj) (print-to obj stdout))
+      (define (write obj) (write-to obj stdout))
 
       (define (print* lst)
          (mail stdout (foldr render '(10) lst)))
