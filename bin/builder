@@ -1,8 +1,10 @@
 #!/bin/bash
 
-renice +20 $$
+renice +20 $$ &> /dev/null # make sure we're being nice
 
-cd $HOME/owl-lisp
+cd $HOME/owl-lisp || exit 1
+
+ulimit -c unlimited # save core if we happen to trigger something nasty
 
 echo "Running on `date`"
 
@@ -42,5 +44,8 @@ STATUS=`make &>> $OUT && echo -n "ok" || echo -n "BAD"`
 chmod oug+r ~/aoh/owl/logs/*.txt
 twidge update "Push by $WHO, status $STATUS: \"$MSG\" (http://haltp.org/aoh/owl/logs/build-$ME.txt)"
 
-# tailcall possibly updated self
+# tailcall possibly updated self unless a core has been left
+
+test -f *core* && { twidge update "O_ops, I seem to have dropped a core."; exit 2; }
+
 exec bin/builder
