@@ -1001,12 +1001,12 @@ switch_thread: /* enter mcp if present */
 invoke: /* nargs and regs ready, maybe gc and execute ob */
    if (((word)fp) + 1024*64 >= ((word) memend)) { /* <- fixme... can be lowered after the compiler pass */
       int p = 0; 
-      *fp = make_header(NR+1, 50); 
-      R[NR-1] = (word) ob; /* fixme: unsafe temp location */
+      *fp = make_header(NR+2, 50); /* hdr r_0 .. r_(NR-1) ob */ 
       while(p < NR) { fp[p+1] = R[p]; p++; } 
+      fp[p+1] = (word) ob;
       fp = gc(1024*64, fp);
+      ob = (word *) fp[p+1];
       while(--p >= 0) { R[p] = fp[p+1]; }
-      ob = (word *) R[NR-1];
       ip = ((unsigned char *) ob) + W + 1;
    }
    op = *ip++;
