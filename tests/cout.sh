@@ -14,8 +14,8 @@ $@ -x c < $LISP > $C2
 $@ -x c -o $C3 < $LISP 
 
 # check that the outputs are equal
-diff -q $C1 $C2
-diff -q $C1 $C3
+diff $C1 $C2 || exit 1
+diff $C1 $C3 || exit 2
 
 # check that they work
 gcc -o $OBJ $C1 && ./$OBJ
