@@ -2,6 +2,8 @@
 ;;; Math library unit tests
 ;;;
 
+;; RANDOM
+
 ;; todo: factor this to smaller tests
 
 ; fixme, put abs to math

@@ -1,3 +1,4 @@
+;; RANDOM
 
 ; 1 factors to (), and is thus ok in the test
 (define n (max 2 (band (time-ms) #xfffffff)))

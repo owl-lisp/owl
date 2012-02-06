@@ -1,4 +1,6 @@
 
+;; RANDOM
+
 (define seed (time-ms))
 
 (define (test n max)
@@ -16,12 +18,6 @@
             (test n max))
          (list 1 255 260 100000000000)))
    (list 1 10 100 1000 10000))
-
-
-                  
-       
-
-
 
 ;(test ;; vec-iter-range = read values separately
 ;   (lmap

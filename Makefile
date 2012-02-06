@@ -53,11 +53,15 @@ bin/ol: c/ol.c
 
 ## running unit tests manually
 
-fasltest: bin/vm
+fasltest: bin/vm fasl/ol.fasl
 	tests/run bin/vm fasl/ol.fasl
 
-test: bin/vm
+test: bin/ol
 	tests/run bin/ol
+
+random-test: bin/vm bin/ol fasl/ol.fasl
+	tests/run-random bin/vm fasl/ol.fasl
+	tests/run-random bin/ol
 
 
 ## MinGW builds for win32 

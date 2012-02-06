@@ -1,5 +1,7 @@
 ;; integer finite functions test
 
+;; RANDOM
+
 (import (owl iff))
 
 (define max-bits 1024)

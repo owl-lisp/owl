@@ -1,5 +1,6 @@
 ;; a generic finite function (red-black key-value-tree) insertion/deletion test
 
+;; RANDOM
 
 (define (lput lst k v)
 	(if (null? lst)

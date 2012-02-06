@@ -12,7 +12,7 @@ echo "Running on `date`"
 test -x bin/ol && (\
    ME=$$; \
    echo " - tests at `date`"; \
-   make test &> $HOME/aoh/owl/logs/test-$ME.txt \
+   make random-test &> $HOME/aoh/owl/logs/test-$ME.txt \
       && date >> test-runs \
       || ( cp $HOME/aoh/owl/logs/test-$ME.txt $HOME/aoh/owl/logs/fail-$ME.txt; \
            twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
@@ -23,7 +23,7 @@ ROUNDS=`cat test-runs | wc -l`
 echo $ROUNDS | grep "[05]000$" && twidge update "$ROUNDS unit test rounds passed since last commit."
 
 # don't use all cpu
-sleep 2
+sleep 1
 
 # recurse unless updated
 test -f $HOME/owl-updated || exec bin/builder
