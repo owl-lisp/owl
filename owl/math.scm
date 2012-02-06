@@ -656,10 +656,9 @@
                   ((this (fxband (ncar a) (ncar b)))
                    (tail (big-band (ncdr a) (ncdr b))))
                   (cond
-                     ((eq? tail 0)
-                        (if (eq? this 0)
-                           0
-                           (ncons this null)))
+                     ((eq? tail 0) this)
+                     ((teq? tail fix+)
+                        (ncons this (ncons tail null)))
                      (else
                         (ncons this tail)))))))
 
