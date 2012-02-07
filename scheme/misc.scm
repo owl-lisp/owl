@@ -3,7 +3,9 @@
       member memq memv 
       assoc assv assq
       apply rationalize
-      string->integer)
+      string->integer
+      string->number
+      )
 
    (import 
       (owl defmac)
@@ -11,6 +13,7 @@
       (owl list)
       (only (owl syscall) error)
       (owl string)
+      (only (owl sexp) list->number)
       (owl math))
 
    (begin
@@ -59,48 +62,17 @@
       ;; coming in will always be rational differing by 0
       (define (rationalize n max-delta) n)
 
-;; todo: move string->integer elsewhere
-;;; string base -> number | #false
-(define string->integer/base
+   
+   (define (string->number str base)
+      (list->number (string->list str) base))
 
-   (define (byte->digit val base)
-      (cond
-         ((and (<= 48 val) (<= val 57))
-            (let ((val (- val 48)))
-               (if (< val base) val #false)))
-         ((and (<= 97 val) (<= val 122))
-            (let ((val (+ (- val 97) 10)))
-               (if (< val base) val #false)))
-         (else #false)))
-
-   (define (digits->number s pos n base)
-      (cond
-         ((= pos (string-length s))
-            n)
-         ((byte->digit (refb s pos) base) =>
-            (λ (this)
-               (digits->number s (+ pos 1) (+ (* n base) this) base)))
-         (else #false)))
-
-   (λ (s base)
-      (let ((len (string-length s)))
-            (if (> len 0)
-               (let ((first (refb s 0)))
-                  (cond
-                     ((eq? first 43)
-                        (digits->number s 1 0 base))
-                     ((eq? first 45)
-                        (cond
-                           ((digits->number s 1 0 base) =>
-                              (λ (num) (- 0 num)))
-                           (else #false)))
-                     (else
-                        (digits->number s 0 0 base))))
-               #false))))
-
-(define (string->integer str)
-   (string->integer/base str 10))
-
-
+   (define (string->integer str)
+      (let ((n (string->number str 10)))
+         (cond
+            ((teq? n fix+) n)
+            ((teq? n fix-) n)
+            ((teq? n int+) n)
+            ((teq? n int-) n)
+            (else #false))))
 
    ))

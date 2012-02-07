@@ -156,7 +156,7 @@
                (append (string->list "#<WTF>") tl))))
 
       (define (maybe-quote val lst)
-         (if (or (number? val) (string? val) (boolean? val))
+         (if (or (number? val) (string? val) (boolean? val) (function? val))
             lst
             (cons #\' lst)))
 

@@ -176,9 +176,6 @@
 
 (import (owl sexp))
 
-(define (string->number str base)
-   (list->number (string->list str) base))
-
 (define (ok? x) (eq? (ref x 1) 'ok))
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
@@ -479,7 +476,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       close-port flush-port
       read-file
       env-ref
-      string->integer
       set-memory-limit 
       get-word-size
       get-memory-limit
