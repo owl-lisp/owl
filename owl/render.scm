@@ -15,6 +15,9 @@
       (owl function)
       (owl rlist)
       (owl syscall)
+      (owl lazy)
+      (owl math)
+      (only (owl fasl) object-closure)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
       (only (owl string) render-string string?))
@@ -91,8 +94,12 @@
 
       ;;; serialize suitably for parsing, not yet sharing preserving
 
-      (define (ser obj tl)
+      (define (ser obj sh tl)
          (cond
+
+            ((getf sh obj) =>
+               (λ (id) 
+                  (ilist #\# #\< (ser id sh (cons #\> tl)))))
 
             ((null? obj)
                (ilist #\' #\( #\) tl))
@@ -113,9 +120,9 @@
                            ((null? obj) tl)
                            ((pair? obj)
                               (cons #\space 
-                                 (ser (car obj) (loop (cdr obj) tl))))
+                                 (ser (car obj) sh (loop (cdr obj) tl))))
                            (else
-                              (ilist #\space #\. #\space (ser obj tl))))))))
+                              (ilist #\space #\. #\space (ser obj sh tl))))))))
 
             ((boolean? obj)
                (append (string->list (if obj "#true" "#false")) tl))
@@ -128,7 +135,7 @@
             ;   (ilist #\# #\u #\8 (render (vector->list obj) tl)))
 
             ((vector? obj)
-               (cons #\# (ser (vector->list obj) tl)))
+               (cons #\# (ser sh (vector->list obj) tl)))
 
             ((function? obj)
                ;; anonimas
@@ -147,10 +154,10 @@
                         (iota (size obj) -1 1)))))
 
             ((rlist? obj) ;; fixme: rlist not parsed yet
-               (ilist #\# #\r (ser (rlist->list obj) tl)))
+               (ilist #\# #\r (ser sh (rlist->list obj) tl)))
 
             ((ff? obj) ;; fixme: ff not parsed yet this way
-               (cons #\# (ser (ff->list obj) tl)))
+               (cons #\# (ser sh (ff->list obj) tl)))
 
             (else 
                (append (string->list "#<WTF>") tl))))
@@ -160,7 +167,19 @@
             lst
             (cons #\' lst)))
 
+      ;; val → ff of (ob → n)
+      (define (label-shared-objects val)
+         (lets
+            ((refs (object-closure #false val))
+             (shares 
+               (ff-fold 
+                  (λ (shared ob refs) (if (eq? refs 1) shared (cons ob shared)))
+                  null refs)))
+            (let loop ((out #false) (shares shares) (n 1))
+               (if (null? shares)
+                  out
+                  (loop (put out (car shares) n) (cdr shares) (+ n 1))))))
+
       (define (serialize val tl)
-         (maybe-quote val 
-            (ser val tl)))
+         (ser val (label-shared-objects val) tl))
 ))
