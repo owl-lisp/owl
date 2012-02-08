@@ -62,7 +62,7 @@
 		raw?						; TEMPORARILY HERE
 		objects-below			; obj -> (obj ...), all allocated objects below obj
       decode-stream        ; ll failval → (ob ...) | (ob .. failval)
-      object-closure       ; obj -> ff of (obj -> _)
+      object-closure       ; obj -> ff of (obj -> n-occurrences)
 		)
 
    (import
@@ -119,13 +119,12 @@
                (send-number (cast val 0) tail))))
 
       (define (object-closure seen obj)
-         ;(show "clos type " (type obj))
          (cond
             ((immediate? obj) seen)
-            ((get seen obj #false) seen)
+            ((getf seen obj) =>
+               (λ (n) (fupd seen obj (+ n 1))))
             (else
-               ;(print " - grabbing contents")
-               (let ((seen (put seen obj 0)))
+               (let ((seen (put seen obj 1)))
                   (if (raw? obj)
                      seen
                      (fold object-closure seen (tuple->list obj)))))))
