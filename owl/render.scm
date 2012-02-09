@@ -205,7 +205,11 @@
             ((refs (object-closure #false val))
              (shares 
                (ff-fold 
-                  (λ (shared ob refs) (if (eq? refs 1) shared (cons ob shared)))
+                  (λ (shared ob refs) 
+                     ;; (#<1>= #<1>=#<+>) isn't too useful, so not sharing functions
+                     (if (or (eq? refs 1) (function? ob))
+                        shared
+                        (cons ob shared)))
                   null refs)))
             (let loop ((out #false) (shares shares) (n 1))
                (if (null? shares)
