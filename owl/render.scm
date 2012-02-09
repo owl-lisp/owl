@@ -133,6 +133,18 @@
                         ((null? obj) 
                            (values sh 
                               (cons 41 tl)))
+                        ((getf sh obj) =>
+                           (λ (id) 
+                              (if (< id 0) ;; already written, just make improper fini
+                                 ;; (... . #<n>)
+                                 (values sh
+                                    (ilist #\. #\space
+                                       #\# #\< (render (abs id) (ilist #\> #\# tl))))
+                                 ;; (... . #<n>=[...])
+                                 (lets
+                                    ((sh tl (ser sh obj (cons 41 tl))))
+                                    (values sh
+                                       (ilist #\. #\space tl))))))
                         ((pair? obj)
                            (lets
                               ((sh tl (loop sh (cdr obj) tl)))
