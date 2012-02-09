@@ -102,15 +102,13 @@
                (λ (id) 
                   (if (< id 0) ;; already written, just refer
                      (values sh 
-                        (ilist #\# #\< (render (abs id) (ilist #\> #\# tl))))
+                        (ilist #\# (render (abs id) (cons #\# tl))))
                      (lets
                         ((sh (del sh obj))           ;; avoid doing this again
                          (sh tl (ser sh obj tl))     ;; render normally
                          (sh (put sh obj (- 0 id)))) ;; mark written
                         (values sh
-                           (ilist #\# #\< 
-                              (render id 
-                                 (ilist #\> #\= tl))))))))
+                           (cons #\# (render id (cons #\= tl))))))))
 
             ((null? obj)
                (values sh 
@@ -139,7 +137,7 @@
                                  ;; (... . #<n>)
                                  (values sh
                                     (ilist #\. #\space
-                                       #\# #\< (render (abs id) (ilist #\> #\# tl))))
+                                       #\# (render (abs id) (cons #\# tl))))
                                  ;; (... . #<n>=[...])
                                  (lets
                                     ((sh tl (ser sh obj (cons 41 tl))))
@@ -166,10 +164,6 @@
                (values sh 
                   (render (symbol->string obj) tl)))
 
-            ;; these are a subclass of vectors in owl
-            ;((byte-vector? obj)
-            ;   (ilist #\# #\u #\8 (render (vector->list obj) tl)))
-
             ((vector? obj)
                (lets ((sh tl (ser sh (vector->list obj) tl)))
                   (values sh
@@ -184,6 +178,7 @@
                         (ilist #\# #\< (render symp (cons #\> tl)))
                         (render "#<function>" tl)))))
 
+            ;; not sure yet what the syntax for these should be
             ;((tuple? obj)
             ;   (ilist 40 84 117 112 108 101 32
             ;      (render (ref obj 1)
