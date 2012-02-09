@@ -220,5 +220,5 @@
          (lets
             ((sh (label-shared-objects val))
              (sh lst (ser sh val tl)))
-            lst))
+            (maybe-quote val lst)))
 ))
