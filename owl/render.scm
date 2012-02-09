@@ -94,48 +94,74 @@
 
       ;;; serialize suitably for parsing, not yet sharing preserving
 
-      (define (ser obj sh tl)
+      ;; hack: positive id = not written yet, negative = written, so just output a reference
+      (define (ser sh obj tl)
          (cond
 
             ((getf sh obj) =>
                (λ (id) 
-                  (ilist #\# #\< (ser id sh (cons #\> tl)))))
+                  (if (< id 0) ;; already written, just refer
+                     (values sh 
+                        (ilist #\# #\< (render (abs id) (ilist #\> #\# tl))))
+                     (lets
+                        ((sh (del sh obj))           ;; avoid doing this again
+                         (sh tl (ser sh obj tl))     ;; render normally
+                         (sh (put sh obj (- 0 id)))) ;; mark written
+                        (values sh
+                           (ilist #\# #\< 
+                              (render id 
+                                 (ilist #\> #\= tl))))))))
 
             ((null? obj)
-               (ilist #\' #\( #\) tl))
+               (values sh 
+                  (ilist #\' #\( #\) tl)))
 
             ((number? obj)
-               (render-number obj tl 10))
+               (values sh 
+                  (render-number obj tl 10)))
 
             ((string? obj)
-               (cons #\" 
-                  (render-quoted-string obj 
-                     (cons #\" tl))))
+               (values sh 
+                  (cons #\" 
+                     (render-quoted-string obj 
+                        (cons #\" tl)))))
 
             ((pair? obj)
-               (cons #\(
-                  (cdr
-                     (let loop ((obj obj) (tl (cons #\) tl)))
-                        (cond
-                           ((null? obj) tl)
-                           ((pair? obj)
-                              (cons #\space 
-                                 (ser (car obj) sh (loop (cdr obj) tl))))
-                           (else
-                              (ilist #\space #\. #\space (ser obj sh tl))))))))
+               (lets ((sh tl
+                  (let loop ((sh sh) (obj obj) (tl tl))
+                     (cond
+                        ((null? obj) 
+                           (values sh 
+                              (cons 41 tl)))
+                        ((pair? obj)
+                           (lets
+                              ((sh tl (loop sh (cdr obj) tl)))
+                              (ser sh (car obj) 
+                                 (if (eq? (car tl) 41) ;; no space before closing paren
+                                    tl
+                                    (cons #\space tl)))))
+                        (else
+                           (lets ((sh tl (ser sh obj (cons 41 tl))))
+                              (values sh 
+                                 (ilist #\. #\space tl))))))))
+                  (values sh (cons 40 tl))))
 
             ((boolean? obj)
-               (append (string->list (if obj "#true" "#false")) tl))
+               (values sh 
+                  (append (string->list (if obj "#true" "#false")) tl)))
                
             ((symbol? obj)
-               (render (symbol->string obj) tl))
+               (values sh 
+                  (render (symbol->string obj) tl)))
 
             ;; these are a subclass of vectors in owl
             ;((byte-vector? obj)
             ;   (ilist #\# #\u #\8 (render (vector->list obj) tl)))
 
             ((vector? obj)
-               (cons #\# (ser sh (vector->list obj) tl)))
+               (lets ((sh tl (ser sh (vector->list obj) tl)))
+                  (values sh
+                     (cons #\# tl))))
 
             ((function? obj)
                ;; anonimas
@@ -145,22 +171,27 @@
                      (ilist #\# #\< (render symp (cons #\> tl)))
                      (render "#<function>" tl))))
 
-            ((tuple? obj)
-               (ilist 40 84 117 112 108 101 32
-                  (render (ref obj 1)
-                     (fold
-                        (λ (tl pos) (cons 32 (render (ref obj pos) tl)))
-                        (cons 41 tl)
-                        (iota (size obj) -1 1)))))
+            ;((tuple? obj)
+            ;   (ilist 40 84 117 112 108 101 32
+            ;      (render (ref obj 1)
+            ;         (fold
+            ;            (λ (tl pos) (cons 32 (render (ref obj pos) tl)))
+            ;            (cons 41 tl)
+            ;            (iota (size obj) -1 1)))))
 
             ((rlist? obj) ;; fixme: rlist not parsed yet
-               (ilist #\# #\r (ser sh (rlist->list obj) tl)))
+               (lets ((sh tl (ser sh (rlist->list obj) tl)))
+                  (values sh 
+                     (ilist #\# #\r tl))))
 
             ((ff? obj) ;; fixme: ff not parsed yet this way
-               (cons #\# (ser sh (ff->list obj) tl)))
+               (lets ((sh tl (ser sh (ff->list obj) tl)))
+                  (values sh 
+                     (ilist #\# tl))))
 
             (else 
-               (append (string->list "#<WTF>") tl))))
+               (values sh
+                  (append (string->list "#<WTF>") tl)))))
 
       (define (maybe-quote val lst)
          (if (or (number? val) (string? val) (boolean? val) (function? val))
@@ -181,5 +212,8 @@
                   (loop (put out (car shares) n) (cdr shares) (+ n 1))))))
 
       (define (serialize val tl)
-         (ser val (label-shared-objects val) tl))
+         (lets
+            ((sh (label-shared-objects val))
+             (sh lst (ser sh val tl)))
+            lst))
 ))
