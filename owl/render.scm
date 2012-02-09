@@ -139,12 +139,13 @@
                                     (cons #\#
                                        (if (< id 0)
                                           (cons 41 (k sh))
-                                          (ser (del sh obj) obj 
-                                             (λ (sh)
-                                                (cons 41
-                                                   (k 
-                                                      (put sh obj 
-                                                         (- 0 id))))))))))))
+                                          (cons #\=
+                                             (ser (del sh obj) obj 
+                                                (λ (sh)
+                                                   (cons 41
+                                                      (k 
+                                                         (put sh obj 
+                                                            (- 0 id)))))))))))))
                         ((pair? obj) 
                            ;; render car, then cdr
                            (ser sh (car obj)
