@@ -792,9 +792,7 @@
                               (display "> ") (flush-port stdout)  ;; reprint prompt
                               ))
                         stdin)
-                     (cons 
-                        (if (env-ref env '*seccomp* #false) "You see a prompt. You feel restricted." "You see a prompt")
-                        stdin)))
+                     stdin))
                 (env (bind-toplevel env)))
                (tuple-case (repl env stdin)
                   ((ok val env)

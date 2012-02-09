@@ -68,6 +68,8 @@
 (define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
 (define max-object-size #xffff)
 
+(define owl-ohai "You see a prompt.")
+(define owl-ohai-seccomp "You see a prompt. You feel restricted.")
 
 ;; throw an error if some familiar but unsupported Scheme functions are called
 (define-library (owl unsupported)
@@ -772,6 +774,14 @@ Check out http://code.google.com/p/owl-lisp for more information.")
          (print "Multifail")
          (exit-owl 2))))
 
+(define (greeting env seccomp?)
+   (if (env-ref env '*owl-prompt* #f)
+      (begin
+         (print
+            (if seccomp? owl-ohai-seccomp owl-ohai))
+         (display "> ")
+         (flush-port stdout))))
+
 ;; todo: this should probly be wrapped in a separate try to catch them all
 ; ... → program rval going to exit-owl
 (define (repl-start vm-args repl compiler env)
@@ -815,6 +825,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting
                   ((null? others)
+                     (greeting env seccomp?)
                      (repl-trampoline repl 
                         (env-set env '*seccomp* seccomp?)))
                   (else
