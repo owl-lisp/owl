@@ -167,9 +167,10 @@
                ;; anonimas
                ;(append (string->list "#<function>") tl)
                (let ((symp (interact 'intern (tuple 'get-name obj))))
-                  (if symp
-                     (ilist #\# #\< (render symp (cons #\> tl)))
-                     (render "#<function>" tl))))
+                  (values sh 
+                     (if symp
+                        (ilist #\# #\< (render symp (cons #\> tl)))
+                        (render "#<function>" tl)))))
 
             ;((tuple? obj)
             ;   (ilist 40 84 117 112 108 101 32
