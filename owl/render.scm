@@ -23,8 +23,9 @@
       (only (owl string) render-string string?))
    
    (export 
-      serialize       ;; obj tl → (byte ... . tl), lazy, suitable for write
-      render          ;; obj tl → (byte ... . tl), lazy, usual output
+      serialize       ;; obj tl        → (byte ... . tl), eager, always shared
+      serialize-lazy  ;; obj tl share? → (byte ... . tl), lazy, optional sharing
+      render          ;; obj tl        → (byte ... . tl)
       )
 
    (begin
@@ -106,24 +107,25 @@
             ((getf sh obj) =>
                (λ (id) 
                   (if (< id 0) ;; already written, just refer
-                     (ilist #\# (render (abs id) (cons #\# (k sh))))
+                     (ilist #\# (render (abs id) (pair #\# (k sh))))
                      (ilist #\# 
                         (render id
                            (ilist #\# #\=
                               (ser (del sh obj) obj
                                  (λ (sh)
-                                    (k (put sh obj (- 0 id)))))))))))
+                                    (delay
+                                       (k (put sh obj (- 0 id))))))))))))
 
             ((null? obj)
                (ilist #\' #\( #\) (k sh)))
 
             ((number? obj)
-               (render-number obj (k sh) 10))
+               (render-number obj (delay (k sh)) 10))
 
             ((string? obj)
                (cons #\" 
-                  (render-quoted-string obj 
-                     (cons #\" (k sh)))))
+                  (render-quoted-string obj  ;; <- all eager now
+                     (pair #\" (k sh)))))
 
             ((pair? obj)
                (cons 40
@@ -131,18 +133,18 @@
                      (cond
                         ((null? obj)
                            ;; run of the mill list end
-                           (cons 41 (k sh)))
+                           (pair 41 (k sh)))
                         ((getf sh obj) =>
                            (λ (id)
                               (ilist #\. #\space #\#
                                  (render (abs id)
                                     (cons #\#
                                        (if (< id 0)
-                                          (cons 41 (k sh))
-                                          (cons #\=
+                                          (pair 41 (k sh))
+                                          (pair #\=
                                              (ser (del sh obj) obj 
                                                 (λ (sh)
-                                                   (cons 41
+                                                   (pair 41
                                                       (k 
                                                          (put sh obj 
                                                             (- 0 id)))))))))))))
@@ -150,32 +152,35 @@
                            ;; render car, then cdr
                            (ser sh (car obj)
                               (λ (sh)
-                                 (if (null? (cdr obj))
-                                    (loop sh (cdr obj))
-                                    (cons #\space (loop sh (cdr obj)))))))
+                                 (delay 
+                                    (if (null? (cdr obj))
+                                       (loop sh (cdr obj))
+                                       (cons #\space (loop sh (cdr obj))))))))
                         (else 
                            ;; improper list
                            (ilist #\. #\space 
                               (ser sh obj
-                                 (λ (sh) (cons 41 (k sh))))))))))
+                                 (λ (sh) (pair 41 (k sh))))))))))
 
             ((boolean? obj)
-               (append (string->list (if obj "#true" "#false")) (k sh)))
+               (append 
+                  (string->list (if obj "#true" "#false")) 
+                  (delay (k sh))))
                
             ((symbol? obj)
-               (render (symbol->string obj) (k sh)))
+               (render (symbol->string obj) (delay (k sh))))
 
             ((vector? obj)
                (cons #\#
-                  (ser sh (vector->list obj) k)))
+                  (ser sh (vector->list obj) k))) ;; <- should convert incrementally!
 
             ((function? obj)
                ;; anonimas
                ;(append (string->list "#<function>") tl)
                (let ((symp (interact 'intern (tuple 'get-name obj))))
                   (if symp
-                     (ilist #\# #\< (render symp (cons #\> (k sh))))
-                     (render "#<function>" (k sh)))))
+                     (ilist #\# #\< (render symp (cons #\> (delay (k sh)))))
+                     (render "#<function>" (delay (k sh))))))
 
             ;; not sure yet what the syntax for these should be
             ;((tuple? obj)
@@ -193,7 +198,7 @@
                (cons #\# (ser sh (ff->list obj) k)))
 
             (else 
-               (append (string->list "#<WTF>") (k sh)))))
+               (append (string->list "#<WTF>") (delay (k sh))))))
 
       (define (self-quoting? val)
          (or (number? val) (string? val) (boolean? val) (function? val)))
@@ -221,9 +226,16 @@
                   out
                   (loop (put out (car shares) n) (cdr shares) (+ n 1))))))
 
+      ;; allow skipping sharing, because it's O(n log n) at startup
+      (define (serialize-lazy val tl share?)
+         (maybe-quote val
+            (ser 
+               (if share? ;; O(n), allow skipping
+                  (label-shared-objects val)
+                  #false)
+               val (λ (sh) tl))))
+
       (define (serialize val tl)
-         (force-ll
-            (maybe-quote val
-               (ser (label-shared-objects val) val 
-                  (λ (sh) tl)))))
+         (force-ll 
+            (serialize-lazy val tl #true)))
 ))

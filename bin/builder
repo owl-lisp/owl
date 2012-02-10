@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-renice +20 $$ &> /dev/null # make sure we're being nice
+renice +20 $$ > /dev/null 2>&1 # make sure we're being nice
 
 cd $HOME/owl-lisp || exit 1
 
@@ -12,7 +12,7 @@ echo "Running on `date`"
 test -x bin/ol && (\
    ME=$$; \
    echo " - tests at `date`"; \
-   make random-test &> $HOME/aoh/owl/logs/test-$ME.txt \
+   make random-test > $HOME/aoh/owl/logs/test-$ME.txt 2>&1 \
       && date >> test-runs \
       || ( cp $HOME/aoh/owl/logs/test-$ME.txt $HOME/aoh/owl/logs/fail-$ME.txt; \
            twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
@@ -35,13 +35,13 @@ WHO=`cat $HOME/owl-updated`
 ME=$$
 OUT="$HOME/aoh/owl/logs/build-$ME.txt"
 rm $HOME/owl-updated $HOME/owl-ok
-git pull &> $OUT
+git pull > $OUT 2>&1 
 echo "" >> $OUT
 git show -s HEAD^{commit} >> $OUT
 echo "" >> $OUT
 MSG=`git show -s HEAD^{commit} | tail -n 1 | sed -e 's/^[ \t]*//' | dd bs=1 count=50 2>/dev/null`
-STATUS=`make &>> $OUT && echo -n "ok" || echo -n "BAD"`
-chmod oug+r ~/aoh/owl/logs/*.txt
+STATUS=`make >> $OUT && echo -n "ok" 2>&1 || echo -n "BAD"`
+chmod oug+r $HOME/aoh/owl/logs/*.txt
 twidge update "Push by $WHO, status $STATUS: \"$MSG\" (http://haltp.org/aoh/owl/logs/build-$ME.txt)"
 
 # tailcall possibly updated self unless a core has been left
