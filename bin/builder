@@ -10,7 +10,7 @@ echo "Running on `date`"
 
 # maybe run a round of unit tests
 test -x bin/ol && (\
-   ME=$$; \
+   ME=`date '+%s'`; \
    echo " - tests at `date`"; \
    make random-test > $HOME/aoh/owl/logs/test-$ME.txt 2>&1 \
       && date >> test-runs \
@@ -32,7 +32,7 @@ test -f $HOME/owl-updated || exec bin/builder
 make clean;
 echo "" > test-runs
 WHO=`cat $HOME/owl-updated`
-ME=$$
+ME=`date '+%s'`
 OUT="$HOME/aoh/owl/logs/build-$ME.txt"
 rm $HOME/owl-updated $HOME/owl-ok
 git pull > $OUT 2>&1 
