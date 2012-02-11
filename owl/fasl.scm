@@ -63,6 +63,7 @@
 		objects-below			; obj -> (obj ...), all allocated objects below obj
       decode-stream        ; ll failval → (ob ...) | (ob .. failval)
       object-closure       ; obj -> ff of (obj -> n-occurrences)
+      partial-object-closure ; obj want? -> ff of (obj -> n-occurrences)
 		)
 
    (import
@@ -118,21 +119,27 @@
             (cons (type-byte-of val)
                (send-number (cast val 0) tail))))
 
-      (define (object-closure seen obj)
-         (cond
-            ((immediate? obj) seen)
-            ((getf seen obj) =>
-               (λ (n) (fupd seen obj (+ n 1))))
-            (else
-               (let ((seen (put seen obj 1)))
-                  (if (raw? obj)
-                     seen
-                     (fold object-closure seen (tuple->list obj)))))))
+      (define (partial-object-closure root pred)
+         (define (clos seen obj)
+            (cond
+               ((immediate? obj) seen)
+               ((not (pred obj)) seen)
+               ((getf seen obj) =>
+                  (λ (n) (fupd seen obj (+ n 1))))
+               (else
+                  (let ((seen (put seen obj 1)))
+                     (if (raw? obj)
+                        seen
+                        (fold clos seen (tuple->list obj)))))))
+         (clos #false root))
+
+      (define (object-closure obj)
+         (partial-object-closure obj (λ (x) #t)))
 
       (define (objects-below obj)	
          (ff-fold
             (λ (out obj _) (cons obj out))
-            null (object-closure #false obj)))
+            null (object-closure obj)))
 
       (define (index-closure clos) ; carry (fp . clos)
          (cdr
@@ -207,7 +214,7 @@
       (define (encoder obj cook)
          (encoder-output
             (index-closure
-               (object-closure #false obj))
+               (object-closure obj))
             cook))
 
       ; -> byte stream

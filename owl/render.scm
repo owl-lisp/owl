@@ -17,7 +17,7 @@
       (owl syscall)
       (owl lazy)
       (owl math)
-      (only (owl fasl) object-closure)
+      (only (owl fasl) partial-object-closure)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
       (only (owl string) render-string string?))
@@ -209,15 +209,19 @@
             lst
             (cons #\' lst)))
 
+      ;; a value worth checking for sharing in datum labeler
+      (define (shareable? x)
+         (not (function? x)))
+
       ;; val → ff of (ob → node-id)
       (define (label-shared-objects val)
          (lets
-            ((refs (object-closure #false val))
+            ((refs (partial-object-closure val shareable?))
              (shares 
                (ff-fold 
                   (λ (shared ob refs) 
                      ;; (#<1>= #<1>=#<+>) isn't too useful, so not sharing functions
-                     (if (or (eq? refs 1) (function? ob))
+                     (if (eq? refs 1)
                         shared
                         (cons ob shared)))
                   null refs)))
