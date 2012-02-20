@@ -112,9 +112,11 @@ standalone:
 	-rm bin/ol
 	make CFLAGS="-O2 -DNO_SECCOMP" CC="diet gcc" bin/ol
 
-fasl-update: fasl/ol.fasl
-	cp fasl/ol.fasl fasl/init.fasl
-	# some paranoia
+fasl-update:
+	# extra paranoia mode
+	gpg --verify fasl/init.fasl.sig
+	cp fasl/init.fasl fasl/boot.fasl
+	make fasl/ol.fasl
 	gpg -b fasl/init.fasl
 
 todo: bin/vm 
