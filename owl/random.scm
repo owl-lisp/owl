@@ -355,7 +355,8 @@
          (cond
             ((null? ll) 
                (values rs (return-selection res)))
-            ((= n p) (reservoir-sampler rs ll n p res))
+            ((= n p) 
+               (reservoir-sampler rs ll n (+ n 1) res))
             ((pair? ll) (reservoir-init rs (cdr ll) n (+ p 1) (rcons (car ll) res)))
             (else (reservoir-init rs (ll) n p res))))
 
@@ -531,5 +532,5 @@
      ; (random-data-file xors "/tmp/random.xors")
      ; (random-data-file (seed->rands 12312312313) "/tmp/random.adhoc")
 
-
 ))
+
