@@ -30,6 +30,7 @@
 
       (define timed elapsed-real-time)
 
+      ;; note: just passing unix time without adding the extra seconds
       (define (time)
          (lets ((ss ms (clock))) ss))
 

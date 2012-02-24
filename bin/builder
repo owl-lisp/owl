@@ -20,7 +20,7 @@ test -x bin/ol && (\
            mv bin/ol bin/ol-failed;))
 
 ROUNDS=`cat test-runs | wc -l`
-echo $ROUNDS | grep "1000$" && twidge update "$ROUNDS unit test rounds passed since last commit."
+echo $ROUNDS | grep "10000$" && twidge update "$ROUNDS unit test rounds passed since last commit."
 
 # don't use all cpu
 sleep 3

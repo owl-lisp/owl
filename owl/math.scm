@@ -662,6 +662,7 @@
                      (else
                         (ncons this tail)))))))
 
+      ;; answer is quaranteed to be a bignum
       (define (big-bor a b)
          (cond
             ((eq? a null) b)
@@ -672,15 +673,28 @@
                    (tail (big-bor (ncdr a) (ncdr b))))
                   (ncons this tail)))))
 
-      (define (big-bxor a b)
+      ;; → null | bignum
+      (define (big-bxor-digits a b)
          (cond
-            ((eq? a null) b)
-            ((eq? b null) a)
+            ((null? a) b)
+            ((null? b) a)
             (else
                (lets
                   ((this (fxbxor (ncar a) (ncar b)))
-                   (tail (big-bxor (ncdr a) (ncdr b))))
-                  (ncons this tail)))))
+                   (tail (big-bxor-digits (ncdr a) (ncdr b))))
+                  (if (null? tail)
+                     (if (eq? this 0)
+                        null
+                        (ncons this tail))
+                     (ncons this tail))))))
+
+      (define (big-bxor a b)
+         (let ((r (big-bxor-digits a b)))
+            (cond
+               ;; maybe demote to fixnum
+               ((null? r) 0) 
+               ((null? (ncdr r)) (ncar r))
+               (else r))))
 
       ; not yet defined for negative
       (define (band a b)
