@@ -12,6 +12,10 @@
       lets/cc
       call/cc
       call/cc2
+      call/cc3
+      call/cc4
+      call/cc5
+      call/cc6
       define-values
       call-with-current-continuation
       not o i self
@@ -381,18 +385,23 @@
                (call/cc (λ (var) (lets . body))))))
 
 
-(define (not x)
-   (if x #false #true))
+      (define (not x)
+         (if x #false #true))
 
-(define o (λ f g (λ x (f (g x)))))
+      (define o (λ f g (λ x (f (g x)))))
 
-(define i (λ x x))
+      (define i (λ x x))
 
-(define self i)
+      (define self i)
 
       ;; a few usual suspects
-      (define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
+      (define call/cc  ('_sans_cps (λ (c f) (f c (λ (r a) (c a))))))
       (define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
+      (define call/cc3 ('_sans_cps (λ (c f) (f c (λ (r a b c) (c a b c))))))
+      (define call/cc4 ('_sans_cps (λ (c f) (f c (λ (r a b c d) (c a b c d))))))
+      (define call/cc5 ('_sans_cps (λ (c f) (f c (λ (r a b c d e) (c a b c d e))))))
+      (define call/cc6 ('_sans_cps (λ (c f) (f c (λ (r a b c d e f) (c a b c d e f))))))
+
       (define call-with-current-continuation call/cc)
       (define (i x) x)
       (define (k x y) x)

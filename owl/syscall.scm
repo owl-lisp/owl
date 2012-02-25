@@ -1,19 +1,12 @@
 (define-library (owl syscall)
 
-   (export syscall error interact fork accept-mail wait-mail check-mail exit-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling)
+   (export 
+      syscall error interact fork accept-mail wait-mail check-mail exit-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling)
 
    (import 
       (owl defmac))
 
    (begin
-
-      ;; a few usual suspects
-            (define call/cc ('_sans_cps (λ (c f) (f c (λ (r v) (c v))))))
-                  (define call/cc2 ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
-                        (define call-with-current-continuation call/cc)
-                              (define (i x) x)
-                                    (define (k x y) x)
-
 
       (define (syscall op a b)
          (call/cc (λ (resume) (sys resume op a b))))
