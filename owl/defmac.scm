@@ -53,6 +53,8 @@
                (begin 42 () (define . a) (define . b) ... . rest))
             ((begin (define-values (val ...) . body) . rest)
                (let*-values (((val ...) (begin . body))) . rest))
+            ((begin 42 done (define ((op . args1) . args2) . body) . rest)
+               (begin 42 done (define (op . args1) (lambda args2 . body)) . rest))
             ((begin 42 done (define (var . args) . body) . rest)
                (begin 42 done (define var (lambda args . body)) . rest))
             ((begin 42 done (define var exp1 exp2 . expn) . rest)
@@ -165,6 +167,8 @@
 
       (define-syntax define
          (syntax-rules ()
+            ((define ((op . args) . more) . body)
+               (define (op . args) (lambda more . body)))
             ((define (op . args) body)
                (define op
                   (letrec ((op (lambda args body))) op)))
