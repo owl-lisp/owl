@@ -18,6 +18,7 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
+      fd? fd->id id->fd
       )
 
    (import
@@ -155,5 +156,9 @@
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
+
+      (define (fd? x) (eq? (type x) 98))
+      (define (fd->id fd) (cast fd 12))
+      (define (id->fd id) (cast id 0))
 
 ))

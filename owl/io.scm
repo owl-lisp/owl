@@ -40,8 +40,6 @@
       vector->file
       write-vector            ;; vec port
       port->byte-stream       ;; fd → (byte ...) | thunk 
-      fd? 
-      fd->id id->fd
 
       ;; temporary exports
       fclose                 ;; fd
@@ -76,9 +74,6 @@
       (only (owl vector) merge-chunks vec-leaves))
 
    (begin
-      (define (fd? x) (eq? (type x) 98)) 
-      (define (fd->id fd) (cast fd 12)) 
-      (define (id->fd id) (cast id 0))
 
       (define stdin (fd->id 0))
       (define stdout (fd->id 1))
