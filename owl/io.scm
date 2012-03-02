@@ -27,8 +27,9 @@
       wait-write              ;; fd → ? (no failure handling yet)
 
       ;; stream-oriented blocking (for the writing thread) io
-      blocks->fd              ;; ll fd → ok? n-bytes-written + always close fd
-      blocks->socket          ;; ll fd → ok? n-bytes-written + always close socket (fds != sockets in mingw)
+      blocks->fd              ;; ll fd → ok? n-bytes-written, don't close fd
+      closing-blocks->fd      ;; ll fd → ok? n-bytes-written, close fd
+      closing-blocks->socket  ;; ll fd → ok? n-bytes-written, close socket
       ;blocks->file           ;; ll path → ditto
       ;fd->blocks             ;; fd → ll + close at eof
       ;file->blocks           ;; path → ditto
@@ -64,6 +65,7 @@
       (owl queue)
       (owl string)
       (owl list-extra)
+      (owl vector)
       (owl render)
       (owl list)
       (owl math)
@@ -721,23 +723,28 @@
       ;; threadless stream-based blocking (for the one thred) IO.
 
       ;; write a stream of byte vectors to a fd and 
-      ;; (bvec ...) fd → ok? n-written, always close port
+      ;; (bvec ...) fd → ok? n-written, doesn't close port
+      ;;                  '-> #false on errors, null after writing all (value . tl) if non byte-vector
       (define (blocks->fd ll fd)
          (let loop ((ll ll) (n 0))
             (cond
-               ((null? ll) ;; all written ok
-                  (fclose fd)
-                  (values #true n))
                ((pair? ll)
-                  (let ((r (write-really (car ll) fd)))
-                     (if r
+                  (if (byte-vector? (car ll))
+                     (if (write-really (car ll) fd)
                         (loop (cdr ll) (+ n (sizeb (car ll))))
-                        (begin 
-                           (fclose fd) 
-                           (values #false n)))))
-               (else (loop (ll) n)))))
+                        (values #false n))
+                     (values ll n)))
+               ((null? ll)
+                  (values ll n))
+               (else
+                  (loop (ll) n)))))
 
-      (define (blocks->socket ll fd) ;; fd != sockets in win32
+      (define (closing-blocks->fd ll fd)
+         (lets ((r n (blocks->fd ll fd)))
+            (fclose fd)
+            (values r n)))
+
+      (define (closing-blocks->socket ll fd) ;; fd != sockets in win32
          (let loop ((ll ll) (n 0))
             (cond
                ((null? ll) ;; all written ok
@@ -772,7 +779,7 @@
       (define (tcp-send ip port ll)
          (let ((fd (_connect ip port)))
             (if fd
-               (lets ((ok? res (blocks->socket ll fd)))
+               (lets ((ok? res (closing-blocks->socket ll fd)))
                   (if ok?
                      (values 'ok res)
                      (values 'write-error res))) ; <- we may have sent some bytes
