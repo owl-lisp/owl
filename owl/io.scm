@@ -627,7 +627,7 @@
          ;; start sleeper thread (used by the io)
          (start-sleeper) ;; <- could also be removed later
          ;; start stdio threads
-         (start-input-thread  0 "stdin")
+         ;(start-input-thread  0 "stdin")
          ;(start-output-thread 1 "stdout")
          ;(start-output-thread 2 "stderr")
          ;; wait for them to be ready (fixme, should not be necessary later)
