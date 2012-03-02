@@ -12,6 +12,7 @@
       ;; thread-oriented non-blocking io
       open-output-file        ;; path → thread-id | #false
       open-input-file         ;; path → thread-id | #false
+      open-input-fd           ;; path → fd | #false, no IO thread
       open-socket             ;; port → thread-id | #false
       open-connection         ;; ip port → thread-id | #false
       start-output-thread     ;; fd source → thread-id
@@ -43,7 +44,7 @@
       port->byte-stream       ;; fd → (byte ...) | thunk 
 
       ;; temporary exports
-      fclose                 ;; fd
+      fclose                 ;; fd → _
 
       stdin stdout stderr
       display-to 
@@ -301,13 +302,15 @@
                         ;; later print warning. flush requests may be common.
                         (loop)))))))
 
+      (define (open-input-fd path) (fopen path 0))
+
       (define (start-input-thread fd source)
          (let ((id (fd->id fd)))
             (fork-server id (λ () (make-reader fd source)))
             id))
 
       (define (open-input-file path)
-         (let ((fd (fopen path 0)))
+         (let ((fd (open-input-fd path)))
             (if fd (start-input-thread fd path) #false)))
 
 
