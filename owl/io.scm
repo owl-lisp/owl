@@ -4,8 +4,6 @@
 
 ; ,load "owl/primop.scm"
 
-;; todo: bidirectional threads (mainly tcp connections) don't sleep and take too much code
-
 (define-library (owl io)
 
   (export 
@@ -56,6 +54,8 @@
       write 
       write-to
       show
+      write-bytes       ;; port byte-list   → bool
+      write-byte-vector ;; port byte-vector → bool
 
       system-print system-println system-stderr
    )
@@ -78,7 +78,8 @@
 
    (begin
 
-      (define stdin (fd->id 0))
+      ;; standard io ports
+      (define stdin  (fd->id 0))
       (define stdout (fd->id 1))
       (define stderr (fd->id 2))
 
@@ -105,39 +106,25 @@
          (syntax-rules ()
             ((debug . stuff) #true)))
 
-      ;;;
-      ;;; File descriptor thread id type 
-      ;;;
-
-      ;; moved to beginning of repl for printing purposes
-      ;(define (fd->id fd) (cast fd 12))
-      ;(define (id->fd id) (cast id 0))
-      ;(define (fd? x) (eq? (type x) 98))
-
       ;; use fd 65535 as the unique sleeper thread name.
-
       (define sid (fd->id 65535))
 
       (define sleeper-id sid)
 
-      ;;;
-      ;;; Writing threads
-      ;;;
 
-      ;; writing thread has a fd and handles all actual IO operations on it. each 
-      ;; message sent to it is (atomically) written to the fd in order of received 
-      ;; messages. the normal thread mailbox acts as the input buffer when the thread 
-      ;; has collected a chunk of data and is trying to write it to the fd. 
+      ;;;
+      ;;; Writing
+      ;;;
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
          (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) 11 #false))
 
-      ;; fixme: partial write info is not returned from write-really*
+      ;; bvec fd → bool
       (define (write-really bvec fd)
          (let ((end (sizeb bvec)))
             (if (eq? end 0)
-               0
+               #true
                (let loop ()
                   (let ((wrote (sys-prim 0 fd bvec end)))
                      (cond
@@ -793,15 +780,34 @@
       ;;; Rendering and sending
       ;;;
 
-      ;; fixme: renderings will be lazy soon
+      ;; splice lst to bvecs and call write on fd
+      (define (printer lst len out fd)
+         (cond
+            ((eq? len output-buffer-size)
+               (and 
+                  (write-really (raw (reverse out) 11 #false) fd)
+                  (printer lst 0 null fd)))
+            ((null? lst)
+               (write-really (raw (reverse out) 11 #false) fd))
+            (else
+               ;; avoid dependency on generic math in IO
+               (lets ((len _ (fx+ len 1)))
+                  (printer (cdr lst) len (cons (car lst) out) fd)))))
+
+      (define (write-byte-vector port bvec)
+         (write-really bvec port))
+
+      (define (write-bytes port byte-list)
+         (printer byte-list 0 null port))
+
       (define (print-to obj to)
-         (mail to (render obj '(10)))) 
+         (printer (render obj '(10)) 0 null to))
 
       (define (write-to obj to)
-         (mail to (serialize obj '()))) 
+         (printer (serialize obj '()) 0 null to))
 
       (define (display-to obj to)
-         (mail to (render obj '())))
+         (printer (render obj '()) 0 null to))
 
       (define (display x)
          (display-to x stdout))
@@ -809,11 +815,11 @@
       (define (print obj) (print-to obj stdout))
       (define (write obj) (write-to obj stdout))
 
-      (define (print* lst)
-         (mail stdout (foldr render '(10) lst)))
-
       (define (print*-to lst to)
-         (mail to (foldr render '(10) lst)))
+         (printer (foldr render '(10) lst) 0 null to))
+
+      (define (print* lst)
+         (printer (foldr render '(10) lst) 0 null stdout))
 
       (define-syntax output
          (syntax-rules () 
@@ -821,7 +827,7 @@
                (print* (list stuff)))))
 
       (define (show a b)
-         (mail stdout (render a (render b '(10)))))
+         (print* (list a b)))
 
       ;; fixme: system-X do not belong here
       (define (system-print str)
