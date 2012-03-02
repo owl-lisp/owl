@@ -228,7 +228,9 @@
 
       (define (open-output-file path)
          (let ((fd (fopen path 1)))
-            (if fd (start-output-thread fd path) #false)))
+            ;(if fd (start-output-thread fd path) #false)
+            fd
+            ))
 
 
 
@@ -298,7 +300,9 @@
 
       (define (open-input-file path)
          (let ((fd (open-input-fd path)))
-            (if fd (start-input-thread fd path) #false)))
+            (if fd (start-input-thread fd path) #false))
+         ;(open-input-fd path)
+         )
 
 
 
@@ -604,11 +608,11 @@
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
          ;; start sleeper thread (used by the io)
-         (start-sleeper)
+         (start-sleeper) ;; <- could also be removed later
          ;; start stdio threads
          (start-input-thread  0 "stdin")
-         (start-output-thread 1 "stdout")
-         (start-output-thread 2 "stderr")
+         ;(start-output-thread 1 "stdout")
+         ;(start-output-thread 2 "stderr")
          ;; wait for them to be ready (fixme, should not be necessary later)
          (wait 2)
          )
@@ -617,90 +621,11 @@
          (mail fd 'flush))
 
       (define (close-port fd)
-         (flush-port fd)
-         (mail fd 'close))
+         ;(flush-port fd)
+         ;(mail fd 'close)
+         (fclose fd)
+         )
 
-
-      ;;; 
-      ;;; Files <-> vectors
-      ;;;
-
-      (define (read-blocks port buff last-full?)
-         (let ((val (interact port 'input)))
-            (cond
-               ((eof? val)
-                  (merge-chunks
-                     (reverse buff)
-                     (fold + 0 (map sizeb buff))))
-               ((not val)
-                  #false)
-               (last-full?
-                  (read-blocks port
-                     (cons val buff)
-                     (eq? (sizeb val) 256)))
-               (else
-                  ;(show "read-blocks: partial chunk received before " val)
-                  #false))))
-
-      (define (file->vector path) ; path -> vec | #false
-         (let ((port (open-input-file path)))
-            (if port
-               (let ((data (read-blocks port null #true)))
-                  (close-port port)
-                  data)
-               (begin
-                  ;(show "file->vector: cannot open " path)
-                  #false))))
-
-      ;; write each leaf chunk separately (note, no raw type testing here -> can fail)
-      (define (write-vector vec port)
-         (let loop ((ll (vec-leaves vec)))
-            (cond
-               ((pair? ll)
-                  (mail port (car ll))
-                  (loop (cdr ll)))
-               ((null? ll) #true)
-               (else (loop (ll))))))
-
-      ;; fixme: no way to poll success yet. last message should be ok-request, which are not there yet.
-      ;; fixme: detect case of non-bytevectors, which simply means there is a leaf which is not of type (raw 11)
-      (define (vector->file vec path)
-         (let ((port (open-output-file path)))
-            (if port
-               (let ((outcome (write-vector vec port)))
-                  (close-port port)
-                  outcome)
-               #false)))
-
-      (define (wait-write fd)
-         (interact fd 'wait))
-
-      (define (stream-chunk buff pos tail)
-         (if (eq? pos 0)
-            (cons (refb buff pos) tail)
-            (lets ((next x (fx- pos 1)))
-               (stream-chunk buff next
-                  (cons (refb buff pos) tail)))))
-
-      (define (port->byte-stream fd)
-         (λ ()
-            (let ((buff (interact fd 'input)))
-               (cond  
-                  ((eof? buff)
-                     (close-port fd)
-                     null)
-                  ((not buff)
-                     ;(print "bytes-stream-port: no buffer received?")
-                     null)
-                  (else
-                     (stream-chunk buff (- (sizeb buff) 1)
-                        (port->byte-stream fd)))))))
-
-      (define (file->byte-stream path)
-         (let ((fd (open-input-file path)))
-            (if fd
-               (port->byte-stream fd)
-               #false)))
 
 
       ;;;
@@ -840,5 +765,86 @@
 
       (define (system-stderr str) ; <- str is a raw or pre-rendered string
          (sys-prim 0 2 str (sizeb str)))
+
+      ;;; 
+      ;;; Files <-> vectors
+      ;;;
+
+      (define (read-blocks port buff last-full?)
+         (let ((val (interact port 'input)))
+            (cond
+               ((eof? val)
+                  (merge-chunks
+                     (reverse buff)
+                     (fold + 0 (map sizeb buff))))
+               ((not val)
+                  #false)
+               (last-full?
+                  (read-blocks port
+                     (cons val buff)
+                     (eq? (sizeb val) 256)))
+               (else
+                  ;(show "read-blocks: partial chunk received before " val)
+                  #false))))
+
+      (define (file->vector path) ; path -> vec | #false
+         (let ((port (open-input-file path)))
+            (if port
+               (let ((data (read-blocks port null #true)))
+                  (close-port port)
+                  data)
+               (begin
+                  ;(show "file->vector: cannot open " path)
+                  #false))))
+
+      ;; write each leaf chunk separately (note, no raw type testing here -> can fail)
+      (define (write-vector vec port)
+         (let loop ((ll (vec-leaves vec)))
+            (cond
+               ((pair? ll)
+                  (write-byte-vector port (car ll))
+                  (loop (cdr ll)))
+               ((null? ll) #true)
+               (else (loop (ll))))))
+
+      ;; fixme: no way to poll success yet. last message should be ok-request, which are not there yet.
+      ;; fixme: detect case of non-bytevectors, which simply means there is a leaf which is not of type (raw 11)
+      (define (vector->file vec path)
+         (let ((port (open-output-file path)))
+            (if port
+               (let ((outcome (write-vector vec port)))
+                  (close-port port)
+                  outcome)
+               #false)))
+
+      (define (wait-write fd)
+         (interact fd 'wait))
+
+      (define (stream-chunk buff pos tail)
+         (if (eq? pos 0)
+            (cons (refb buff pos) tail)
+            (lets ((next x (fx- pos 1)))
+               (stream-chunk buff next
+                  (cons (refb buff pos) tail)))))
+
+      (define (port->byte-stream fd)
+         (λ ()
+            (let ((buff (interact fd 'input)))
+               (cond  
+                  ((eof? buff)
+                     (close-port fd)
+                     null)
+                  ((not buff)
+                     ;(print "bytes-stream-port: no buffer received?")
+                     null)
+                  (else
+                     (stream-chunk buff (- (sizeb buff) 1)
+                        (port->byte-stream fd)))))))
+
+      (define (file->byte-stream path)
+         (let ((fd (open-input-file path)))
+            (if fd
+               (port->byte-stream fd)
+               #false)))
 
 ))

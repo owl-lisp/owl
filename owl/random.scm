@@ -466,8 +466,9 @@
                   (if (eq? n 0)
                      (close-port port)
                      (lets ((rs bytes (random-bvec rs block)))
-                        (mail port bytes)
-                        (loop rs (- n block)))))
+                        (if (write-byte-vector port bytes)
+                           (loop rs (- n block))
+                           #false))))
                (begin
                   (show "failed to open " path)
                   #false))))

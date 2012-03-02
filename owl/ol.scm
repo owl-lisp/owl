@@ -624,7 +624,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
             fail-val)
          ((error cont reason info)
             ; note, these could easily be made resumable by storing cont
-            (mail stderr
+            (write-bytes stderr
                (foldr render '(10) (list "error: " reason info)))
             fail-val)
          (else is bad ;; should not happen
@@ -779,8 +779,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (begin
          (print
             (if seccomp? owl-ohai-seccomp owl-ohai))
-         (display "> ")
-         (flush-port stdout))))
+         (display "> "))))
 
 ;; todo: this should probly be wrapped in a separate try to catch them all
 ; ... → program rval going to exit-owl
@@ -834,13 +833,9 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         (foldr (λ (path tail) (ilist ',load path tail)) null others))
                      (tuple-case (repl env input)
                         ((ok val env)  
-                           (flush-port stdout)
-                           (flush-port stderr)
                            0)
                         ((error reason partial-env)
                            (print-repl-error reason)
-                           (flush-port stdout)
-                           (flush-port stderr)
                            1)))))))
       2))
 
@@ -914,8 +909,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;; call by repl to render result of evaluation and ask for more input
 (define (default-prompt val)
    (write val)
-   (display "\n> ")
-   (flush-port stdout))
+   (display "\n> "))
   
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes

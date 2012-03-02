@@ -174,7 +174,7 @@
                         (format-error (cdr lst) ind))))
                ((null? lst) '(10))
                (else (render lst '(10)))))
-         (mail error-port
+         (write-bytes error-port
             (format-error lst 0)))
 
       ; -> (ok value env), (error reason env)
@@ -384,9 +384,6 @@
             (else
                (show "unknown repl op: " op)
                (repl env in))))
-
-      (define (flush-stdout)
-         (mail stdout 'flush))
 
       ;; → (name ...) | #false
       (define (exported-names env lib-name)
