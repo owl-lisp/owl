@@ -316,9 +316,9 @@
             id))
 
       (define (open-input-file path)
-         (let ((fd (open-input-fd path)))
-            (if fd (start-input-thread fd path) #false))
-         ;(open-input-fd path)
+         ;(let ((fd (open-input-fd path)))
+         ;   (if fd (start-input-thread fd path) #false))
+         (open-input-fd path)
          )
 
 

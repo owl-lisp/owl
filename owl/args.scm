@@ -51,7 +51,7 @@
             #false))
 
       (define (fail fools)
-         (mail stderr (foldr render '(10) fools))
+         (write-bytes stderr (foldr render '(10) fools))
          #false)
 
       (define blank "nan") ; <- unique because allocated here
@@ -70,7 +70,7 @@
                   (if (undefined? dict (getf rule 'id))
                      ok?
                      (begin
-                        (mail stderr 
+                        (write-bytes stderr 
                            (foldr render '(10) 
                               (list "mandatory option not given: " (get rule 'long "(missing)"))))
                         #false))
