@@ -57,6 +57,7 @@
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool
       get-block         ;; fd n → bvec | eof | #false
+      try-get-block     ;; fd n block? → bvec | eof | #false=error | #true=block
 
       system-print system-println system-stderr
    )
@@ -259,13 +260,18 @@
                      (mail thread res)
                      #true)))))
 
-      (define (get-block fd block-size)
+      (define (try-get-block fd block-size block?)
          (let ((res (sys-prim 5 fd block-size 0)))
-            (cond
-               ((eq? res #true) ;; would block
-                  (interact sid 5)
-                  (get-block fd block-size))
-               (else res)))) ;; is #false, eof or bvec
+            (if (eq? res #true) ;; would block
+               (if block?
+                  (begin
+                     (interact sid 5)
+                     (try-get-block fd block-size #true))
+                  res)
+               res))) ;; is #false, eof or bvec
+
+      (define (get-block fd block-size)
+         (try-get-block fd block-size #true))
 
       (define (make-reader fd source)
          (let loop () ;; how many rounds 

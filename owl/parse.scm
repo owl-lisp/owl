@@ -245,34 +245,17 @@
       ; rchunks fd block? -> rchunks' end?
       ;; bug: maybe-get-input should now use in-process mail queuing using return-mails syscall at the end if necessary 
       (define (maybe-get-input rchunks fd block? prompt)
-         ;(if (and block? prompt)
-         ;   (begin (display prompt) (flush-port stdout)))
-         (let ((env ((if block? wait-mail check-mail)))) ; read a response in case one comes
-            (if env
-               ;; handle received input
-               (lets ((sender chunk env))
-                  (if (eq? sender fd) ; check that the mail is indeed from the port
-                     (cond
-                        ((not chunk)
-                           ; read error in port
-                           ;(show "fd->exp-stream: stopping reading after read error at port " fd)
-                           (values rchunks #true))
-                        ((eof? chunk)
-                           ; normal end if input, no need to call me again
-                           (if (not (stdio-port? fd))
-                              (close-port fd))
-                           (values rchunks #true))
-                        (else
-                           ; a chunk of data was received
-                           (mail fd 'input) ; request more of it when available
-                           (wait 1)
-                           ; read it if available
-                           (maybe-get-input (cons chunk rchunks) fd #false prompt)))
-                     (begin
-                        ;(show " *** ERROR ERROR ERROR parser thread got mail from non-hoped-fd thread: " sender)
-                        ;(! 10000)
-                        (maybe-get-input rchunks fd block? prompt))))
-               (values rchunks #false))))
+         (let ((chunk (try-get-block fd 1024 #false)))
+            ;; handle received input
+            (cond
+               ((not chunk) ;; read error in port
+                  (values rchunks #true))
+               ((eq? chunk #true) ;; would block
+                  (values rchunks #false))
+               ((eof? chunk) ;; normal end if input, no need to call me again
+                  (values rchunks #true))
+               (else
+                  (maybe-get-input (cons chunk rchunks) fd #false prompt)))))
 
       (define (push-chunks data rchunks)
          (if (null? rchunks)
@@ -286,12 +269,6 @@
       ; -> lazy list of parser results, possibly ending to ... (fail <pos> <info> <lst>)
 
       (define (fd->exp-stream fd prompt parse fail re-entry?)
-         ; request for more input unless this is a re-generated stream after a previous syntax error etc
-         ; in which case there already is an input request pending. 
-         (if (not re-entry?)
-            (mail fd 'input)) ; always keep one input reading request going to the fd
-         (wait 1)
-         ; finished means a request for more data is pending, and it makes sense to wait for a response
          (let loop ((old-data null) (block? #true) (finished? #false)) ; old-data not successfullt parseable (apart from epsilon)
             (lets 
                ((rchunks end? 
@@ -317,8 +294,6 @@
                               ; parse error at eof and not all read -> get more data
                               (loop data #true end?))
                            (else
-                              ; better leave port closing to those who also open them
-                              ;(close-port fd) ; wouldn't want to close port 0 on syntax errors.
                               (list (fail pos info data)))))
                      0)))))
 
