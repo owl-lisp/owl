@@ -56,6 +56,7 @@
       show
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool
+      get-block         ;; fd n → bvec | eof | #false
 
       system-print system-println system-stderr
    )
@@ -238,6 +239,8 @@
       ;;; Reading threads
       ;;;
 
+      (define input-block-size 256) ;; changing from 256 breaks vector leaf things
+
       ;; read in fairly small blocks, mainly because this is the vector leaf node size, 
       ;; so the chunks of memory returned fread can directly be used to construct a 
       ;; vector out of the contents of a file.
@@ -256,6 +259,14 @@
                      (mail thread res)
                      #true)))))
 
+      (define (get-block fd block-size)
+         (let ((res (sys-prim 5 fd block-size 0)))
+            (cond
+               ((eq? res #true) ;; would block
+                  (interact sid 5)
+                  (get-block fd block-size))
+               (else res)))) ;; is #false, eof or bvec
+
       (define (make-reader fd source)
          (let loop () ;; how many rounds 
             (debug "reader: reader thread " source " (fd " fd ") waiting for requests.")
@@ -264,7 +275,7 @@
                   (cond
                      ((eq? msg 'input) ;; input request
                         (debug "reader: thread " from " asks for input from reader " source " (fd " fd ")")
-                        (if (send-next-input from fd 256) ;; vectors need 256
+                        (if (send-next-input from fd input-block-size) ;; vectors need 256
                            (loop)
                            (begin
                               (debug "reader: read from fd " fd " for " from " failed. terminating reader.")
@@ -355,7 +366,7 @@
       (define (maybe-read inq fd)
          (if (qnull? inq)
             inq
-            (let ((res (sys-prim 5 fd 256 fd)))
+            (let ((res (sys-prim 5 fd input-block-size fd)))
                (cond
                   ((eq? res #true) ;; would block, read nothing
                      inq)
@@ -771,7 +782,7 @@
       ;;;
 
       (define (read-blocks port buff last-full?)
-         (let ((val (interact port 'input)))
+         (let ((val (get-block port input-block-size))) ;; fixme: check for off by one
             (cond
                ((eof? val)
                   (merge-chunks
@@ -782,7 +793,7 @@
                (last-full?
                   (read-blocks port
                      (cons val buff)
-                     (eq? (sizeb val) 256)))
+                     (eq? (sizeb val) input-block-size)))
                (else
                   ;(show "read-blocks: partial chunk received before " val)
                   #false))))
@@ -829,7 +840,7 @@
 
       (define (port->byte-stream fd)
          (λ ()
-            (let ((buff (interact fd 'input)))
+            (let ((buff (get-block fd input-block-size)))
                (cond  
                   ((eof? buff)
                      (close-port fd)
