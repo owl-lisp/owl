@@ -2,8 +2,6 @@
 ;;; Simple direct blocking IO (replaces the old thread-based one)
 ;;;
 
-; ,load "owl/primop.scm"
-
 (define-library (owl io)
 
   (export 
@@ -26,7 +24,9 @@
       blocks->fd              ;; ll fd → ok? n-bytes-written, don't close fd
       closing-blocks->fd      ;; ll fd → ok? n-bytes-written, close fd
       closing-blocks->socket  ;; ll fd → ok? n-bytes-written, close socket
-      tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, #false → error
+      tcp-socket              ;; port-num → socket | #false
+      tcp-client              ;; port → ip tcp-fd | #f #f
+      tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
    
       file->vector            ;; vector io, may be moved elsewhere later
@@ -95,10 +95,7 @@
 
       (define sleeper-id sid)
 
-
-      ;;;
       ;;; Writing
-      ;;;
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
@@ -141,11 +138,7 @@
       (define (open-output-file path)
          (fopen path 1))
 
-
-
-      ;;;
       ;;; Reading
-      ;;;
 
       (define input-block-size 256) ;; changing from 256 breaks vector leaf things
 
@@ -165,9 +158,7 @@
       (define (open-input-file path) 
          (fopen path 0))
 
-      ;;;
       ;;; TCP sockets
-      ;;;
 
       ;; needed a bit later for stream interface
       (define (send-next-connection thread fd)
@@ -187,9 +178,7 @@
                (list 'sock (fd->port sock))
                #false)))
 
-      ;;;
       ;;; TCP connections
-      ;;;
 
       (define (open-connection ip port)
          (cond
@@ -198,17 +187,13 @@
             ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
-                     (list 'cli (fd->port fd)) ;; todo: mark fd as a socket?
+                     (fd->tcp fd)
                      #false)))
             (else 
                ;; note: could try to autoconvert formats to be a bit more user friendly
                #false)))
 
-
-
-      ;;;
       ;;; Sleeper thread
-      ;;;
 
       ;; todo: later probably sleeper thread and convert it to a syscall
 
@@ -283,19 +268,17 @@
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
-         ;; start sleeper thread (used by the io)
          (start-sleeper) ;; <- could also be removed later
-         ;; start stdio threads
-         ;; wait for them to be ready (fixme, should not be necessary later)
-         (wait 2)
+         (wait 1)
          )
 
+      ;; deprecated
       (define (flush-port fd)
-         (mail fd 'flush))
+         ;(mail fd 'flush)
+         42
+         )
 
       (define (close-port fd)
-         ;(flush-port fd)
-         ;(mail fd 'close)
          (fclose fd)
          )
 
@@ -347,21 +330,33 @@
                            (values #false n)))))
                (else (loop (ll) n)))))
 
-      (define (socket-clients sock)
+      ;; sock → #f #f | ip client
+      (define (tcp-client sock)
          (let ((res (sys-prim 4 sock #false #false)))
             (if res 
                (lets ((ip fd res))
-                  (pair (cons ip fd) (socket-clients sock)))
+                  (values ip (fd->tcp fd)))
                (begin
-                  (interact sid socket-read-delay) ;; causes this thread to sleep for a few thread scheduler rounds (or ms)
-                  (socket-clients sock)))))
+                  (interact sid socket-read-delay)
+                  (tcp-client sock)))))
+
+      (define (socket-clients sock)
+         (lets ((ip cli (tcp-client sock)))
+            (if ip
+               (pair (cons ip cli) (socket-clients sock))
+               null)))
+
+      ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
+      (define (tcp-socket port)
+         (let ((fd (sys-prim 3 port #false #false)))
+            (if fd (fd->socket fd) fd)))
 
       ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
       (define (tcp-clients port)
-         (let ((sock (sys-prim 3 port #false #false)))
+         (let ((sock (tcp-socket port)))
             (if sock
-               (λ () (socket-clients sock)) ;; don't get first client yet
-               #false))) ;; out of fds, no permissions etc
+               (λ () (socket-clients sock))
+               #false)))
 
       ;; ip port (bvec ...) → #true n-written | #false error-sym
       (define (tcp-send ip port ll)
