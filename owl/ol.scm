@@ -953,9 +953,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 (cons 'dump compiler)                                 ; <- merge here and rename
                                                 (cons '*owl-version* *owl-version*)
                                                 (cons 'eval exported-eval)
-                                                (cons 'stdin  (fd->id 0))
-                                                (cons 'stdout (fd->id 1))
-                                                (cons 'stderr (fd->id 2))
                                                 (cons 'render render) ;; can be removed when all rendering is done via libraries
                                                 (cons '*vm-special-ops* vm-special-ops)
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))

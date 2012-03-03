@@ -17,7 +17,7 @@
       (owl syscall)
       (owl lazy)
       (owl math)
-      (only (owl primop) fd? fd->id id->fd)
+      (only (owl primop) fd? fd->fixnum)
       (only (owl fasl) partial-object-closure)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
@@ -92,7 +92,7 @@
             
             ((fd? obj)
                (ilist #\# #\[ #\f #\d #\space 
-                  (render (id->fd obj) (cons #\] tl))))
+                  (render (fd->fixnum obj) (cons #\] tl))))
 
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
@@ -204,7 +204,7 @@
 
             ((fd? obj)
                (ilist #\# #\[ #\f #\d #\space 
-                  (ser sh (id->fd obj) 
+                  (ser sh (fd->fixnum obj) 
                      (λ (sh) (cons #\] (delay (k sh)))))))
 
             (else 

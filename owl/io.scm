@@ -8,13 +8,12 @@
 
   (export 
       ;; thread-oriented non-blocking io
-      open-output-file        ;; path → thread-id | #false
-      open-input-file         ;; path → thread-id | #false
-      open-input-fd           ;; path → fd | #false, no IO thread
+      open-output-file        ;; path → fd | #false
+      open-input-file         ;; path → fd | #false
       open-socket             ;; port → thread-id | #false
       open-connection         ;; ip port → thread-id | #false
-      fd->id                  ;; file descriptor → thread id
-      id->fd                  ;;
+      fd->fixnum              ;; fd → fixnum
+      fixnum->fd              ;; fixnum → fd
       fd?                     ;; _ → bool
       flush-port              ;; fd → _
       close-port              ;; fd → _
@@ -79,9 +78,9 @@
    (begin
 
       ;; standard io ports
-      (define stdin  (fd->id 0))
-      (define stdout (fd->id 1))
-      (define stderr (fd->id 2))
+      (define stdin  (fixnum->fd 0))
+      (define stdout (fixnum->fd 1))
+      (define stderr (fixnum->fd 2))
 
       ;; use type 12 for fds 
 
@@ -107,7 +106,7 @@
             ((debug . stuff) #true)))
 
       ;; use fd 65535 as the unique sleeper thread name.
-      (define sid (fd->id 65535))
+      (define sid (fixnum->fd 65535))
 
       (define sleeper-id sid)
 
@@ -178,166 +177,8 @@
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
 
-      (define (open-input-fd path) 
+      (define (open-input-file path) 
          (fopen path 0))
-
-      (define open-input-file 
-         open-input-fd)
-
-
-      ;;;
-      ;;; Bidirectional channels
-      ;;;
-
-      ;; read/write/check for messages non-blockingly. this is a bit less 
-      ;; trivial than it sounds.
-
-      ;; if write in progress, try it
-      ; ws fd → ws' | #false
-      (define (maybe-write ws fd)
-         (and ws
-            (lets 
-               ((bvec pos ws)
-                (wrote (sys-prim 0 fd bvec (sizeb bvec))) ;; fixme: partial writes not handled
-                ; old: (wrote (fsend fd bvec pos (sizeb bvec)))
-                )
-               (cond
-                  ((eq? wrote (- (sizeb bvec) pos)) ;; wrote all -> no write op left
-                     #false)
-                  (wrote (cons bvec (+ pos wrote)))
-                  (else ws)))))
-
-      ;; add given non-input request to buffer with output data and events
-      ;; output buffer = queue of bytes, bvecs, 'close or #(from sync|info)
-      (define (add-output outq env)
-         (lets ((from msg env))
-            (cond
-               ((null? msg) outq) ;; blank write is ok
-               ((pair? msg) ;; add a list of bytes to output queue
-                  (for outq msg (λ (outq byte) (qsnoc byte outq))))
-               ((teq? msg (raw 11)) ;; pre-chunked raw byte vector
-                  (qsnoc msg outq))
-               ((eq? msg 'info) (qsnoc env outq))
-               ((eq? msg 'close) (qsnoc env outq))
-               ((eq? msg 'sync) (qsnoc env outq))
-               (else outq)))) ;; fixme: should at least carp something to stderr
-
-      ;; add envelope, if any, to input or output queue
-      (define (maybe-add-mail inq outq env)
-         (if env
-            (if (eq? (ref env 2) 'input)
-               (values (qsnoc (ref env 1) inq) outq)
-               (values inq (add-output outq env)))
-            (values inq outq)))
-
-      ;; if input requests, possibly respond to the first one if data is available
-      (define (maybe-read inq fd)
-         (if (qnull? inq)
-            inq
-            (let ((res (sys-prim 5 fd input-block-size fd)))
-               (cond
-                  ((eq? res #true) ;; would block, read nothing
-                     inq)
-                  (else
-                     (lets ((thread inq (quncons inq #false)))
-                        (mail thread res) ; #false, eof or bvec
-                        inq))))))
-
-      ;; (n ... c b a) → raw byte vector #[a b c ... n] (max len 65536)
-
-      (define (chunk-buffer rbs p)
-         (if (null? rbs)
-            #false
-            (tuple (raw (reverse rbs) 11 #false) 0)))
-
-      (define (select-buffer outq rbs p info)
-         (cond
-            ((qnull? outq)
-               (if (null? rbs)
-                  (values outq #false)
-                  (values outq (chunk-buffer rbs p)))) ;; note: auto-flushes 
-            ((eq? p output-buffer-size)
-               ;; start writing this suitably large chunk of data.
-               (values outq (chunk-buffer rbs p)))
-            (else
-               (lets ((b outq-tl (quncons outq #false)))
-                  (cond
-                     ((teq? b fix+)
-                        ;; add a byte to output queue
-                        (select-buffer outq-tl (cons b rbs) (+ p 1) info))
-                     ((tuple? b)
-                        (if (null? rbs)
-                           (lets ((from req b))
-                              (cond
-                                 ((eq? req 'wait)
-                                    (mail from 'sync)
-                                    (select-buffer outq-tl rbs p info))
-                                 ((eq? req 'info)
-                                    (mail from info)
-                                    (select-buffer outq-tl rbs p info))
-                                 ((eq? req 'close)
-                                    ;; 'close is caught in the io-loop 
-                                    (values outq req))
-                                 (else
-                                    ;; bad request
-                                    (mail from #false)
-                                    (select-buffer outq-tl rbs p info))))
-                           ;; usually must get rid of the remaining data before handling the request
-                           (values outq (chunk-buffer rbs p))))
-                     ((teq? b (raw 11)) ;; a pre-chunked chunk
-                        (if (null? rbs)
-                           ;; can use as such, just add starting position
-                           (values outq-tl (tuple b 0))
-                           ;; must flush something out of the way first
-                           (values outq (chunk-buffer rbs p))))
-                     ((eq? b 'close) ;; drop and let caller close the port
-                        (values outq-tl b))
-                     (else
-                        ;; fixme: stderr carp, now just drop
-                        (values outq-tl (chunk-buffer rbs p))))))))
-                     
-
-      ;; pop messages from output queue and build a bvec to write
-      (define (maybe-select-bvec outq ws info)
-         (if ws ;; something already being written
-            (values outq ws))
-            (select-buffer outq null 0 info))
-
-      ;; fixme: interact with sid if both directions are stuck waiting
-      (define (make-bidirectional fd source)
-
-         (define info (tuple 'bidirectional source fd))
-      
-         (define (io-step inq outq ws env)
-            (set-ticker 0)
-            (lets 
-               ((ws (maybe-write ws fd))
-                (inq outq (maybe-add-mail inq outq env))
-                (inq (maybe-read inq fd))
-                (outq ws (maybe-select-bvec outq ws info)))
-               (cond
-                  ((eq? ws 'close) 
-                     ;; there has been a fd close request and all writes received before it have finished
-                     (fclose fd)
-                     (debug "XXXXXXXXXXXXXXXXXXXXXXXX io thread shutting down")
-                     'closed)
-                  (ws ;; running
-                     (io-step inq outq ws (check-mail)))
-                  ((and (qnull? inq) (qnull? outq))
-                     ;; no io going on, so block waiting for mail
-                     (io-step inq outq ws (wait-mail)))
-                  (else
-                     ;; input or output 
-                     (io-step inq outq ws (check-mail))))))
-
-         (io-step qnull qnull #false (wait-mail)))
-
-
-      (define (start-bidirectional-thread fd source)
-         (let ((id (fd->id fd)))
-            (fork-server id (λ () (debug "MAKE-BIDIRECTIONAL STARTED FOR " id) (make-bidirectional fd source) (debug "MAKE-BIDIRECTIONAL EXITED " id)))
-            id))
-
 
       ;;;
       ;;; TCP sockets
@@ -349,7 +190,7 @@
             (let ((res (sys-prim 4 fd #false #false)))
                (if res ; did get connection
                   (lets ((ip fd res))
-                     (mail thread (start-bidirectional-thread fd ip))
+                     (mail thread fd)
                      #true)
                   (begin
                      (interact sid 5) ;; delay rounds
@@ -358,9 +199,8 @@
       (define (open-socket port)
          (let ((sock (sys-prim 3 port #false #false)))
             (if sock 
-               (fd->id sock)
+               (list 'sock (fixnum->fd sock))
                #false)))
-
 
       ;;;
       ;;; TCP connections
@@ -373,7 +213,7 @@
             ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
-                     (fd->id fd) ;; todo: mark fd as a socket?
+                     (list 'cli (fixnum->fd fd)) ;; todo: mark fd as a socket?
                      #false)))
             (else 
                ;; note: could try to autoconvert formats to be a bit more user friendly

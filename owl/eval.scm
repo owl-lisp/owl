@@ -774,7 +774,7 @@
       ; the initial input request can be skipped.
 
       (define (stdin-sexp-stream bounced?)
-         (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail bounced?)))
+         (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?)))
 
       (define (repl-trampoline repl env)
          (let boing ((repl repl) (env env) (bounced? #false))
@@ -814,7 +814,7 @@
       (define (repl-port env fd)
          (repl env
             (if (eq? fd stdin)
-               (λ () (fd->exp-stream (fd->id 0) "> " sexp-parser syntax-fail #false))
+               (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail #false))
                (fd->exp-stream fd "> " sexp-parser syntax-fail #false))))
          
       (define (repl-file env path)
