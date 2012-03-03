@@ -18,7 +18,6 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
-      fd? fixnum->fd fd->fixnum
       )
 
    (import
@@ -156,13 +155,5 @@
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
-
-      (define type-fd         12)
-      (define type-socket     (fxbor type-fd 32))
-      (define type-tcp-client (fxbor type-fd 54))
-
-      (define (fd? x) (eq? (type x) 98))
-      (define (fixnum->fd num) (cast num 12))
-      (define (fd->fixnum fd) (cast fd 0))
 
 ))

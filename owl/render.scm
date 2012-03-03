@@ -17,7 +17,7 @@
       (owl syscall)
       (owl lazy)
       (owl math)
-      (only (owl primop) fd? fd->fixnum)
+      (only (owl port) port? port->fd)
       (only (owl fasl) partial-object-closure)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
@@ -90,9 +90,9 @@
             ((ff? obj) ;; fixme: ff not parsed yet this way
                (cons #\# (render (ff->list obj) tl)))
             
-            ((fd? obj)
+            ((port? obj)
                (ilist #\# #\[ #\f #\d #\space 
-                  (render (fd->fixnum obj) (cons #\] tl))))
+                  (render (port->fd obj) (cons #\] tl))))
 
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
@@ -202,9 +202,9 @@
             ((ff? obj) ;; fixme: ff not parsed yet this way
                (cons #\# (ser sh (ff->list obj) k)))
 
-            ((fd? obj)
+            ((port? obj)
                (ilist #\# #\[ #\f #\d #\space 
-                  (ser sh (fd->fixnum obj) 
+                  (ser sh (port->fd obj) 
                      (λ (sh) (cons #\] (delay (k sh)))))))
 
             (else 

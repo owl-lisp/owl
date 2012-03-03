@@ -12,9 +12,9 @@
       open-input-file         ;; path → fd | #false
       open-socket             ;; port → thread-id | #false
       open-connection         ;; ip port → thread-id | #false
-      fd->fixnum              ;; fd → fixnum
-      fixnum->fd              ;; fixnum → fd
-      fd?                     ;; _ → bool
+      port->fd                ;; port → fixnum
+      fd->port                ;; fixnum → port
+      port?                   ;; _ → bool
       flush-port              ;; fd → _
       close-port              ;; fd → _
       start-sleeper           ;; start a (global) sleeper thread
@@ -26,12 +26,8 @@
       blocks->fd              ;; ll fd → ok? n-bytes-written, don't close fd
       closing-blocks->fd      ;; ll fd → ok? n-bytes-written, close fd
       closing-blocks->socket  ;; ll fd → ok? n-bytes-written, close socket
-      ;blocks->file           ;; ll path → ditto
-      ;fd->blocks             ;; fd → ll + close at eof
-      ;file->blocks           ;; path → ditto
       tcp-clients             ;; port → ((ip . fd) ... X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
-      ;tcp-socket-fold        ;; fd op state port fail → (op state' fd ip) | state" | fail
    
       file->vector            ;; vector io, may be moved elsewhere later
       vector->file
@@ -71,6 +67,7 @@
       (owl math)
       (owl tuple)
       (owl primop)
+      (owl port)
       (owl eof)
       (owl lazy)
       (only (owl vector) merge-chunks vec-leaves))
@@ -78,9 +75,9 @@
    (begin
 
       ;; standard io ports
-      (define stdin  (fixnum->fd 0))
-      (define stdout (fixnum->fd 1))
-      (define stderr (fixnum->fd 2))
+      (define stdin  (fd->port 0))
+      (define stdout (fd->port 1))
+      (define stderr (fd->port 2))
 
       ;; use type 12 for fds 
 
@@ -106,7 +103,7 @@
             ((debug . stuff) #true)))
 
       ;; use fd 65535 as the unique sleeper thread name.
-      (define sid (fixnum->fd 65535))
+      (define sid (fd->port 65535))
 
       (define sleeper-id sid)
 
@@ -199,7 +196,7 @@
       (define (open-socket port)
          (let ((sock (sys-prim 3 port #false #false)))
             (if sock 
-               (list 'sock (fixnum->fd sock))
+               (list 'sock (fd->port sock))
                #false)))
 
       ;;;
@@ -213,7 +210,7 @@
             ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
-                     (list 'cli (fixnum->fd fd)) ;; todo: mark fd as a socket?
+                     (list 'cli (fd->port fd)) ;; todo: mark fd as a socket?
                      #false)))
             (else 
                ;; note: could try to autoconvert formats to be a bit more user friendly
