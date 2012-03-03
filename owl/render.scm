@@ -17,7 +17,7 @@
       (owl syscall)
       (owl lazy)
       (owl math)
-      (only (owl port) port? port->fd)
+      (owl port)
       (only (owl fasl) partial-object-closure)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
@@ -89,10 +89,11 @@
 
             ((ff? obj) ;; fixme: ff not parsed yet this way
                (cons #\# (render (ff->list obj) tl)))
-            
-            ((port? obj)
-               (ilist #\# #\[ #\f #\d #\space 
-                  (render (port->fd obj) (cons #\] tl))))
+           
+            ;; port = socket | tcp | fd
+            ((socket? obj) (ilist #\# #\[ #\s #\o #\c #\k #\e #\t #\space (render (port->fd obj) (cons #\] tl))))
+            ((tcp? obj) (ilist #\# #\[ #\t #\c #\p #\space (render (port->fd obj) (cons #\] tl))))
+            ((port? obj) (ilist #\# #\[ #\f #\d #\space (render (port->fd obj) (cons #\] tl))))
 
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
@@ -202,16 +203,15 @@
             ((ff? obj) ;; fixme: ff not parsed yet this way
                (cons #\# (ser sh (ff->list obj) k)))
 
-            ((port? obj)
-               (ilist #\# #\[ #\f #\d #\space 
-                  (ser sh (port->fd obj) 
-                     (λ (sh) (cons #\] (delay (k sh)))))))
+            ((socket? obj) (render obj (λ () (k sh))))
+            ((tcp? obj)    (render obj (λ () (k sh))))
+            ((port? obj)   (render obj (λ () (k sh))))
 
             (else 
                (append (string->list "#<WTF>") (delay (k sh))))))
 
       (define (self-quoting? val)
-         (or (number? val) (string? val) (boolean? val) (function? val)))
+         (or (number? val) (string? val) (boolean? val) (function? val) (port? val) (tcp? val) (socket? val)))
 
       ;; could drop val earlier to possibly gc it while rendering 
       (define (maybe-quote val lst)
@@ -221,7 +221,7 @@
 
       ;; a value worth checking for sharing in datum labeler
       (define (shareable? x)
-         (not (or (function? x) (symbol? x))))
+         (not (or (function? x) (symbol? x) (port? x) (tcp? x) (socket? x))))
 
       ;; val → ff of (ob → node-id)
       (define (label-shared-objects val)

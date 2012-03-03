@@ -1,5 +1,5 @@
 ;;;
-;;; Thread-based IO
+;;; Simple direct blocking IO (replaces the old thread-based one)
 ;;;
 
 ; ,load "owl/primop.scm"
@@ -90,18 +90,6 @@
                (λ (raw) (sys-prim 1 raw mode #false)))
             (else #false)))
 
-      ;; special way to send messages to stderr directly bypassing the normal IO, which we are implementing here
-      (define-syntax debug-not
-         (syntax-rules ()
-            ((debug . stuff)
-               (system-stderr
-                  (list->vector
-                     (foldr render '(10) (list "IO: " . stuff)))))))
-
-      (define-syntax debug
-         (syntax-rules ()
-            ((debug . stuff) #true)))
-
       ;; use fd 65535 as the unique sleeper thread name.
       (define sid (fd->port 65535))
 
@@ -116,7 +104,7 @@
       (define (bvec-tail bvec n)
          (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) 11 #false))
 
-      ;; bvec fd → bool
+      ;; bvec port → bool
       (define (write-really bvec fd)
          (let ((end (sizeb bvec)))
             (if (eq? end 0)

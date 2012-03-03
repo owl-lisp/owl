@@ -784,10 +784,7 @@
                   (if bounced? 
                      (begin ;; we may need to reprint a prompt here
                         (if (env-get env '*owl-prompt* #false) 
-                           (begin 
-                              (wait 10)  ;; wait for error message to be printed in stderr (hack)
-                              (display "> ") (flush-port stdout)  ;; reprint prompt
-                              ))
+                           (display "> "))  ;; reprint prompt
                         stdin)
                      stdin))
                 (env (bind-toplevel env)))
