@@ -13,8 +13,6 @@
       open-input-fd           ;; path → fd | #false, no IO thread
       open-socket             ;; port → thread-id | #false
       open-connection         ;; ip port → thread-id | #false
-      start-output-thread     ;; fd source → thread-id
-      start-input-thread      ;; fd source → thread-id
       fd->id                  ;; file descriptor → thread id
       id->fd                  ;;
       fd?                     ;; _ → bool
@@ -156,109 +154,16 @@
       ;; how many bytes (max) to add to output buffer before flushing it to the fd
       (define output-buffer-size 4096)
 
-      ;; pack bytes to a raw chunk of memory and start trying to write() it
-      (define (flush-output-buffer buff len fd)
-         (let ((bvec (raw (reverse buff) 11 #false)))
-            (write-really bvec fd)))
-
-      ;; fixme: autoflush here on newline
-      (define (push-output buff len x fd)
-         (cond
-            ((eq? len output-buffer-size)
-               (flush-output-buffer buff len fd)
-               (push-output null 0 x fd))
-            ((null? x) 
-               (values buff len))
-            ((pair? x)
-               (push-output (cons (car x) buff) (+ len 1) (cdr x) fd))
-            (else
-               (error "bad fd input: " x)
-               (values buff len))))
-
-      (define (i x) x)
-     
-      ;; fixme: add a 2-byte jrt instruction. i needed here to force a function call to make the jump fit one byte.
-      ;; fixme: switch chunk size selection to favor larger blocks when there is data going 
-      (define (make-writer fd source)
-         (let loop ((buff null) (len 0))
-            (bind (wait-mail)
-               (λ (from msg)
-                  (cond
-                     ((pair? msg)
-                        (lets 
-                           ((flush? (has? msg 10))
-                            (buff len (push-output buff len msg fd)))
-                           (if flush?
-                              (begin
-                                 (flush-output-buffer buff len fd)
-                                 (loop null 0))
-                              (loop buff len))))
-                     ((teq? msg (raw 11)) ;; send a pre-chunked byte vector
-                        (if (pair? buff)
-                           (flush-output-buffer buff len fd))
-                        (write-really msg fd)
-                        (loop null 0))
-                     ((eq? msg 'wait) ; someone has been waiting for output to finish
-                        (mail from 'sync)
-                        (loop buff len))
-                     ((eq? msg 'flush)
-                        (if (pair? buff)
-                           (begin
-                              (flush-output-buffer buff len fd)
-                              (loop null 0))
-                           (loop buff len)))
-                     ((eq? (i msg) 'close) ;; force function call to work around an issue while switcing opcodes
-                        ;; all messages already handled from the inbox -> close at correct position
-                        (if (pair? buff)
-                           (flush-output-buffer buff len fd))
-                        (fclose fd)
-                        'closed) ;; <- exit thread
-                     ((eq? msg 'info)
-                        (mail from (tuple 'write source fd))
-                        (loop buff len))
-                     ((number? msg) ;; write just one byte
-                        (lets ((buff len (push-output buff len (list msg) fd)))
-                           (loop buff len)))
-                     (else
-                        ;; this is an error. later system-print.
-                        (loop buff len)))))))
-
-      (define (start-output-thread fd source)
-         (let ((id (fd->id fd)))
-            (fork-server id (λ () (make-writer fd source)))
-            id))
-
       (define (open-output-file path)
-         (let ((fd (fopen path 1)))
-            ;(if fd (start-output-thread fd path) #false)
-            fd
-            ))
+         (fopen path 1))
 
 
 
       ;;;
-      ;;; Reading threads
+      ;;; Reading
       ;;;
 
       (define input-block-size 256) ;; changing from 256 breaks vector leaf things
-
-      ;; read in fairly small blocks, mainly because this is the vector leaf node size, 
-      ;; so the chunks of memory returned fread can directly be used to construct a 
-      ;; vector out of the contents of a file.
-
-      (define (send-next-input thread fd block-size)
-         (let loop ((rounds 0)) ;; count for temporary sleep workaround
-            (debug "reader: reading fd " fd " for " thread)
-            (let ((res (sys-prim 5 fd block-size 0)))
-               (cond
-                  ((eq? res #true) ;; would block
-                     (debug "reader: fd " fd " has no data, sleeping")
-                     (interact sid 5)
-                     (loop rounds)) ;; delay rounds not used atm
-                  (else ;; is #false, eof or bvec
-                     (debug "reader: read " res " from fd " fd ", sending to " thread)
-                     (mail thread res)
-                     #true)))))
 
       (define (try-get-block fd block-size block?)
          (let ((res (sys-prim 5 fd block-size 0)))
@@ -273,54 +178,11 @@
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
 
-      (define (make-reader fd source)
-         (let loop () ;; how many rounds 
-            (debug "reader: reader thread " source " (fd " fd ") waiting for requests.")
-            (bind (wait-mail)
-               (λ (from msg)
-                  (cond
-                     ((eq? msg 'input) ;; input request
-                        (debug "reader: thread " from " asks for input from reader " source " (fd " fd ")")
-                        (if (send-next-input from fd input-block-size) ;; vectors need 256
-                           (loop)
-                           (begin
-                              (debug "reader: read from fd " fd " for " from " failed. terminating reader.")
-                              (mail from #false) ;; fixme: does a response even make sense
-                              (error "read error " (list 'fd fd 'from source)))))
-                     ((teq? msg fix+) ;; 0-65535, read max n+1 bytes, being 1-65536
-                        (debug "reader: thread " from " asks for input with max size " msg " from reader " source " (fd " fd ")")
-                        (if (send-next-input from fd (+ msg 1))
-                           (loop)
-                           (begin
-                              (debug "reader: read from fd " fd " for " from " failed. terminating reader.")
-                              (mail from #false) ;; fixme: does a response even make sense
-                              (error "read error " (list 'fd fd 'from source)))))
-                     ((eq? msg 'close)
-                        (debug "reader: thread " from " told me to close.")
-                        (fclose fd)
-                        'closed)
-                     ((eq? msg 'info) 
-                        (debug "reader: thread " from " asked my info.")
-                        (mail from (tuple 'read source fd))
-                        (loop))
-                     (else
-                        (debug "reader: ERROR - thread " from " send bad mail " msg)
-                        ;; later print warning. flush requests may be common.
-                        (loop)))))))
+      (define (open-input-fd path) 
+         (fopen path 0))
 
-      (define (open-input-fd path) (fopen path 0))
-
-      (define (start-input-thread fd source)
-         (let ((id (fd->id fd)))
-            (fork-server id (λ () (make-reader fd source)))
-            id))
-
-      (define (open-input-file path)
-         ;(let ((fd (open-input-fd path)))
-         ;   (if fd (start-input-thread fd path) #false))
-         (open-input-fd path)
-         )
-
+      (define open-input-file 
+         open-input-fd)
 
 
       ;;;
@@ -481,6 +343,7 @@
       ;;; TCP sockets
       ;;;
 
+      ;; needed a bit later for stream interface
       (define (send-next-connection thread fd)
          (let loop ((rounds 0)) ;; count for temporary sleep workaround
             (let ((res (sys-prim 4 fd #false #false)))
@@ -492,47 +355,16 @@
                      (interact sid 5) ;; delay rounds
                      (loop rounds))))))
                      
-      (define (make-server fd source)
-         (let loop () ;; how many rounds 
-            (bind (wait-mail)
-               (λ (from msg)
-                  (cond
-                     ((eq? msg 'accept) ;; request a connection
-                        (if (send-next-connection from fd)
-                           (loop)
-                           (begin
-                              (mail from #false) ;; fixme: does a response even make sense
-                              (error "socket read error" (list 'fd fd 'port source)))))
-                     ((eq? msg 'close)
-                        (fclose fd)
-                        'closed)
-                     ((eq? msg 'info) 
-                        (mail from (tuple 'socket source fd))
-                        (loop))
-                     (else
-                        ;; later print warning. flush requests may be common.
-                        (loop)))))))
-
-      (define (start-socket-thread fd source)
-         (let ((id (fd->id fd)))
-            (fork-server id (λ () (make-server fd source)))
-            id))
-
       (define (open-socket port)
          (let ((sock (sys-prim 3 port #false #false)))
             (if sock 
-               (start-socket-thread sock port)
+               (fd->id sock)
                #false)))
 
 
       ;;;
       ;;; TCP connections
       ;;;
-
-      (define (start-socket-thread fd source)
-         (let ((id (fd->id fd)))
-            (fork-server id (λ () (make-server fd source)))
-            id))
 
       (define (open-connection ip port)
          (cond
@@ -541,7 +373,7 @@
             ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
-                     (start-bidirectional-thread fd (tuple 'tcp ip port))
+                     (fd->id fd) ;; todo: mark fd as a socket?
                      #false)))
             (else 
                ;; note: could try to autoconvert formats to be a bit more user friendly
@@ -552,6 +384,8 @@
       ;;;
       ;;; Sleeper thread
       ;;;
+
+      ;; todo: later probably sleeper thread and convert it to a syscall
 
       ;; run thread scheduler for n rounds between possibly calling vm sleep()
       (define sleep-check-rounds 10)
@@ -627,9 +461,6 @@
          ;; start sleeper thread (used by the io)
          (start-sleeper) ;; <- could also be removed later
          ;; start stdio threads
-         ;(start-input-thread  0 "stdin")
-         ;(start-output-thread 1 "stdout")
-         ;(start-output-thread 2 "stderr")
          ;; wait for them to be ready (fixme, should not be necessary later)
          (wait 2)
          )

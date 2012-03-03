@@ -676,7 +676,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (owl math)
       (owl random)
       (owl bisect)
-      (only (owl io) start-output-thread)
       (owl thread)
       (owl list)
       (owl list-extra)
@@ -705,7 +704,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                ;print 
                mail interact 
                take keep remove 
-               start-output-thread thread-controller
+               thread-controller
                ;sexp-parser 
                rand seed->rands))))
 
