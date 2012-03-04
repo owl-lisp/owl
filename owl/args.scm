@@ -152,7 +152,7 @@
                (lets ((dict others res))
                   (cont dict others))
                (begin
-                  (print-to error-msg stderr)
+                  (print-to stderr error-msg)
                   #false))))
 
       ;; and now a friendlier way to define the rules 

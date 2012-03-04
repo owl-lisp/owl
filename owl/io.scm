@@ -38,14 +38,14 @@
       fclose                 ;; fd → _
 
       stdin stdout stderr
-      display-to 
-      print-to
+      display-to        ;; port val → bool
+      print-to          ;; port val → bool
       display
       print
       print*
-      print*-to
+      print*-to         ;; port val → bool
       write 
-      write-to
+      write-to          ;; port val → bool
       show
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool
@@ -393,22 +393,22 @@
       (define (write-bytes port byte-list)
          (printer byte-list 0 null port))
 
-      (define (print-to obj to)
+      (define (print-to to obj)
          (printer (render obj '(10)) 0 null to))
 
-      (define (write-to obj to)
+      (define (write-to to obj)
          (printer (serialize obj '()) 0 null to))
 
-      (define (display-to obj to)
+      (define (display-to to obj)
          (printer (render obj '()) 0 null to))
 
       (define (display x)
-         (display-to x stdout))
+         (display-to stdout x))
 
-      (define (print obj) (print-to obj stdout))
-      (define (write obj) (write-to obj stdout))
+      (define (print obj) (print-to stdout obj))
+      (define (write obj) (write-to stdout obj))
 
-      (define (print*-to lst to)
+      (define (print*-to to lst)
          (printer (foldr render '(10) lst) 0 null to))
 
       (define (print* lst)

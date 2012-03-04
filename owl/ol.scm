@@ -411,7 +411,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                      (cons (cons n func) out))
                   null stats))
             n)))
-      (for-each (λ (p) (print*-to (list (car p) ":" (cdr p)) stdout)) most-used) ;; <- could use stderr later
+      (for-each (λ (p) (print*-to stdout  (list (car p) ":" (cdr p)))) most-used) ;; <- could use stderr later
       res))
 
 ;; implementation features, used by cond-expand
