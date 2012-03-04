@@ -21,9 +21,8 @@
       wait-write              ;; fd → ? (no failure handling yet)
 
       ;; stream-oriented blocking (for the writing thread) io
-      blocks->fd              ;; ll fd → ok? n-bytes-written, don't close fd
-      closing-blocks->fd      ;; ll fd → ok? n-bytes-written, close fd
-      closing-blocks->socket  ;; ll fd → ok? n-bytes-written, close socket
+      blocks->port            ;; ll fd → ok? n-bytes-written, don't close fd
+      closing-blocks->port    ;; ll fd → ok? n-bytes-written, close fd
       tcp-socket              ;; port-num → socket | #false
       tcp-client              ;; port → ip tcp-fd | #f #f
       tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
@@ -101,13 +100,22 @@
       (define (bvec-tail bvec n)
          (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) 11 #false))
 
+      (define (try-write-block fd bvec len)
+         (cond
+            ;; one does not simply write() on all platforms
+            ((tcp? fd) (sys-prim 15 fd bvec len))
+            ((port? fd) (sys-prim 0 fd bvec len))
+            (else 
+               ;(sys-prim 0 fd bvec len)
+               #false)))
+
       ;; bvec port → bool
       (define (write-really bvec fd)
          (let ((end (sizeb bvec)))
             (if (eq? end 0)
                #true
                (let loop ()
-                  (let ((wrote (sys-prim 0 fd bvec end)))
+                  (let ((wrote (try-write-block fd bvec end)))
                      (cond
                         ((eq? wrote end) #true) ;; ok, wrote the whole chunk
                         ((eq? wrote 0) ;; 0 = EWOULDBLOCK
@@ -117,26 +125,16 @@
                            (write-really (bvec-tail bvec wrote) fd))
                         (else #false))))))) ;; write error or other failure
 
-      (define (write-really/socket bvec fd) ;; same but use a primop to send() instead of write()
-         (let ((end (sizeb bvec)))
-            (if (eq? end 0)
-               0
-               (let loop ()
-                  (let ((wrote (sys-prim 15 fd bvec end)))
-                     (cond
-                        ((eq? wrote end) #true) ;; ok, wrote the whole chunk
-                        ((eq? wrote 0) ;; 0 = EWOULDBLOCK
-                           (interact sid 2) ;; fixme: adjustable delay rounds 
-                           (loop))
-                        (wrote ;; partial write
-                           (write-really (bvec-tail bvec wrote) fd))
-                        (else #false)))))))
-
       ;; how many bytes (max) to add to output buffer before flushing it to the fd
       (define output-buffer-size 4096)
 
+      (define (open-input-file path) 
+         (let ((fd (fopen path 0)))
+            (if fd (fd->port fd) fd)))
+
       (define (open-output-file path)
-         (fopen path 1))
+         (let ((fd (fopen path 1)))
+            (if fd (fd->port fd) fd)))
 
       ;;; Reading
 
@@ -155,8 +153,6 @@
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
 
-      (define (open-input-file path) 
-         (fopen path 0))
 
       ;;; TCP sockets
 
@@ -296,7 +292,7 @@
       ;; write a stream of byte vectors to a fd and 
       ;; (bvec ...) fd → ok? n-written, doesn't close port
       ;;                  '-> #false on errors, null after writing all (value . tl) if non byte-vector
-      (define (blocks->fd ll fd)
+      (define (blocks->port ll fd)
          (let loop ((ll ll) (n 0))
             (cond
                ((pair? ll)
@@ -310,25 +306,10 @@
                (else
                   (loop (ll) n)))))
 
-      (define (closing-blocks->fd ll fd)
-         (lets ((r n (blocks->fd ll fd)))
+      (define (closing-blocks->port ll fd)
+         (lets ((r n (blocks->port ll fd)))
             (fclose fd)
             (values r n)))
-
-      (define (closing-blocks->socket ll fd) ;; fd != sockets in win32
-         (let loop ((ll ll) (n 0))
-            (cond
-               ((null? ll) ;; all written ok
-                  (fclose fd)
-                  (values #true n))
-               ((pair? ll)
-                  (let ((r (write-really/socket (car ll) fd)))
-                     (if r
-                        (loop (cdr ll) (+ n (sizeb (car ll))))
-                        (begin 
-                           (fclose fd) 
-                           (values #false n)))))
-               (else (loop (ll) n)))))
 
       ;; sock → #f #f | ip client
       (define (tcp-client sock)
@@ -362,7 +343,7 @@
       (define (tcp-send ip port ll)
          (let ((fd (_connect ip port)))
             (if fd
-               (lets ((ok? res (closing-blocks->socket ll fd)))
+               (lets ((ok? res (closing-blocks->port ll fd)))
                   (if ok?
                      (values 'ok res)
                      (values 'write-error res))) ; <- we may have sent some bytes
