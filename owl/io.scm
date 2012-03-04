@@ -52,6 +52,7 @@
       try-get-block     ;; fd n block? → bvec | eof | #false=error | #true=block
 
       system-print system-println system-stderr
+      take-nap
    )
 
    (import
@@ -496,4 +497,6 @@
                (port->byte-stream fd)
                #false)))
 
+      (define (take-nap)
+         (interact sid 5))
 ))
