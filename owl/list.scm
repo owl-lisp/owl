@@ -16,6 +16,7 @@
       take-while                ;; pred, lst -> as, bs
       fold2
       first
+      halve
       
       diff union intersect 
 
@@ -264,6 +265,16 @@
                   (intersect (cdr a) b)))
             (else
                (intersect (cdr a) b))))
+
+      ;; lst → a b, a ++ b == lst, length a = length b | length b + 1
+      (define (halve lst)
+         (let walk ((t lst) (h lst) (out null))
+            (if (null? h)
+               (values (reverse out) t)
+               (let ((h (cdr h)))
+                  (if (null? h)
+                     (values (reverse (cons (car t) out)) (cdr t))
+                     (walk (cdr t) (cdr h) (cons (car t) out)))))))
 
 
 ))

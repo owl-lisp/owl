@@ -7,6 +7,7 @@
       list-ref
       list-tail
       repeat
+      split ;; lst n → head tail
       )
 
    (import
@@ -117,4 +118,14 @@
             (if (eq? n 0)
                out
                (loop (- n 1) (cons thing out)))))
+
+      (define (split l n)  
+         (let loop ((l l) (o null) (n n))
+            (cond
+               ((null? l)
+                  (values (reverse o) l))
+               ((eq? n 0)
+                  (values (reverse o) l))
+               (else 
+                  (loop (cdr l) (cons (car l) o) (- n 1))))))
 ))
