@@ -4,7 +4,7 @@
 
 	(export lookup env-bind env-ref env-set apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
-      poll-tag link-tag buffer-tag mcp-tag mcp-halt thread-quantum
+      poll-tag link-tag buffer-tag signal-tag signal-halt thread-quantum
       env-set-macro *tabula-rasa* env-del
       )
 
@@ -26,8 +26,9 @@
       (define poll-tag "mcp/polls")
       (define buffer-tag "mcp/buffs")
       (define link-tag "mcp/links")
-      (define mcp-tag "mcp/break")
-      (define (mcp-halt threads state) 1)
+      (define signal-tag "mcp/break")
+      (define (signal-halt threads state controller) 
+         (halt 42)) ;; exit owl with return value 1
       (define thread-quantum 10000)
 
       (define lookup

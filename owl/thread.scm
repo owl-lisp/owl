@@ -177,33 +177,24 @@
                         (tc tc (ilist (car todo) waked (cdr todo)) done state)
                         (tc tc todo done state)))))
 
-            ;; not in use atm, was old method of starting mcp (and possibly will also be the new one)
-            ; 10, have a break, have a quick-chat-with-mcp-repl
+            ; 10, breaked - call signal handler
             (λ (id a b c todo done state thread-controller)
-               ; break during eval (often also via poll)
-               ;(system-println "syscall 10 - break")
+               ; (system-println "syscall 10 - break")
                (let ((all-threads (cons (tuple id a) (append todo done))))
-                  (thread-controller 
-                     (list 
-                        (tuple 'mcp-repl 
-                           (λ () 
-                              ;; mcp forks the io threads it needs
-                              ((get state mcp-tag mcp-halt) ; default to standard mcp 
-                                 all-threads state thread-controller))))
-                     null #false)))
-
+                  ;; tailcall signal handler and pass controller to allow resuming operation
+                  ((get state signal-tag signal-halt) ; default to standard mcp 
+                     all-threads state thread-controller)))
             
             ; 11, reset mcp state (usually means exit from mcp repl)
             (λ (id cont threads state xtodo xdone xstate tc)
                ; (system-println "syscall 11 - swapping mcp state")
                (tc tc threads null state))
 
-            ;; todo: allow setting the break function itself here
             ; 12, set break action
             (λ (id cont choice x todo done state tc)
                (tc tc  
                   (cons (tuple id (λ () (cont #true))) todo)
-                  done (put state mcp-tag choice)))
+                  done (put state signal-tag choice)))
 
             ; 13, look for mail in my inbox at state
             (λ (id cont foo nonblock? todo done state tc)
@@ -345,7 +336,7 @@
             (list 
                (tuple 'mcp 
                   (λ ()
-                     ((get state mcp-tag mcp-halt) ; exit by default
+                     ((get state signal-tag signal-halt) ; exit by default
                         threads state controller))))
             null #false))
 
