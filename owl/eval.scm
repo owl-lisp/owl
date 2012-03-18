@@ -132,7 +132,7 @@
                ; note, these could easily be made resumable by storing cont
                (fail (list reason info)))
             ((breaked)
-               (fail "breaked"))
+               (fail (list "breaked")))
             (else is foo
                (fail (list "Funny result for compiler " foo)))))
 

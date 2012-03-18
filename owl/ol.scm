@@ -935,6 +935,10 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                     (fork-server 'meta 
                                        (λ () (meta-storage (tuple initial-names #false))))
 
+                                    ;; set a signal handler which stop evaluation instead of owl 
+                                    ;; if a repl eval thread is running
+                                    (set-signal-action repl-signal-handler)
+
                                     (exit-owl 
                                        (repl-start vm-args repl compiler
                                           (fold 

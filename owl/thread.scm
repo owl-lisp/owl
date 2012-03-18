@@ -12,7 +12,9 @@
 
 (define-library (owl thread)
 
-   (export thread-controller)
+   (export 
+      thread-controller 
+      repl-signal-handler)
 
    (import
       (owl defmac)
@@ -56,17 +58,15 @@
                   (deliver-messages (cons waked todo) done state (cdr subs) msg tc)
                   (deliver-messages todo done state (cdr subs) msg tc)))))
 
+      (define eval-break-message (tuple 'repl-eval (tuple 'breaked)))
+
       ; remove the thread and report to any interested parties about the event 
       (define (drop-delivering todo done state id msg tc)
          (lets
             ((links (get state link-tag #false))
              (subscribers (get links id null)))
             (if (null? subscribers)
-               (if (eq? (ref (ref msg 2) 1) 'finished)
-                  ; a thread finishes silently
-                  (tc tc todo done (del state id))
-                  ; a thread poofs silently. should make some noise to stderr.
-                  (tc tc todo done (del state id)))
+               (tc tc todo done (del state id))
                (deliver-messages todo done 
                   (del (fupd state link-tag (del links id)) id)
                   subscribers msg tc))))
@@ -357,5 +357,12 @@
                   (self self todo (cons (tuple id a) done) state)
                   ((ref mcp-syscalls op) id a b c todo done state self)))))
 
-
+      ;; signal handler which kills the 'repl-eval thread if there, or repl 
+      ;; if not, meaning we are just at toplevel minding our own business.
+      (define (repl-signal-handler threads state controller)
+         (if (first (λ (x) (eq? (ref x 1) 'repl-eval)) threads #false)
+            ;; there is a thread evaling user input, linkely gone awry somehow
+            (drop-thread 'repl-eval threads null state eval-break-message controller)
+            ;; nothing evaling atm, exit owl
+            (halt 42)))
 ))
