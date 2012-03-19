@@ -18,6 +18,6 @@ diff $C1 $C2 || exit 1
 diff $C1 $C3 || exit 2
 
 # check that they work
-gcc -o $OBJ $C1 && ./$OBJ
+gcc -o $OBJ $C1 && ./$OBJ || exit 3
 
 rm $LISP $C1 $C2 $C3 $OBJ
