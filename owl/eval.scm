@@ -132,7 +132,7 @@
                ; note, these could easily be made resumable by storing cont
                (fail (list reason info)))
             ((breaked)
-               (fail "breaked"))
+               (fail (list "breaked")))
             (else is foo
                (fail (list "Funny result for compiler " foo)))))
 
@@ -579,21 +579,20 @@
          (list->string (render obj null)))
 
       (define (library-import env exps fail repl)
-         (let ((libs (env-ref env library-key null)))
-            (fold
-               (λ (env iset) 
-                  (let ((libp (call/cc (λ (ret) (import-set->library iset libs ret)))))
-                     (if (pair? libp)
-                        (lets ((status env (try-autoload env repl libp)))
-                           (cond
-                              ((eq? status 'ok)
-                                 (library-import env exps fail repl))
-                              ((eq? status 'error)
-                                 (fail (list "Failed to load" libp "because" env)))
-                              (else
-                                 (fail (list "I didn't have or find library" (any->string libp))))))
-                        (env-fold put env libp))))
-               env exps)))
+         (fold
+            (λ (env iset) 
+               (let ((libp (call/cc (λ (ret) (import-set->library iset (env-ref env library-key null) ret)))))
+                  (if (pair? libp)
+                     (lets ((status env (try-autoload env repl libp)))
+                        (cond
+                           ((eq? status 'ok)
+                              (library-import env exps fail repl))
+                           ((eq? status 'error)
+                              (fail (list "Failed to load" libp "because" env)))
+                           (else
+                              (fail (list "I didn't have or find library" (any->string libp))))))
+                     (env-fold put env libp))))
+            env exps))
 
       ;; temporary toplevel import doing what library-import does within libraries
       (define (toplevel-library-import env exps repl)

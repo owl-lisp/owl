@@ -37,7 +37,7 @@
       (owl lazy)
       (owl cgen)
       (only (owl syscall) error mail exit-owl)
-      (only (owl env) mcp-halt mcp-tag)
+      (only (owl env) signal-halt signal-tag)
       (only (owl unicode) utf8-decode)
       (only (owl thread) thread-controller)
       (only (owl queue) qnull))
@@ -323,7 +323,7 @@
                null
                (list->ff
                   (list 
-                     (cons mcp-tag mcp-halt)
+                     (cons signal-tag signal-halt)
                      (cons 'root qnull))))))   ;; the init thread usually needs a mailbox
 
       (define (cook-format str)

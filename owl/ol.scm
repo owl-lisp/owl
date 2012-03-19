@@ -322,8 +322,6 @@
 
 (import (only (owl dump) make-compiler dump-fasl load-fasl))
 
-(import (owl mcp))
-
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
    (make-compiler *vm-special-ops*))
@@ -930,15 +928,16 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                     ;; get basic io running
                                     (start-base-threads)
 
-                                    ;; breaks go to MCP
-                                    (mcp-on-break)
-
                                     ;; repl needs symbol etc interning, which is handled by this thread
                                     (fork-server 'intern interner-thunk)
 
                                     ;; this thread will be removed later once 'intern does also the same
                                     (fork-server 'meta 
                                        (λ () (meta-storage (tuple initial-names #false))))
+
+                                    ;; set a signal handler which stop evaluation instead of owl 
+                                    ;; if a repl eval thread is running
+                                    (set-signal-action repl-signal-handler)
 
                                     (exit-owl 
                                        (repl-start vm-args repl compiler
