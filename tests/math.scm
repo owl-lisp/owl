@@ -15,6 +15,8 @@
 
 (define seed (expt (time-ms) 3))
 
+(print (list "SEED " seed))
+
 ;; the rest is deterministic
 
 ;;;
