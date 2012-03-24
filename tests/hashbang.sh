@@ -1,22 +1,27 @@
 #!/bin/sh
 
-echo -n '#!'   > tmp/script
+ME=$$
+
+echo -n '#!'   > tmp/script-$ME
 for part in $@
 do
    echo -n "`pwd`"
    echo -n "/"
    echo -n $part
    echo -n " "
-done >> tmp/script
+done >> tmp/script-$ME
 
-echo "" >> tmp/script
+echo "" >> tmp/script-$ME
 
 echo '
 
 (print "ohai")
 
-' >> tmp/script
+' >> tmp/script-$ME
 
-chmod +x tmp/script
+chmod +x tmp/script-$ME
 
-./tmp/script
+./tmp/script-$ME | grep "^ohai$" || exit 1
+
+rm tmp/script-$ME
+
