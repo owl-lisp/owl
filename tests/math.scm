@@ -15,8 +15,6 @@
 
 (define seed (expt (time-ms) 3))
 
-(print (list "SEED " seed))
-
 ;; the rest is deterministic
 
 ;;;
@@ -82,7 +80,7 @@
 (define (comp rst)
    (lets
       ((rs r (rat rst))
-       (rs i (rat rst)))
+       (rs i (rat-nz rst)))
       (values rs (complex r i))))
 
 (define (comp-nz rst)
@@ -340,6 +338,6 @@
 	(run-cartesian-test funny-numbers "Testing cartesian products of funny numbers")
 	; these occasionally dig out issues
 	(print "Running random tests:")
-	(run-tests (seed->rands seed) 30)
+	(run-tests (seed->rands seed) 50)
 	)
 
