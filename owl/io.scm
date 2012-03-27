@@ -21,8 +21,8 @@
       wait-write              ;; fd → ? (no failure handling yet)
 
       ;; stream-oriented blocking (for the writing thread) io
-      blocks->port            ;; ll fd → ok? n-bytes-written, don't close fd
-      closing-blocks->port    ;; ll fd → ok? n-bytes-written, close fd
+      blocks->port            ;; ll fd → ll' n-bytes-written, don't close fd
+      closing-blocks->port    ;; ll fd → ll' n-bytes-written, close fd
       tcp-socket              ;; port-num → socket | #false
       tcp-client              ;; port → ip tcp-fd | #f #f
       tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
@@ -291,8 +291,8 @@
       ;; threadless stream-based blocking (for the one thred) IO.
 
       ;; write a stream of byte vectors to a fd and 
-      ;; (bvec ...) fd → ok? n-written, doesn't close port
-      ;;                  '-> #false on errors, null after writing all (value . tl) if non byte-vector
+      ;; (bvec ...) fd → ll' n-written, doesn't close port
+      ;;                  '-> null if all written without errors
       (define (blocks->port ll fd)
          (let loop ((ll ll) (n 0))
             (cond
@@ -300,7 +300,7 @@
                   (if (byte-vector? (car ll))
                      (if (write-really (car ll) fd)
                         (loop (cdr ll) (+ n (sizeb (car ll))))
-                        (values #false n))
+                        (values ll n))
                      (values ll n)))
                ((null? ll)
                   (values ll n))
@@ -322,13 +322,13 @@
                   (interact sid socket-read-delay)
                   (tcp-client sock)))))
 
+      ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
       (define (socket-clients sock)
          (lets ((ip cli (tcp-client sock)))
             (if ip
                (pair (cons ip cli) (socket-clients sock))
                null)))
 
-      ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
       (define (tcp-socket port)
          (let ((fd (sys-prim 3 port #false #false)))
             (if fd (fd->socket fd) fd)))
@@ -344,10 +344,10 @@
       (define (tcp-send ip port ll)
          (let ((fd (_connect ip port)))
             (if fd
-               (lets ((ok? res (closing-blocks->port ll fd)))
-                  (if ok?
-                     (values 'ok res)
-                     (values 'write-error res))) ; <- we may have sent some bytes
+               (lets ((ll n (closing-blocks->port ll fd)))
+                  (if (null? ll)
+                     (values 'ok n)
+                     (values 'error n)))
                (values 'connect-error 0))))
 
 
