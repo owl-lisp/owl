@@ -184,21 +184,11 @@
             (λ exp (match pattern exp))))
 
       (define (mark-loaded env path)
-         (let ((loaded (ref (ref (get env '*loaded* (tuple 'defined (mkval null))) 2) 2)))
+         (let ((loaded (env-get env '*loaded* null)))
             (if (mem string-eq? loaded path)
                env
-               (put env '*loaded*
-                  (tuple 'defined
-                     (mkval
-                        (cons path loaded)))))))
-
-      (define (env-get env name def)
-         (let ((node (get env name #false)))
-            (if node
-               (if (eq? (ref node 1) 'defined)
-                  (ref (ref node 2) 2)
-                  def)
-               def)))
+               (env-set env '*loaded*
+                  (cons path loaded)))))
 
       (define (prompt env val)
          (let ((prompt (env-get env '*owl-prompt* #false)))
@@ -256,10 +246,10 @@
                      "" sexp-parser syntax-fail))))
             (if exps
                (begin
-                  (if (env-get env '*interactive* #false)
-                     (show " + " path))
+                  ;(if (env-get env '*interactive* #false)
+                  ;   (show " + " path))
                   (lets
-                     ((prompt (env-ref env '*owl-prompt* #false)) ; <- switch prompt during loading
+                     ((prompt (env-get env '*owl-prompt* #false)) ; <- switch prompt during loading
                       (load-env 
                         (if prompt
                            (env-set env '*owl-prompt* repl-load-prompt) ;; <- switch prompt during load (if enabled)
@@ -341,11 +331,11 @@
                                              env)
                                           (else 
                                              ;(show " - forgetting " name)
-                                             (del env name))))
+                                             (env-del env name))))
                                     ;((macro x)
                                     ;   (if (has? op name)
                                     ;      env
-                                    ;      (del env name)))
+                                    ;      (env-del env name)))
                                     (else env)))
                               env env)
                            in))
@@ -375,7 +365,7 @@
                   (repl env in)))
             ((libs libraries)
                (print "Currently defined libraries:")
-               (for-each print (map car (env-ref env library-key null)))
+               (for-each print (map car (env-get env library-key null)))
                (prompt env "")
                (repl env in))
             ((quit)
@@ -387,7 +377,7 @@
 
       ;; → (name ...) | #false
       (define (exported-names env lib-name)
-         (let ((libp (assoc lib-name (env-ref env library-key null))))
+         (let ((libp (assoc lib-name (env-get env library-key null))))
             (if libp
                (env-fold (λ (out name value) (cons name out)) null (cdr libp))
                #false)))
@@ -537,7 +527,7 @@
       ;; try to find and parse contents of <path> and wrap to (begin ...) or call fail
       (define (repl-include env path fail)
          (lets
-            ((include-dirs (env-ref env includes-key null))
+            ((include-dirs (env-get env includes-key null))
              (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
              (paths (map conv include-dirs))
              (contentss (map file->vector paths))
@@ -581,7 +571,7 @@
       (define (library-import env exps fail repl)
          (fold
             (λ (env iset) 
-               (let ((libp (call/cc (λ (ret) (import-set->library iset (env-ref env library-key null) ret)))))
+               (let ((libp (call/cc (λ (ret) (import-set->library iset (env-get env library-key null) ret)))))
                   (if (pair? libp)
                      (lets ((status env (try-autoload env repl libp)))
                         (cond
@@ -621,8 +611,8 @@
             ((pair? (car bs))
                (if (match-feature 
                         (caar bs) 
-                        (env-ref env features-key null)
-                        (env-ref env library-key null)
+                        (env-get env features-key null)
+                        (env-get env library-key null)
                         fail)
                   (cdar bs)
                   (choose-branch (cdr bs) env fail)))
@@ -681,7 +671,7 @@
                            (mail 'intern (tuple 'set-name #false)) ;; we stopped evaluating the value
                            (if (function? value)
                               (mail 'intern (tuple 'name-object value (cadr exp)))) ;; name function object explicitly
-                           (let ((env (put env (cadr exp) (tuple 'defined (mkval value)))))
+                           (let ((env (env-set env (cadr exp) value)))
                               (ok (cadr exp) (bind-toplevel env))))
                         ((fail reason)
                            (fail
@@ -716,20 +706,20 @@
                            (λ (reason) 
                               (ret (fail (list "Library" name "failed:" reason)))))
                          ;; keep libs, includes and feats in libraries 
-                         (lib-env (env-set *owl-core* library-key (env-ref env library-key null)))
-                         (lib-env (env-set lib-env includes-key (env-ref env includes-key null)))
-                         (lib-env (env-set lib-env features-key (env-ref env features-key null))))
+                         (lib-env (env-set *owl-core* library-key (env-get env library-key null)))
+                         (lib-env (env-set lib-env includes-key (env-get env includes-key null)))
+                         (lib-env (env-set lib-env features-key (env-get env features-key null))))
                         
                         ;(show " - " (cadr (cadr exp)))
-                        ;(show "REPL: keeping currently loaded modules " (map car (env-ref lib-env library-key null)))
-                        ;(show "REPL: keeping includes " (env-ref lib-env includes-key null))
+                        ;(show "REPL: keeping currently loaded modules " (map car (env-get lib-env library-key null)))
+                        ;(show "REPL: keeping includes " (env-get lib-env includes-key null))
 
                         (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                            ((ok library lib-env)
                               (ok ";; Library added" 
                                  (env-set env library-key 
                                     (cons (cons name library)
-                                       (env-ref lib-env library-key null))))) ; <- lib-env may also have just loaded dependency libs
+                                       (env-get lib-env library-key null))))) ; <- lib-env may also have just loaded dependency libs
                            ((error reason not-env)
                               (fail 
                                  (list "Library" name "failed to load because" reason))))))

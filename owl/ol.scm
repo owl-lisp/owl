@@ -475,7 +475,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       string->symbol
       close-port flush-port
       read-file
-      env-ref
       set-memory-limit 
       get-word-size
       get-memory-limit
@@ -772,7 +771,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
          (exit-owl 2))))
 
 (define (greeting env seccomp?)
-   (if (env-ref env '*owl-prompt* #f)
+   (if (env-get env '*owl-prompt* #f)
       (begin
          (print
             (if seccomp? owl-ohai-seccomp owl-ohai))
@@ -787,8 +786,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             (let 
                ((env 
                   (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet evaluate run output output-format))
-                     (del env '*owl-prompt*) 
-                     (put env '*interactive* #true)))
+                     (env-del env '*owl-prompt*) 
+                     (env-set env '*interactive* #true)))
                 (seccomp?
                   (if (get dict 'seccomp #false)
                      (let ((megs (get dict 'seccomp-heap 'bug)))

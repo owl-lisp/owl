@@ -1,11 +1,14 @@
-;; todo: rename old env-* to env-* 
-
 (define-library (owl env)
 
-	(export lookup env-bind env-ref env-set apply-env env-fold
+	(export 
+      lookup env-bind 
+      apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
       poll-tag link-tag buffer-tag signal-tag signal-halt thread-quantum
-      env-set-macro *tabula-rasa* env-del
+      env-set-macro *tabula-rasa* env-del 
+      env-get ;; env key default → val | default
+      env-del ;; env key → env'
+      env-set ;; env-set env key val → env'
       )
 
    (import
@@ -23,20 +26,22 @@
 
    (begin
 
+      (define env-del del)
       (define poll-tag "mcp/polls")
       (define buffer-tag "mcp/buffs")
       (define link-tag "mcp/links")
       (define signal-tag "mcp/break")
       (define (signal-halt threads state controller) 
-         (halt 42)) ;; exit owl with return value 1
+         (halt 42)) ;; exit owl with a specific return value
       (define thread-quantum 10000)
 
-      (define lookup
+      (define lookup ;; <- to be replaced with env-get
          (let ((undefined (tuple 'undefined)))
             (lambda (env key)
                (get env key undefined))))
 
-      (define (env-ref env key def)
+      ;; get a value from env, or return def if not there or not a value
+      (define (env-get env key def)
          (tuple-case (lookup env key)
             ((defined val)
                (tuple-case val
@@ -56,7 +61,7 @@
       (define-syntax invoke
          (syntax-rules ()
             ((invoke module name arg ...)
-               ((env-ref module (quote name)
+               ((env-get module (quote name)
                   (lambda (arg ...)
                      (error "invoke: failed to invoke " 
                         (cons (quote name) 
