@@ -41,10 +41,6 @@
 ; shifting, and not too wide to make array mutations too bulky later.
 
 
-
-
-,r "owl/lazy.scm"
-
 (define-library (owl vector)
 
    (export

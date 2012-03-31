@@ -942,8 +942,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                        (repl-start vm-args repl compiler
                                           (fold 
                                              (λ (env defn)
-                                                (put env (car defn) 
-                                                   (tuple 'defined (mkval (cdr defn)))))
+                                                (env-set env (car defn) (cdr defn)))
                                              initial-environment
                                              (list
                                                 (cons '*owl* (directory-of (car vm-args)))

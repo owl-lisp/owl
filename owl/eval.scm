@@ -3,7 +3,6 @@
 ;; todo: add lib-http and allow including remote resources
 ;; todo:  ^ would need a way to sign libraries and/or SSL etc
 ;; todo: autoload feature: when a library imports something not there, try to load (owl ff) from each $PREFIX/owl/ff.scm
-;; todo: swap toplevel env to (owl base)
 
 (define-library (owl eval)
 
@@ -89,10 +88,6 @@
       (define (execute exp env)
          (ok (exp) env))
 
-      ;; todo: add partial evaluation
-      ;; todo: add type inference (Hindley-Milner for the primitive types, save and use result when inferable)
-      ;; todo: move compiler code to a more appropriate place (like lib-compile, or lib-eval)
-
       ; (op exp env) -> #(ok exp' env') | #(fail info)
       (define compiler-passes
          (list 
@@ -102,7 +97,7 @@
             alpha-convert   ;; assign separate symbols to all bound values
             cps             ;; convert to continuation passing style
             build-closures  ;; turn lambdas into closures where necessary
-            compile         ;; assemble to bytecode
+            compile         ;; translate and flatten to bytecode
             execute         ;; call the resulting code
             )) 
 
@@ -279,22 +274,10 @@
                (thing->rex (symbol->string thing)))
             (else #false)))
 
-      ;; load unless already in *loaded*
-
-      (define (repl-require repl path in env)
-         ;(let ((node (ref (ref (get env '*loaded* (tuple 'defined (mkval null))) 2) 2)))
-         ;	(if (mem string-eq? node path)
-         ;      (repl env in)
-         ;		(repl-load repl path in env)))
-         (repl env in) ; no-op, lol
-         )
-
       (define repl-ops-help "Commands:
    ,help             - show this
    ,load [string]    - load a file
    ,l                - || -
-   ,require [string] - load a file unless loaded
-   ,r                - || -
    ,words            - list all current definitions
    ,find [regex|sym] - list all defined words matching regex or m/<sym>/
    ,libraries        - show all currently loaded libraries
@@ -340,16 +323,6 @@
                               env env)
                            in))
                      (repl-fail env (list "bad word list: " op)))))
-            ((require r)
-               ; load unless already loaded
-               (lets ((op in (uncons in #false)))
-                  (cond
-                     ((symbol? op)
-                        (repl-require repl (symbol->string op) in env)) 
-                     ((string? op)
-                        (repl-require repl op in env))
-                     (else
-                        (repl-fail env (list "Not loadable: " op))))))
             ((words)
                (prompt env (cons "Words: " (ff-fold (λ (words key value) (cons key words)) null env)))
                (repl env in))
@@ -382,6 +355,7 @@
                (env-fold (λ (out name value) (cons name out)) null (cdr libp))
                #false)))
 
+      ;; todo: this uses direct environment access - move to lib-env or handle here?
       ;; <export spec> = <identifier> 
       ;;               | (rename <identifier_1> <identifier_2>)
       ;;               | (exports <lib)
@@ -418,15 +392,6 @@
       (define export?
          (let ((pat `(export . ,symbol-list?)))
             (λ exp (match pat exp))))
-
-      (define (import env mod names)
-         (if (null? names)
-            (import env mod (map car (ff->list mod)))
-            (fold
-               (λ (env key)
-                  ;; could be a bit more descriptive here..
-                  (put env key (get mod key 'undefined-lol))) 
-               env names)))
 
       (define (_ x) #true)
 

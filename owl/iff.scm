@@ -5,8 +5,6 @@
 ;; todo: extend to work for negative numbers
 ;; todo: no unit tests. add a quick lib-compare test asap.
 
-,r "owl/ff.scm"
-
 (define-library (owl iff)
 
    (export iget iput ifold iff->list)
