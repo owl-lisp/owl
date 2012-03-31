@@ -9,6 +9,7 @@
       env-get ;; env key default → val | default
       env-del ;; env key → env'
       env-set ;; env-set env key val → env'
+      env-keep ;; env (name → name' | #false) → env'
       )
 
    (import
@@ -216,6 +217,14 @@
                (cons '_define (tuple 'special '_define))
                (cons 'values   (tuple 'special 'values)))))
 
-   (define primitive? primop-of)
+      ;; take a subset of env
+      (define (env-keep env namer)
+         (env-fold
+            (λ (out name value)
+               (let ((name (namer name)))
+                  (if name (put out name value) out)))
+            #false env))
+
+      (define primitive? primop-of)
 
 ))

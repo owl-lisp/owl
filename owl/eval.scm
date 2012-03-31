@@ -440,35 +440,28 @@
          (and (list? exp) 
             (all (λ (x) (and (list? x) (= (length x) 2))) exp)))
 
-      (define (choose lib namer)
-         (env-fold 
-            (λ (env name value)
-               (let ((name (namer name)))
-                  (if name (put env name value) env)))
-            #false lib))
-         
       (define (import-set->library iset libs fail)
          (cond
             ((assoc iset libs) =>
                (λ (pair) 
                   (cdr pair))) ;; copy all bindings from the (completely) imported library
             ((match `(only ,? . ,symbols?) iset)
-               (choose 
+               (env-keep 
                   (import-set->library (cadr iset) libs fail)
                   (λ (var) (if (has? (cddr iset) var) var #false))))
             ((match `(except ,? . ,symbols?) iset)
-               (choose 
+               (env-keep 
                   (import-set->library (cadr iset) libs fail)
                   (λ (var) (if (has? (cddr iset) var) #false var))))
             ((match `(rename ,? . ,pairs?) iset)
-               (choose
+               (env-keep
                   (import-set->library (cadr iset) libs fail)
                   (λ (var) 
                      (let ((val (assq var (cddr iset))))
                         (if val (cdr val) #false)))))
             ((match `(prefix ,? ,symbol?) iset)
                (let ((prefix (symbol->string (caddr iset))))
-                  (choose
+                  (env-keep
                      (import-set->library (cadr iset) libs fail)
                      (λ (var)
                         (string->symbol 
