@@ -440,36 +440,40 @@
          (and (list? exp) 
             (all (λ (x) (and (list? x) (= (length x) 2))) exp)))
 
+      ;; → 'ok env | 'needed name | 'circular name, non-ok exists via fail
       (define (import-set->library iset libs fail)
          (cond
             ((assoc iset libs) =>
                (λ (pair) 
                   (if (eq? (cdr pair) 'loading) ;; trying to reload something
-                     (fail (list "Circular dependency: trying to reload " iset))
-                     (cdr pair))))
+                     (fail 'circular iset)
+                     (values 'ok (cdr pair)))))
             ((match `(only ,? . ,symbols?) iset)
-               (env-keep 
-                  (import-set->library (cadr iset) libs fail)
-                  (λ (var) (if (has? (cddr iset) var) var #false))))
+               (lets ((ok lib (import-set->library (cadr iset) libs fail)))
+                  (values 'ok 
+                     (env-keep lib (λ (var) (if (has? (cddr iset) var) var #false))))))
             ((match `(except ,? . ,symbols?) iset)
-               (env-keep 
-                  (import-set->library (cadr iset) libs fail)
-                  (λ (var) (if (has? (cddr iset) var) #false var))))
+               (lets ((ok is (import-set->library (cadr iset) libs fail)))
+                  (values 'ok
+                     (env-keep is (λ (var) (if (has? (cddr iset) var) #false var))))))
             ((match `(rename ,? . ,pairs?) iset)
-               (env-keep
-                  (import-set->library (cadr iset) libs fail)
-                  (λ (var) 
-                     (let ((val (assq var (cddr iset))))
-                        (if val (cdr val) #false)))))
+               (lets ((ok lib (import-set->library (cadr iset) libs fail)))
+                  (values 'ok
+                     (env-keep lib
+                        (λ (var) 
+                           (let ((val (assq var (cddr iset))))
+                              (if val (cdr val) #false)))))))
             ((match `(prefix ,? ,symbol?) iset)
-               (let ((prefix (symbol->string (caddr iset))))
-                  (env-keep
-                     (import-set->library (cadr iset) libs fail)
-                     (λ (var)
-                        (string->symbol 
-                           (string-append prefix (symbol->string var)))))))
+               (lets 
+                  ((ok lib (import-set->library (cadr iset) libs fail))
+                   (prefix (symbol->string (caddr iset))))
+                  (values 'ok
+                     (env-keep lib
+                        (λ (var)
+                           (string->symbol 
+                              (string-append prefix (symbol->string var))))))))
             (else 
-               (fail iset))))
+               (fail 'needed iset))))
 
       ;; (foo bar baz) → "/foo/bar/baz.scm"
       (define (library-name->path iset)
@@ -531,17 +535,23 @@
       (define (library-import env exps fail repl)
          (fold
             (λ (env iset) 
-               (let ((libp (call/cc (λ (ret) (import-set->library iset (env-get env library-key null) ret)))))
-                  (if (pair? libp)
-                     (lets ((status env (try-autoload env repl libp)))
-                        (cond
-                           ((eq? status 'ok)
-                              (library-import env exps fail repl))
-                           ((eq? status 'error)
-                              (fail (list "Failed to load" libp "because" env)))
-                           (else
-                              (fail (list "I didn't have or find library" (any->string libp))))))
-                     (env-fold put env libp))))
+               (lets ((status lib (call/cc2 (λ (ret) (import-set->library iset (env-get env library-key null) ret)))))
+                  (cond
+                     ((eq? status 'needed)
+                        (lets ((status env (try-autoload env repl lib)))
+                           (cond
+                              ((eq? status 'ok)
+                                 (library-import env exps fail repl))
+                              ((eq? status 'error)
+                                 (fail (list "Failed to load" lib "because" env)))
+                              (else
+                                 (fail (list "I didn't have or find library" (any->string lib)))))))
+                     ((eq? status 'ok)
+                        (env-fold put env lib)) ;; <- TODO env op, should be in (owl env)
+                     ((eq? status 'circular)
+                        (fail (list "Circular dependency causing reload of" (list->string (render lib null)))))
+                     (else
+                        (fail (list "BUG: bad library load status: " status))))))
             env exps))
 
       ;; temporary toplevel import doing what library-import does within libraries
