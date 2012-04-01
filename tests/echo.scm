@@ -3,7 +3,7 @@
 
 (define echo "echo server")
 
-;; funktion to be forked to run as the echo thread
+;; function to be forked to run as the echo thread
 (define (echoer)
    (lets
       ((envelope (wait-mail))
