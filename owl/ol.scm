@@ -771,7 +771,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
          (exit-owl 2))))
 
 (define (greeting env seccomp?)
-   (if (env-get env '*owl-prompt* #f)
+   (if (env-get env '*interactive* #f)
       (begin
          (print
             (if seccomp? owl-ohai-seccomp owl-ohai))
@@ -786,7 +786,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             (let 
                ((env 
                   (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet evaluate run output output-format))
-                     (env-del env '*owl-prompt*) 
+                     (env-set env '*interactive* #false)
                      (env-set env '*interactive* #true)))
                 (seccomp?
                   (if (get dict 'seccomp #false)
@@ -902,11 +902,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;;; Dump a new repl image
 ;;;
 
-;; call by repl to render result of evaluation and ask for more input
-(define (default-prompt val)
-   (write val)
-   (display "\n> "))
-  
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
       (lets
@@ -953,7 +948,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 (cons 'render render) ;; can be removed when all rendering is done via libraries
                                                 (cons '*vm-special-ops* vm-special-ops)
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
-                                                (cons '*owl-prompt* default-prompt)
                                                 )))))))))
                      null 
                      #false)))))))

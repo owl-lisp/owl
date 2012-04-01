@@ -185,10 +185,21 @@
                (env-set env '*loaded*
                   (cons path loaded)))))
 
+      ;; values used by the repl to signal they should be printed as such, not rendered as a value
+      (define repl-message-tag "foo")
+      (define (repl-message foo) (cons repl-message-tag foo))
+      (define (repl-message? foo) (and (pair? foo) (eq? repl-message-tag (car foo))))
+
       (define (prompt env val)
-         (let ((prompt (env-get env '*owl-prompt* #false)))
+         (let ((prompt (env-get env '*interactive* #false)))
             (if prompt
-               (prompt val))))
+               (if (repl-message? val)
+                  (begin
+                     (print (cdr val))
+                     (display "> "))
+                  (begin
+                     (write val)
+                     (display "\n> "))))))
             
       (define syntax-error-mark (list 'syntax-error))
 
@@ -226,7 +237,7 @@
 
       ;; just be quiet
       (define repl-load-prompt 
-         (λ (val) null))
+         (λ (val result?) null))
 
       ;; load and save path to *loaded*
 
@@ -244,19 +255,17 @@
                   ;(if (env-get env '*interactive* #false)
                   ;   (show " + " path))
                   (lets
-                     ((prompt (env-get env '*owl-prompt* #false)) ; <- switch prompt during loading
+                     ((current-prompt (env-get env '*interactive* #false)) ; <- switch prompt during loading
                       (load-env 
                         (if prompt
-                           (env-set env '*owl-prompt* repl-load-prompt) ;; <- switch prompt during load (if enabled)
+                           (env-set env '*interactive* #false) ;; <- switch prompt during load (if enabled)
                            env))
                       (outcome (repl load-env exps)))
                      (tuple-case outcome
                         ((ok val env)
-                           ;(prompt env ";; loaded")
-                           (repl (mark-loaded (env-set env '*owl-prompt* prompt) path) in))
+                           (repl (mark-loaded (env-set env '*interactive* current-prompt) path) in))
                         ((error reason partial-env)
                            ; fixme, check that the fd is closed!
-                           ;(prompt env ";; failed to load")
                            (repl-fail env (list "Could not load" path "because" reason))))))
                (repl-fail env
                   (list "Could not find any of" 
@@ -638,7 +647,7 @@
                         ((envp (toplevel-library-import env (cdr exp) repl)))
                         (if (pair? envp) ;; the error message
                            (fail envp)
-                           (ok ";; imported" envp))))
+                           (ok (repl-message ";; imported") envp))))
                   ((definition? exp)
                      (mail 'intern (tuple 'set-name (string-append "in:" (symbol->string (cadr exp)))))  ;; tell intern to assign this name to all codes to come
                      (tuple-case (evaluate (caddr exp) env)
@@ -735,10 +744,6 @@
                
       ;; run the repl on a fresh input stream, report errors and catch exit
 
-      ; silly issue: fd->exp-stream pre-requests input from the fd, and when a syntax error comes, there 
-      ; already is a request waiting. therefore fd->exp-stream acceps an extra parameter with which 
-      ; the initial input request can be skipped.
-
       (define (stdin-sexp-stream bounced?)
          (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?)))
 
@@ -749,15 +754,15 @@
                 (stdin  
                   (if bounced? 
                      (begin ;; we may need to reprint a prompt here
-                        (if (env-get env '*owl-prompt* #false) 
+                        (if (env-get env 'interactive* #false) 
                            (display "> "))  ;; reprint prompt
                         stdin)
                      stdin))
                 (env (bind-toplevel env)))
                (tuple-case (repl env stdin)
                   ((ok val env)
-                     ; the end
-                     (if (env-get env '*owl-prompt* #false)
+                     ;; the end
+                     (if (env-get env '*interactive* #false)
                         (print "bye bye _o/~"))
                      (halt 0))
                   ((error reason env)
