@@ -285,12 +285,10 @@
 
       (define repl-ops-help "Commands:
    ,help             - show this
-   ,load [string]    - load a file
-   ,l                - || -
    ,words            - list all current definitions
    ,find [regex|sym] - list all defined words matching regex or m/<sym>/
    ,libraries        - show all currently loaded libraries
-   ,libs             - || -
+   ,l                - || -
    ,quit             - exit owl")
 
       (define (repl-op repl op in env)
@@ -298,7 +296,7 @@
             ((help)
                (prompt env repl-ops-help)
                (repl env in))
-            ((load l)
+            ((load)
                (lets ((op in (uncons in #false)))
                   (cond
                      ((symbol? op)
@@ -345,7 +343,7 @@
                      (else
                         (prompt env "I would have preferred a regex or a symbol.")))
                   (repl env in)))
-            ((libs libraries)
+            ((libraries libs l)
                (print "Currently defined libraries:")
                (for-each print (map car (env-get env library-key null)))
                (prompt env "")
@@ -658,7 +656,10 @@
                            (if (function? value)
                               (mail 'intern (tuple 'name-object value (cadr exp)))) ;; name function object explicitly
                            (let ((env (env-set env (cadr exp) value)))
-                              (ok (cadr exp) (bind-toplevel env))))
+                              (ok 
+                                 (repl-message 
+                                    (list->string (render ";; defined " (render (cadr exp) null))))
+                                 (bind-toplevel env))))
                         ((fail reason)
                            (fail
                               (list "Definition of" (cadr exp) "failed because" reason)))))
@@ -754,7 +755,7 @@
                 (stdin  
                   (if bounced? 
                      (begin ;; we may need to reprint a prompt here
-                        (if (env-get env 'interactive* #false) 
+                        (if (env-get env '*interactive* #false) 
                            (display "> "))  ;; reprint prompt
                         stdin)
                      stdin))
