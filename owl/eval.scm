@@ -444,7 +444,9 @@
          (cond
             ((assoc iset libs) =>
                (λ (pair) 
-                  (cdr pair))) ;; copy all bindings from the (completely) imported library
+                  (if (eq? (cdr pair) 'loading) ;; trying to reload something
+                     (fail (list "Circular dependency: trying to reload " iset))
+                     (cdr pair))))
             ((match `(only ,? . ,symbols?) iset)
                (env-keep 
                   (import-set->library (cadr iset) libs fail)
@@ -609,6 +611,13 @@
             (else 
                (fail (list "unknown library term: " (car exp))))))
 
+      ;; variables which are added to *owl-core* when evaluating libraries   
+      (define library-exports
+         (list 
+            library-key     ;; loaded libraries
+            includes-key    ;; where to load libraries from
+            features-key))  ;; implementation features
+
       (define (eval-repl exp env repl)
          (tuple-case (macro-expand exp env)
             ((ok exp env)
@@ -660,24 +669,24 @@
                      (lets/cc ret
                         ((exps (map cadr (cdr exp))) ;; drop the quotes
                          (name exps (uncons exps #false))
+                         (libs (env-get env library-key null))
+                         ;; mark the current library as being loaded for circular dependency detection
+                         (env (env-set env library-key (cons (cons name 'loading) libs)))
                          (fail 
                            (λ (reason) 
                               (ret (fail (list "Library" name "failed:" reason)))))
-                         ;; keep libs, includes and feats in libraries 
-                         (lib-env (env-set *owl-core* library-key (env-get env library-key null)))
-                         (lib-env (env-set lib-env includes-key (env-get env includes-key null)))
-                         (lib-env (env-set lib-env features-key (env-get env features-key null))))
-                        
-                        ;(show " - " (cadr (cadr exp)))
-                        ;(show "REPL: keeping currently loaded modules " (map car (env-get lib-env library-key null)))
-                        ;(show "REPL: keeping includes " (env-get lib-env includes-key null))
-
+                         (lib-env
+                           (fold 
+                              (λ (lib-env key) (env-set lib-env key (env-get env key null)))
+                              *owl-core* library-exports)))
                         (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                            ((ok library lib-env)
                               (ok ";; Library added" 
                                  (env-set env library-key 
                                     (cons (cons name library)
-                                       (env-get lib-env library-key null))))) ; <- lib-env may also have just loaded dependency libs
+                                       (keep  ;; drop the loading tag for this library
+                                          (λ (x) (not (equal? (car x) name)))
+                                          (env-get lib-env library-key null)))))) ; <- lib-env may also have just loaded dependency libs
                            ((error reason not-env)
                               (fail 
                                  (list "Library" name "failed to load because" reason))))))
