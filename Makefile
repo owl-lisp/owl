@@ -117,6 +117,7 @@ fasl-update:
 	gpg --verify fasl/init.fasl.sig
 	cp fasl/init.fasl fasl/boot.fasl
 	make fasl/ol.fasl
+	cp fasl/ol.fasl fasl/init.fasl
 	gpg -b fasl/init.fasl
 
 todo: bin/vm 
