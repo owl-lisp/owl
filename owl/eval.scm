@@ -29,6 +29,7 @@
       (owl closure)
       (owl cps)
       (owl alpha)
+      (owl sort)
       (owl fixedpoint)
       (owl ast)
       (owl env)
@@ -190,12 +191,14 @@
       (define (repl-message foo) (cons repl-message-tag foo))
       (define (repl-message? foo) (and (pair? foo) (eq? repl-message-tag (car foo))))
 
+      ;; render the value if *interactive*, and print as such (or not at all) if it is a repl-message
       (define (prompt env val)
          (let ((prompt (env-get env '*interactive* #false)))
             (if prompt
                (if (repl-message? val)
                   (begin
-                     (print (cdr val))
+                     (if (cdr val)
+                        (print (cdr val)))
                      (display "> "))
                   (begin
                      (write val)
@@ -330,8 +333,17 @@
                               env env)
                            in))
                      (repl-fail env (list "bad word list: " op)))))
-            ((words)
-               (prompt env (cons "Words: " (ff-fold (λ (words key value) (cons key words)) null env)))
+            ((words w)
+               (prompt env 
+                  (repl-message 
+                     (list->string
+                        (foldr 
+                           (λ (x tl) (render x (cons #\space tl)))
+                           null
+                           (cons "Words: "
+                              (sort string<?
+                                 (map symbol->string
+                                    (ff-fold (λ (words key value) (cons key words)) null env))))))))
                (repl env in))
             ((find)
                (lets 
@@ -346,7 +358,7 @@
             ((libraries libs l)
                (print "Currently defined libraries:")
                (for-each print (map car (env-get env library-key null)))
-               (prompt env "")
+               (prompt env (repl-message #false))
                (repl env in))
             ((quit)
                ; this goes to repl-trampoline
@@ -669,7 +681,7 @@
                            (let ((names (cadr exp)))
                               (if (and (list? value) 
                                     (= (length value) (length names)))
-                                 (ok names
+                                 (ok (repl-message ";; all defined")
                                     (fold 
                                        (λ (env pair) 
                                           (env-set env (car pair) (cdr pair)))
@@ -701,7 +713,8 @@
                               *owl-core* library-exports)))
                         (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                            ((ok library lib-env)
-                              (ok ";; Library added" 
+                              (ok 
+                                 (repl-message ";; Library added" )
                                  (env-set env library-key 
                                     (cons (cons name library)
                                        (keep  ;; drop the loading tag for this library
