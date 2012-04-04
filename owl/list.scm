@@ -17,6 +17,7 @@
       fold2
       first
       halve
+      ╯°□°╯
       
       diff union intersect 
 
@@ -276,5 +277,7 @@
                      (values (reverse (cons (car t) out)) (cdr t))
                      (walk (cdr t) (cdr h) (cons (car t) out)))))))
 
+
+   (define ╯°□°╯ reverse)     
 
 ))

@@ -336,7 +336,7 @@
             ((words w)
                (prompt env 
                   (repl-message 
-                     (list->string
+                     (bytes->string
                         (foldr 
                            (λ (x tl) (render x (cons #\space tl)))
                            null
@@ -496,7 +496,7 @@
 
       ;; (foo bar baz) → "/foo/bar/baz.scm"
       (define (library-name->path iset)
-         (list->string
+         (bytes->string
             (cons #\/
                (foldr
                   (λ (thing tl)
@@ -568,7 +568,7 @@
                      ((eq? status 'ok)
                         (env-fold put env lib)) ;; <- TODO env op, should be in (owl env)
                      ((eq? status 'circular)
-                        (fail (list "Circular dependency causing reload of" (list->string (render lib null)))))
+                        (fail (list "Circular dependency causing reload of" (bytes->string (render lib null)))))
                      (else
                         (fail (list "BUG: bad library load status: " status))))))
             env exps))
@@ -670,7 +670,7 @@
                            (let ((env (env-set env (cadr exp) value)))
                               (ok 
                                  (repl-message 
-                                    (list->string (render ";; defined " (render (cadr exp) null))))
+                                    (bytes->string (render ";; defined " (render (cadr exp) null))))
                                  (bind-toplevel env))))
                         ((fail reason)
                            (fail
