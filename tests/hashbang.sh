@@ -2,18 +2,18 @@
 
 ME=$$
 
-echo -n '#!'   > tmp/script-$ME
+/bin/echo -n '#!'   > tmp/script-$ME
 for part in $@
 do
-   echo -n "`pwd`"
-   echo -n "/"
-   echo -n $part
-   echo -n " "
+   /bin/echo -n "`pwd`"
+   /bin/echo -n "/"
+   /bin/echo -n $part
+   /bin/echo -n " "
 done >> tmp/script-$ME
 
-echo "" >> tmp/script-$ME
+/bin/echo "" >> tmp/script-$ME
 
-echo '
+/bin/echo '
 
 (print "ohai")
 
