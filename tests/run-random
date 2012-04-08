@@ -19,14 +19,15 @@ MAXMEM=1048576 # 1GB
 MAXTIME=60
 for file in tests/*.scm
 do
-   grep -q RANDOM $file && (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; $@ -q $file 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") 
+   grep -q RANDOM $file && (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; $@ -q $file 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done
 
 for file in tests/*.sh
 do
-   grep -q RANDOM $file && (ulimit -S -t $MAXTIME; echo "running $file"; ulimit -S -m $MAXMEM; sh $file $@ 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o")
+   grep -q RANDOM $file && (ulimit -S -t $MAXTIME; echo "running $file"; ulimit -S -m $MAXMEM; sh $file $@ 2>&1 | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done
 
+wait
 
 grep ERROR $LOG && fail $LOG
 
