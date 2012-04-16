@@ -311,18 +311,13 @@
       ;; most of these are to go via type definitions later
       (define get-funny-word
          (get-any-of
-            ;(get-word "Null" Null)
             (get-word "..." '...)
-            ;(get-word "#true" #true)
-            ;(get-word "#false" #false)
-            ;; optional shorties
-            ;(get-word "T" #true)
-            ;(get-word "F" #false)
-            ;(get-word "N" Null)
             (get-word "#true" #true)    ;; get the longer ones first if present
             (get-word "#false" #false)
             (get-word "#t" #true)
             (get-word "#f" #false)
+            (get-word "#T" #true)
+            (get-word "#F" #false)
             ))
 
       (define (get-vector-of parser)
