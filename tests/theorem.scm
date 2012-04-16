@@ -32,11 +32,50 @@
 
 ;; Generators 
 
+(define (Byte rs)
+   (rand rs 256))
+
 (define (Nat rs)
    (lets
       ((rs b (rand rs 128))
        (b (max b 10)))
       (rand-log rs b)))
+
+(define (Int rs)
+   (lets
+      ((rs sign (rand rs 2))
+       (rs n (Nat rs)))
+      (values rs 
+         (if (eq? sign 0)
+            (- 0 n)
+            n))))
+
+(define (Rat rs)
+   (lets
+      ((rs a (Int rs))
+       (rs b (Nat rs)))
+      (values rs
+         (if (eq? b 0)
+            0
+            (/ a b))))) ; <- could also make explicitly one for which gcd(a,b) = 1
+
+(define (Comp rs)
+   (lets
+      ((rs r (Rat rs))
+       (rs i (Rat rs)))
+      (values rs
+         (if (eq? i 0)
+            r
+            (complex r i)))))
+
+; any number
+(define (Num rs)
+   (lets ((rs n (rand rs 4)))
+      ((cond
+         ((eq? n 0) Nat)
+         ((eq? n 1) Int)
+         ((eq? n 2) Rat)
+         (else Comp)) rs)))
 
 (define (List rs)
    (lets ((rs n (rand rs 20)))
@@ -56,22 +95,46 @@
          ∀ a ∊ Nat (< a 100000000) → (prime? a) → (= 1 (length (factor a)))
       
       theorem add-1 
-         ∀ a b ∊ Nat (+ a b) = (+ b a)
+         ∀ a b ∊ Num (+ a b) = (+ b a)
 
       theorem add-2
-         ∀ a b c ∊ Nat (+ a (+ b c)) = (+ (+ a b) c)
+         ∀ a b c ∊ Num (+ a (+ b c)) = (+ (+ a b) c)
 
       theorem add-3
-         ∀ a ∊ Nat a = (+ a 0)
+         ∀ a ∊ Num a = (+ a 0)
 
-      theorem mul-1
-         ∀ a ∊ Nat (+ a a) = (* a 2)
+      theorem mul-add-double
+         ∀ a ∊ Num (+ a a) = (* a 2)
+
+      theorem mul-add-1
+         ∀ a b ∊ Num (* a (+ b 1)) = (+ (* a b) a)
+
+      theorem add-cancel
+         ∀ a b ∊ Num a = (- (+ a b) b)
+
+      theorem div-cancel-1
+         ∀ a b ∊ Num (not (= b 0)) → a = (* (/ a b) b)
+
+      theorem div-cancel-2
+         ∀ a b ∊ Num (not (= b 0)) → a = (/ (* a b) b)
+
+      theorem div-twice 
+         ∀ a b ∊ Num (not (= b 0)) → (/ (/ a b) b) = (/ a (* b b))
+
+      theorem div-self
+         ∀ a ∊ Num (not (= a 0)) → 1 = (/ a a)
 
       theorem mul-2
-         ∀ a b ∊ Nat (* a b) = (* b a)
+         ∀ a b ∊ Num (* a b) = (* b a)
       
       theorem mul-3
-         ∀ a b c ∊ Nat (* a (* b c)) = (* (* a b) c)
+         ∀ a b c ∊ Num (* a (* b c)) = (* (* a b) c)
+
+      theorem shift-cancel
+         ∀ a ∊ Nat ∀ b ∊ Byte a = (>> (<< a b) b)
+
+      theorem gcd-swap
+         ∀ a b ∊ Int (gcd a b) = (gcd b a)
 
       theorem rev-1
          ∀ l ∊ List l = (reverse (reverse l))
@@ -121,7 +184,7 @@
             (print* (list "Tests " failed " failed for seed " seed "."))
             #false))))
 
-(if (fold (λ (ok n) (and ok (test))) #true (iota 0 1 1000))
+(if (fold (λ (ok n) (and ok (test))) #true (iota 0 1 20))
    (print "All OK!")
    (print "Bad kitty!!1"))
 
