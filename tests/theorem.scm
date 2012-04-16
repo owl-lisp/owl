@@ -50,9 +50,9 @@
 
    (theorems
 
-      theorem fact-1
-         ∀ a ∊ Nat (< a 1000000) → (= 2 (length (factor a))) ↔ (prime? a)
-
+      theorem prime-1
+         ∀ a ∊ Nat (< a 100000000) → (prime? a) → (= 1 (length (factor a)))
+      
       theorem add-1 
          ∀ a b ∊ Nat (+ a b) = (+ b a)
 
@@ -74,6 +74,15 @@
       theorem rev-1
          ∀ l ∊ List l = (reverse (reverse l))
 
+      theorem reverse-fold
+         ∀ l ∊ List (reverse l) = (fold (λ (a b) (cons b a)) null l)
+
+      theorem foldr-copy
+         ∀ l ∊ List l = (foldr cons null l)
+
+      theorem zip-map
+         ∀ l ∊ List l = (map car (zip cons l l))
+
       theorem halve-1
          ∀ l ∊ List l = (lets ((hd tl (halve l))) (append hd tl))
 
@@ -92,18 +101,25 @@
                (time-ms)))
          (time-ms))))
 
-(lets
-   ((seed (get-seed))
-    (rs (seed->rands seed))
-    (failed
-      (fold
-         (λ (failed test)
-            (if ((cdr test) rs) ;; this is ok
-               failed
-               (cons (car test) failed))) ;; save name if it failed
-         null
-         tests)))
-   (if (null? failed)
-      (print "All OK!")
-      (print* (list "Tests " failed " failed for seed " seed "."))))
+(define (test)
+   (lets
+      ((seed (get-seed))
+       (rs (seed->rands seed))
+       (failed
+         (fold
+            (λ (failed test)
+               (if ((cdr test) rs) ;; this is ok
+                  failed
+                  (cons (car test) failed))) ;; save name if it failed
+            null
+            tests)))
+      (if (null? failed)
+         #true
+         (begin
+            (print* (list "Tests " failed " failed for seed " seed "."))
+            #false))))
+
+(if (fold (λ (ok n) (and ok (test))) #true (iota 0 1 1000))
+   (print "All OK!")
+   (print "Bad kitty!!1"))
 
