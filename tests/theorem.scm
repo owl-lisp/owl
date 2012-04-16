@@ -1,3 +1,5 @@
+;; RANDOM -- tag to run this as part of random-tests
+
 ;; DSL
 
 (define-syntax translate 
