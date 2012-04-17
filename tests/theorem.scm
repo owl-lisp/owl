@@ -3,8 +3,10 @@
 ;; DSL
 
 (define-syntax translate 
-   (syntax-rules (∀ ∊ → ↔ =)
+   (syntax-rules (∀ ∊ → ↔ ← =)
       ((translate rs a → . b) (if a (translate rs . b) #true))
+      ((translate rs var ← defn . rest) 
+         (let ((var defn)) (translate rs . rest)))
       ((translate rs a ↔ b) (if a b (not b)))
       ((translate rs a = b) (equal? a b))
       ((translate rs ∀ var ∊ gen . rest)
@@ -32,8 +34,14 @@
 
 ;; Generators 
 
+(define elem-ip 20) ;; inverse probability of stopping element addition for linear random data structures
+
 (define (Byte rs)
    (rand rs 256))
+
+(define (Short rs)
+   (lets ((digit rs (uncons rs 0)))
+      (values rs digit)))
 
 (define (Nat rs)
    (lets
@@ -77,22 +85,28 @@
          ((eq? n 2) Rat)
          (else Comp)) rs)))
 
-(define (List rs)
-   (lets ((rs n (rand rs 20)))
-      (if (eq? n 0)
-         (values rs null)
-         (lets ((rs tl (List rs)))
-            (values rs (cons n tl))))))
 
 (define (List-of thing)
    (λ (rs)
-      (lets ((rs n (rand rs 20)))
+      (lets ((rs n (rand rs elem-ip)))
          (if (eq? n 0)
             (values rs null)
             (lets 
                ((rs head (thing rs))
                 (rs tail ((List-of thing) rs)))
                (values rs (cons head tail)))))))
+
+(define List (List-of Byte))
+
+(define (Ff-of thing)
+   (λ (rs)
+      (let loop ((rs rs) (out #false))
+         (lets ((rs n (rand rs elem-ip)))
+            (if (eq? n 0)
+               (values rs #false)
+               (lets ((rs x (thing rs)))
+                  (loop rs (put out x x))))))))
+
 
 ;; Theory 
 
@@ -101,70 +115,102 @@
    (theorems
 
       theorem prime-1
-         ∀ a ∊ Nat (< a 100000000) → (prime? a) → (= 1 (length (factor a)))
+         ∀ a ∊ Nat 
+            (< a 100000000) → 
+               (prime? a) → (= 1 (length (factor a)))
       
       theorem add-1 
-         ∀ a b ∊ Num (+ a b) = (+ b a)
+         ∀ a b ∊ Num 
+            (+ a b) = (+ b a)
 
       theorem add-2
-         ∀ a b c ∊ Num (+ a (+ b c)) = (+ (+ a b) c)
+         ∀ a b c ∊ Num 
+            (+ a (+ b c)) = (+ (+ a b) c)
 
       theorem add-3
-         ∀ a ∊ Num a = (+ a 0)
+         ∀ a ∊ Num 
+            a = (+ a 0)
 
       theorem mul-add-double
-         ∀ a ∊ Num (+ a a) = (* a 2)
+         ∀ a ∊ Num 
+            (+ a a) = (* a 2)
 
       theorem mul-add-1
-         ∀ a b ∊ Num (* a (+ b 1)) = (+ (* a b) a)
+         ∀ a b ∊ Num 
+            (* a (+ b 1)) = (+ (* a b) a)
 
       theorem add-cancel
-         ∀ a b ∊ Num a = (- (+ a b) b)
+         ∀ a b ∊ Num 
+            a = (- (+ a b) b)
 
       theorem div-cancel-1
-         ∀ a b ∊ Num (not (= b 0)) → a = (* (/ a b) b)
+         ∀ a b ∊ Num 
+            (not (= b 0)) → a = (* (/ a b) b)
 
       theorem div-cancel-2
-         ∀ a b ∊ Num (not (= b 0)) → a = (/ (* a b) b)
+         ∀ a b ∊ Num 
+            (not (= b 0)) → a = (/ (* a b) b)
 
       theorem div-twice 
-         ∀ a b ∊ Num (not (= b 0)) → (/ (/ a b) b) = (/ a (* b b))
+         ∀ a b ∊ Num 
+            (not (= b 0)) → (/ (/ a b) b) = (/ a (* b b))
 
       theorem div-self
-         ∀ a ∊ Num (not (= a 0)) → 1 = (/ a a)
+         ∀ a ∊ Num 
+            (not (= a 0)) → 1 = (/ a a)
 
       theorem mul-2
-         ∀ a b ∊ Num (* a b) = (* b a)
+         ∀ a b ∊ Num 
+            (* a b) = (* b a)
       
       theorem mul-3
-         ∀ a b c ∊ Num (* a (* b c)) = (* (* a b) c)
+         ∀ a b c ∊ Num 
+            (* a (* b c)) = (* (* a b) c)
 
       theorem shift-cancel
-         ∀ a ∊ Nat ∀ b ∊ Byte a = (>> (<< a b) b)
+         ∀ a ∊ Nat ∀ b ∊ Byte 
+            a = (>> (<< a b) b)
 
       theorem gcd-swap
-         ∀ a b ∊ Int (gcd a b) = (gcd b a)
+         ∀ a b ∊ Int 
+            (gcd a b) = (gcd b a)
 
       theorem rev-1
-         ∀ l ∊ List l = (reverse (reverse l))
+         ∀ l ∊ List 
+            l = (reverse (reverse l))
 
       theorem reverse-fold
-         ∀ l ∊ List (reverse l) = (fold (λ (a b) (cons b a)) null l)
+         ∀ l ∊ List 
+            (reverse l) = (fold (λ (a b) (cons b a)) null l)
 
       theorem foldr-copy
-         ∀ l ∊ List l = (foldr cons null l)
+         ∀ l ∊ List 
+            l = (foldr cons null l)
 
       theorem zip-map
-         ∀ l ∊ List l = (map car (zip cons l l))
+         ∀ l ∊ List 
+            l = (map car (zip cons l l))
 
       theorem ncr-def 
-         ∀ a b ∊ Byte (>= a b) → (ncr a b) = (/ (! a) (* (! b) (! (- a b))))
+         ∀ a b ∊ Byte 
+            (>= a b) → (ncr a b) = (/ (! a) (* (! b) (! (- a b))))
 
       theorem halve-1
-         ∀ l ∊ List l = (lets ((hd tl (halve l))) (append hd tl))
+         ∀ l ∊ List 
+            l = (lets ((hd tl (halve l))) (append hd tl))
 
       theorem sort-rev
-         ∀ l ∊ (List-of Byte) (sort < l) = (reverse (sort > l))
+         ∀ l ∊ (List-of Byte) 
+            (sort < l) = (reverse (sort > l))
+
+      theorem ff-keys-sorted
+         ∀ f ∊ (Ff-of Short)
+            ks ← (keys f) ;; inorder 
+               ks = (sort < ks)
+
+      theorem ff-fold-foldr
+         ∀ f ∊ (Ff-of Short)
+            (ff-foldr (λ (out k v) (cons k out)) null f) = (reverse (ff-fold (λ (out k v) (cons k out)) null f))
 
 ))
 
@@ -184,14 +230,14 @@
 (define (test)
    (lets
       ((seed (get-seed))
-       ;(seed theonethatfails)
+       (seed 304488419252541097035990752022268248758)
        (rs (seed->rands seed))
        (failed
          (fold
             (λ (failed test)
                (if ((cdr test) rs) ;; this is ok
                   failed
-                  (cons (car test) failed))) ;; save name if it failed
+                  (cons (car test) failed)))
             null
             tests)))
       (if (null? failed)

@@ -14,8 +14,9 @@
 (define-library (owl ff)
    (export 
       get         ; O(log2 n), ff x key x default-value -> value | default-value 
-      put          ; O(log2 n), ff x key x value -> ff'
+      put         ; O(log2 n), ff x key x value -> ff'
       del         ; O(log2 n), ff x key -> ff' 
+      keys        ; O(n), ff → (key ...) 
       ff-update   ; O(log2 n), ff x key x value -> ff' | fail if key not in ff
       fupd        ; alias for ff-update 
                   ;    - no rebalancing, just walk to leaf and update value
@@ -456,4 +457,6 @@
          (syntax-rules ()
             ((getf ff key) (get ff key #false))))
 
+      (define (keys ff)
+         (ff-fold (λ (out k v) (cons k out)) null ff))
 ))
