@@ -12,7 +12,7 @@
       ncr npr 
       ! factor prime?
       primes-between
-      totient divisor-sum divisor-count
+      totient phi divisor-sum divisor-count
       dlog dlog-simple
       fib
       ; inv-mod mod-solve 
@@ -425,6 +425,8 @@
             (fold
                (lambda (left factor) (- left (/ left (car factor))))
                n (factor n))))
+
+      (define phi totient)
 
       ; sum of divisors of n, A000203
 

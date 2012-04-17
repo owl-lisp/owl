@@ -223,6 +223,14 @@
          ∀ l ∊ (List-of Byte) 
             (sort < l) = (reverse (sort > l))
 
+      theorem ff-del
+         ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
+            b = (get (del (put f a a) a) a b)
+      
+      theorem ff-put
+         ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
+            b = (get (put f a b) a #false)
+            
       theorem ff-keys-sorted
          ∀ f ∊ (Ff-of Short)
             ks ← (keys f) ;; inorder 
@@ -250,6 +258,21 @@
          ∀ a ∊ Num ∀ p ∊ Byte
             (and (< 0 p) (< p 10)) → 
                (expt a p) = (* a (expt a (- p 1)))
+
+      theorem totient-1
+         ∀ a ∊ Nat
+            (and (< 1 a) (< a 100000)) → 
+               (prime? a) ↔ (= (phi a) (- a 1))
+
+      theorem fasl-1
+         ∀ f ∊ (Ff-of Num)
+            f = (fasl-decode (fasl-encode f) 'bad)
+
+      theorem bisect-1
+         ∀ a n m ∊ Nat
+            b ← (+ a n)
+            c ← (+ b (+ m 1))
+            b = (bisect (λ (p) (>= p b)) a c)
 
 ))
 
