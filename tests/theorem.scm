@@ -38,6 +38,11 @@
 
 (define elem-ip 20) ;; inverse probability of stopping element addition for linear random data structures
 
+(define (Bool rs)
+   (lets ((d rs (uncons rs 0)))
+      ;; get one rand, pick low bit
+      (values rs (eq? 1 (band d 1)))))
+
 (define (Byte rs)
    (rand rs 256))
 
@@ -113,6 +118,9 @@
 
 ;; Theory 
 
+(define (nonzero? a) 
+   (not (eq? a 0)))
+
 (define tests
 
    (theorems
@@ -121,12 +129,17 @@
          ∀ a ∊ Nat 
             (< a 100000000) → 
                (prime? a) → (= 1 (length (factor a)))
-      
-      theorem add-1 
+     
+      theorem factor-1
+         ∀ a ∊ Nat
+            (and (< 1 a) (< a 1000000)) → 
+               a = (fold * 1 (map (λ (p) (expt (car p) (cdr p))) (factor a)))
+
+      theorem add-comm
          ∀ a b ∊ Num 
             (+ a b) = (+ b a)
 
-      theorem add-2
+      theorem add-assoc
          ∀ a b c ∊ Num 
             (+ a (+ b c)) = (+ (+ a b) c)
 
@@ -138,6 +151,10 @@
          ∀ a ∊ Num 
             (+ a a) = (* a 2)
 
+      theorem mul-distrib
+         ∀ a b c ∊ Num
+            (* a (+ b c)) = (+ (* a b) (* a c))
+            
       theorem mul-add-1
          ∀ a b ∊ Num 
             (* a (+ b 1)) = (+ (* a b) a)
@@ -148,25 +165,25 @@
 
       theorem div-cancel-1
          ∀ a b ∊ Num 
-            (not (= b 0)) → a = (* (/ a b) b)
+            (nonzero? b) → a = (* (/ a b) b)
 
       theorem div-cancel-2
          ∀ a b ∊ Num 
-            (not (= b 0)) → a = (/ (* a b) b)
+            (nonzero? b) → a = (/ (* a b) b)
 
       theorem div-twice 
          ∀ a b ∊ Num 
-            (not (= b 0)) → (/ (/ a b) b) = (/ a (* b b))
+            (nonzero? b) → (/ (/ a b) b) = (/ a (* b b))
 
       theorem div-self
          ∀ a ∊ Num 
-            (not (= a 0)) → 1 = (/ a a)
+            (nonzero? a) → 1 = (/ a a)
 
-      theorem mul-2
+      theorem mul-comm
          ∀ a b ∊ Num 
             (* a b) = (* b a)
       
-      theorem mul-3
+      theorem mul-assoc
          ∀ a b c ∊ Num 
             (* a (* b c)) = (* (* a b) c)
 
@@ -215,6 +232,25 @@
          ∀ f ∊ (Ff-of Short)
             (ff-foldr (λ (out k v) (cons k out)) null f) = (reverse (ff-fold (λ (out k v) (cons k out)) null f))
 
+      theorem sqrt-1
+         ∀ a ∊ Nat
+            a = (sqrt (* a a))
+
+      theorem square-1
+         ∀ a b ∊ Num
+            S ← (λ (x) (* x x))
+            (S (* a b)) = (* (S a) (S b))
+
+      theorem quotrem-1
+         ∀ a b ∊ Int
+            (nonzero? b) →  
+               a = (lets ((q r (quotrem a b))) (+ (* q b) r))
+
+      theorem expt-1
+         ∀ a ∊ Num ∀ p ∊ Byte
+            (and (< 0 p) (< p 10)) → 
+               (expt a p) = (* a (expt a (- p 1)))
+
 ))
 
 
@@ -248,7 +284,8 @@
          (print "All OK!")
          (let ((fails (failures rs)))
             (if (null? fails)
-               (loop (- n 1) (lets ((d rs (uncons rs 0))) rs)))))))
+               (loop (- n 1) (lets ((d rs (uncons rs 0))) rs))
+               (show "FAILED: " fails))))))
 
 ;; for --run
 (λ (args)
