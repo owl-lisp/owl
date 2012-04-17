@@ -1,5 +1,7 @@
 ;; RANDOM -- tag to run this as part of random-tests
 
+;; todo: maybe test api should return rs'?
+
 ;; DSL
 
 (define-syntax translate 
@@ -103,9 +105,10 @@
       (let loop ((rs rs) (out #false))
          (lets ((rs n (rand rs elem-ip)))
             (if (eq? n 0)
-               (values rs #false)
+               (values rs out)
                (lets ((rs x (thing rs)))
                   (loop rs (put out x x))))))))
+
 
 
 ;; Theory 
@@ -215,6 +218,7 @@
 ))
 
 
+
 ;; Practice
 
 (define (get-seed)
@@ -227,26 +231,39 @@
                (time-ms)))
          (time-ms))))
 
-(define (test)
-   (lets
-      ((seed (get-seed))
-       (seed 304488419252541097035990752022268248758)
-       (rs (seed->rands seed))
-       (failed
-         (fold
-            (λ (failed test)
-               (if ((cdr test) rs) ;; this is ok
-                  failed
-                  (cons (car test) failed)))
-            null
-            tests)))
-      (if (null? failed)
-         #true
-         (begin
-            (print* (list "Tests " failed " failed for seed " seed "."))
-            #false))))
+(define (failures rs)
+   (fold
+      (λ (failed test)
+         (if ((cdr test) rs) ;; this is ok
+            failed
+            (cons (car test) failed)))
+      null tests))
 
-(if (fold (λ (ok n) (and ok (test))) #true (iota 0 1 20))
-   (print "All OK!")
-   (print "Bad kitty!!1"))
+(let 
+   ((seed (get-seed))
+    ; (seed 42)
+    )
+    (let loop ((n 20) (rs (seed->rands seed)))
+      (if (= n 0)
+         (print "All OK!")
+         (let ((fails (failures rs)))
+            (if (null? fails)
+               (loop (- n 1) (lets ((d rs (uncons rs 0))) rs)))))))
+
+;; for --run
+(λ (args)
+   (let ((seed (get-seed)))
+      (show "Starting random continuous test, seed " seed)
+      (let loop ((n 0) (rs (seed->rands seed)))
+         (if (eq? 0 (band n 31))
+            (show " - " n))
+         (lets
+            ((fails (failures rs))
+             (d rs (uncons rs 0)))
+            (if (null? fails)
+               (loop (+ n 1) rs)
+               (begin
+                  (show "TESTS FAILED: " (list 'fails fails 'seed seed 'n n))
+                  #false))))))
+
 

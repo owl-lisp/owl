@@ -458,5 +458,5 @@
             ((getf ff key) (get ff key #false))))
 
       (define (keys ff)
-         (ff-fold (λ (out k v) (cons k out)) null ff))
+         (ff-foldr (λ (out k v) (cons k out)) null ff))
 ))
