@@ -148,6 +148,9 @@
       theorem zip-map
          ∀ l ∊ List l = (map car (zip cons l l))
 
+      theorem ncr-def 
+         ∀ a b ∊ Byte (>= a b) → (ncr a b) = (/ (! a) (* (! b) (! (- a b))))
+
       theorem halve-1
          ∀ l ∊ List l = (lets ((hd tl (halve l))) (append hd tl))
 

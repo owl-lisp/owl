@@ -404,10 +404,15 @@
       ;;; ncr, number of combinations, n choose m, simply n!/(m!(n-m)!)
 
       (define (ncr n m)
-         (let ((mp (- n m)))
-            (if (> m mp)
-               (ncr n mp)
-               (/ (npr n m) (! m)))))
+         (cond
+            ((< n m) 0)
+            ((= n m) 1)
+            (else
+               ;; choose the smaller part
+               (let ((mp (- n m)))
+                  (if (> m mp)
+                     (ncr n mp)
+                     (/ (npr n m) (! m)))))))
 
       ; Euler's totient, aka phi
 
