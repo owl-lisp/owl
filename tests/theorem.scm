@@ -84,6 +84,15 @@
          (lets ((rs tl (List rs)))
             (values rs (cons n tl))))))
 
+(define (List-of thing)
+   (λ (rs)
+      (lets ((rs n (rand rs 20)))
+         (if (eq? n 0)
+            (values rs null)
+            (lets 
+               ((rs head (thing rs))
+                (rs tail ((List-of thing) rs)))
+               (values rs (cons head tail)))))))
 
 ;; Theory 
 
@@ -154,6 +163,9 @@
       theorem halve-1
          ∀ l ∊ List l = (lets ((hd tl (halve l))) (append hd tl))
 
+      theorem sort-rev
+         ∀ l ∊ (List-of Byte) (sort < l) = (reverse (sort > l))
+
 ))
 
 
@@ -172,6 +184,7 @@
 (define (test)
    (lets
       ((seed (get-seed))
+       ;(seed theonethatfails)
        (rs (seed->rands seed))
        (failed
          (fold
