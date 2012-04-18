@@ -1,23 +1,46 @@
+#!/usr/bin/ol --run
+
 ;; RANDOM -- tag to run this as part of random-tests
 
-;; todo: maybe test api should return rs'?
+;; todo: run each in a thread to avoid slow tests taking most of the time
 
 ;; DSL
 
+;; theorem :: rs → rs' bindings ok?
+
 (define-syntax translate 
    (syntax-rules (∀ ∊ → ↔ ← =)
-      ((translate rs a → . b) (if a (translate rs . b) #true))
+      ((translate rs a → . b) 
+         (lets 
+            ((rs env-a ar (translate rs a)))
+            (if ar
+               (lets ((rs env-b br (translate rs . b)))
+                  (values rs (append env-a env-b) br))
+               (values rs env-a #true))))
       ((translate rs var ← defn . rest) 
-         (let ((var defn)) (translate rs . rest)))
-      ((translate rs a ↔ b) (if a b (not b)))
-      ((translate rs a = b) (equal? a b))
+         (let ((var defn))
+            (lets ((rs env res (translate rs . rest)))
+               (values rs (cons (cons (quote var) var) env) defn))))
+      ((translate rs a ↔ b) 
+         (lets 
+            ((rs env-a ar (translate rs a))
+             (rs env-b br (translate rs b))
+             (env (append env-a env-b)))
+            (values rs env (if ar br (not br)))))
+      ((translate rs a = b) 
+         (values rs null (equal? a b)))
       ((translate rs ∀ var ∊ gen . rest)
-         (lets ((rs var (gen rs)))
-            (translate rs . rest)))
+         (lets 
+            ((rs var (gen rs))
+             (rs env res (translate rs . rest)))
+            (values rs (cons (cons (quote var) var) env) res)))
       ((translate rs ∀ var next ... ∊ gen . rest)
-         (lets ((rs var (gen rs)))
-            (translate rs ∀ next ... ∊ gen . rest)))
-      ((translate rs term) term)))
+         (lets 
+            ((rs var (gen rs))
+             (rs env res (translate rs ∀ next ... ∊ gen . rest)))
+            (values rs (cons (cons (quote var) var) env) res)))
+      ((translate rs term) 
+         (values rs null term))))
 
 (define-syntax theorem
    (syntax-rules ()
@@ -25,11 +48,13 @@
          (cons (quote name)
             (λ (rs) (translate rs . stuff))))))
 
-(define-syntax theorems
+(define-syntax theory
    (syntax-rules (theorem)
-      ((theorems theorem thing ... theorem . rest)
-         (cons (theorem thing ...) (theorems theorem . rest)))
-      ((theorems . stuff)
+      ((theory theorem thing ... theorem . rest)
+         ;; n>1 left
+         (cons (theorem thing ...) (theory theorem . rest)))
+      ((theory . stuff)
+         ;; last one
          (list stuff))))
 
 
@@ -123,7 +148,11 @@
 
 (define tests
 
-   (theorems
+   (theory
+
+      theorem logic-mp
+         ∀ p q ∊ Bool
+            p → p
 
       theorem prime-1
          ∀ a ∊ Nat 
@@ -273,6 +302,9 @@
             b ← (+ a n)
             c ← (+ b (+ m 1))
             b = (bisect (λ (p) (>= p b)) a c)
+      
+      ;; testing failures
+      ; theorem all-even ∀ a ∊ Nat 0 = (band a 1)
 
 ))
 
@@ -280,7 +312,7 @@
 
 ;; Practice
 
-(define (get-seed)
+(define (random-seed)
    (let ((fd (open-input-file "/dev/urandom"))) ;; #false if not there
       (if fd
          (let ((data (get-block fd 16)))
@@ -291,39 +323,72 @@
          (time-ms))))
 
 (define (failures rs)
-   (fold
-      (λ (failed test)
-         (if ((cdr test) rs) ;; this is ok
-            failed
-            (cons (car test) failed)))
-      null tests))
+   (let loop ((rs rs) (tests tests) (failed null))
+      (if (null? tests)
+         (values rs failed)
+         (lets ((rs env ok ((cdar tests) rs)))
+            (if ok
+               (begin
+                  ;; unquote to see successful bindings
+                  ;(print (list (caar tests) 'ok 'with env))
+                  (loop rs (cdr tests) failed))
+               (loop rs (cdr tests) 
+                  (cons (cons (caar tests) env) failed)))))))
 
-(let 
-   ((seed (get-seed))
-    ; (seed 42)
-    )
+;; run a few rounds at load/compile time, like in in $ make random-test
+(let ((seed (random-seed)))
     (let loop ((n 20) (rs (seed->rands seed)))
       (if (= n 0)
          (print "All OK!")
-         (let ((fails (failures rs)))
+         (lets ((rs fails (failures rs)))
             (if (null? fails)
-               (loop (- n 1) (lets ((d rs (uncons rs 0))) rs))
+               (loop (- n 1) rs)
                (show "FAILED: " fails))))))
+
+(import (owl args))
+
+(define (string->natural str)
+   (let ((x (string->integer str)))
+      (if (< x 0) #false x)))
+
+(define cl-handler
+   (cl-rules
+    `((seed "-s" "--seed" cook ,string->natural)
+      (rounds "-n" "--rounds" cook ,string->natural comment "give for finite test")
+      (help "-h" "--help"))))
 
 ;; for --run
 (λ (args)
-   (let ((seed (get-seed)))
-      (show "Starting random continuous test, seed " seed)
-      (let loop ((n 0) (rs (seed->rands seed)))
-         (if (eq? 0 (band n 31))
-            (show " - " n))
-         (lets
-            ((fails (failures rs))
-             (d rs (uncons rs 0)))
-            (if (null? fails)
-               (loop (+ n 1) rs)
-               (begin
-                  (show "TESTS FAILED: " (list 'fails fails 'seed seed 'n n))
-                  #false))))))
+   (process-arguments (cdr args) cl-handler "boo"
+      (λ (dict unknown)
+         (cond
+            ((not (null? unknown))
+               (show "Pray tell what are " unknown)
+               1)
+            ((getf dict 'help)
+               (print "Usage:")
+               (print (format-rules cl-handler))
+               0)
+            (else
+               (lets
+                  ((seed (or (getf dict 'seed)  (random-seed)))
+                   (end (getf dict 'rounds))) ; #false if not given
+                  (show "Starting random continuous test, seed " seed)
+                  (if end
+                     (show "Will run up to " end)
+                     (print "Will run forever"))
+                  (let loop ((n 0) (rs (seed->rands seed)))
+                     (if (eq? 0 (band n 31))
+                        (show " - " n))
+                     (lets ((rs fails (failures rs)))
+                        (if (null? fails)
+                           (if (equal? n end)
+                              (begin
+                                 (print "Finished successfully")
+                                 0)
+                              (loop (+ n 1) rs))
+                           (begin
+                              (show "TESTS FAILED: " (list 'fails fails 'seed seed 'n n))
+                              2))))))))))
 
 
