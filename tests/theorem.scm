@@ -117,7 +117,6 @@
          ((eq? n 2) Rat)
          (else Comp)) rs)))
 
-
 (define (List-of thing)
    (λ (rs)
       (lets ((rs n (rand rs elem-ip)))
@@ -128,7 +127,19 @@
                 (rs tail ((List-of thing) rs)))
                (values rs (cons head tail)))))))
 
+(define (Rlist-of thing)
+   (λ (rs)
+      (lets ((rs n (rand rs elem-ip)))
+         (if (eq? n 0)
+            (values rs null)
+            (lets 
+               ((rs head (thing rs))
+                (rs tail ((Rlist-of thing) rs)))
+               (values rs (rcons head tail)))))))
+
 (define List (List-of Byte))
+
+(define Rlist (Rlist-of Byte))
 
 (define (Ff-of thing)
    (λ (rs)
@@ -149,10 +160,6 @@
 (define tests
 
    (theory
-
-      theorem logic-mp
-         ∀ p q ∊ Bool
-            p → p
 
       theorem prime-1
          ∀ a ∊ Nat 
@@ -302,7 +309,16 @@
             b ← (+ a n)
             c ← (+ b (+ m 1))
             b = (bisect (λ (p) (>= p b)) a c)
-      
+     
+      theorem rlist-car-cons
+         ∀ a ∊ Byte ∀ r ∊ Rlist
+            a = (rcar (rcons a r))
+
+      ;theorem rlist-set-get
+      ;   ∀ r ∊ Rlist ∀ a → Byte
+      ;      p ∊ (range r)
+      ;      p → a = (rget (rset r p a) p)               
+               
       ;; testing failures
       ; theorem all-even ∀ a ∊ Nat 0 = (band a 1)
 
