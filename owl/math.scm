@@ -415,6 +415,10 @@
                   (cast x 32)
                   (cast x 41)))))
                
+      (define-syntax rational
+         (syntax-rules ()
+            ((rational a b) (mkt 73 a b))))
+      
       (define (negate num)   
          (type-case num
             (fix+ 
@@ -426,6 +430,9 @@
                (mkt 41 (ncar num) (ncdr num)))
             (int-             ;; -A -> A
                (ncons (ncar num) (ncdr num)))
+            (rat
+               (lets ((a b num))
+                  (rational (negate a) b)))
             (else
                (big-bad-args 'negate num #false))))
 
@@ -1574,10 +1581,6 @@
       ;;; RATIONALS and COMPLEX (stub)
       ;;;
 
-      (define-syntax rational
-         (syntax-rules ()
-            ((rational a b) (mkt 73 a b))))
-      
       (define-syntax complex
          (syntax-rules ()
             ((complex a b) (mkt 105 a b))))
