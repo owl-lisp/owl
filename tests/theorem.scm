@@ -8,6 +8,33 @@
 
 ;; theorem :: rs → rs' bindings ok?
 
+; f :: ? → _, keys
+(define (domain x)
+   (cond
+      ((rlist? x)  (iota 0 1 (rlen x)))
+      ((list? x)   (iota 0 1 (length x)))
+      ((string? x) (iota 0 1 (string-length x)))
+      ((vector? x) (iota 0 1 (vec-len x)))
+      ((ff? x)     (keys x))
+      (else (error "domain: what is " x))))
+
+; f :: _ → ?, values
+(define (range x)
+   (cond
+      ((rlist? x)  (rlist->list x))
+      ((list? x)   x)
+      ((string? x) (string->list x))
+      ((vector? x) (vector->list x))
+      ((ff? x)     (ff-fold (λ (out k v) (cons v out)) null x))
+      (else (error "range: what is " x))))
+
+;; rs (thing_1 ...) def → rs' thing_i | rs def
+(define (choose rs l)
+   (if (null? l)
+      (error "cannot take a random element of empty list: " l)
+      (lets ((rs n (rand rs (length l))))
+         (values rs (lref l n)))))
+
 (define-syntax translate 
    (syntax-rules (∀ ∊ → ↔ ← ⇒ ⇔ = ∧ ∨)
       ((translate rs a ⇒ . b)
@@ -25,6 +52,11 @@
          (let ((var defn))
             (lets ((rs env res (translate rs . rest)))
                (values rs (cons (cons (quote var) var) env) res))))
+      ((translate rs var ∊ exp . rest) 
+         (lets 
+            ((rs var (choose rs exp))
+             (rs env res (translate rs . rest)))
+            (values rs (cons (cons (quote var) var) env) res)))
       ((translate rs a ↔ b) 
          (lets 
             ((rs env-a ar (translate rs a))
@@ -394,6 +426,12 @@
          ∀ s ∊ String
             s = (bytes->string (string->bytes s))
 
+      theorem pick-test
+         ∀ l ∊ (List-of Byte)
+            (pair? l) ⇒  
+               e ∊ l
+               (< e 256)
+            
       ;; testing failures
       ; theorem all-even ∀ a ∊ Nat 0 = (band a 1)
 
