@@ -2,7 +2,7 @@
 
 renice +20 $$ > /dev/null 2>&1 # make sure we're being nice
 
-cd $HOME/owl-lisp || exit 1
+cd $HOME/ram/owl-lisp || exit 1
 
 ulimit -c unlimited # save core if we happen to trigger something nasty
 
@@ -13,7 +13,7 @@ test -x bin/ol && (\
    ME=`date '+%s'`; \
    echo " - tests at `date`"; \
    make random-test > $HOME/aoh/owl/logs/test-$ME.txt 2>&1 \
-      && date >> test-runs \
+      && date >> test-runs && rm $HOME/aoh/owl/logs/test-$ME.txt \
       || ( cp $HOME/aoh/owl/logs/test-$ME.txt $HOME/aoh/owl/logs/fail-$ME.txt; \
            twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
            rm bin/ol-failed; \
@@ -23,7 +23,7 @@ ROUNDS=`cat test-runs | wc -l`
 echo $ROUNDS | grep "10000$" && twidge update "$ROUNDS unit test rounds passed since last commit."
 
 # don't use all cpu
-sleep 3
+sleep 1
 
 # recurse unless updated
 test -f $HOME/owl-updated || exec bin/builder
