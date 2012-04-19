@@ -213,7 +213,7 @@
       (define (self-quoting? val)
          (or 
             (number? val) (string? val) (boolean? val) (function? val) 
-            (port? val) (tcp? val) (socket? val) (null? val)))
+            (port? val) (tcp? val) (socket? val) (null? val) (rlist? val)))
 
       ;; could drop val earlier to possibly gc it while rendering 
       (define (maybe-quote val lst)

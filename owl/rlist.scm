@@ -22,6 +22,7 @@
 		rlist->list ; O(n)
 		list->rlist ; O(n log n), temp
 		rlist			; (rlist ...) -> rl
+      rrev   ; O(n log n)
 		) 
 		
 		; *   (equal? rl rl') = #true, but not necessarily (eq? rl rl')
@@ -245,6 +246,9 @@
             ((rlist a . as) 
                (rcons a (rlist . as)))))
 
+   ;; note, could also be done in O(n)
+   (define (rrev rl)
+      (rfold (λ (out x) (rcons x out)) null rl))
 
 ))
 

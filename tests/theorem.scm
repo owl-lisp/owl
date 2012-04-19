@@ -9,7 +9,11 @@
 ;; theorem :: rs → rs' bindings ok?
 
 (define-syntax translate 
-   (syntax-rules (∀ ∊ → ↔ ← =)
+   (syntax-rules (∀ ∊ → ↔ ← ⇒ ⇔ = ∧ ∨)
+      ((translate rs a ⇒ . b)
+         (translate rs a → . b))
+      ((translate rs a ⇔ . b)
+         (translate rs a ↔ . b))
       ((translate rs a → . b) 
          (lets 
             ((rs env-a ar (translate rs a)))
@@ -20,7 +24,7 @@
       ((translate rs var ← defn . rest) 
          (let ((var defn))
             (lets ((rs env res (translate rs . rest)))
-               (values rs (cons (cons (quote var) var) env) defn))))
+               (values rs (cons (cons (quote var) var) env) res))))
       ((translate rs a ↔ b) 
          (lets 
             ((rs env-a ar (translate rs a))
@@ -150,6 +154,27 @@
                (lets ((rs x (thing rs)))
                   (loop rs (put out x x))))))))
 
+(import (owl iff))
+
+(define (Iff rs)
+   (let loop ((rs rs) (out #false))
+      (lets ((rs n (rand rs elem-ip)))
+         (if (eq? n 0)
+            (values rs out)
+            (lets ((rs x (Nat rs)))
+               (loop rs (iput out x x)))))))
+
+;; FIXME: have full range and correct holes
+(define (UChar rs)
+   (rand rs #xffff))
+
+(define (String rs)
+   (let loop ((rs rs) (out null))
+      (lets ((rs n (rand rs elem-ip)))
+         (if (eq? n 0)
+            (values rs (list->string out))
+            (lets ((rs b (UChar rs)))
+               (loop rs (cons b out)))))))
 
 
 ;; Theory 
@@ -157,18 +182,18 @@
 (define (nonzero? a) 
    (not (eq? a 0)))
 
-(define tests
+(define tests-1
 
    (theory
 
       theorem prime-1
          ∀ a ∊ Nat 
-            (< a 100000000) → 
-               (prime? a) → (= 1 (length (factor a)))
+            (< a 100000000) ⇒ 
+               (prime? a) ⇒ (= 1 (length (factor a)))
      
       theorem factor-1
          ∀ a ∊ Nat
-            (and (< 1 a) (< a 1000000)) → 
+            (and (< 1 a) (< a 1000000)) ⇒ 
                a = (fold * 1 (map (λ (p) (expt (car p) (cdr p))) (factor a)))
 
       theorem add-comm
@@ -201,19 +226,19 @@
 
       theorem div-cancel-1
          ∀ a b ∊ Num 
-            (nonzero? b) → a = (* (/ a b) b)
+            (nonzero? b) ⇒ a = (* (/ a b) b)
 
       theorem div-cancel-2
          ∀ a b ∊ Num 
-            (nonzero? b) → a = (/ (* a b) b)
+            (nonzero? b) ⇒ a = (/ (* a b) b)
 
       theorem div-twice 
          ∀ a b ∊ Num 
-            (nonzero? b) → (/ (/ a b) b) = (/ a (* b b))
+            (nonzero? b) ⇒ (/ (/ a b) b) = (/ a (* b b))
 
       theorem div-self
          ∀ a ∊ Num 
-            (nonzero? a) → 1 = (/ a a)
+            (nonzero? a) ⇒ 1 = (/ a a)
 
       theorem mul-comm
          ∀ a b ∊ Num 
@@ -249,7 +274,7 @@
 
       theorem ncr-def 
          ∀ a b ∊ Byte 
-            (>= a b) → (ncr a b) = (/ (! a) (* (! b) (! (- a b))))
+            (>= a b) ⇒ (ncr a b) = (/ (! a) (* (! b) (! (- a b))))
 
       theorem halve-1
          ∀ l ∊ List 
@@ -287,18 +312,18 @@
 
       theorem quotrem-1
          ∀ a b ∊ Int
-            (nonzero? b) →  
+            (nonzero? b) ⇒  
                a = (lets ((q r (quotrem a b))) (+ (* q b) r))
 
       theorem expt-1
          ∀ a ∊ Num ∀ p ∊ Byte
-            (and (< 0 p) (< p 10)) → 
+            (and (< 0 p) (< p 10)) ⇒ 
                (expt a p) = (* a (expt a (- p 1)))
 
       theorem totient-1
          ∀ a ∊ Nat
-            (and (< 1 a) (< a 100000)) → 
-               (prime? a) ↔ (= (phi a) (- a 1))
+            (and (< 1 a) (< a 100000)) ⇒ 
+               (prime? a) ⇔ (= (phi a) (- a 1))
 
       theorem fasl-1
          ∀ f ∊ (Ff-of Num)
@@ -309,21 +334,76 @@
             b ← (+ a n)
             c ← (+ b (+ m 1))
             b = (bisect (λ (p) (>= p b)) a c)
-     
+
+))
+
+(define tests-2 ;; had to split to multiple lists because the register allocator ran out of space (again... fix it!)
+   (theory
+
       theorem rlist-car-cons
          ∀ a ∊ Byte ∀ r ∊ Rlist
             a = (rcar (rcons a r))
 
-      ;theorem rlist-set-get
-      ;   ∀ r ∊ Rlist ∀ a → Byte
-      ;      p ∊ (range r)
-      ;      p → a = (rget (rset r p a) p)               
-               
+      theorem rlist-rfoldr-copy
+         ∀ r ∊ Rlist
+            r = (rfoldr rcons null r)
+
+      theorem rlist-rfold-reverse
+         ∀ r ∊ Rlist
+            r = (rrev (rfold (λ (o x) (rcons x o)) null r))
+
+      theorem rlist-set-get-map
+         ∀ r ∊ (Rlist-of Byte)
+            (rmap (λ (x) (+ x 1)) r) 
+             = (fold 
+                  (lambda (rp i) (rset rp i (+ 1 (rget rp i 'bad))))
+                  r 
+                  (iota 0 1 (rlen r)))
+
+      theorem rlist-convert
+         ∀ l ∊ List 
+            l = (rlist->list (list->rlist l))
+
+      theorem iff-put
+         ∀ i ∊ Iff ∀ n ∊ Nat
+            (iget (iput i n 'foo) n 'bar) = 'foo
+
+      theorem iff-gen
+         ∀ l ∊ (List-of Nat)                                     ; (k_1 k_2 ...)
+            i ← (fold (λ (i k) (iput i k (+ k 1))) #false l)     ; iff of k_n ⇒ k_n+1
+            (ifold (λ (ok k v) (and ok (= k (- v 1)))) #true i)  ; check all ff[k_n] = k_n+1
+
+      theorem lazy-1
+         ∀ n ∊ Byte
+            (fold + 0 (iota 0 1 n)) = (lfold + 0 (liota 0 1 n))
+      
+      theorem lazy-2
+         ∀ n ∊ Byte
+            (zip cons (iota 0 1 n) (iota n -1 0)) 
+               = (force-ll (lzip cons (liota 0 1 n) (liota n -1 0)))
+
+      theorem lazy-3
+         ∀ n ∊ Byte
+            (reverse (iota 0 1 n)) = (lfoldr cons null (liota 0 1 n))
+
+      theorem str-1
+         ∀ l ∊ (List-of Short)
+            l = (string->list (list->string l))
+
+      theorem str-2
+         ∀ s ∊ String
+            s = (bytes->string (string->bytes s))
+
       ;; testing failures
       ; theorem all-even ∀ a ∊ Nat 0 = (band a 1)
 
 ))
 
+(define tests
+   (foldr append null 
+      (list 
+         tests-1 
+         tests-2)))
 
 
 ;; Practice
@@ -348,8 +428,10 @@
                   ;; unquote to see successful bindings
                   ;(print (list (caar tests) 'ok 'with env))
                   (loop rs (cdr tests) failed))
-               (loop rs (cdr tests) 
-                  (cons (cons (caar tests) env) failed)))))))
+               (begin
+                  ;(print (list (caar tests) 'bad 'with env))
+                  (loop rs (cdr tests) 
+                     (cons (cons (caar tests) env) failed))))))))
 
 ;; run a few rounds at load/compile time, like in in $ make random-test
 (let ((seed (random-seed)))
