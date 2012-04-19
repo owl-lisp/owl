@@ -2,9 +2,24 @@
 
 ;; RANDOM -- tag to run this as part of random-tests
 
-;; todo: run each in a thread to avoid slow tests taking most of the time
+;; todo: move to (owl proof) after dust settles
 
-;; DSL
+;; DSL - still being prototyped
+; 
+;  Theorem = (∀ var ... ∊ set)* Term
+;  Term = Term ⇒ Term                    -- implies
+;       | Term ⇔ Term                    -- if and only if
+;       | Exp = Exp                      -- compare exps with equal? to determine outcome
+;       | Exp                            -- return value (as in #f or non-#f) of Exp
+;       | var ∊ (list | number) Term     -- pick one at random  (should use ◅, ⇐, ⇠, or ⇦ instead to avoid confusion?)
+;       | var ← Exp Term                 -- assign within the following
+;       | (Term)               <- not there yet
+;       | Term ∧ Term          <- likewise
+;       | Term ∨ Term          <- ditto
+;       | ∀ var ... ∊ set Term <- -||-
+; 
+
+;; todo: internal quantifiers, not, , , grouping
 
 ;; theorem :: rs → rs' bindings ok?
 
@@ -325,7 +340,11 @@
       theorem ff-del
          ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
             b = (get (del (put f a a) a) a b)
-      
+     
+      theorem ff-del-all
+         ∀ f ∊ (Ff-of Byte)
+            #false = (ff-fold (λ (ff key val) (del ff key)) f f)
+
       theorem ff-put
          ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
             b = (get (put f a b) a #false)
