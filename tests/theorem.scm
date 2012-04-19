@@ -30,10 +30,16 @@
 
 ;; rs (thing_1 ...) def → rs' thing_i | rs def
 (define (choose rs l)
-   (if (null? l)
-      (error "cannot take a random element of empty list: " l)
-      (lets ((rs n (rand rs (length l))))
-         (values rs (lref l n)))))
+   (cond
+      ((eq? l 0)
+         (error "cannot take a random number below: " l))
+      ((number? l)
+         (rand rs l))
+      ((null? l)
+         (error "cannot take a random element of empty list: " l))
+      (else
+         (lets ((rs n (rand rs (length l))))
+            (values rs (lref l n))))))
 
 (define-syntax translate 
    (syntax-rules (∀ ∊ → ↔ ← ⇒ ⇔ = ∧ ∨)
@@ -395,6 +401,13 @@
       theorem rlist-convert
          ∀ l ∊ List 
             l = (rlist->list (list->rlist l))
+
+      theorem rlist-cons-moves 
+         ∀ r ∊ Rlist
+            l ← (rlen r)
+            (> l 0) ⇒
+               p ∊ l
+               (rget r p #t) = (rget (rcons 0 r) (+ p 1) #f)
 
       theorem iff-put
          ∀ i ∊ Iff ∀ n ∊ Nat
