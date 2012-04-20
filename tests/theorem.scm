@@ -13,13 +13,17 @@
 ;       | Exp                            -- return value (as in #f or non-#f) of Exp
 ;       | var ∊ (list | number) Term     -- pick one at random  (should use ◅, ⇐, ⇠, or ⇦ instead to avoid confusion?)
 ;       | var ← Exp Term                 -- assign within the following
-;       | (Term)               <- not there yet
 ;       | Term ∧ Term          <- likewise
 ;       | Term ∨ Term          <- ditto
+;       | (Term)               <- not there yet
 ;       | ∀ var ... ∊ set Term <- -||-
 ; 
 
-;; todo: internal quantifiers, not, , , grouping
+;; Params
+
+(define elem-ip 20) ;; inverse probability of stopping element addition for linear random data structures
+(define max-bits 128)
+
 
 ;; theorem :: rs → rs' bindings ok?
 
@@ -56,10 +60,18 @@
          (lets ((rs n (rand rs (length l))))
             (values rs (lref l n))))))
 
+;; todo: precedence: ¬ ∧ ∨ ∀ ∃ ⇒  
+;; todo:
+;; todo: is the ∀ a ∊ A P == ∀ a (a ∊ A) ⇒ P worth having a nonstandard syntax?
+;; plan: (translate rs env thing ... OP . rst) -> translate left and right sides around op, convert to (OP-value first rest)
+;; type-specific translators to avoid extra checks?
+
+;; node :: rs env → rs' env' result
+
 (define-syntax translate 
    (syntax-rules (∀ ∊ → ↔ ← ⇒ ⇔ = ∧ ∨)
-      ((translate rs a ⇒ . b)
-         (translate rs a → . b))
+      ((translate rs a ⇒ . b) ;; we want a R b R c to be a R (b R c)
+         (translate rs a → . b)) 
       ((translate rs a ⇔ . b)
          (translate rs a ↔ . b))
       ((translate rs a → . b) 
@@ -99,6 +111,12 @@
       ((translate rs term) 
          (values rs null term))))
 
+#| theorem name:
+ |   ...
+ | proof:
+ |   ...
+ |#
+
 (define-syntax theorem
    (syntax-rules ()
       ((theorem name . stuff)
@@ -118,8 +136,6 @@
 
 ;; Generators 
 
-(define elem-ip 20) ;; inverse probability of stopping element addition for linear random data structures
-
 (define (Bool rs)
    (lets ((d rs (uncons rs 0)))
       ;; get one rand, pick low bit
@@ -134,8 +150,8 @@
 
 (define (Nat rs)
    (lets
-      ((rs b (rand rs 128))
-       (b (max b 10)))
+      ((rs b (rand rs max-bits))
+       (b (max b 6)))
       (rand-log rs b)))
 
 (define (Int rs)
@@ -305,9 +321,17 @@
          ∀ a ∊ Nat ∀ b ∊ Byte 
             a = (>> (<< a b) b)
 
-      theorem gcd-swap
+      theorem gcd-comm
          ∀ a b ∊ Int 
             (gcd a b) = (gcd b a)
+
+      theorem gcd-assoc
+         ∀ a b c ∊ Int
+            (gcd a (gcd b c)) = (gcd (gcd a b) c)
+
+      theorem gcd-lcm
+         ∀ a b ∊ Nat
+            (* a b) = (* (gcd a b) (lcm a b))
 
       theorem rev-1
          ∀ l ∊ List 
@@ -358,9 +382,13 @@
          ∀ f ∊ (Ff-of Short)
             (ff-foldr (λ (out k v) (cons k out)) null f) = (reverse (ff-fold (λ (out k v) (cons k out)) null f))
 
-      theorem sqrt-1
+      theorem sqrt-square
          ∀ a ∊ Nat
             a = (sqrt (* a a))
+
+      theorem sqrt-exact
+         ∀ a ∊ Int
+            a = (lets ((b r (exact-integer-sqrt a))) (+ (* b b) r))
 
       theorem square-1
          ∀ a b ∊ Num
@@ -370,7 +398,8 @@
       theorem quotrem-1
          ∀ a b ∊ Int
             (nonzero? b) ⇒  
-               a = (lets ((q r (quotrem a b))) (+ (* q b) r))
+               (lets ((q r (quotrem a b))) 
+                  (and (< (abs r) (abs b)) (= (+ (* q b) r) a)))
 
       theorem expt-1
          ∀ a ∊ Num ∀ p ∊ Byte
@@ -382,6 +411,11 @@
             (and (< 1 a) (< a 100000)) ⇒ 
                (prime? a) ⇔ (= (phi a) (- a 1))
 
+))
+
+(define tests-2 ;; had to split to multiple lists because the register allocator ran out of space (again... fix it!)
+   (theory
+
       theorem fasl-1
          ∀ f ∊ (Ff-of Num)
             f = (fasl-decode (fasl-encode f) 'bad)
@@ -391,11 +425,6 @@
             b ← (+ a n)
             c ← (+ b (+ m 1))
             b = (bisect (λ (p) (>= p b)) a c)
-
-))
-
-(define tests-2 ;; had to split to multiple lists because the register allocator ran out of space (again... fix it!)
-   (theory
 
       theorem rlist-car-cons
          ∀ a ∊ Byte ∀ r ∊ Rlist
@@ -458,12 +487,16 @@
          ∀ s ∊ String
             s = (bytes->string (string->bytes s))
 
+      theorem list-keep-remove
+         ∀ l ∊ List
+            (sort < l) = (sort < (append (keep odd? l) (remove odd? l))) 
+
       theorem pick-test
          ∀ l ∊ (List-of Byte)
             (pair? l) ⇒  
                e ∊ l
                (< e 256)
-            
+
       ;; testing failures
       ; theorem all-even ∀ a ∊ Nat 0 = (band a 1)
 

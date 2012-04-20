@@ -2,6 +2,8 @@
 ;;; random access lists 
 ;;;
 
+;; todo: rins, rdel
+
 (define-library (owl rlist)
 
 	(export 
