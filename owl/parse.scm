@@ -15,6 +15,7 @@
       get-rune-if
       get-one-of
       get-word
+      get-word-ci       ; placeholder
       get-either
       get-any-of
       get-kleene*
@@ -135,6 +136,20 @@
                      (get-byte lst
                         (λ (lst fail byte pos)
                            (if (eq? byte (car bytes))
+                              (loop (cdr bytes) lst fail pos)
+                              (fail pos (list "expected next '" (runes->string bytes) "'"))))
+                        fail pos))))))
+     
+      ;; fixme: not correct yet
+      (define (get-word-ci str val)
+         (let ((bytes (string->bytes str)))
+            (λ (lst ok fail pos)
+               (let loop ((bytes bytes) (lst lst) (fail fail) (pos pos))
+                  (if (null? bytes)
+                     (ok lst fail val pos)
+                     (get-byte lst
+                        (λ (lst fail byte pos)
+                           (if (char-ci=? byte (car bytes))
                               (loop (cdr bytes) lst fail pos)
                               (fail pos (list "expected next '" (runes->string bytes) "'"))))
                         fail pos))))))

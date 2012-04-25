@@ -61,6 +61,8 @@
       string-ci>=?       ; str str → bool
       unicode-fold-char  ; char tail → (char' ... tail)
       make-string        ; n char → str
+      char=?             ; cp cp → bool (temp)
+      char-ci=?          ; cp cp → bool (temp)
       )
 
    (import (owl iff))
@@ -421,6 +423,7 @@
                (append mapping tail)
                (cons mapping tail)))) ;; self or changed
 
+
       ;; fixme: O(n) temp string-ref! walk the tree later
       (define (string-ref str p)
          (llref (str-iter str) p))
@@ -434,6 +437,15 @@
                      (append cp (upcase ll))
                      (pair cp (upcase ll))))
                null)))
+
+      (define char=? =)
+
+      ;; fixme: incomplete, added because needed for ascii range elsewhere
+      (define (char-ci=? a b)
+         (or (eq? a b) 
+            (=
+               (iget char-fold-iff a a)
+               (iget char-fold-iff b b))))
 
       (define string=? string-eq?)
       (define (string-ci=? a b) (eq? 2 (str-compare upcase a b)))
