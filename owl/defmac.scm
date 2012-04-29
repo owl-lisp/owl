@@ -415,11 +415,11 @@
       (define call/cc6 ('_sans_cps (λ (k f) (f k (λ (r a b c d e f) (k a b c d e f))))))
 
       ;; handle also multi-arg continuations
-      (define-syntax lets/cc2 (syntax-rules () ((lets/cc var . body) (call/cc2 (λ (var) (lets . body))))))
-      (define-syntax lets/cc3 (syntax-rules () ((lets/cc var . body) (call/cc3 (λ (var) (lets . body))))))
-      (define-syntax lets/cc4 (syntax-rules () ((lets/cc var . body) (call/cc4 (λ (var) (lets . body))))))
-      (define-syntax lets/cc5 (syntax-rules () ((lets/cc var . body) (call/cc5 (λ (var) (lets . body))))))
-      (define-syntax lets/cc6 (syntax-rules () ((lets/cc var . body) (call/cc6 (λ (var) (lets . body))))))
+      (define-syntax lets/cc2 (syntax-rules () ((lets/cc2 var . body) (call/cc2 (λ (var) (lets . body))))))
+      (define-syntax lets/cc3 (syntax-rules () ((lets/cc3 var . body) (call/cc3 (λ (var) (lets . body))))))
+      (define-syntax lets/cc4 (syntax-rules () ((lets/cc4 var . body) (call/cc4 (λ (var) (lets . body))))))
+      (define-syntax lets/cc5 (syntax-rules () ((lets/cc5 var . body) (call/cc5 (λ (var) (lets . body))))))
+      (define-syntax lets/cc6 (syntax-rules () ((lets/cc6 var . body) (call/cc6 (λ (var) (lets . body))))))
 
       (define call-with-current-continuation call/cc)
       (define (i x) x)
