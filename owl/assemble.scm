@@ -18,6 +18,24 @@
 
    (begin
 
+      ;; primops = (#(name opcode in-args|#f out-args|#f wrapper-fn) ...)
+
+      ;; ff of opcode → (in|#f out|#f), #f if variable
+      (define primop-arities 
+         (fold
+            (λ (ff node)
+               (lets ((name op in out wrapper node))
+                  (put ff op (cons in out))))
+            #false primops))
+
+      (define (opcode-arity-ok? op in out)
+         (let ((node (getf primop-arities op)))
+            (if node
+               (and
+                  (or (eq? in  (car node)) (not (car node)))
+                  (or (eq? out (cdr node)) (not (cdr node))))
+               #true)))
+
       (define vm-instructions
          (list->ff
          `((move . 9)      ; move a, t:      Rt = Ra
@@ -87,6 +105,7 @@
                (cons (band op #xff) lst))))
 
       ; rtl -> list of bytes
+      ;; ast fail-cont → code' | (fail-cont <reason>)
       (define (assemble code fail)
          (tuple-case code
             ((ret a)
@@ -109,30 +128,35 @@
                                  (cons (reg to)
                                     (assemble more fail)))))))
                   ((variable-input-arity? op)
+                     ;; fixme: no output arity check
                      (cons op
                         (cons (length args)
                            (append (map reg args)
                               (cons (reg to)
                                  (assemble more fail))))))
                   ((fixnum? to)
-                     (cons op
-                        (append (map reg args)
-                           (cons to
-                              (assemble more fail)))))
-                  ((list? to)
-                     (if (has? multiple-return-variable-primops op)    
-                        (cons op
-                           (append (map reg args)      
-                              ; <- nargs implicit, FIXME check nargs opcode too
-                              (append (map reg to)
-                                 (assemble more fail))))
+                     (if (opcode-arity-ok? op (length args) 1)
                         (cons op
                            (append (map reg args)
-                              (cons (length to)          ; <- prefix with output arity
+                              (cons to
+                                 (assemble more fail))))
+                        (fail (list "Bad opcode arity for " op (length args) 1))))
+                  ((list? to)
+                     (if (opcode-arity-ok? op (length args) (length to))
+                        (if (has? multiple-return-variable-primops op)    
+                           (cons op
+                              (append (map reg args)      
+                                 ; <- nargs implicit, FIXME check nargs opcode too
                                  (append (map reg to)
-                                    (assemble more fail)))))))
+                                    (assemble more fail))))
+                           (cons op
+                              (append (map reg args)
+                                 (cons (length to)          ; <- prefix with output arity
+                                    (append (map reg to)
+                                       (assemble more fail))))))
+                        (fail (list "Bad opcode arity: " (list op (length args) (length to))))))
                   (else
-                     (error "bad case of primop in assemble: " op))))
+                     (fail (list "bad case of primop in assemble: " op)))))
             ;; fixme: closures should have just one RTL node instead of separate ones for clos-proc and clos-code
             ((clos-proc lpos offset env to more)
                ;; make a 2-level closure
@@ -178,7 +202,7 @@
                   ((fixnum? val)
                      (let ((code (assemble cont fail)))
                         (if (or (> val 126) (< val -126)) ; would be a bug
-                           (error "ld: big value: " val))
+                           (fail (list "ld: big value: " val)))
                         (ilist (inst->op 'ld) 
                            (if (< val 0) (+ 256 val) val)
                            (reg to) code)))
@@ -189,7 +213,7 @@
                      (ilist (inst->op 'ldt) (reg to)
                         (assemble cont fail)))
                   (else
-                     (error "cannot assemble a load for " val))))
+                     (fail (list "cannot assemble a load for " val)))))
             ((refi from offset to more)
                (ilist 
                   (inst->op 'refi) (reg from) offset (reg to) 
@@ -210,7 +234,7 @@
                    (len (length else)))
                   (cond
                      ((< len #xffff) (ilist (inst->op 'jlq) (reg a) (reg b) (band len #xff) (>> len 8) (append else then)))
-                     (else (error "need a bigger jump instruction: length is " len)))))
+                     (else (fail (list "need a bigger jump instruction: length is " len))))))
             ((jz a then else)
                (lets
                   ((then (assemble then fail))
@@ -218,7 +242,7 @@
                    (len (length else)))
                   (cond
                      ((< len #xffff) (ilist (inst->op 'jz) (reg a) (band len #xff) (>> len 8) (append else then)))
-                     (else (error "need a bigger jump instruction: length is " len)))))
+                     (else (fail (list "need a bigger jump instruction: length is " len))))))
             ((jf a then else)
                (lets
                   ((then (assemble then fail))
@@ -226,7 +250,7 @@
                    (len (length else)))
                   (cond
                      ((< len #xffff) (ilist (inst->op 'jf) (reg a) (band len #xff) (>> len 8) (append else then)))
-                     (else (error "need a bigger jump instruction: length is " len)))))
+                     (else (fail (list "need a bigger jump instruction: length is " len))))))
             ((jn a then else)
                (lets
                   ((then (assemble then fail))
@@ -234,7 +258,7 @@
                    (len (length else)))
                   (cond
                      ((< len #xffff) (ilist (inst->op 'jn) (reg a) (band len #xff) (>> len 8) (append else then)))
-                     (else (error "need a bigger jump instruction: length is " len)))))
+                     (else (fail (list "need a bigger jump instruction: length is " len))))))
             ;; todo: jit, jat and jrt should have a shared RTL node
             ((jit a type then else)
                (lets
@@ -246,7 +270,7 @@
                         (ilist (inst->op 'jit2) (reg a) type (band len #xff) 
                            (>> len 8) (append else then)))
                      (else
-                        (error "need a bigger jit instruction: length is " len)))))
+                        (fail (list "need a bigger jit instruction: length is " len))))))
             ((jat a type then else)
                (lets
                   ((then (assemble then fail))
@@ -258,7 +282,7 @@
                            (>> len 8) (append else then)))
                      ;; if (jat a type2 ...), make (jatq a type jmp jatq  ...)
                      (else
-                        (error "need a bigger jat instruction: length is " len)))))
+                        (fail (list "need a bigger jat instruction: length is " len))))))
             ((jrt a type then else)
                (lets
                   ((then (assemble then fail))
@@ -268,10 +292,10 @@
                      ((< len #xff) ;; todo: jrt has only a short branch option
                         (ilist (inst->op 'jrt) (reg a) type len (append else then)))
                      (else
-                        (error "need a bigger jrt instruction: length is " len)))))
+                        (fail (list "need a bigger jrt instruction: length is " len))))))
             (else
                ;(show "assemble: what is " code)
-               (fail #false))))
+               (fail (list "Unknown opcode " code)))))
 
       ;; make bytecode and intern it (to improve sharing, not mandatory)
       (define (bytes->bytecode bytes)
@@ -289,9 +313,9 @@
                   ;(show "optimized code is " insts)
                   (if (not insts)
                      (error "failed to allocate registers" "")
-                     (bytes->bytecode
-                        (call/cc
-                           (λ (ret)
-                              (cons arity (assemble insts ret))))))))))
+                     (lets/cc ret
+                        ((fail (λ (why) (error "Error in bytecode assembly: " why) #false)))
+                        (bytes->bytecode
+                           (cons arity (assemble insts fail)))))))))
 
 ))
