@@ -286,12 +286,13 @@
                   (lets ((ll val (decode-immediate ll fail)))
                      (get-fields ll got (- size 1) fail (cons val out)))
                   (lets
-                     ; fixme, should make the first step here
-                     ((ll pos (get-nat (cons fst ll) fail 0))
-                      (val (rget got (- pos 1) nan)))
-                     (if (eq? val nan)
+                     ((ll pos (get-nat (cons fst ll) fail 0)))
+                     (if (eq? pos 0)
                         (fail "bad reference")
-                        (get-fields ll got (- size 1) fail (cons val out))))))))
+                        (let ((val (rget got (- pos 1) nan)))
+                           (if (eq? val nan)
+                              (fail "bad reference")
+                              (get-fields ll got (- size 1) fail (cons val out))))))))))
 
       (define (get-bytes ll n fail out)
          (if (eq? n 0)
