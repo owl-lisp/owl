@@ -943,9 +943,6 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       if (unlikely(!ticker--)) goto switch_thread;
       ip = ((unsigned char *) ob) + W;
       goto invoke;
-      //if (likely(*ip++ == acc)) goto invoke;
-      //ip--;
-      //error(256, fixnum(*ip), ob);
    } else if ((word)ob == IFALSE && acc == 3) { /* ff application: (False key def) -> def */
       ob = (word *) R[3]; /* call cont */
       R[3] = R[5]; /* default arg */
@@ -1068,8 +1065,7 @@ dispatch: /* handle normal bytecode */
          next(3); 
       case 17: /* narg n */
          if (unlikely(acc != *ip)) {
-            printf("ARITY ERROR\n");
-            exit(1);
+            error(256, fixnum(*ip), ob);
          }
          next(1);
       case 18: /* goto-code p */
@@ -1113,8 +1109,20 @@ dispatch: /* handle normal bytecode */
          R[3] = R[*ip];
          acc = 1;
          goto apply; 
-      case 25: /* nop */
-         break;
+      case 25: /* jmp-nargs(>=?) a hi lo */
+         if (*ip == acc) {
+            if (op & 64) { /* args+ */
+               fprintf(stderr, "arity %d ok, would add null\n", acc);
+            } else {
+               fprintf(stderr, "arity %d ok, was fixed\n", acc);
+            }
+         } else if ((op & 64) && acc > *ip) {
+            fprintf(stderr, "arity min %d ok, i have %d\n", acc, *ip);
+         } else {
+            fprintf(stderr, "bad call, would jump by %d\n", (ip[1] << 8) | ip[2]);
+         }
+         exit(1);
+         next(3);
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
          word a = (fixval(A0)<<16) | fixval(A1); 
          word b = fixval(A2);
