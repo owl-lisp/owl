@@ -942,9 +942,10 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } 
       if (unlikely(!ticker--)) goto switch_thread;
       ip = ((unsigned char *) ob) + W;
-      if (likely(*ip++ == acc)) goto invoke;
-      ip--;
-      error(256, fixnum(*ip), ob);
+      goto invoke;
+      //if (likely(*ip++ == acc)) goto invoke;
+      //ip--;
+      //error(256, fixnum(*ip), ob);
    } else if ((word)ob == IFALSE && acc == 3) { /* ff application: (False key def) -> def */
       ob = (word *) R[3]; /* call cont */
       R[3] = R[5]; /* default arg */
@@ -1007,7 +1008,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       fp = gc(1024*64, fp);
       ob = (word *) fp[p+1];
       while(--p >= 0) { R[p] = fp[p+1]; }
-      ip = ((unsigned char *) ob) + W + 1;
+      ip = ((unsigned char *) ob) + W;
    }
    op = *ip++;
    if (op) {
@@ -1065,15 +1066,21 @@ dispatch: /* handle normal bytecode */
       case 16: /* jv[which] a o1 a2*/
          if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
          next(3); 
+      case 17: /* narg n */
+         if (unlikely(acc != *ip)) {
+            printf("ARITY ERROR\n");
+            exit(1);
+         }
+         next(1);
       case 18: /* goto-code p */
          ob = (word *) R[*ip]; /* needed in case of gc */
-         ip = ((unsigned char *) R[*ip]) + W + 1;
+         ip = ((unsigned char *) R[*ip]) + W;
          goto invoke;
       case 19: { /* goto-proc p */
          word *this = (word *) R[*ip];
          R[1] = (word) this;
          ob = (word *) this[1];
-         ip = ((unsigned char *) ob) + W + 1;
+         ip = ((unsigned char *) ob) + W;
          goto invoke; }
       case 21: { /* goto-clos p */
          word *this = (word *) R[*ip];
@@ -1081,7 +1088,7 @@ dispatch: /* handle normal bytecode */
          this = (word *) this[1];
          R[2] = (word) this;
          ob = (word *) this[1];
-         ip = ((unsigned char *) ob) + W + 1;
+         ip = ((unsigned char *) ob) + W;
          goto invoke;
          break; }
       case 22: { /* cast o t r */
@@ -1106,6 +1113,8 @@ dispatch: /* handle normal bytecode */
          R[3] = R[*ip];
          acc = 1;
          goto apply; 
+      case 25: /* nop */
+         break;
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
          word a = (fixval(A0)<<16) | fixval(A1); 
          word b = fixval(A2);
@@ -1274,7 +1283,7 @@ dispatch: /* handle normal bytecode */
             word code = ob[pos];
             acc = pos - 3;
             while(--pos) { R[pos] = ob[pos]; }
-            ip = ((unsigned char *) code) + W + 1;
+            ip = ((unsigned char *) code) + W;
          } else {
             /* call a thunk with terminal continuation */
             R[3] = IHALT; /* exit via R0 when the time comes */

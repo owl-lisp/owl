@@ -385,7 +385,7 @@
       (define (rtl-pick-call regs rator nargs)
          ;(show "picking call for " rator)
          ;(show "regs " regs)
-         (tuple-case rator
+         '(tuple-case rator
             ((value rator)
                (tuple-case (fn-type rator)
                   ((code n)
@@ -407,7 +407,8 @@
                ;(show "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
                ;(print "ENV:")
                ;(for-each (λ (x) (show " - " x)) regs)
-               #false)))
+               #false))
+         #false) ;; anything is ok, we don't know about arity for now in the new calling convention
 
       (define (rtl-call regs rator rands)
          ; rator is here possibly #(value #<func>) and much of the call can be inlined

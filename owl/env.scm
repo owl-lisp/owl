@@ -199,9 +199,12 @@
       (define (primop-of val)
          (cond
             ((get prim-opcodes val #false) => (lambda (op) op))
-            ((equal? val mkt) 23)
-            ((equal? val bind) 32)
-            ((equal? val ff-bind) 49)
+            ;((equal? val mkt) 23)
+            ((eq? val '__mkt__) 23) ;; temp hack to work around changing bytecode
+            ;((equal? val bind) 32)
+            ((eq? val '__bind__) 32) ;; ditto
+            ;((equal? val ff-bind) 49)
+            ((eq? val '__ff-bind__) 49) ;; ditto
             (else #false)))
 
       ;; only special forms supported by the compiler, no primops etc

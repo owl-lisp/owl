@@ -27,17 +27,28 @@
 
       (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
 
-      (define (func lst) (raw lst 0 #false))
+      (define (func lst) 
+         (raw (cons 25 (cdr lst)) 0 #false))
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
       ;; 2 rebuilds. 
 
       ; these 2 primops require special handling, mainly in cps
-      (define ff-bind (func '(2 49)))
-      (define bind (func '(2 32 4 5 24 5)))
+      (define ff-bind 
+         ; (func '(2 49))
+         '__ff-bind__
+
+         )
+      (define bind 
+         ; (func '(2 32 4 5 24 5))
+         '__bind__
+         )
       ; this primop is the only one with variable input arity
-      (define mkt (func '(4 23 3 4 5 6 7 24 7)))
+      (define mkt 
+         '__mkt__
+         ;(func '(4 23 3 4 5 6 7 24 7))
+         )
 
       ;; these rest are easy
       (define car         (func '(2 52 4 5 24 5))) 

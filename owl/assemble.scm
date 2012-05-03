@@ -316,6 +316,8 @@
                      (lets/cc ret
                         ((fail (λ (why) (error "Error in bytecode assembly: " why) #false)))
                         (bytes->bytecode
-                           (cons arity (assemble insts fail)))))))))
+                           (ilist 17 arity (assemble insts fail))
+                           ;(cons 25 (assemble insts fail))
+                           )))))))
 
 ))
