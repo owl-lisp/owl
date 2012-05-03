@@ -28,7 +28,9 @@
       (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
 
       (define (func lst) 
-         (raw (cons 25 (cdr lst)) 0 #false))
+         (raw 
+            (cons 17 lst)        ;; (nargs n op1...)
+            0 #false))
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
