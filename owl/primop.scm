@@ -18,6 +18,7 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
+      list-fn
       )
 
    (import
@@ -168,5 +169,9 @@
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
+
+      ;; temporary variable arity test
+      (define list-fn
+         (raw (list (fxbor 25 64) 1 0 0 24 4) 0 #false))
 
 ))

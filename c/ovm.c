@@ -1109,20 +1109,26 @@ dispatch: /* handle normal bytecode */
          R[3] = R[*ip];
          acc = 1;
          goto apply; 
-      case 25: /* jmp-nargs(>=?) a hi lo */
-         if (*ip == acc) {
-            if (op & 64) { /* args+ */
-               fprintf(stderr, "arity %d ok, would add null\n", acc);
-            } else {
-               fprintf(stderr, "arity %d ok, was fixed\n", acc);
+      case 25: { /* jmp-nargs(>=?) a hi lo */
+         int needed = *ip;
+         if (acc == needed) {
+            if (op & 64) /* args+ */
+               R[acc + 3] = INULL;
+         } else if ((op & 64) && acc > needed) {
+            word tail = INULL;  /* todo: no call overflow handling yet */
+            while (acc > needed) {
+               fp[0] = PAIRHDR;
+               fp[1] = R[acc + 2];
+               fp[2] = tail;
+               tail = (word) fp;
+               fp += 3;
+               acc--;
             }
-         } else if ((op & 64) && acc > *ip) {
-            fprintf(stderr, "arity min %d ok, i have %d\n", acc, *ip);
+            R[acc + 3] = tail;
          } else {
-            fprintf(stderr, "bad call, would jump by %d\n", (ip[1] << 8) | ip[2]);
+            fprintf(stderr, "unmatched arity, would jump by %d\n", (ip[1] << 8) | ip[2]);
          }
-         exit(1);
-         next(3);
+         next(3); }
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
          word a = (fixval(A0)<<16) | fixval(A1); 
          word b = fixval(A2);
