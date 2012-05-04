@@ -1126,7 +1126,7 @@ dispatch: /* handle normal bytecode */
             }
             R[acc + 3] = tail;
          } else {
-            fprintf(stderr, "unmatched arity, would jump by %d\n", (ip[1] << 8) | ip[2]);
+            ip += (ip[1] << 8) | ip[2];
          }
          next(3); }
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */

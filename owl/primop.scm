@@ -19,6 +19,7 @@
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
       list-fn
+      atest
       )
 
    (import
@@ -174,4 +175,18 @@
       (define list-fn
          (raw (list (fxbor 25 64) 1 0 0 24 4) 0 #false))
 
+      ;; temporary arity dispatch test - return last for 1-3 args, 0 otherwise
+      (define atest
+         (raw
+            (list
+               25 2 0 2
+               24 4
+               25 3 0 2
+               24 5
+               25 4 0 2
+               24 6
+               13 9
+               24 9)
+            0 #false))
+      
 ))
