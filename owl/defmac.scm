@@ -31,9 +31,10 @@
 
       (define-syntax λ 
          (syntax-rules () 
-            ((λ a) (lambda () a))
+            ;((λ a) (lambda () a))
             ((λ (v ...) . body) (lambda (v ...) . body))
-            ((λ v ... body) (lambda (v ...) body))))
+            ;((λ v ... body) (lambda (v ...) body))
+            ))
 
       (define-syntax syntax-error
          (syntax-rules (error)
@@ -400,9 +401,9 @@
       (define (not x)
          (if x #false #true))
 
-      (define o (λ f g (λ x (f (g x)))))
+      (define o (λ (f g) (λ (x) (f (g x)))))
 
-      (define i (λ x x))
+      (define i (λ (x) x))
 
       (define self i)
 

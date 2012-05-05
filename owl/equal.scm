@@ -25,7 +25,7 @@
             (if (eq? pos 0)
                #true
                (receive (fx- pos 1)
-                  (λ pos x (eq-bytes a b pos))))
+                  (λ (pos x) (eq-bytes a b pos))))
             #false))
 
       ;; fixme: ff:s should have a separate equality test too

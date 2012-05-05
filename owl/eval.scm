@@ -92,6 +92,7 @@
       ; (op exp env) -> #(ok exp' env') | #(fail info)
       (define compiler-passes
          (list 
+                            ;; macres have already been expanded
             apply-env       ;; apply previous definitions
             sexp->ast       ;; safe sane tupled structure
             fix-points      ;; make recursion explicit <3
@@ -108,9 +109,9 @@
          (fork-linked task
             (λ ()
                (call/cc
-                  (λ exit
+                  (λ (exit)
                      (fold
-                        (λ state next
+                        (λ (state next)
                            (if (ok? state)
                               (begin
                                  ;(show " - compiler at exp " (ref state 2))
@@ -177,7 +178,7 @@
 
       (define repl-op?
          (let ((pattern (list 'unquote symbol?)))	
-            (λ exp (match pattern exp))))
+            (λ (exp) (match pattern exp))))
 
       (define (mark-loaded env path)
          (let ((loaded (env-get env '*loaded* null)))
@@ -410,7 +411,7 @@
 
       (define export?
          (let ((pat `(export . ,symbol-list?)))
-            (λ exp (match pat exp))))
+            (λ (exp) (match pat exp))))
 
       (define (_ x) #true)
 
