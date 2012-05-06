@@ -13,6 +13,7 @@
       (owl equal)
       (owl list-extra)
       (owl ff)
+      ; (owl io)
       (owl gensym)
       (owl symbol)
       (owl env))
@@ -300,6 +301,8 @@
                                        (list '_define (cadr exp) value)
                                        free)))
                               ((lambda)
+                                 (if (or (null? (cdr exp)) (null? (cddr exp)))
+                                    (abort (list "Bad lambda: " exp)))
                                  (lets
                                     ((formals (cadr exp))
                                      (body-exps (cddr exp))

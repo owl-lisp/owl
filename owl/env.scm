@@ -69,12 +69,17 @@
                            (list arg ...)))))
                   arg ...))))
 
+      ;; mark an argument list (possibly improper list of symbols) as bound
       (define env-bind
          (let ((bound (tuple 'bound)))
-            (lambda (env keys)
-               (fold
-                  (lambda (env key) (put env key bound))
-                  env keys))))
+            (λ (env keys)
+               (let loop ((env env) (keys keys))
+                  (cond
+                     ((null? keys) env)
+                     ((pair? keys)
+                        (loop (put env (car keys) bound) (cdr keys)))
+                     (else ;; improper argument list
+                        (put env keys bound)))))))
 
       ;;;
       ;;; apply-env
@@ -114,7 +119,13 @@
 
       (define (formals-cool? call)
          (let ((formals (cadr call)))
-            (and (list? formals) (all symbol? formals))))
+            (let loop ((formals formals))
+               (cond
+                  ((and (pair? formals) (symbol? (car formals)))
+                     (loop (cdr formals)))
+                  ((symbol? formals) #true)
+                  ((null? formals) #true)
+                  (else #false)))))
 
       (define (walker env fail)
          (define (walk exp)

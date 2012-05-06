@@ -1,5 +1,5 @@
 ;;;
-;;; Converting Sexps to a more compact and AST
+;;; Converting S-exps to a more compact and checked AST
 ;;;
 
 (define-library (owl ast)
@@ -30,6 +30,10 @@
       (define (mklambda formals body)
          (tuple 'lambda formals body))
 
+      ;; formals is a list as usual, but last one will be bound to an arg list
+      (define (mkvarlambda formals body)
+         (tuple 'lambda-var formals body))
+
       (define (mkcall rator rands)
          (tuple 'call rator rands))
 
@@ -40,14 +44,26 @@
       (define (mkvar sym)
          (tuple 'var sym))
 
-      (define (unique? lst)
-         (cond
-            ((null? lst) #true)
-            ((has? (cdr lst) (car lst)) #false)
-            (else (unique? (cdr lst)))))
+      ;; formals-sexp → (sym ..)|#false fixed-arity?
+      (define (check-formals lst)
+         (let loop ((lst lst) (out null))
+            (cond
+               ((null? lst)
+                  (values (reverse out) #true))
+               ((symbol? lst) ;; variable arity
+                  (if (has? out lst) ;; reappearence
+                     (values #f #f)
+                     (values (reverse (cons lst out)) #false)))
+               ((symbol? (car lst))
+                  (if (has? out (car lst))
+                     (values #f #f)
+                     (loop (cdr lst) (cons (car lst) out))))
+               (else
+                  (values #f #f)))))
 
-      (define (formals-ok? lst)
-         (and (all symbol? lst) (unique? lst)))
+      (define (fixed-formals-ok? sexp)
+         (lets ((formals fixed? (check-formals sexp)))
+            (and formals fixed?)))
 
       (define (translate-direct-call exp env fail translate)
          (tuple-case (lookup env (car exp))
@@ -63,14 +79,21 @@
                            ((= len 3)
                               (lets
                                  ((formals (cadr exp))
-                                  (body (caddr exp)))
-                                 (if (formals-ok? formals)
-                                    (mklambda formals
-                                       (translate body
-                                          (env-bind env formals)
-                                          fail))
-                                    (fail (list "Bad formals in lambda: " exp)))))
+                                  (body (caddr exp))
+                                  (formals fixed? 
+                                    (check-formals formals)))
+                                 (cond
+                                    ((not formals) ;; duplicate variables etc
+                                       (fail (list "Bad formals in lambda: " exp)))
+                                    (fixed?
+                                       (mklambda formals
+                                          (translate body
+                                             (env-bind env formals)
+                                             fail)))
+                                    (else
+                                       (fail (list "No variable arity lambda ast nodes yet: " exp))))))
                            ((> len 3)
+                              ;; recurse via translate
                               (let
                                  ((formals (cadr exp))
                                   (body (cddr exp)))
@@ -88,7 +111,7 @@
                            (if
                               (and
                                  (list? values)
-                                 (formals-ok? formals)
+                                 (fixed-formals-ok? formals)
                                  (= (length formals) (length values)))
                               (let ((env (env-bind env formals)))
                                  (tuple 'rlambda formals
