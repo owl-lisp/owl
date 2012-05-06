@@ -4,7 +4,7 @@
 
 (define-library (owl ast)
 
-	(export call? var? value-of sexp->ast mkcall mklambda mkvar mkval)
+	(export call? var? value-of sexp->ast mkcall mklambda mkvarlambda mkvar mkval)
 
    (import
       (owl list-extra)
@@ -31,8 +31,9 @@
          (tuple 'lambda formals body))
 
       ;; formals is a list as usual, but last one will be bound to an arg list
+      ;; having an extra var? field because the fixed one could be merged to this later
       (define (mkvarlambda formals body)
-         (tuple 'lambda-var formals body))
+         (tuple 'lambda-var #false formals body))
 
       (define (mkcall rator rands)
          (tuple 'call rator rands))
@@ -83,15 +84,14 @@
                                   (formals fixed? 
                                     (check-formals formals)))
                                  (cond
-                                    ((not formals) ;; duplicate variables etc
-                                       (fail (list "Bad formals in lambda: " exp)))
+                                    ((not formals) ;; non-symbols, duplicate variables, etc
+                                       (fail (list "Bad lambda: " exp)))
                                     (fixed?
                                        (mklambda formals
-                                          (translate body
-                                             (env-bind env formals)
-                                             fail)))
+                                          (translate body (env-bind env formals) fail)))
                                     (else
-                                       (fail (list "No variable arity lambda ast nodes yet: " exp))))))
+                                       (mkvarlambda formals 
+                                          (translate body (env-bind env formals) fail))))))
                            ((> len 3)
                               ;; recurse via translate
                               (let
@@ -208,6 +208,4 @@
                (tuple 'ok
                   (translate exp env
                      (lambda (reason) (drop (fail reason))))
-                  env))))
-
-   ))
+                  env))))))

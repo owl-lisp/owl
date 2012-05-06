@@ -108,6 +108,16 @@
                         (tuple 'closure formals body clos)
                         (tuple 'lambda formals body))
                      (union used clos))))
+            ((lambda-var fixed? formals body)
+               (lets
+                  ((body bused
+                     (closurize body null #true))
+                   (clos (diff bused formals)))
+                  (values
+                     (if close?
+                        (tuple 'closure-var fixed? formals body clos)
+                        (tuple 'lambda-var fixed? formals body))
+                     (union used clos))))
             (else
                (error "closurize: unknown exp type: " exp))))
 

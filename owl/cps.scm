@@ -10,7 +10,7 @@
       (owl math)
       (owl gensym)
       (only (owl syscall) error)
-      (owl env) ; <- contains primop?
+      (only (owl env) primop? primop-of)
       (owl primop)) 
 
    (begin
@@ -24,16 +24,18 @@
             (mkcall cont (list exp))
             free))
 
-      (define (cps-just-lambda cps formals body env free)
+      (define (cps-just-lambda cps formals fixed? body env free)
          (lets
             ((cont-sym free (fresh free))
              (body free (cps body env (mkvar cont-sym) free)))
             (values
-               (mklambda (cons cont-sym formals) body)
+               (if fixed?  ;; <- fixme, merge with node having fixedness later
+                  (mklambda (cons cont-sym formals) body)
+                  (mkvarlambda (cons cont-sym formals) body))
                free)))
 
-      (define (cps-lambda cps formals body env cont free)
-         (lets ((lexp free (cps-just-lambda cps formals body env free)))
+      (define (cps-lambda cps formals fixed? body env cont free)
+         (lets ((lexp free (cps-just-lambda cps formals fixed? body env free)))
             (values (mkcall cont (list lexp)) free)))
 
       (define (cps-args cps args call env free)
@@ -45,7 +47,7 @@
                (values (mkcall rator rands) free))
             (tuple-case (car args)
                ((lambda formals body)
-                  (lets ((lexp free (cps-just-lambda cps formals body env free)))
+                  (lets ((lexp free (cps-just-lambda cps formals #true body env free)))
                      (cps-args cps (cdr args) (cons lexp call) env free)))
                ((value foo)
                   (cps-args cps (cdr args) (cons (car args) call) env free))
@@ -175,7 +177,9 @@
             ((var sym)
                (cps-literal exp env cont free))
             ((lambda formals body)
-               (cps-lambda cps-exp formals body env cont free))
+               (cps-lambda cps-exp formals #true body env cont free))
+            ((lambda-var fixed? formals body)
+               (cps-lambda cps-exp formals fixed? body env cont free))
             ((call rator rands)
                (cps-call cps-exp rator rands env cont free))
             ((branch kind a b then else)

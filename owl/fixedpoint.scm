@@ -1,4 +1,6 @@
 
+;; todo: vararg lambdas cannot get self as last parameter!
+
 (define-library (owl fixedpoint)
 
    (export fix-points)
@@ -44,6 +46,8 @@
                ((var exp)
                   (take exp found bound))
                ((lambda formals body)
+                  (walk body (union formals bound) found))
+               ((lambda-var fixed? formals body)
                   (walk body (union formals bound) found))
                ((call rator rands)
                   (walk rator bound
@@ -149,21 +153,21 @@
                      (tuple 'lambda formals (walk body))))
                ((branch kind a b then else)
                   (tuple 'branch kind (walk a) (walk b) (walk then) (walk else)))
-            ((receive op fn)
-               (tuple 'receive (walk op) (walk fn)))
-            ((values vals) 
-               (tuple 'values (map walk vals)))
-            ((value val) exp)
-            ((var sym)
-               (if (eq? sym name)
-                  (begin
-                     ;(show " making a wrapper for " name)
-                     ;(show "   - with deps " deps)
-                     (tuple 'lambda (reverse (cdr (reverse deps))) (tuple 'call exp (map mkvar deps))))
-                  exp))
-            (else
-               (error "carry-simple-recursion: what is this node type: " exp))))
-      (walk exp))
+               ((receive op fn)
+                  (tuple 'receive (walk op) (walk fn)))
+               ((values vals) 
+                  (tuple 'values (map walk vals)))
+               ((value val) exp)
+               ((var sym)
+                  (if (eq? sym name)
+                     (begin
+                        ;(show " making a wrapper for " name)
+                        ;(show "   - with deps " deps)
+                        (tuple 'lambda (reverse (cdr (reverse deps))) (tuple 'call exp (map mkvar deps))))
+                     exp))
+               (else
+                  (error "carry-simple-recursion: what is this node type: " exp))))
+         (walk exp))
 
 
       (define (carry-bindings exp env)
@@ -395,6 +399,9 @@
                   (unletrec-list rands)))
             ((lambda formals body)
                (mklambda formals
+                  (unletrec body (env-bind env formals))))
+            ((lambda-var fixed? formals body)
+               (mkvarlambda formals
                   (unletrec body (env-bind env formals))))
             ((rlambda names values body)
                (lets

@@ -56,6 +56,16 @@
                               (put env (car node) (cdr node))))
                         free)))
                   (values (mklambda new-formals body) free)))
+            ((lambda-var fixed? formals body) ;; <- mostly clone branch to be merged later
+               (lets
+                  ((new-formals free (gensyms free (length formals)))
+                   (body free
+                     (alpha body
+                        (for env (zip cons formals new-formals)
+                           (lambda (env node)
+                              (put env (car node) (cdr node))))
+                        free)))
+                  (values (tuple 'lambda-var fixed? new-formals body) free)))
             ((value val)
                (values exp free))
             ((branch kind a b then else)
