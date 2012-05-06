@@ -2,6 +2,14 @@
 ;;; Compile AST to a code instruction tree suitable for assembly
 ;;;
 
+; options:
+;  + treat regular lambdas separately
+;     o add variable arity lambda normally
+;       * compiles to a single jump followed by arity error
+;     o case-lambda node 
+;  + case-lambda nodes separately 
+;     o 
+
 (define-library (owl compile)
 
    (export 

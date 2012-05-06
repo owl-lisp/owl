@@ -308,7 +308,7 @@
 
 (define (share-modules mods) 
    (for null mods
-      (λ envl mod
+      (λ (envl mod)
          (append (ff->list mod) envl))))
 
 ;,load "owl/arguments.scm"
