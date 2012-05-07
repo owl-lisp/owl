@@ -316,8 +316,19 @@
                      (lets/cc ret
                         ((fail (λ (why) (error "Error in bytecode assembly: " why) #false)))
                         (bytes->bytecode
-                           (ilist 17 arity (assemble insts fail))
-                           ;(cons 25 (assemble insts fail))
-                           )))))))
+                           (ilist 17 arity (assemble insts fail)))))))
+            ((code-var fixed? arity insts)
+               (lets ((insts (allocate-registers insts)))
+                  (if (not insts)
+                     (error "failed to allocate registers" "")
+                     (lets/cc ret
+                        ((fail (λ (why) (error "Error in bytecode assembly: " why) #false)))
+                        (bytes->bytecode
+                           (if fixed?
+                              (ilist 17 arity (assemble insts fail))
+                              (ilist 89 arity 0 0 (assemble insts fail))))))))
+                                            ; ^ not going anywhere yet
+            (else
+               (error "bad code: " obj))))
 
 ))

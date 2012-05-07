@@ -185,6 +185,12 @@
                      ;; and calling protocol are different depending on 
                      ;; whether there are literals
                      used)))
+            ((closure-var fixed? formals body clos) ;; clone branch, merge later
+               (lets
+                  ((body bused (literalize body null))
+                   (closure-exp (tuple 'closure-var fixed? formals body clos bused))
+                   (used (append used (list (cons closure-tag closure-exp)))))
+                  (values (tuple 'make-closure (+ 1 (length used)) clos bused) used)))
             (else
                (error "literalize: unknown exp type: " exp))))
 

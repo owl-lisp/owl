@@ -665,6 +665,18 @@
                            (rtl-any (entry-regs clos literals formals) body)))))
                   (if (null? lits)
                      exec ; #<bytecode> 
+                     (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn>]
+            ((closure-var fixed? formals body clos literals)
+               ;; clone branch, merge later
+               (lets
+                  ((lits (rtl-literals rtl-procedure literals))
+                   (exec
+                     (assemble-code 
+                        (tuple 'code-var fixed?
+                           (length formals)
+                           (rtl-any (entry-regs clos literals formals) body)))))
+                  (if (null? lits)
+                     exec ; #<bytecode> 
                      (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn]
             (else
                (error "rtl-procedure: bad input: " node))))
