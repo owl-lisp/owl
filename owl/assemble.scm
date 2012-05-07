@@ -326,8 +326,8 @@
                         (bytes->bytecode
                            (if fixed?
                               (ilist 17 arity (assemble insts fail))
-                              (ilist 89 arity 0 0 (assemble insts fail))))))))
-                                            ; ^ not going anywhere yet
+                              (ilist 89 (- arity 1) 0 0 (assemble insts fail))))))))
+                                     ;   ^ optional ^ not going anywhere yet
             (else
                (error "bad code: " obj))))
 
