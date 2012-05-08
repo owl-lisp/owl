@@ -13,7 +13,7 @@
       (owl equal)
       (owl list-extra)
       (owl ff)
-      ; (owl io)
+      (owl io)
       (owl gensym)
       (owl symbol)
       (owl env))
@@ -273,7 +273,8 @@
 
       (define (expand exp env free abort)
 
-         ;(show "expand: " exp)
+         ; (show "expand: " exp)
+
          (define (expand-list exps env free)
             (if (null? exps)
                (values null free)
@@ -301,18 +302,25 @@
                                        (list '_define (cadr exp) value)
                                        free)))
                               ((lambda)
-                                 (if (or (null? (cdr exp)) (null? (cddr exp)))
-                                    (abort (list "Bad lambda: " exp)))
-                                 (lets
-                                    ((formals (cadr exp))
-                                     (body-exps (cddr exp))
-                                     (body 
-                                       (if (and (pair? body-exps) (null? (cdr body-exps)))
-                                          (car body-exps)
-                                          (cons 'begin body-exps)))
-                                     (body free
-                                       (expand body (env-bind env formals) free abort)))
-                                    (values (list 'lambda formals body) free)))
+                                 (if (or (null? (cdr exp)) (null? (cddr exp))) ;; todo: use matcher instead
+                                    (abort (list "Bad lambda: " exp))
+                                    (lets
+                                       ((formals (cadr exp))
+                                        (body-exps (cddr exp))
+                                        (body 
+                                          (if (and (pair? body-exps) (null? (cdr body-exps)))
+                                             (car body-exps)
+                                             (cons 'begin body-exps)))
+                                        (body free
+                                          (expand body (env-bind env formals) free abort)))
+                                       (values (list 'lambda formals body) free))))
+                              ((_case-lambda)
+                                 (if (or (null? (cdr exp)) (null? (cddr exp))) ;; (_case-lambda <lambda> <(case-)lambda>)
+                                    (abort (list "Bad _case-lambda: " exp))
+                                    (lets
+                                       ((first free (expand (cadr exp)  env free abort))
+                                        (rest  free (expand (caddr exp) env free abort)))
+                                       (values (list '_case-lambda first rest) free))))
                               ((rlambda)
                                  (lets
                                     ((formals (lref exp 1))

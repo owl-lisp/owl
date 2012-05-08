@@ -303,6 +303,7 @@
 
       ; code rtl object -> executable code
       ;; todo: exit via fail cont
+      ;; todo: pass tail here or have case-lambda nodes be handled internally with a foldr
       (define (assemble-code obj)
          (tuple-case obj
             ((code arity insts)
@@ -322,13 +323,18 @@
                   (if (not insts)
                      (error "failed to allocate registers" "")
                      (lets/cc ret
-                        ((fail (λ (why) (error "Error in bytecode assembly: " why) #false)))
+                        ((fail (λ (why) (error "Error in bytecode assembly: " why) #false))
+                         (bytes (assemble insts fail))
+                         (len (length bytes)))
                         (bytes->bytecode
                            (if fixed?
-                              (ilist 17 arity (assemble insts fail))
-                              (ilist 89 (- arity 1) 0 0 (assemble insts fail))))))))
-                                     ;   ^ optional ^ not going anywhere yet
+                              (ilist 17 arity bytes)
+                              (ilist 89 (- arity 1)       ;; last is the optional one
+                                 (band 255 (>> len 8))    ;; hi jump
+                                 (band 255 len)           ;; low jump
+                                 (append bytes 
+                                    (list 17 0)))))))))   ;; force error (temporary) 
             (else
-               (error "bad code: " obj))))
+               (error "assemble-code: unknown AST node " obj))))
 
 ))

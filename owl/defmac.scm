@@ -9,6 +9,7 @@
       lets let* or and list
       ilist tuple tuple-case type-case 
       call-with-values do define-library
+      case-lambda
       call/cc
       call/cc2
       call/cc3
@@ -28,18 +29,29 @@
 
    (begin
 
-
       (define-syntax λ 
          (syntax-rules () 
-            ;((λ a) (lambda () a))
-            ((λ (v ...) . body) (lambda (v ...) . body))
-            ;((λ v ... body) (lambda (v ...) body))
-            ))
+            ((λ (v ...) . body) (lambda (v ...) . body))))
 
       (define-syntax syntax-error
          (syntax-rules (error)
             ((syntax-error . stuff)
                (error "Syntax error: " (quote stuff)))))
+
+      ;; expand case-lambda syntax to to (_case-lambda <lambda> (_case-lambda ... (_case-lambda <lambda> <lambda)))
+      (define-syntax case-lambda
+         (syntax-rules (lambda _case-lambda)
+            ((case-lambda) #false) 
+            ; ^ should use syntax-error instead, but not yet sure if this will be used before error is defined
+            ((case-lambda (formals . body))
+               ;; downgrade to a run-of-the-mill lambda
+               (lambda formals . body))
+            ((case-lambda (formals . body) . rest)
+               ;; make a list of options to be compiled to a chain of code bodies w/ jumps
+               ;; note, could also merge to a jump table + sequence of codes, but it doesn't really matter
+               ;; because speed-sensitive stuff will be compiled to C where this won't matter
+               (_case-lambda (lambda formals . body)
+                  (case-lambda . rest)))))
 
       ;; note, no let-values yet, so using let*-values in define-values
       (define-syntax begin

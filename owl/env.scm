@@ -150,6 +150,8 @@
                                  (map walk (caddr exp))
                                  (walk (car (cdddr exp)))))
                            (fail (list "funny rlambda: " (list exp 'len (length exp) 'forms (formals-cool? exp))))))
+                     ((_case-lambda)
+                        (cons (car exp) (map walk (cdr exp))))
                      ((values receive _branch)
                         (cons (car exp)
                            (map walk (cdr exp))))
@@ -219,16 +221,18 @@
             (else #false)))
 
       ;; only special forms supported by the compiler, no primops etc
+      ;; fixme: should use distinct identifiers like #:foo for these, since these can unintentionally clash with formals
       (define *tabula-rasa*
          (list->ff
             (list
                ;; special forms.
-               (cons 'lambda  (tuple 'special 'lambda))
+               (cons 'lambda  (tuple 'special 'lambda)) ;; fixme: should be a macro generating _lambda instead
                (cons 'quote   (tuple 'special 'quote))
                (cons 'rlambda (tuple 'special 'rlambda))
                (cons 'receive (tuple 'special 'receive))
                (cons '_branch (tuple 'special '_branch))
                (cons '_define (tuple 'special '_define))
+               (cons '_case-lambda (tuple 'special '_case-lambda))
                (cons 'values   (tuple 'special 'values)))))
 
       ;; take a subset of env
