@@ -75,9 +75,11 @@
                   (max-ast-id then (max-ast-id else max)))))
             ((values vals)
                (fold (lambda (max exp) (max-ast-id exp max)) max vals))
+            ((case-lambda fn else)
+               (max-ast-id fn 
+                  (max-ast-id else max)))
             (else
-               (error "gensym: max-ast-id: what is this: " exp)
-               max)))
+               (error "gensym: max-ast-id: what is this: " exp))))
 
 
       (define (gensym exp)

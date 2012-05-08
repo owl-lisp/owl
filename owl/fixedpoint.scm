@@ -421,6 +421,10 @@
                    (then (unletrec then env))
                    (else (unletrec else env)))
                   (tuple 'branch kind a b then else)))
+            ((case-lambda func else)
+               (tuple 'case-lambda 
+                  (unletrec func env)
+                  (unletrec else env)))
             (else
                (error "Funny AST node in unletrec: " exp))))
 

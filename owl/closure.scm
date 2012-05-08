@@ -2,6 +2,14 @@
 ;;; Convert lambdas to closures where necessary
 ;;;
 
+;; case-lambda closurization
+;;  - operator lambdas are currently not closurized
+;;  - operand lambdas are
+;;  - case-lambda branches should not be closed
+;;  - the leading case-lambda node should be closed leaving a new kind of code entry node
+;;  - the subsequent ones should not be closed
+;;    -> sounds like one could switch to non-closurize at closurize, set #f also for branches, and get this right
+
 (define-library (owl closure)
 
 	(export 
@@ -118,6 +126,8 @@
                         (tuple 'closure-var fixed? formals body clos)
                         (tuple 'lambda-var fixed? formals body))
                      (union used clos))))
+            ((case-lambda func else)
+               (error "closurize: cannot do case-lambda yet: " "blame aki"))
             (else
                (error "closurize: unknown exp type: " exp))))
 

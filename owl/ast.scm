@@ -135,6 +135,12 @@
                               (translate then env fail)
                               (translate else env fail)))
                         (fail (list "Bad branch: " exp))))
+                  ((_case-lambda)
+                     (if (= (length exp) 3)
+                        (tuple 'case-lambda 
+                           (translate (cadr exp) env fail)
+                           (translate (caddr exp) env fail))
+                        (fail (list "Bad case-lambda node: " exp))))
                   ((receive)	; (receive <exp> <receiver>)
                      (tuple 'receive 
                         (translate (lref exp 1) env fail)

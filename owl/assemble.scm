@@ -326,6 +326,8 @@
                         ((fail (λ (why) (error "Error in bytecode assembly: " why) #false))
                          (bytes (assemble insts fail))
                          (len (length bytes)))
+                        (if (> len #xffff)
+                           (error "too much bytecode: " len))
                         (bytes->bytecode
                            (if fixed?
                               (ilist 17 arity bytes)
