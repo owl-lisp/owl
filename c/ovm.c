@@ -1063,7 +1063,7 @@ dispatch: /* handle normal bytecode */
       case 16: /* jv[which] a o1 a2*/
          if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
          next(3); 
-      case 17: /* narg n */
+      case 17: /* narg n, todo: add argument listing also here or drop */
          if (unlikely(acc != *ip)) {
             error(256, fixnum(*ip), ob);
          }
@@ -1126,6 +1126,7 @@ dispatch: /* handle normal bytecode */
             }
             R[acc + 3] = tail;
          } else {
+            fprintf(stderr, "jmp-args mismatch, jumping\n");
             ip += (ip[1] << 8) | ip[2];
          }
          next(3); }

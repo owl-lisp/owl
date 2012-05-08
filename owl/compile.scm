@@ -678,6 +678,11 @@
                   (if (null? lits)
                      exec ; #<bytecode> 
                      (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn]
+            ((closure-case body clos literals)
+               ;; oh noes.. the entry regs depend on formals, so there should probably 
+               ;; be something separate to handle them, which should be shared here and 
+               ;; in closure-* cases
+               (error "rtl-procedure does not yet handle closure-case: " body))
             (else
                (error "rtl-procedure: bad input: " node))))
 
