@@ -2,6 +2,7 @@
 ;;; Owl math module, first iteration
 ;;;
 
+;; todo: split this to separate libraries for fixnums, integers, rationals etc?
 ;; todo: add a simple school-long-division using fxqr to get the top digit usually fairly right and see where the breakeven point is for other methods
 
 ;; todo: factor this to smaller libraries
@@ -446,10 +447,10 @@
          (type-case a
             (fix+ ; a signed fixnum
                (type-case b
-                  (fix+   (add-small->positive a b))            ;; +a + +b -> c | C
+                  (fix+ (add-small->positive a b))            ;; +a + +b -> c | C
                   (fix- (sub-small->pick-sign a b))         ;; +a + -b -> +c | -c, underflow determines sign
                   (int+ (add-number-big a b))               ;; +a + +B -> +C
-                  (int-   (sub-number-big a b #true))         ;; +a + -B -> -c | -C
+                  (int- (sub-number-big a b #true))         ;; +a + -B -> -c | -C
                   (else (big-bad-args 'add a b))))
             (fix-
                (type-case b
@@ -477,7 +478,8 @@
 
       ; substraction is just just opencoded (+ a (negate b))
 
-      (define (sub a b)
+      ;; substraction for at most bignum integers (needed for the more complex ones)
+      (define (subi a b)
          (type-case a
             (fix+ ; a signed fixnum
                (type-case b
@@ -585,7 +587,7 @@
             (int+
                (if (eq? a 0)
                   0
-                  (>> (>> a hi-12) (sub b hi-12))))
+                  (>> (>> a hi-12) (subi b hi-12))))
             (else
                (big-bad-args '>> a b))))
 
@@ -646,7 +648,7 @@
                         (else
                            (big-bad-args '<< a b))))))
             ((teq? b int+)
-               (<< (<< a hi-12) (sub b hi-12)))
+               (<< (<< a hi-12) (subi b hi-12)))
             (else
                (big-bad-args '<< a b))))
                
@@ -830,7 +832,7 @@
             ((eq? ex 0) (if (null? a) (bigen b) (add a b)))
             ((null? a)
                (ncons 0
-                  (add-ext null b (sub ex 1))))
+                  (add-ext null b (subi ex 1))))
             ((teq? a fix+) (add-ext (ncons a null) b ex))
             ((teq? ex fix+)
                (lets 
@@ -839,7 +841,7 @@
                   (ncons d (add-ext ds b ex))))
             (else
                (ncons (ncar a)
-                  (add-ext (ncdr a) b (sub ex 1))))))
+                  (add-ext (ncdr a) b (subi ex 1))))))
 
       ; fixme, should just keep jumbo digits for for added versions and 
       ;        perform the carrying just once in a final pass. add merges 
@@ -920,7 +922,7 @@
                            (lets ((a (add ah at)) (b (add bh bt)))
                               (kara a b)))
                          ; 2O(n)
-                         (z1 (sub z1a (add z2 z0)))
+                         (z1 (subi z1a (add z2 z0)))
                          ; two more below
                          (x (if (eq? z1 0) z0 (add-ext z0 z1 atl))))
                         (if (eq? z2 0)
@@ -930,8 +932,7 @@
       ;(define mult-big mul-simple)   ; for debugging only!
       (define mult-big kara)
 
-
-      (define (mul a b)
+      (define (muli a b)
          (cond 
             ; are these actually useful?
             ((eq? a 0) 0)
@@ -971,7 +972,7 @@
                   (rat
                      (type-case b
                         (rat  (big-bad-args 'mul a b))         ; handle this before mul for now
-                        (else (mul b a))))                  ; otherwise use other branches
+                        (else (muli b a))))                  ; otherwise use other branches
                   (else (big-bad-args 'mul a b))))))
 
       ;;; comparison (rationals need mul)
@@ -983,12 +984,12 @@
             ((teq? a rat)
                (if (teq? b rat)
                   ; a/a' < b/b' <=> ab' < ba'
-                  (int< (mul (ncar a) (ncdr b)) (mul (ncar b) (ncdr a)))
+                  (int< (muli (ncar a) (ncdr b)) (muli (ncar b) (ncdr a)))
                   ; a/a' < b <=> a < ba'
-                  (int< (ncar a) (mul b (ncdr a)))))
+                  (int< (ncar a) (muli b (ncdr a)))))
             ((teq? b rat)
                ; a < b/b' <=> ab' < b
-               (int< (mul a (ncdr b)) (ncar b)))
+               (int< (muli a (ncdr b)) (ncar b)))
             (else 
                (int< a b))))
 
@@ -1057,22 +1058,22 @@
       (define (shift-local-down a b n)
          (cond
             ((eq? n 0) 0)
-            ((eq? a b) (sub n 1))
+            ((eq? a b) (subi n 1))
             ((lesser? b a) n)
             (else 
                (lets ((b over (fx>> b 1)))
-                  (shift-local-down a b (sub n 1))))))
+                  (shift-local-down a b (subi n 1))))))
 
       ; increase b
       (define (shift-local-up a b n)
          (cond
-            ((eq? a b) (sub n 1))
-            ((lesser? a b) (sub n 1))
+            ((eq? a b) (subi n 1))
+            ((lesser? a b) (subi n 1))
             (else 
                (lets ((over b (fx<< b 1)))
                   (if (eq? over 0)
                      (shift-local-up a b (nat-inc n))
-                     (sub n 1))))))
+                     (subi n 1))))))
 
       (define (div-shift a b n)
          (if (teq? a fix+)   
@@ -1085,7 +1086,7 @@
                            (if (eq? b-lead #xffff)
                               (if (eq? n 0)
                                  0
-                                 (shift-local-down (ncar a) #x7fff (sub n 1)))
+                                 (shift-local-down (ncar a) #x7fff (subi n 1)))
                               (let ((aa (ncar a)) (bb (add b-lead 1)))
                                  ; increment b to ensure b'000.. > b....
                                  (cond
@@ -1101,7 +1102,7 @@
                      (div-shift (ncdr a) (ncdr b) n))))))
                
       (define (nat-quotrem-finish a b out)
-         (let ((next (sub a b)))
+         (let ((next (subi a b)))
             (if (negative? next)
                (values out a)
                (nat-quotrem-finish next b (nat-inc out)))))
@@ -1116,7 +1117,7 @@
                      (nat-quotrem-finish a b out))
                   (else
                      (let ((this (<< b s)))
-                        (loop (sub a this) (add out (<< 1 s)))))))))
+                        (loop (subi a this) (add out (<< 1 s)))))))))
 
       (define (div-big->negative a b)
          (lets ((q r (nat-quotrem a b)))
@@ -1135,7 +1136,7 @@
       ;; mainly manually partial evaling remainder separately, since a fast one is needed for now for gcd and rational math
 
       (define (nat-rem-finish a b)
-         (let ((ap (sub a b)))
+         (let ((ap (subi a b)))
             (if (negative? ap)
                a
                (nat-rem-finish ap b))))
@@ -1150,7 +1151,7 @@
                   ((lesser? s 2)
                      (nat-rem-finish a b))
                   (else
-                     (loop (sub a (<< b s))))))))
+                     (loop (subi a (<< b s))))))))
 
       ;; reverse number remainder
 
@@ -1160,12 +1161,12 @@
             ((null? a) (values a null)) ; fail
             (else
                (lets
-                  ((d (sub (ncar a) (ncar b))) ; fix+ or fix-
+                  ((d (subi (ncar a) (ncar b))) ; fix+ or fix-
                    (tl dr (rsub (ncdr a) (ncdr b))))
                   (cond
                      ((null? dr) (values tl dr)) ; failed below
                      (dr
-                        (let ((d (sub d 1))) ; int- (of was -#xffff), fix- or fix+
+                        (let ((d (subi d 1))) ; int- (of was -#xffff), fix- or fix+
                            (if (negative? d)
                               (values (ncons (add d #x10000) tl) #true) ; borrow
                               (values (ncons d tl) #false))))
@@ -1308,7 +1309,7 @@
                   (lets ((_ bit (fx<< bit 1)))
                      (divex bit a b out))))
             (else ; shift + substract = amortized O(2b) + O(log a)
-               (divex bit (sub a (<< b (get bit-poss bit #false)))
+               (divex bit (subi a (<< b (get bit-poss bit #false)))
                   b (ncons (fxbor bit (ncar out)) (ncdr out))))))
 
       (define divex-start (ncons 0 null))
@@ -1343,7 +1344,7 @@
       
       ;;; alternative division
 
-      (define (div-big-exact a b) (ediv (sub a (nat-rem a b)) b))
+      (define (div-big-exact a b) (ediv (subi a (nat-rem a b)) b))
 
       (define div-big div-big-exact)
 
@@ -1538,7 +1539,7 @@
       (define (clear i n) ; clear low n-1 bits
          (if (eq? n 1)
             i
-            (sub i (band i (get gcd-shifts n #false)))))
+            (subi i (band i (get gcd-shifts n #false)))))
 
       (define (lazy-gcd a b n)
          (let ((av (cdr a)) (bv (cdr b)))
@@ -1555,7 +1556,7 @@
                   (lets
                      ((av (>> av (get gcd-shifts (car a) 0)))
                       (bv (>> bv (get gcd-shifts (car b) 0)))
-                      (x (sub av bv)))
+                      (x (subi av bv)))
                      (if (negative? x)
                         (lazy-gcd (cons 2 (negate x)) (cons 1 av) n)
                         (lazy-gcd (cons 2 x) (cons 1 bv) n)))))))
@@ -1638,7 +1639,7 @@
       ;; generic addition, switching from most common type (?) to more complex ones (no pun untended)
 
       ;; rational case: a/b + c, gcd(a,b) = 1 => gcd(a+bc, b) = 1 -> no need to renormalize
-      (define (+ a b)
+      (define (add a b)
          (type-case a
             (fix+ 
                (type-case b
@@ -1646,8 +1647,8 @@
                   (int+  (add-number-big a b))
                   (fix-  (sub-small->pick-sign a b))
                   (int-  (sub-number-big a b #true))
-                  (rat   (lets ((x z b)) (rational (add (mul a z) x) z)))
-                  (comp  (lets ((x y b)) (complex (+ a x) y)))
+                  (rat   (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (comp  (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
             (int+
                (type-case b
@@ -1655,8 +1656,8 @@
                   (int+ (add-big a b #false))
                   (fix- (sub-big-number a b #true))
                   (int- (sub-big a b))
-                  (rat  (lets ((x z b)) (rational (add (mul a z) x) z)))
-                  (comp (lets ((x y b)) (complex (+ a x) y)))
+                  (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (comp (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
             (fix-
                (type-case b
@@ -1664,8 +1665,8 @@
                   (fix- (add-small->negative a b))
                   (int+ (sub-big-number b a #true))
                   (int- (cast (add-number-big a b) 41))
-                  (rat  (lets ((x z b)) (rational (add (mul a z) x) z)))
-                  (comp (lets ((x y b)) (complex (+ a x) y)))
+                  (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (comp (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
             (int-
                (type-case b
@@ -1673,8 +1674,8 @@
                   (fix- (cast (add-number-big b a) 41))
                   (int+ (sub-big b a))
                   (int- (cast (add-big a b #false) 41))
-                  (rat  (lets ((x z b)) (rational (add (mul a z) x) z)))
-                  (comp (lets ((x y b)) (complex (+ a x) y)))
+                  (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (comp (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
             (rat 
                (type-case b
@@ -1686,30 +1687,30 @@
                            (divide (add (ncar a) (ncar b)) ad)
                            (let ((an (ncar a)) (bn (ncar b)))   
                               (divide 
-                                 (add (mul an bd) (mul bn ad))
-                                 (mul ad bd))))))
+                                 (add (muli an bd) (muli bn ad))
+                                 (muli ad bd))))))
                   (comp
                      (lets ((br bi b))
-                        (complex (+ a br) bi)))
+                        (complex (add a br) bi)))
                   (else
                      ; a'/a" + b = (a'+ba")/a"
-                     (rational (add (ncar a) (mul b (ncdr a))) (ncdr a)))))
+                     (rational (add (ncar a) (muli b (ncdr a))) (ncdr a)))))
             (comp
                (if (teq? b comp)
                   ;; A+ai + B+bi = A+B + (a+b)i
                   (lets 
                      ((ar ai a)
                       (br bi b)
-                      (r (+ ar br))
-                      (i (+ ai bi)))
+                      (r (add ar br))
+                      (i (add ai bi)))
                      (if (eq? i 0) r (complex r i)))
                   (lets
                      ((ar ai a))
-                     (complex (+ ar b) ai))))
+                     (complex (add ar b) ai))))
             (else 
                (big-bad-args '+ a b))))
 
-      (define (- a b)
+      (define (sub a b)
          (type-case a
             (fix+
                (type-case b
@@ -1717,8 +1718,8 @@
                   (fix- (add-small->positive a b))
                   (int+ (sub-number-big a b #true))
                   (int- (add-number-big a b))
-                  (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
             (fix-
                (type-case b
@@ -1726,8 +1727,8 @@
                   (fix- (sub-small->pick-sign b a))
                   (int+ (cast (add-number-big a b) 41))
                   (int- (sub-big-number b a #true))
-                  (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
             (int+
                (type-case b
@@ -1735,8 +1736,8 @@
                   (fix- (add-number-big b a))
                   (int+ (sub-big a b))
                   (int- (add-big a b #false))
-                  (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
             (int-
                (type-case b
@@ -1744,8 +1745,8 @@
                   (fix- (sub-number-big b a #true))
                   (int+ (cast (add-big a b #false) 41))
                   (int- (sub-big b a))
-                  (rat  (let ((bl (ncdr b))) (- (rational (mul a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (- a br) (negate bi))))
+                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
             (rat
                (type-case b
@@ -1754,35 +1755,37 @@
                      (let ((ad (ncdr a)) (bd (ncdr b)))
                         (if (eq? ad bd)   
                            ; a/x - b/x = (a-b)/x, x within fixnum range
-                           (divide (sub (ncar a) (ncar b)) ad)
+                           (divide (subi (ncar a) (ncar b)) ad)
                            (let ((an (ncar a)) (bn (ncar b)))   
                               (divide 
-                                 (sub (mul an bd) (mul bn ad))
-                                 (mul ad bd))))))
+                                 (subi (muli an bd) (muli bn ad))
+                                 (muli ad bd))))))
                   (comp
-                     (lets ((br bi b)) (complex (- a br) (negate bi))))
+                     (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else
                      ; a'/a" - b = (a'-ba")/a"
-                     (rational (sub (ncar a) (mul b (ncdr a))) (ncdr a)))))
+                     (rational (subi (ncar a) (muli b (ncdr a))) (ncdr a)))))
             (comp
                (if (teq? b comp)
                   (lets 
                      ((ar ai a) 
                       (br bi b)
-                      (r (- ar br))
-                      (i (- ai bi)))
+                      (r (sub ar br))
+                      (i (sub ai bi)))
                      (if (eq? i 0)
                         r
                         (complex r i)))
                   (lets ((ar ai a))
-                     (complex (- ar b) ai))))
+                     (complex (sub ar b) ai))))
             (else
                (big-bad-args '- a b))))
 
       ;; todo: complex construction should be a macro that checks for the nonimaginary part
       ;; todo: no different multiplication for known up to rational etc
 
-      (define (* a b)
+      (define mul muli)
+
+      (define (mul a b)
          (cond
             ((eq? a 0) 0)
             ((eq? b 0) 0)
@@ -1794,9 +1797,9 @@
                         (int+ (mult-num-big a b 0))               ; +a * +B
                         (fix- (negative (mult-fixnums a b)))      ; +a * -b
                         (int- (negative (mult-num-big a b 0)))    ; +a * -b
-                        (rat  (divide (* a (ncar b)) (ncdr b)))
+                        (rat  (divide (mul a (ncar b)) (ncdr b)))
                         (comp 
-                           (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
                   (fix-
@@ -1805,9 +1808,9 @@
                         (int+ (cast (mult-num-big a b 0) 41))   ; -a * +B -> -C
                         (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
                         (int- (mult-num-big a b 0))            ; -a * -B -> +C
-                        (rat  (divide (* a (ncar b)) (ncdr b)))
+                        (rat  (divide (mul a (ncar b)) (ncdr b)))
                         (comp 
-                           (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
                   (int+
@@ -1816,9 +1819,9 @@
                         (int+ (mult-big a b))               ; +A * +B -> +C
                         (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
                         (int- (cast (mult-big a b) 41))      ; +A * -B -> -C
-                        (rat  (divide (* a (ncar b)) (ncdr b)))
+                        (rat  (divide (mul a (ncar b)) (ncdr b)))
                         (comp 
-                           (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
                   (int-   
@@ -1827,32 +1830,32 @@
                         (int+ (cast (mult-big a b) 41))      ; -A * +B -> -C
                         (fix- (mult-num-big b a 0))               ; -A * -b -> +C
                         (int- (mult-big a b))                  ; -A * -B -> +C
-                        (rat  (divide (* a (ncar b)) (ncdr b)))
+                        (rat  (divide (mul a (ncar b)) (ncdr b)))
                         (comp 
-                           (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
                   (rat
                      (type-case b
                         (rat  
-                           (divide (* (ncar a) (ncar b)) (* (ncdr a) (ncdr b))))
+                           (divide (mul (ncar a) (ncar b)) (mul (ncdr a) (ncdr b))))
                         (comp 
-                           (lets ((br bi b) (r (* a br)) (i (* a bi)))
+                           (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else 
-                           (divide (* (ncar a) b) (ncdr a)))))
+                           (divide (mul (ncar a) b) (ncdr a)))))
                   (comp 
                      (if (teq? b comp)
                         (lets 
                            ((ar ai a)
                             (br bi b)
-                            (r (- (* ar br) (* ai bi)))
-                            (i (+ (* ai br) (* ar bi))))
+                            (r (sub (mul ar br) (mul ai bi)))
+                            (i (add (mul ai br) (mul ar bi))))
                            (if (eq? i 0) r (complex r i)))
                         (lets
                            ((ar ai a)
-                            (r (* ar b))
-                            (i (* ai b)))
+                            (r (mul ar b))
+                            (i (mul ai b)))
                            (if (eq? i 0) r (complex r i)))))
                   (else 
                      (big-bad-args '* a b))))))
@@ -1867,34 +1870,34 @@
                   (lets 
                      ((ar ai a) 
                       (br bi b)
-                      (x (+ (* br br) (* bi bi)))
-                      (r (/ (+ (* ar br) (* ai bi)) x))
-                      (i (/ (- (* ai br) (* ar bi)) x))) 
+                      (x (add (mul br br) (mul bi bi)))
+                      (r (/ (add (mul ar br) (mul ai bi)) x))
+                      (i (/ (sub (mul ai br) (mul ar bi)) x))) 
                      (if (eq? i 0) r (complex r i)))
                   (lets
                      ((ar ai a)
-                      (x (* b b))
-                      (r (/ (* ar b) x))
-                      (i (/ (* ai b) x)))
+                      (x (mul b b))
+                      (r (/ (mul ar b) x))
+                      (i (/ (mul ai b) x)))
                      (if (eq? i 0) r (complex r i)))))
             ((teq? b comp)
                (lets 
                   ((br bi b)
-                   (x (+ (* br br) (* bi bi)))
-                   (re (/ (* a br) x))
-                   (im (/ (- 0 (* a bi)) x)))
+                   (x (add (mul br br) (mul bi bi)))
+                   (re (/ (mul a br) x))
+                   (im (/ (sub 0 (mul a bi)) x)))
                   (if (eq? im 0) re (complex re im))))
             ((teq? a rat)
                (if (teq? b rat)
                   ; a'/a" / b'/b" = a'b" / a"b'
                   (divide
-                     (* (ncar a) (ncdr b)) 
-                     (* (ncdr a) (ncar b)))
+                     (mul (ncar a) (ncdr b)) 
+                     (mul (ncdr a) (ncar b)))
                   ; a'/a" / b = a'/ba"
-                  (divide (ncar a) (* (ncdr a) b))))
+                  (divide (ncar a) (mul (ncdr a) b))))
             ((teq? b rat)
                ; a / b'/b" = ab"/n
-               (divide (* a (ncdr b)) (ncar b)))
+               (divide (mul a (ncdr b)) (ncar b)))
             (else 
                (divide a b))))
 
@@ -1909,7 +1912,7 @@
             (fix- (cast n 0))
             (int+ n)
             (int- (ncons (ncar n) (ncdr n)))
-            (rat (if (negative? n) (- 0 n) n))
+            (rat (if (negative? n) (sub 0 n) n))
             (else (error "bad math: " (list 'abs n)))))
 
       (define (floor n)
@@ -1941,13 +1944,13 @@
             (lets ((a b n))
                (if (eq? b 2)
                   (if (negative? a)
-                     (>> (- a 1) 1)
+                     (>> (sub a 1) 1)
                      (>> (nat-inc a) 1))
                   (div a b)))
             n))
 
-      (define (sum l) (fold + (car l) (cdr l)))
-      (define (product l) (fold * (car l) (cdr l)))
+      (define (sum l) (fold add (car l) (cdr l)))
+      (define (product l) (fold mul (car l) (cdr l)))
 
       ;;;
       ;;; Alternative names
@@ -1970,6 +1973,31 @@
             (else 1)))
 
 
+      ;;;
+      ;;; Variable arity versions
+      ;;;
+
+      ;; + → add
+      (define +
+         (case-lambda
+            ((a b) (add a b))
+            (xs (fold add 0 xs))))
+
+      ;; - → sub
+      (define -
+         (case-lambda 
+            ((a b) (sub a b))
+            ((a) (sub 0 a))
+            ((a b . xs) 
+               (sub a (add b (fold add 0 xs))))))
+      
+      ;; * → mul
+      (define *
+         (case-lambda 
+            ((a b) (mul a b))
+            ((a b . xs) (mul a (mul b (fold mul 1 xs))))
+            ((a) a)
+            (() 1)))
 
       ;;;
       ;;; logarithms, here meaning (log n a) = m, being least natural number such that n^m >= a
@@ -2090,7 +2118,7 @@
                      base)))
             ((< num 0)
                (cons 45
-                  (render-number (- 0 num) tl base)))
+                  (render-number (sub 0 num) tl base)))
             ((< num base)
                (cons (char-of num) tl))
             (else
