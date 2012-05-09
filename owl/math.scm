@@ -1973,31 +1973,6 @@
             (else 1)))
 
 
-      ;;;
-      ;;; Variable arity versions
-      ;;;
-
-      ;; + → add
-      (define +
-         (case-lambda
-            ((a b) (add a b))
-            (xs (fold add 0 xs))))
-
-      ;; - → sub
-      (define -
-         (case-lambda 
-            ((a b) (sub a b))
-            ((a) (sub 0 a))
-            ((a b . xs) 
-               (sub a (add b (fold add 0 xs))))))
-      
-      ;; * → mul
-      (define *
-         (case-lambda 
-            ((a b) (mul a b))
-            ((a b . xs) (mul a (mul b (fold mul 1 xs))))
-            ((a) a)
-            (() 1)))
 
       ;;;
       ;;; logarithms, here meaning (log n a) = m, being least natural number such that n^m >= a
@@ -2006,7 +1981,7 @@
       ;; naive version, multiply successively until >=
       (define (log-loop n a m i)
          (if (< m a)
-            (log-loop n a (* m n) (+ i 1))
+            (log-loop n a (mul m n) (add i 1))
             i))
 
       ;; least m such that n^m >= a
@@ -2016,10 +1991,10 @@
       ;; same, but double initial steps (could recurse on remaining interval, cache steps etc for further speedup)
       (define (logd-loop n a m i)
          (if (< m a)
-            (let ((mm (* m m)))
+            (let ((mm (mul m m)))
                (if (< mm a)
-                  (logd-loop n a mm (+ i i))
-                  (log-loop n a (* m n) (+ i 1))))
+                  (logd-loop n a mm (add i i))
+                  (log-loop n a (mul m n) (add i 1))))
             i))
 
       (define (logn n a)
@@ -2034,20 +2009,20 @@
       (define (log2-fixnum n)
          (let loop ((i 0))
             (if (< (<< 1 i) n)
-               (loop (+ i 1))
+               (loop (add i 1))
                i)))
 
       (define (log2-msd n)
          (let loop ((i 0))
             (if (<= (<< 1 i) n)
-               (loop (+ i 1))
+               (loop (add i 1))
                i)))
 
       (define (log2-big n digs)
          (let ((tl (ncdr n)))
             (if (null? tl)
-               (+ (log2-msd (ncar n)) (* digs 16))
-               (log2-big tl (+ digs 1)))))
+               (add (log2-msd (ncar n)) (mul digs 16))
+               (log2-big tl (add digs 1)))))
 
       (define (log2 n)
          (cond
@@ -2080,7 +2055,7 @@
       (define (lcm a b) 
          (if (eq? a b)
             a
-            (div (abs (* a b)) (gcd a b))))
+            (div (abs (mul a b)) (gcd a b))))
 
 
       ;;;
@@ -2088,7 +2063,7 @@
       ;;;
 
       (define (char-of digit)
-         (+ digit (if (< digit 10) 48 87)))
+         (add digit (if (< digit 10) 48 87)))
 
       (define (render-digits num tl base)
          (fold (λ (a b) (cons b a)) tl 
@@ -2131,52 +2106,85 @@
                (let ((r (remainder a b)))
                   (if (eq? r 0)
                      r
-                     (+ b r))))
+                     (add b r))))
             (if (negative? b)
                (let ((r (remainder a b)))
                   (if (eq? r 0)
                      r
-                     (+ b r)))
+                     (add b r)))
                (remainder a b))))
 
       (define modulo mod)
 
 
-      ;;; 
-      ;;; Minitest for core ops
-      ;;; 
+      ;;;
+      ;;; Variable arity versions
+      ;;;
 
-   ;   (define end 7000)
-   ;
-   ;   (define (try op)
-   ;      (let loop ((a 1) (b 1))
-   ;         (if (eq? a end)
-   ;            (if (eq? b end)
-   ;               b
-   ;               (lets ((b _ (fx+ b 1)))
-   ;                  (loop 1 b)))
-   ;            (lets
-   ;               ((res (op a b))
-   ;                (a _ (fx+ a 1)))
-   ;               (loop a b)))))
-   ;
-   ;   (define (try-fixnum op)
-   ;      (lets
-   ;         ((start (time-ms))
-   ;          (val (try op))
-   ;          (elapsed (- (time-ms) start)))
-   ;         (print (list 'fixmath op 'took elapsed))))
-   ;
-   ;   (print "starting tests")
-   ;
-   ;   (define (nothing a b) a)
-   ;
-   ;   (try-fixnum add)
-   ;   (try-fixnum nothing)
-   ;   (try-fixnum +)
-   ;   (try-fixnum -)
-   ;   (try-fixnum *)
+      ;; FIXME: these need short circuiting 
+
+      ;; + → add
+      (define +
+         (case-lambda
+            ((a b) (add a b))
+            (xs (fold add 0 xs))))
+
+      ;; - → sub
+      (define -
+         (case-lambda 
+            ((a b) (sub a b))
+            ((a) (sub 0 a))
+            ((a b . xs) 
+               (sub a (add b (fold add 0 xs))))))
+      
+      ;; * → mul
+      (define *
+         (case-lambda 
+            ((a b) (mul a b))
+            ((a b . xs) (mul a (mul b (fold mul 1 xs))))
+            ((a) a)
+            (() 1)))
+
+      (define bin-div /)
+
+      (define /
+         (case-lambda
+            ((a b) (bin-div a b))
+            ((a) (bin-div 1 a))
+            ((a . bs) (bin-div a (product bs)))))
+
+      ;; fold but stop on first false
+      (define (each op x xs)
+         (cond
+            ((null? xs) #true)
+            ((op x (car xs)) 
+               (each op (car xs) (cdr xs)))
+            (else #false)))
+
+      ;; the rest are redefined against the old binary ones
+
+      (define (vararg-predicate op) ;; turn into a macro
+         (case-lambda
+            ((a b) (op a b))
+            ((a . bs) (each op a bs))))
+
+      (define = (vararg-predicate =)) ;; short this later
+      (define < (vararg-predicate <))
+      (define > (vararg-predicate >))
+
+      (define <= (vararg-predicate <=))
+      (define >= (vararg-predicate >=))
+
+      ;; ditto for foldables
+      (define (vararg-fold op)
+         (case-lambda
+            ((a b) (op a b))
+            ((a) a)
+            ((a . bs) (fold op a bs))))
+
+      (define min (vararg-fold min))
+      (define max (vararg-fold max))
+      (define gcd (vararg-fold gcd))
+      (define lcm (vararg-fold lcm))
 
 ))
-
-

@@ -49,6 +49,9 @@
                   (walk body (union formals bound) found))
                ((lambda-var fixed? formals body)
                   (walk body (union formals bound) found))
+               ((case-lambda fn else)
+                  (walk fn bound
+                     (walk else bound found)))
                ((call rator rands)
                   (walk rator bound
                      (walk-list rands bound found)))
