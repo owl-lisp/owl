@@ -72,3 +72,18 @@
 (print (foo 1 2 3))
 (print (foo 1 2 3 4))
 
+;; TODO ---------------------------------------------------------------------
+
+;; Operator position, should do compile time dispatch
+;
+; (print ((case-lambda ((a) a) (xs xs)) 1 2 3))
+
+;; Recursion
+;
+; (define slartibartfast
+;    (case-lambda
+;      ((a) a)
+;      ((a b) (slartibartfast b))
+;      ((a b . c) (slartibartfast b c))))
+;
+; (print (slartibartfast 'x 'y 11 22 33 44))

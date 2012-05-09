@@ -167,6 +167,12 @@
                   (cps exp env 
                      (mklambda formals body-cps)
                      free)))
+            ;; the variable case should be correct, but cannot test yet
+            ((lambda-var fixed? formals  body)
+               (lets ((body-cps free (cps body env cont free)))
+                  (cps exp env 
+                     (tuple 'lambda-var fixed? formals body-cps)
+                     free)))
             (else
                (error "cps-receive: receiver is not a lambda. " semi-cont))))
 
