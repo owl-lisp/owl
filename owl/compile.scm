@@ -672,9 +672,14 @@
 
       ;; temporary back-conversion for jump compiling
       (define (bytecode->list thing)
-         (if (bytecode? thing)
-            (map (λ (p) (refb thing p)) (iota 0 1 (sizeb thing)))
-            (error "not bytecode: " thing)))
+         (cond
+            ((bytecode? thing)
+               (map (λ (p) (refb thing p)) (iota 0 1 (sizeb thing))))
+            ((function? thing)
+               ;; get the bytecode
+               (bytecode->list (ref thing 1)))
+            (else
+               (error "bytecode->list: " thing))))
             
       (define (rtl-case-lambda rtl exp clos literals)
          (tuple-case exp

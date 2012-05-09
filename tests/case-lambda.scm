@@ -14,7 +14,7 @@
 (print (foo 11 22 33 44))
 (print (foo 11 22 33 44 55))
 
-;; dispatch, fixed
+;; dispatch, fixed, simple
 
 (define foo
    (case-lambda
@@ -40,18 +40,35 @@
 (print (foo 11 22))
 (print (foo 11 22 33))
 
-; dispatch w/ variable
+;; dispatch w/ variable arity
 
 (define foo
    (case-lambda
       ((a) (list a))
+      ((a) 111)    ;; not reachable
       ((a b . c) (list a b c))
-      ;((a) 'bug)
-      ;((a b) 'bug)
-      (x x)))
+      ((a b) 222)  ;; not reachable
+      (x x)))      ;; not reachable
 
 (print (foo 1))
 (print (foo 1 2))
 (print (foo 1 2 3))
 (print (foo 1 2 3 4))
 (print (foo))
+
+;; dispatch, variable arity, literal values, check that their indeces are ok
+
+(define foo
+   (case-lambda
+      (() 'zero)
+      ((a) (list 'o 'n 'e))
+      ((a b) 'two)    ;; not reachable
+      ((a b c) (cons 'th 'ree))
+      (x 'any)))
+
+(print (foo)) ;; any
+(print (foo 1))
+(print (foo 1 2))
+(print (foo 1 2 3))
+(print (foo 1 2 3 4))
+
