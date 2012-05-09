@@ -40,18 +40,18 @@
 (print (foo 11 22))
 (print (foo 11 22 33))
 
-;; dispatch w/ variable
-;;
-;(define foo
-;   (case-lambda
-;      ((a) (list a))
-;      ((a b . c) (list a b c))
-;      ((a) 'bug)
-;      ((a b) 'bug)
-;      (x x)))
-;
-;(print (foo 1))
-;(print (foo 1 2))
-;(print (foo 1 2 3))
-;(print (foo 1 2 3 4))
-;(print (foo))
+; dispatch w/ variable
+
+(define foo
+   (case-lambda
+      ((a) (list a))
+      ((a b . c) (list a b c))
+      ;((a) 'bug)
+      ;((a b) 'bug)
+      (x x)))
+
+(print (foo 1))
+(print (foo 1 2))
+(print (foo 1 2 3))
+(print (foo 1 2 3 4))
+(print (foo))

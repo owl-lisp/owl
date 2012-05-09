@@ -184,9 +184,10 @@
                (literalize-call literalize rator rands used))
             ((lambda formals body)
                (lets ((body used (literalize body used)))
-                  (values
-                     (tuple 'lambda formals body)
-                     used)))
+                  (values (tuple 'lambda formals body) used)))
+            ((lambda-var fixed? formals body)
+               (lets ((body used (literalize body used)))
+                  (values (tuple 'lambda-var fixed? formals body) used)))
             ((closure formals body clos)
                ;; note, the same closure exp (as in eq?) is stored to both literals 
                ;; and code. the one in code will be used to make instructions 

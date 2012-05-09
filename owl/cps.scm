@@ -181,6 +181,8 @@
                   (values (tuple 'case-lambda fn else) free)))
             ((lambda formals body)
                (cps-just-lambda cps formals #true body env free))
+            ((lambda-var fixed? formals body)
+               (cps-just-lambda cps formals fixed? body env free))
             (else
                (error "cps-case-lambda: what is " node))))
 
