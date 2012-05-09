@@ -2,15 +2,6 @@
 ;;; Convert lambdas to closures where necessary
 ;;;
 
-;; case-lambda closurization
-;;  - operator lambdas are currently not closurized
-;;  - operand lambdas are
-;;  - case-lambda branches should not be closed
-;;  - the leading case-lambda node should be closed leaving a new kind of code entry node
-;;  - the subsequent ones should not be closed
-;;    -> sounds like one could switch to non-closurize at closurize, set #f also for branches, and get this right
-
-
 (define-library (owl closure)
 
 	(export 

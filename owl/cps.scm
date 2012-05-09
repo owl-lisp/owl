@@ -170,11 +170,19 @@
             (else
                (error "cps-receive: receiver is not a lambda. " semi-cont))))
 
-      (define (cps-case-lambda cps func else env cont free)
-         (lets
-            ((fn free (cps func env cont free))
-             (else free (cps else env cont free))) ;; free wouldn't clash, but no reason to cycle it either
-            (values (tuple 'case-lambda fn else) free)))
+      ;; translate a chain of lambdas as if they were at operator position
+      ;; note! also cars are handled as the same jump, which is silly
+      (define (cps-case-lambda cps node env cont free)
+         (tuple-case node
+            ((case-lambda fn else)
+               (lets 
+                  ((fn free (cps-case-lambda cps fn env cont free))
+                   (else free (cps-case-lambda cps else env cont free)))
+                  (values (tuple 'case-lambda fn else) free)))
+            ((lambda formals body)
+               (cps-just-lambda cps formals #true body env free))
+            (else
+               (error "cps-case-lambda: what is " node))))
 
       (define (cps-exp exp env cont free)
          (tuple-case exp
@@ -195,7 +203,8 @@
             ((receive exp target)
               (cps-receive cps-exp exp target env cont free))
             ((case-lambda fn else)
-               (cps-case-lambda cps-exp fn else env cont free))
+               (lets ((res free (cps-case-lambda cps-exp exp env cont free)))
+                  (values (mkcall cont (list res)) free)))
             (else
                (error "CPS does not do " exp))))
 

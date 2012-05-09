@@ -18,6 +18,7 @@
       (owl ff)
       (owl math)
       (owl list-extra)
+      (owl io)
       (owl equal)
       (only (owl syscall) error)
       (owl list)
@@ -316,6 +317,7 @@
                (error "rtl-retard: unknown code: " code))))
 
       (define (allocate-registers rtl)
-         (lets ((rtl usages (rtl-retard rtl))) rtl))
+         (lets ((rtl usages (rtl-retard rtl)))
+            rtl))
          
    ))

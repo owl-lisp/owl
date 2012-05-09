@@ -22,6 +22,7 @@
       (owl math)
       (owl list)
       (only (owl syscall) error)
+      (owl function)
       (owl symbol)
       (owl list-extra)
       (owl ast)
@@ -586,7 +587,7 @@
                         (else is type
                            (error "rtl-any: type branch: bad type: " type))))
                   (else
-                     (show "rtl-any: unknown branch type: " kind))))
+                     (error "rtl-any: unknown branch type: " kind))))
             ((call rator rands)
                ;; compile as primop call, bind if rator is lambda or a generic call
                (let ((op (and (eq? (ref rator 1) 'value) (primop-of (ref rator 2)))))
@@ -612,7 +613,7 @@
                         (else
                            (rtl-call regs rator rands))))))
             (else
-               (show "rtl-any: wtf: " exp))))
+               (error "rtl-any: wtf: " exp))))
 
       (define (formals->regs formals pos)
          (if (null? formals)
@@ -648,41 +649,67 @@
       (define (list->proc lst)
          (listuple 32 (length lst) lst))
 
-      ;; todo: control flow analysis time - if we can see what the arguments are here, the info could be used to make most continuation returns direct via known call opcodes, which would remove an important branch prediction killer
+      ;; rtl-procedure now passes the intended new form here - replace it later in the AST node also
+      (define (rtl-plain-lambda rtl exp clos literals tail)
+         (tuple-case exp   
+            ((lambda-var fixed? formals body)
+               (lets
+                  ((exec
+                     (assemble-code 
+                        (tuple 'code-var fixed?
+                           (length formals)
+                           (rtl-any (entry-regs clos literals formals) body))
+                        tail)))
+                  (if (null? literals)
+                     exec ; #<bytecode> 
+                     (list->proc (cons exec literals)))))
+            ((lambda formals body) ;; to be deprecated
+               (rtl-plain-lambda rtl 
+                  (tuple 'lambda-var #true formals body)
+                  clos literals tail))
+            (else
+               (error "rtl-plain-lambda: bad node " exp))))
+
+      ;; temporary back-conversion for jump compiling
+      (define (bytecode->list thing)
+         (if (bytecode? thing)
+            (map (λ (p) (refb thing p)) (iota 0 1 (sizeb thing)))
+            (error "not bytecode: " thing)))
+            
+      (define (rtl-case-lambda rtl exp clos literals)
+         (tuple-case exp
+            ((lambda-var fixed? formals body)
+               (rtl-plain-lambda rtl exp clos literals null))
+            ((lambda formals body) ;; soon to be deprecated
+               (rtl-case-lambda rtl 
+                  (tuple 'lambda-var #true formals body)
+                  clos literals))
+            ((case-lambda func else)
+               (rtl-plain-lambda rtl func clos literals
+                  (bytecode->list 
+                     (rtl-case-lambda rtl else clos literals))))
+            (else
+               (error "rtl-case-lambda: bad node " exp))))
+  
+      ;; todo: separate closure nodes from lambdas now that the arity may vary
+      ;; todo: control flow analysis time - if we can see what the arguments are here, the info could be used to make most continuation returns direct via known call opcodes, which could remove an important branch prediction killer
       ;;; proc = #(procedure-header <code-ptr> l0 ... ln)
       ; env node → env' owl-func
       (define (rtl-procedure node)
          (tuple-case node
-            ;;; #(procedure #(code arity exec) l0 ... ln)
             ((closure formals body clos literals)
-               ;; todo: should pass info about env and literals to assembly in order to select better call opcodes
-               (lets
-                  ((lits (rtl-literals rtl-procedure literals))
-                   (exec
-                     (assemble-code 
-                        (tuple 'code
-                           (length formals)
-                           (rtl-any (entry-regs clos literals formals) body)))))
-                  (if (null? lits)
-                     exec ; #<bytecode> 
-                     (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn>]
+               (rtl-plain-lambda rtl-procedure
+                  (tuple 'lambda-var #true formals body)
+                  clos (rtl-literals rtl-procedure literals) null))
             ((closure-var fixed? formals body clos literals)
-               ;; clone branch, merge later
-               (lets
-                  ((lits (rtl-literals rtl-procedure literals))
-                   (exec
-                     (assemble-code 
-                        (tuple 'code-var fixed?
-                           (length formals)
-                           (rtl-any (entry-regs clos literals formals) body)))))
-                  (if (null? lits)
-                     exec ; #<bytecode> 
-                     (list->proc (cons exec lits))))) ; #[TPROC #<bytecode> <val0> ... <valn]
+               (rtl-plain-lambda rtl-procedure
+                  (tuple 'lambda-var fixed? formals body)
+                  clos (rtl-literals rtl-procedure literals) null))
             ((closure-case body clos literals)
-               ;; oh noes.. the entry regs depend on formals, so there should probably 
-               ;; be something separate to handle them, which should be shared here and 
-               ;; in closure-* cases
-               (error "rtl-procedure does not yet handle closure-case: " body))
+               (lets 
+                  ((lits (rtl-literals rtl-procedure literals))
+                   (body (rtl-case-lambda rtl-procedure body clos lits)))
+                  body))
             (else
                (error "rtl-procedure: bad input: " node))))
 

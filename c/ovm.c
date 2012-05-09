@@ -1126,7 +1126,6 @@ dispatch: /* handle normal bytecode */
             }
             R[acc + 3] = tail;
          } else {
-            fprintf(stderr, "jmp-args mismatch, jumping\n");
             ip += (ip[1] << 8) | ip[2];
          }
          next(3); }

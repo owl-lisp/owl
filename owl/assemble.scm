@@ -4,7 +4,10 @@
 
 (define-library (owl assemble)
 
-   (export assemble-code inst->op)
+   (export 
+      assemble-code 
+      bytes->bytecode
+      inst->op)
 
    (import
       (owl defmac)
@@ -304,20 +307,10 @@
       ; code rtl object -> executable code
       ;; todo: exit via fail cont
       ;; todo: pass tail here or have case-lambda nodes be handled internally with a foldr
-      (define (assemble-code obj)
+      (define (assemble-code obj tail)
          (tuple-case obj
             ((code arity insts)
-               (lets
-                  ((insts (allocate-registers insts))
-                   ;(insts (count-allocs insts))
-                   )
-                  ;(show "optimized code is " insts)
-                  (if (not insts)
-                     (error "failed to allocate registers" "")
-                     (lets/cc ret
-                        ((fail (λ (why) (error "Error in bytecode assembly: " why) #false)))
-                        (bytes->bytecode
-                           (ilist 17 arity (assemble insts fail)))))))
+               (assemble-code (tuple 'code-var #true arity insts) tail))
             ((code-var fixed? arity insts)
                (lets ((insts (allocate-registers insts)))
                   (if (not insts)
@@ -330,12 +323,20 @@
                            (error "too much bytecode: " len))
                         (bytes->bytecode
                            (if fixed?
-                              (ilist 17 arity bytes)
-                              (ilist 89 (- arity 1)       ;; last is the optional one
+                              (ilist 25 arity 
+                                 (band 255 (>> len 8))    ;; hi jump
+                                 (band 255 len)           ;; low jump
+                                 (append bytes
+                                    (if (null? tail)
+                                       (list 17 0)
+                                       tail)))
+                              (ilist 89 (if fixed? arity (- arity 1))       ;; last is the optional one
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
                                  (append bytes 
-                                    (list 17 0)))))))))   ;; force error (temporary) 
+                                    (if (null? tail)
+                                       (list 17 0)        ;; force error
+                                       tail)))))))))
             (else
                (error "assemble-code: unknown AST node " obj))))
 
