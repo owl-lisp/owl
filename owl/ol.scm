@@ -565,6 +565,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
        (profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
+       (debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads #false "--no-threads" comment "do not include threading and io to generated c-code")
        )))
@@ -783,11 +784,15 @@ Check out http://code.google.com/p/owl-lisp for more information.")
    (or
       (process-arguments (cdr vm-args) command-line-rules error-usage-text
          (λ (dict others)
-            (let 
+            (lets 
                ((env 
                   (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet evaluate run output output-format))
                      (env-set env '*interactive* #false)
                      (env-set env '*interactive* #true)))
+                (env ;; maybe set debug causing (owl eval) to print intermediate steps
+                  (if (getf dict 'debug)
+                     (env-set env '*debug* #true)
+                     env))
                 (seccomp?
                   (if (get dict 'seccomp #false)
                      (let ((megs (get dict 'seccomp-heap 'bug)))

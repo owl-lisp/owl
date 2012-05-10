@@ -61,6 +61,10 @@
             (λ (x) (if (eq? (ref x 1) name) (ref x 5) #false))
             primops))
 
+      (define (debug env . msg)
+         (if (env-get env '*debug* #false)
+            (print* msg)))
+
       ;; library (just the value of) containing only special forms, primops and
       (define *owl-core*
          (fold
@@ -114,7 +118,7 @@
                         (λ (state next)
                            (if (ok? state)
                               (begin
-                                 ;(show " - compiler at exp " (ref state 2))
+                                 (debug env " * " (ref state 2))
                                  (next (ref state 2) (ref state 3)))
                               (exit state)))
                         (ok exp env)
@@ -649,9 +653,10 @@
             features-key))  ;; implementation features
 
       (define (eval-repl exp env repl)
+         (debug env "Evaling " exp)
          (tuple-case (macro-expand exp env)
             ((ok exp env)
-               ;(show "macro: " exp)
+               (debug env " * expanded to " exp)
                (cond
                   ((import? exp) ;; <- new library import, temporary version
                      (lets
