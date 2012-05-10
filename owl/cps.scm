@@ -1,6 +1,6 @@
 (define-library (owl cps)
 
-	(export cps)
+   (export cps)
 
    (import
       (owl defmac)
@@ -9,6 +9,7 @@
       (owl list-extra)
       (owl math)
       (owl gensym)
+      (owl io)
       (only (owl syscall) error)
       (only (owl env) primop? primop-of)
       (owl primop)) 
@@ -49,6 +50,9 @@
                ((lambda formals body)
                   (lets ((lexp free (cps-just-lambda cps formals #true body env free)))
                      (cps-args cps (cdr args) (cons lexp call) env free)))
+               ((lambda-var fixed? formals body)
+                  (lets ((lexp free (cps-just-lambda cps formals fixed? body env free)))
+                     (cps-args cps (cdr args) (cons lexp call) env free)))
                ((value foo)
                   (cps-args cps (cdr args) (cons (car args) call) env free))
                ((var foo)
@@ -80,6 +84,24 @@
             (error "bad arguments for tuple bind: " rands)))
 
 
+      ;; (a0 .. an) → (cons a0 (cons .. (cons an null))), modulo AST
+      (define (enlist-tail args)
+         (foldr
+            (λ (x tl) 
+               (mkcall (tuple 'value cons) (list x tl)))
+            (tuple 'value null)
+            args))
+
+      ;; (f0 .. fn) (a0 ... am) → #false | (a0 ... an-1 (cons an (cons ... (cons am null))))
+      (define (enlist-improper-args formals args)
+         (cond
+            ((null? (cdr formals)) 
+               (list (enlist-tail args)))
+            ((null? args) #false) ;; too few args
+            ((enlist-improper-args (cdr formals) (cdr args)) =>
+               (λ (tail) (cons (car args) tail)))
+            (else #false)))
+
       (define (cps-call cps rator rands env cont free)
          (tuple-case rator
             ((lambda formals body)
@@ -91,6 +113,19 @@
                      (cps-args cps rands
                         (list (mklambda formals body))
                         env free))))
+            ((lambda-var fixed? formals body)
+               (cond
+                  (fixed? ;; downgrade to a regular lambda
+                     (cps-call cps
+                        (tuple 'lambda formals body)
+                        rands env cont free))
+                  ((enlist-improper-args formals rands) => ;; downgrade to a regular lambda converting arguments
+                     (λ (rands)
+                        (cps-call cps 
+                           (tuple 'lambda formals body)
+                           rands env cont free)))
+                  (else
+                     (error "Bad head lambda arguments:" (list 'args formals 'rands rands)))))
             ((call rator2 rands2)
                (lets
                   ((this free (fresh free))

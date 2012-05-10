@@ -41,47 +41,47 @@
 
       (define vm-instructions
          (list->ff
-         `((move . 9)      ; move a, t:      Rt = Ra
-           (refi . 1)      ; refi a, p, t:   Rt = Ra[p], p unsigned
-           (goto . 2)      ; jmp a, nargs    call Ra with nargs args
-           (clos . 3)      ; clos lp, o, nenv, e0 ... en, t: 
-           (cloc . 4)      ; cloc lp, o, nenv, e0 ... en, t: 
-           (move2 . 5)     ; two moves, 4 args
-           (clos1 . 6)
-           (cloc1 . 7)
-           ; 8 = jlq 
-           (jit   . 9)       ; jit r type jmp 
-           (jit2 . 11)       ; jit r type jmp1 jmp2 -> 
-           (jat2 . 12)       ; jat r type jmp1 jmp2
-           (movh . 13)       ; 
-           (goto-code . 18)
-           (goto-proc . 19)
-           (goto-clos . 21)
-           (igoto . 26)   ; indirect goto
-           (jrt  . 33)       ; jrt r type jmp 
-           (cons . 51)     ; cons a, b, t:   Rt = mkpair(a, b)
-           (car  . 52)     ; car a, t:       Rt = car(a);
-           (cdr  . 53)     ; cdr a, t:       Rt = cdr(a);
-           (eq   . 54)     ; eq a, b, t:     Rt = (Ra == Rb) ? true : false;
-           (jlq  . 8)      ; jlq a b o1 o2
-           (mk   . 9)      ; mk n, a0, ..., an, t, size up to 256
-           (mki  . 11)     ; mki size, type, v1, ..., vn, to
-           (ref  . 12)     ; ref a, p, t     Rt = Ra[p] + checks, unsigned
-           (ld   . 14)     ; ld a, t:        Rt = a, signed byte
-           ;; ldi = 13
-           (jz   . ,(+ 16 (<< 0 6)))     ; jump-imm[0], zero
-           (jn   . ,(+ 16 (<< 1 6)))     ; jump-imm[1], null
-           (jt   . ,(+ 16 (<< 2 6)))     ; jump-imm[2], true
-           (jf   . ,(+ 16 (<< 3 6)))     ; jump-imm[3], false
-           (ldn  . 77)     ; 13 + 1<<6
-           (ldf  . 205)     ; ldf t:          Rt = false
-           (ldt  . 141)     ; ldt t:          Rt = true
-           (jeq  . 20)     ; jeq a, b, o:    ip += o if Ra == Rb      ; jump if eq?
-           (ret  . 24)     ; ret a:          call R3 (usually cont) with Ra
-           (jf2  . 25)     ; jf a, ol, oh
-           (set . 25)     ; set a, p, b     Ra[Rp] = Rb
-           (jbf . 26)     ; jump-binding tuple n f offset ... r1 ... rn
-           )))
+            `((move . 9)      ; move a, t:      Rt = Ra
+              (refi . 1)      ; refi a, p, t:   Rt = Ra[p], p unsigned
+              (goto . 2)      ; jmp a, nargs    call Ra with nargs args
+              (clos . 3)      ; clos lp, o, nenv, e0 ... en, t: 
+              (cloc . 4)      ; cloc lp, o, nenv, e0 ... en, t: 
+              (move2 . 5)     ; two moves, 4 args
+              (clos1 . 6)
+              (cloc1 . 7)
+              ; 8 = jlq 
+              (jit   . 9)       ; jit r type jmp 
+              (jit2 . 11)       ; jit r type jmp1 jmp2 -> 
+              (jat2 . 12)       ; jat r type jmp1 jmp2
+              (movh . 13)       ; 
+              (goto-code . 18)
+              (goto-proc . 19)
+              (goto-clos . 21)
+              (igoto . 26)   ; indirect goto
+              (jrt  . 33)       ; jrt r type jmp 
+              (cons . 51)     ; cons a, b, t:   Rt = mkpair(a, b)
+              (car  . 52)     ; car a, t:       Rt = car(a);
+              (cdr  . 53)     ; cdr a, t:       Rt = cdr(a);
+              (eq   . 54)     ; eq a, b, t:     Rt = (Ra == Rb) ? true : false;
+              (jlq  . 8)      ; jlq a b o1 o2
+              (mk   . 9)      ; mk n, a0, ..., an, t, size up to 256
+              (mki  . 11)     ; mki size, type, v1, ..., vn, to
+              (ref  . 12)     ; ref a, p, t     Rt = Ra[p] + checks, unsigned
+              (ld   . 14)     ; ld a, t:        Rt = a, signed byte
+              ;; ldi = 13
+              (jz   . ,(+ 16 (<< 0 6)))     ; jump-imm[0], zero
+              (jn   . ,(+ 16 (<< 1 6)))     ; jump-imm[1], null
+              (jt   . ,(+ 16 (<< 2 6)))     ; jump-imm[2], true
+              (jf   . ,(+ 16 (<< 3 6)))     ; jump-imm[3], false
+              (ldn  . 77)     ; 13 + 1<<6
+              (ldf  . 205)     ; ldf t:          Rt = false
+              (ldt  . 141)     ; ldt t:          Rt = true
+              (jeq  . 20)     ; jeq a, b, o:    ip += o if Ra == Rb      ; jump if eq?
+              (ret  . 24)     ; ret a:          call R3 (usually cont) with Ra
+              (jf2  . 25)     ; jf a, ol, oh
+              (set . 25)     ; set a, p, b     Ra[Rp] = Rb
+              (jbf . 26)     ; jump-binding tuple n f offset ... r1 ... rn
+              )))
 
       (define (inst->op name)
          (or
@@ -224,11 +224,11 @@
             ((goto op nargs)
                (list (inst->op 'goto) (reg op) nargs))
             ((goto-code op n)
-               (list (inst->op 'goto-code) (reg op)))
+               (list (inst->op 'goto-code) (reg op) n)) ;; <- arity needed for dispatch
             ((goto-proc op n)
-               (list (inst->op 'goto-proc) (reg op)))
+               (list (inst->op 'goto-proc) (reg op) n))
             ((goto-clos op n)
-               (list (inst->op 'goto-clos) (reg op)))
+               (list (inst->op 'goto-clos) (reg op) n))
             ;; todo: all jumps could have parameterized lengths (0 = 1-byte, n>0 = 2-byte, being the max code length)
             ((jeq a b then else)
                (lets

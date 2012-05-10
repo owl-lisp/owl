@@ -11,14 +11,20 @@
 (print (foo 1 2))
 (print (foo 1 2 3))
 
-;; TODO --------------------------------------------------------- 
+;; operator position, compile time transformation
+(print ((lambda (a . b) (list a b)) 11))
+(print ((lambda (a . b) (list a b)) 11 22 33))
 
-;; operator position 
+;; variable arity continuations
+(define (foo) (values 11 22))
+(define (bar) (values 11 22 33 44))
 
-;; todo: convert at compile time to a regular operator lambda?
-; ((lambda (a . b) (list a b)) 11 22 33)
+(print (receive (foo) (lambda x x)))
+(print (receive (bar) (lambda (a b . c) (list a b c))))
 
-;; continuations
+;; \o\ (--------------- TODO ---------------------) /o/
+;; direct variable arity calls
 
-; this will work when the above case is handled
-; (receive (values 1 2) (lambda (a . b) (list a b)))
+
+
+

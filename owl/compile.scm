@@ -392,32 +392,23 @@
 
       ; rator nargs → better call opcode | #false = no better known option, just call | throw error if bad function or arity
       (define (rtl-pick-call regs rator nargs)
-         ;(show "picking call for " rator)
-         ;(show "regs " regs)
-         '(tuple-case rator
+         (tuple-case rator
             ((value rator)
                (tuple-case (fn-type rator)
-                  ((code n)
-                     ;; todo: could check further whether the code consists one just one macroinstruction, 
-                     ;; and if so, make a direct (call-instruction-16 <hi> <lo>)
-                     (if (= n nargs) 'goto-code 
-                        (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
-                  ((proc n)
-                     (if (= n nargs) 'goto-proc 
-                        (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
-                  ((clos n)
-                     (if (= n nargs) 'goto-clos 
-                        (error bad-arity (list rator 'wanted (- n 1) 'got (- nargs 1)))))
+                  ((code n) 'goto-code)
+                  ((proc n) 'goto-proc)
+                  ((clos n) 'goto-clos)
                   (else
-                     (if (or (not rator) (ff? rator)) ;; finite functions are also applicable
-                        #false
-                        (error "Bad operator: " rator)))))
+                     ;(if (or (not rator) (ff? rator)) ;; finite functions are also applicable
+                     ;   #false
+                     ;   (error "Bad operator: " rator))
+                     #false
+                     )))
             (else 
                ;(show "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
                ;(print "ENV:")
                ;(for-each (λ (x) (show " - " x)) regs)
-               #false))
-         #false) ;; anything is ok, we don't know about arity for now in the new calling convention
+               #false)))
 
       (define (rtl-call regs rator rands)
          ; rator is here possibly #(value #<func>) and much of the call can be inlined

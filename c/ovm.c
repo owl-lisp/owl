@@ -1070,17 +1070,20 @@ dispatch: /* handle normal bytecode */
          next(1);
       case 18: /* goto-code p */
          ob = (word *) R[*ip]; /* needed in case of gc */
+         acc = ip[1];
          ip = ((unsigned char *) R[*ip]) + W;
          goto invoke;
       case 19: { /* goto-proc p */
          word *this = (word *) R[*ip];
          R[1] = (word) this;
+         acc = ip[1];
          ob = (word *) this[1];
          ip = ((unsigned char *) ob) + W;
          goto invoke; }
       case 21: { /* goto-clos p */
          word *this = (word *) R[*ip];
          R[1] = (word) this;
+         acc = ip[1];
          this = (word *) this[1];
          R[2] = (word) this;
          ob = (word *) this[1];
