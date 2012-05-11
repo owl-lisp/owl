@@ -57,9 +57,9 @@
       (define (code->bytes code extras)
          (if (bytecode? code)
             (let ((bytes (map (λ (p) (refb code p)) (iota 0 1 (sizeb code)))))
-               (if (eq? (cadr bytes) 0) ;; (<arity> 0 <hi8> <lo8>) == call extra instruction
+               (if (eq? (car bytes) 0) ;; (0 <hi8> <lo8>) == call extra instruction
                   (lets
-                     ((opcode (+ (<< (caddr bytes) 8) (car (cdddr bytes))))
+                     ((opcode (+ (<< (cadr bytes) 8) (car (cddr bytes))))
                       (bytecode (get extras opcode #false)))
                      (if bytecode
                         (code->bytes bytecode extras) ;; <- vanilla bytecode (modulo boostrap bugs)
@@ -647,14 +647,16 @@
       ;; obj extras → #false | (arity . c-code-string), to become #[arity 0 hi8 lo8] + c-code in vm
       (define (compile-to-c code extras)
          (if (bytecode? code)
-            (let ((ops (code->bytes code extras)))
-               ;(show " ************************************************** " ops)
-               (call/cc
-                  (λ (ret)
-                     (list->string
-                        (foldr render null
-                           (emit-c ops #false (λ () (ret #false)) null))))))
+            (begin
+               (let ((ops (code->bytes code extras)))
+                  ; (show " ************************************************** " ops)
+                  (call/cc
+                     (λ (ret)
+                        (list->string
+                           (foldr render null
+                              (emit-c ops #false (λ () (ret #false)) null)))))))
             #false))
      
    ))
-
+; (import (owl cgen))
+; (print (compile-to-c sys-prim *vm-special-ops*))

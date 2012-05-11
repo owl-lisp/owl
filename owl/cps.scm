@@ -202,7 +202,7 @@
                   (cps exp env 
                      (mklambda formals body-cps)
                      free)))
-            ;; the variable case should be correct, but cannot test yet
+            ;; FIXME: this ends up as operator, but doesn't go through the call operator variable lambda conversion and thus confuses rtl-* which assume all operator lambdas are already taken care of by CPS
             ((lambda-var fixed? formals  body)
                (lets ((body-cps free (cps body env cont free)))
                   (cps exp env 

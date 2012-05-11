@@ -23,8 +23,20 @@
 (print (receive (bar) (lambda (a b . c) (list a b c))))
 
 ;; \o\ (--------------- TODO ---------------------) /o/
-;; direct variable arity calls
 
+;; direct variable arity calls coming from receive
+; minimal test for issue FIXME'd in owl/cps.scm 
+; (receive (values 42) (lambda x x))   ; (1)
+; (print (receive (values 1) (lambda (x) x))) ; 1
+; (print (receive (values 1) (lambda x x)))   ; (1)
+; (print (receive (values 1 2) (lambda (x y) (list x y))))       ; (1 2)
+; (print (receive (values 1 2) (lambda (x . y) (list x y))))     ; (1 (2))
+; (print (receive (values 1 2) (lambda (x y . z) (list x y z)))) ; (1 2 ())
+; (print (receive (values 1 2) (lambda x x))) ; (1 2)
+
+;; variable arity vs recursion
+
+; (define (foo a . b) (if (eq? a 0) b ...))
 
 
 
