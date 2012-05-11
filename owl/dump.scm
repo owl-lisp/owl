@@ -214,8 +214,8 @@
 
       ; obj -> fixnum|#false
       (define (extended-opcode obj)
-         (if (and (bytecode? obj) (eq? 0 (refb obj 1)))
-            (+ (<< (refb obj 2) 8) (refb obj 3))
+         (if (and (bytecode? obj) (eq? 0 (refb obj 0)))
+            (+ (<< (refb obj 1) 8) (refb obj 2))
             #false))
 
       (define (show-func val)

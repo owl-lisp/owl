@@ -1,5 +1,8 @@
 ;; vm rimops
 
+;; todo: convert tuple to variable arity
+;; todo: convert arity checks 17 -> 25
+
 (define-library (owl primop)
    (export 
       primops

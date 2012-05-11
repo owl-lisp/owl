@@ -421,29 +421,41 @@
                      (lets ((n to bs (get2 (cdr bs))))
                         (cond
                            (else (values (list "R["to"]=fixnum(" n ");") bs (put regs to 'fixnum)))))))
+               (cons 17 ;; arity <n>
+                  (λ (bs regs fail)
+                     (let ((n (cadr bs)))
+                        (values
+                           (list "if(acc!=" n "){error(256," n ",ob)};")
+                           (cddr bs) regs))))
                (cons 18 ;; goto-code <p>
                   (λ (bs regs fail)
-                     (let ((fun (cadr bs)))
+                     (lets
+                        ((fun (cadr bs))
+                         (arity (caddr bs)))
                         (cond
                            (else 
                               (values 
-                                 (list "ob=(word *)R[" fun"];ip=((unsigned char *)ob)+W+1;goto invoke;")
+                                 (list "ob=(word *)R[" fun "];ip=((unsigned char *)ob)+W;acc=" arity ";goto invoke;")
                                  null regs))))))
                (cons 19 ;; goto-proc <p>
                   (λ (bs regs fail)
-                     (let ((fun (cadr bs)))
+                     (lets
+                        ((fun (cadr bs))
+                         (arity (caddr bs)))
                         (cond
                            (else 
                               (values 
-                                 (list "R[1]=R["fun"];ob=(word *)G(R[1],1);ip=((unsigned char *)ob)+W+1;goto invoke;")
+                                 (list "R[1]=R["fun"];ob=(word *)G(R[1],1);ip=((unsigned char *)ob)+W;acc=" arity ";goto invoke;")
                                  null regs))))))
                (cons 21 ;; goto-clos <p>
                   (λ (bs regs fail)
-                     (let ((fun (cadr bs)))
+                     (lets
+                        ((fun (cadr bs))
+                         (arity (caddr bs)))
                         (cond
                            (else 
                               (values 
-                                 (list "R[1]=R[" fun"];R[2]=G(R[1],1);ob=(word *)G(R[2],1);ip=((unsigned char *)ob)+W+1;goto invoke;")
+                                 (list "R[1]=R[" fun"];R[2]=G(R[1],1);ob=(word *)G(R[2],1);ip=((unsigned char *)ob)+W;acc=" arity ";goto invoke;")
                                  null regs))))))
                (cons 22 cify-cast)
                (cons 23 cify-mkt)

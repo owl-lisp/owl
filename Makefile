@@ -41,8 +41,7 @@ c/vm.c: c/ovm.c
 
 c/ol.c: fasl/ol.fasl
 	# compile the repl using the fixed point image 
-	#bin/vm fasl/ol.fasl --run owl/ol.scm -s some -o c/ol.c
-	bin/vm fasl/ol.fasl --run owl/ol.scm -s none -o c/ol.c
+	bin/vm fasl/ol.fasl --run owl/ol.scm -s some -o c/ol.c
 
 bin/ol: c/ol.c
 	# compile the real owl repl binary
