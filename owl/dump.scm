@@ -204,10 +204,9 @@
                         (error "too many native opcodes." 
                            "report this as an issue if this happens for a real program."))
                      ((compile-to-c (car obs) extras) =>
-                        (λ (arity-src)
+                        (λ (src)
                            (lets 
-                              ((arity src arity-src)
-                               (wrapper (raw (list arity 0 (>> code 8) (band code 255)) 0 #false)))
+                              ((wrapper (raw (list 0 (>> code 8) (band code 255)) 0 #false)))
                               (loop (+ code 1) (cdr obs)
                                  (cons (cons (car obs) (tuple code wrapper src)) out)))))
                      (else

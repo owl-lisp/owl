@@ -16,7 +16,7 @@
 
 (define-library (owl cgen)
 	(export 
-		compile-to-c            ;; obj extras → #false | (arity . c-code-string)
+		compile-to-c            ;; obj extras → #false | c-code-string
 		code->bytes             ;; obj extras → #false | (byte ...)
 	)
 
@@ -617,10 +617,9 @@
                ;(show " ************************************************** " ops)
                (call/cc
                   (λ (ret)
-                     (cons (car ops)
-                        (list->string
-                           (foldr render null
-                              (emit-c (cdr ops) #false (λ () (ret #false)) null)))))))
+                     (list->string
+                        (foldr render null
+                           (emit-c ops #false (λ () (ret #false)) null))))))
             #false))
      
    ))
