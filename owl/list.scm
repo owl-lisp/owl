@@ -169,7 +169,24 @@
             ((cmp (car lst) elem) lst)
             (else (mem cmp (cdr lst) elem))))
 
-      (define (append a b) (foldr cons b a))
+      ;(define (append a b) (foldr cons b a))
+
+      (define (app a b app)
+         (if (null? a)
+            b
+            (cons (car a) (app (cdr a) b app))))
+      
+      (define (appl l appl)
+         (if (null? (cdr l))
+            (car l)
+            (app (car l) (appl (cdr l) appl) app)))
+
+      (define append
+         (case-lambda 
+            ((a b) (app a b app))
+            ((a b . cs) (app a (app b (appl cs appl) app) app))
+            ((a) a)
+            (() null)))
 
       ;(define (reverse l) (fold (λ (r a) (cons a r)) null l))
 
@@ -179,6 +196,8 @@
             (rev-loop (cdr a) (cons (car a) b))))
 
       (define (reverse l) (rev-loop l null))   
+
+      ;; misc
 
       (define (drop-while pred lst)
          (cond
