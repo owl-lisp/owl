@@ -267,22 +267,22 @@
 
    chapter "6.2.5"
                                                                                                                                                   
-      ;(complex? 3+4i)                ===>  #t
+      (complex? 3+4i)                 ===>  #t
       (complex? 3)                    ===>  #t
       (real? 3)                       ===>  #t
-      ;(real? -2.5+0.0i)              ===>  #t
+      (real? -2.5+0.0i)               ===>  #t
       ;(real? #e1e10)                 ===>  #t ;; FIXME: unsupported number syntax
       (rational? 6/10)                ===>  #t
       (rational? 6/3)                 ===>  #t
-      ;(integer? 3+0i)                ===>  #t
+      (integer? 3+0i)                 ===>  #t
       (integer? 3.0)                  ===>  #t
       (integer? 8/4)                  ===>  #t
 
       (- 3 4)                         ===>  -1
-      ;(- 3 4 5)                      ===>  -6
-      ;(- 3)                          ===>  -3
-      ;(/ 3 4 5)                      ===>  3/20
-      ;(/ 3)                          ===>  1/3
+      (- 3 4 5)                       ===>  -6
+      (- 3)                           ===>  -3
+      (/ 3 4 5)                       ===>  3/20
+      (/ 3)                           ===>  1/3
       
       (abs -7)                        ===>  7
 
@@ -301,10 +301,10 @@
       (remainder -13 -4.0)            ===>  -1.0
 
       (gcd 32 -36)                    ===>  4
-      ;(gcd)                          ===>  0
+      (gcd)                           ===>  0
       (lcm 32 -36)                    ===>  288
       (lcm 32.0 -36)                  ===>  288.0  ; inexact ;; no it's not --owl
-      ;(lcm)                          ===>  1
+      (lcm)                           ===>  1
       
       (numerator (/ 6 4))             ===>  3
       (denominator (/ 6 4))           ===>  2
@@ -477,7 +477,7 @@
       (map (lambda (n) (expt n n)) '(1 2 3 4 5))
                                       ===>  (1 4 27 256 3125)                                                  
 
-      (apply + (list 3 4))            ===>  7    ;; not a primop though --owl
+      (apply + (list 3 4))            ===>  7    ;; not a primop yet though
 
       (map cadr '((a b) (d e) (g h))) ===>  (b e h)
 
@@ -515,5 +515,5 @@
       ;(eval 'x (interaction-environment))       ;; defined above 
       ;                               ===> 28
 
-      ;; most of the IO and system interaction don't apply to owl
+      ;; most of the IO and system interaction don't apply to owl (yet)
 )

@@ -2176,15 +2176,16 @@
       (define >= (vararg-predicate >=))
 
       ;; ditto for foldables
-      (define (vararg-fold op)
+      (define (vararg-fold op zero)
          (case-lambda
             ((a b) (op a b))
             ((a) a)
-            ((a . bs) (fold op a bs))))
+            ((a . bs) (fold op a bs))
+            (() (or zero (error "No arguments for " op)))))
 
-      (define min (vararg-fold min))
-      (define max (vararg-fold max))
-      (define gcd (vararg-fold gcd))
-      (define lcm (vararg-fold lcm))
+      (define min (vararg-fold min #false))
+      (define max (vararg-fold max #false))
+      (define gcd (vararg-fold gcd 0))
+      (define lcm (vararg-fold lcm 1))
 
 ))
