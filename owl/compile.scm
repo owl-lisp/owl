@@ -405,9 +405,9 @@
                      #false
                      )))
             (else 
-               ;(show "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
+               ;(print "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
                ;(print "ENV:")
-               ;(for-each (λ (x) (show " - " x)) regs)
+               ;(for-each (λ (x) (print " - " x)) regs)
                #false)))
 
       (define (rtl-call regs rator rands)
@@ -461,7 +461,7 @@
 
       ;; compile any AST node node to RTL
       (define (rtl-any regs exp)
-         ;(show " - " exp)
+         ;(print " - " exp)
          (tuple-case exp
             ((branch kind a b then else)
                (cond

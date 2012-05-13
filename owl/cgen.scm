@@ -50,7 +50,7 @@
                   (foldr render null
                      (list "fixnum(" val ")"))))
             (else 
-               ;(show "represent: cannot yet handle " val)
+               ;(print "represent: cannot yet handle " val)
                (fail))))
 
       ; -> list of bytes | #false
@@ -68,7 +68,7 @@
             #false))
 
       (define (unknown bs regs fail)
-         ;(show " - cgen does not grok opcode " (car bs))
+         ;(print " - cgen does not grok opcode " (car bs))
          (fail))
 
       (define (get2 l) ; (a b . tl)
@@ -554,7 +554,7 @@
                                  (list "assert((G(R[" from "])==PAIRHDR),R[" from "],1052);R[" to "]=G(R[" from "],1);")
                                  bs (del (put regs from 'pair) to))) ;; upgrade to pair
                            (else
-                              ;(if known-type (show " >>> car on unknown type <<< " known-type))
+                              ;(if known-type (print " >>> car on unknown type <<< " known-type))
                               ;; check that it is a pointer and an object of correct type
                               (values 
                                  (list "assert(pairp(R[" from "]),R[" from "],1052);R[" to "]=G(R[" from "],1);")
@@ -574,7 +574,7 @@
                                  (list "assert((G(R[" from "])==PAIRHDR),R[" from "],1053);R[" to "]=G(R[" from "],2);")
                                  bs (del (put regs from 'pair) to))) ;; upgrade to pair
                            (else
-                              ;(if known-type (show " >>> cdr on unknown type <<< " known-type))
+                              ;(if known-type (print " >>> cdr on unknown type <<< " known-type))
                               ;; check that it is a pointer and an object of correct type
                               (values 
                                  (list "assert(pairp(R[" from "]),R[" from "],1053);R[" to "]=G(R[" from "],2);")
@@ -619,7 +619,7 @@
       ;; regs is a ff of partial knowledge going downwards about things currently in registers
       ;; → (obs ... . tail)
       (define (emit-c ops regs fail tail)
-         ;(show "emit-c: " (list 'ops ops 'types regs))
+         ;(print "emit-c: " (list 'ops ops 'types regs))
          (if (null? ops)
             tail
             (lets ((res tl regs ((get translators (car ops) unknown) ops regs fail)))
@@ -649,7 +649,7 @@
          (if (bytecode? code)
             (begin
                (let ((ops (code->bytes code extras)))
-                  ; (show " ************************************************** " ops)
+                  ; (print " ************************************************** " ops)
                   (call/cc
                      (λ (ret)
                         (list->string

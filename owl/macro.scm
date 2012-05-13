@@ -273,7 +273,7 @@
 
       (define (expand exp env free abort)
 
-         ; (show "expand: " exp)
+         ; (print "expand: " exp)
 
          (define (expand-list exps env free)
             (if (null? exps)
@@ -294,7 +294,7 @@
                            (case thing
                               ((quote) (values exp free))
                               ((_define)
-                                 ; (show " - expanding define body " (caddr exp))
+                                 ; (print " - expanding define body " (caddr exp))
                                  (lets
                                     ((value free 
                                        (expand (caddr exp) env free abort)))

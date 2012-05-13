@@ -15,8 +15,8 @@
 			 (rst cps (random-numbers rst (+ last-code-point 1) len)))
 			;; could also use ((o utf8-decode utf8-encode) data), but using strings
 			;; to also touch that code
-			;(show " => " (list->string cps))
+			;(print " => " (list->string cps))
 			(if (equal? cps (string->list (bytes->string (string->bytes (list->string cps)))))
 				(loop rst (- n 1))
-				(show "failed for " cps)))))
+				(print "failed for " cps)))))
 

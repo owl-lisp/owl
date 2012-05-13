@@ -25,7 +25,7 @@
              (elapsed
                (- (+ ems (* es 1000))
                   (+ sms (* ss 1000)))))
-            (show elapsed "ms")
+            (print elapsed "ms")
             res))
 
       (define timed elapsed-real-time)

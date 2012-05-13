@@ -17,7 +17,7 @@
       (owl tuple)
       (owl list-extra)
       (owl env)
-      (only (owl io) show)
+      (only (owl io) print)
       (owl assemble))
 
    (begin
@@ -48,7 +48,7 @@
          (let ((op (value-primop rator)))
             (if op
                (begin
-                  ;(show " no clos for " rator)
+                  ;(print " no clos for " rator)
                   (tuple-case (car rands)
                      ((lambda formals body)
                         (lets
@@ -89,7 +89,7 @@
                    (then used
                      (closurize then used 
                         (if (eq? 4 kind) 
-                           (begin (show "Not closurizing " then) #false)
+                           (begin (print "Not closurizing " then) #false)
                            #true)))
                    (else used (closurize else used #true)))
                   (values

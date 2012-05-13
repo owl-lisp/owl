@@ -124,13 +124,13 @@
 			 (bs (pop-whitespace bs)))
 			(cond
 				((or (< width 1) (< height 1) (> width 65536) (> height 65536))
-					(show "refusing to load image of proportions " (cons width height))
+					(print "refusing to load image of proportions " (cons width height))
 					#false)
 				((= maxval 0)
 					(print "ppm: maximum color cannot be 0")
 					#false)
 				((> maxval 65535)
-					(show "ppm: too many colours: " maxval)
+					(print "ppm: too many colours: " maxval)
 					#false)
 				(else
 					(lets
@@ -148,7 +148,7 @@
 					(parse-ppm-p6 bs))
 				;; fixme: only supports P6 atm
 				(else
-					(show "bad magic in file: " magic)
+					(print "bad magic in file: " magic)
 					#false))))
 
 	(define (read-ppm path)
@@ -158,7 +158,7 @@
 					(close-port port)
 					stuff)
 				(begin
-					(show "failed to open " path)
+					(print "failed to open " path)
 					#false))))
 
 )

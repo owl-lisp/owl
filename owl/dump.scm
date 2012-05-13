@@ -236,7 +236,7 @@
                ;; target machine won't understand this
                ((extended-opcode obj) =>
                   (λ (opcode)
-                     ;(show " * mapping superinstruction back to to bytecode: " opcode)
+                     ;(print " * mapping superinstruction back to to bytecode: " opcode)
                      (or (get extras opcode #false)
                         (error "could not find bytecode for opcode " opcode))))
                (else obj))))
@@ -305,9 +305,9 @@
          (lets 
             ((all (all-code-refs ob))
              (sorted (sort (λ (a b) (> (car a) (car b))) all))
-             (_ (show " - total code vectors " (length sorted)))
+             (_ (print " - total code vectors " (length sorted)))
              (topick (floor (* (/ perc 100) (length sorted)))))
-            (show " - taking " topick)
+            (print " - taking " topick)
             (map cdr (take sorted topick))))
 
       ;; todo: move with-threading to lib-threads and import from there
@@ -351,7 +351,7 @@
                   (or (cook-format (get opts 'output-format #false))
                      (choose-output-format opts path)))
 
-                ;(_ (show " - output format " format))
+                ;(_ (print " - output format " format))
                 (entry ;; start threading if requested (note how this affects the other args)
                   (if (get opts 'want-threads #false) 
                      (with-threading entry)

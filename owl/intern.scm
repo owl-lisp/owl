@@ -239,7 +239,7 @@
                      ((flush) ;; clear names before boot
                         (interner root codes #false))
                      (else
-                        ;(show "unknown interner op: " msg)
+                        ;(print "unknown interner op: " msg)
                         (interner root codes names))))
                ((null? msg) ;; get current info
                   (mail sender (tuple 'interner-state root codes names))

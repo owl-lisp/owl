@@ -231,7 +231,7 @@
 		;			(if x
 		;				(if (= y (expt-mod a x n))
 		;					(begin
-		;						(show "dlp ok " (tuple y a x n))
+		;						(print "dlp ok " (tuple y a x n))
 		;						#true)
 		;					#false)
 		;				#true))))
@@ -295,7 +295,7 @@
 	(print msg)
 	(for 1 nums
 		(lambda (x a)
-			(show " * " a)
+			(print " * " a)
 			(for 1 math-tests
 				(lambda (x test-node)
 					(tuple-case test-node
@@ -323,7 +323,7 @@
 														(list 'test name 
 															'using a b c)))))))))
 						(else
-							(show "run-funny-tests: too funny test: " 
+							(print "run-funny-tests: too funny test: " 
 								test-node))))))))
 
 

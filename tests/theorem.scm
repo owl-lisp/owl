@@ -544,7 +544,7 @@
          (lets ((rs fails (failures rs)))
             (if (null? fails)
                (loop (- n 1) rs)
-               (show "FAILED: " fails))))))
+               (print "FAILED: " fails))))))
 
 (import (owl args))
 
@@ -564,7 +564,7 @@
       (λ (dict unknown)
          (cond
             ((not (null? unknown))
-               (show "Pray tell what are " unknown)
+               (print "Pray tell what are " unknown)
                1)
             ((getf dict 'help)
                (print "Usage:")
@@ -574,13 +574,13 @@
                (lets
                   ((seed (or (getf dict 'seed)  (random-seed)))
                    (end (getf dict 'rounds))) ; #false if not given
-                  (show "Starting random continuous test, seed " seed)
+                  (print "Starting random continuous test, seed " seed)
                   (if end
-                     (show "Will run up to " end)
+                     (print "Will run up to " end)
                      (print "Will run forever"))
                   (let loop ((n 0) (rs (seed->rands seed)))
                      (if (eq? 0 (band n 31))
-                        (show " - " n))
+                        (print " - " n))
                      (lets ((rs fails (failures rs)))
                         (if (null? fails)
                            (if (equal? n end)
@@ -589,7 +589,7 @@
                                  0)
                               (loop (+ n 1) rs))
                            (begin
-                              (show "TESTS FAILED: " (list 'fails fails 'seed seed 'n n))
+                              (print "TESTS FAILED: " (list 'fails fails 'seed seed 'n n))
                               2))))))))))
 
 

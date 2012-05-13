@@ -169,7 +169,7 @@
 ;                     (else
 ;                        (error "need a bigger jrt instruction: length is " len)))))
 ;            (else
-;               (show "assemble: what is " code)
+;               (print "assemble: what is " code)
 ;               (fail #false)))))
 ;
 ;   ;; insts 

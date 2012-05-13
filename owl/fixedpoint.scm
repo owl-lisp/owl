@@ -64,7 +64,7 @@
                ((branch kind a b then else)
                   (walk-list (list a b then else) bound found))
                (else
-                  (show "free-vars: unknown node type: " exp)
+                  (print "free-vars: unknown node type: " exp)
                   found)))
 
          (walk exp null null))
@@ -164,8 +164,8 @@
                ((var sym)
                   (if (eq? sym name)
                      (begin
-                        ;(show " making a wrapper for " name)
-                        ;(show "   - with deps " deps)
+                        ;(print " making a wrapper for " name)
+                        ;(print "   - with deps " deps)
                         (tuple 'lambda (reverse (cdr (reverse deps))) (tuple 'call exp (map mkvar deps))))
                      exp))
                (else
@@ -220,7 +220,7 @@
                         ((lexp 
                            (mklambda formals 
                               (mkcall exp (map mkvar (append formals deps))))))
-                        ; (show "carry-bindings: made local closure " lexp)
+                        ; (print "carry-bindings: made local closure " lexp)
                         lexp))
                   (else exp)))
             ((value val) exp)

@@ -42,7 +42,7 @@
 
    (define exponent 65537) ; 3 is also common, but this one is at least slightly more secure
 
-	(show "lib-rsa: warning, small primes and seed fixed to " seed)
+	(print "lib-rsa: warning, small primes and seed fixed to " seed)
 
 	(define (biggish-prime rst) 
 		(let loop ((rst rst)) 
@@ -87,8 +87,8 @@
 	(define public-key (cons e n))
 	(define private-key (cons ep n))
 
-	(show "toy  public key is " public-key)
-	(show "toy private key is " private-key)
+	(print "toy  public key is " public-key)
+	(print "toy private key is " private-key)
 
 	(define (crypt-num key num) (expt-mod num (car key) (cdr key)))
 
@@ -98,7 +98,7 @@
 
 	;;; run some tests
 
-	(show "Crypting and decrypting 10 numbers in the range of key " public-key)
+	(print "Crypting and decrypting 10 numbers in the range of key " public-key)
 
 	(for-each
 		(lambda (a)
@@ -109,9 +109,9 @@
 					((not (= a ad))
 						(error "RSA FAIL: " (list a '-> ac '-> ad)))
 					((= a ac)
-						(show " o " (list a '-> ac '-> ad)))
+						(print " o " (list a '-> ac '-> ad)))
 					(else
-						(show " * " (list a '-> ac '-> ad))))))
+						(print " * " (list a '-> ac '-> ad))))))
 		(random-numbers 121241415125124514 (cdr public-key) 10))
 
 )
@@ -146,20 +146,20 @@
 
 	(define seed 11111111111111111)
 
-	(show "lib-bbs: warning, seed fixed to " seed)
+	(print "lib-bbs: warning, seed fixed to " seed)
 
 	(define (candidate-prime rst)
 		(let loop ((rst rst))
          (lets ((rst n (rand rst 10000000000)))
             (cond
                ((not (= 3 (band n 3)))
-                  (show " bad mod   " n)
+                  (print " bad mod   " n)
                   (loop rst))
                ((not (prime? n))
-                  (show " composite " n)
+                  (print " composite " n)
                   (loop rst))
                (else
-                  (show "        ok " n)
+                  (print "        ok " n)
                   n)))))
 
 	; testing only, make a very small key-pair
@@ -171,11 +171,11 @@
 					(let ((score (gcd (totient (- p 1)) (totient (- q 1)))))
 						(cond
 							((= p q)
-								(show " collisition " p)
+								(print " collisition " p)
 								(loop (rand-succ rst)))
 							((> score 50)
-								(show " predecessor phi gcd too high for " (cons p q))
-								(show "  - it is " score)
+								(print " predecessor phi gcd too high for " (cons p q))
+								(print "  - it is " score)
 								(loop (rand-succ rst)))
 							(else
 								(receive (rand rst (* p q))
@@ -184,8 +184,8 @@
 
 	(define m (* (cadr key) (cddr key)))
 
-	(show " the key is " key)
-	(show " m is " m)
+	(print " the key is " key)
+	(print " m is " m)
 
 	(define (step n)
 		(rem (* n n) m))
@@ -221,18 +221,18 @@
 		(receive (encrypt (car key) data)
 			(lambda (st l) 
 				(let ((end (time)))
-					(show "encrypted in " (- end start))
+					(print "encrypted in " (- end start))
 					(if (> (- end start) 0)
-						(show "bytes/s " (div (length data) (- end start))))
+						(print "bytes/s " (div (length data) (- end start))))
 					(receive (decrypt (car key) l)
 						(lambda (st d)
 							(if (equal? data d)
 								(print "decryption ok")
 								(begin
 									(print "decrypt FAILS")
-									(show "      orig " data)
-									(show "   crypted " l)
-									(show " decrypted " d)))))))))
+									(print "      orig " data)
+									(print "   crypted " l)
+									(print " decrypted " d)))))))))
 
 )
 

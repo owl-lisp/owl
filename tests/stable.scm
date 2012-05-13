@@ -32,5 +32,5 @@
     (pairsp (sort carcdr< pairs)))
    (if (equal? pairs pairsp)
       (print "ceci est une stable")
-      (show "ceci n'est pas une stable: " (list pairs pairsp))))
+      (print "ceci n'est pas une stable: " (list pairs pairsp))))
 

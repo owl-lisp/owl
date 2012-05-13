@@ -45,7 +45,6 @@
       print*-to         ;; port val → bool
       write 
       write-to          ;; port val → bool
-      show
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool
       get-block         ;; fd n → bvec | eof | #false
@@ -387,7 +386,11 @@
       (define (display x)
          (display-to stdout x))
 
-      (define (print obj) (print-to stdout obj))
+      (define print 
+         (case-lambda
+            ((obj) (print-to stdout obj))
+            (xs (printer (foldr render '(#\newline) xs) 0 null stdout))))
+
       (define (write obj) (write-to stdout obj))
 
       (define (print*-to to lst)
@@ -400,9 +403,6 @@
          (syntax-rules () 
             ((output . stuff)
                (print* (list stuff)))))
-
-      (define (show a b)
-         (print* (list a b)))
 
       ;; fixme: system-X do not belong here
       (define (system-print str)
@@ -434,7 +434,7 @@
                      (cons val buff)
                      (eq? (sizeb val) input-block-size)))
                (else
-                  ;(show "read-blocks: partial chunk received before " val)
+                  ;(print "read-blocks: partial chunk received before " val)
                   #false))))
 
       (define (file->vector path) ; path -> vec | #false
@@ -444,7 +444,7 @@
                   (close-port port)
                   data)
                (begin
-                  ;(show "file->vector: cannot open " path)
+                  ;(print "file->vector: cannot open " path)
                   #false))))
 
       ;; write each leaf chunk separately (note, no raw type testing here -> can fail)

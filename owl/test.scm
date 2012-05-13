@@ -34,7 +34,7 @@
 			((time op comment ...)
 				(lets ((ms val (elapsed-ms (lambda () op))))
 					(for-each display (list comment ...))
-					(show ms "ms")
+					(print ms "ms")
 					val))))
 
 	(define (percentage ams bms)
@@ -95,7 +95,7 @@
 							(if (equal? this-a this-b)
 								(tuple (+ ams elapsed-a) (+ bms elapsed-b))
 								(begin
-									(show "results differ for " case)
+									(print "results differ for " case)
 									(ret (list 'a this-a 'b this-b))))))
 					(tuple 0 0) cases))))
 

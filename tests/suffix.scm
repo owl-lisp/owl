@@ -35,9 +35,9 @@
       (if (equal? sarr correct)
          rst
          (begin
-            (show "BADNESS: data " data)
-            (show " - suffix-array " sarr)
-            (show " - correct      " correct)
+            (print "BADNESS: data " data)
+            (print " - suffix-array " sarr)
+            (print " - correct      " correct)
             'bug))))
 
 (let loop ((rst (seed->rands (expt (time-ms) 4))) (n 0))

@@ -141,7 +141,7 @@
                   (cond
                      ((= a b)
                         (let ((ap (ncons 1 a)))
-                           ;(show "rand loop at " a)
+                           ;(print "rand loop at " a)
                            (tuple #true (rand-walk rand-modulus ap null) ap)))
                      (st
                         (tuple #false
@@ -394,11 +394,11 @@
 
       ;(define data (iota 0 1 10))
       ;(let loop ((rst (expt (time-ms) 3)))
-      ;   (show " => " (reservoir-sample rst data 5))
+      ;   (print " => " (reservoir-sample rst data 5))
       ;   (loop (rand-succ rst)))
       '(let loop ((rs (seed->rands (expt (time-ms) (+ 1 (band (time-ms) 7))))))
          (lets ((rs n (rand rs 100000000)))
-            (show " => " n)
+            (print " => " n)
             (wait 100)
             (loop rs)))
 
@@ -470,7 +470,7 @@
                            (loop rs (- n block))
                            #false))))
                (begin
-                  (show "failed to open " path)
+                  (print "failed to open " path)
                   #false))))
 
 
@@ -491,7 +491,7 @@
                   (values rs #true))))) ;; <- natural number > 0 -> >= 100%
 
       ;(lets ((rs l (shuffle (seed->rands 42) (iota 0 1 100))))
-      ;   (show " xxx " l))
+      ;   (print " xxx " l))
 
       ;;;
       ;;; Random stream tests
@@ -503,7 +503,7 @@
              (ndigits (* 1024 64))) ; make 1mb 
             (let loop ((str str) (n ndigits))
                (if (eq? n 0)
-                  (show (floor (/ (* ndigits 16) (- (time-ms) start))) " bits/ms")
+                  (print (floor (/ (* ndigits 16) (- (time-ms) start))) " bits/ms")
                   (lets ((d rs (uncons str 0)))
                      (loop rs (- n 1)))))))
 

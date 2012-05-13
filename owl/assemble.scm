@@ -297,7 +297,7 @@
                      (else
                         (fail (list "need a bigger jrt instruction: length is " len))))))
             (else
-               ;(show "assemble: what is " code)
+               ;(print "assemble: what is " code)
                (fail (list "Unknown opcode " code)))))
 
       ;; make bytecode and intern it (to improve sharing, not mandatory)

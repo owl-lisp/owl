@@ -327,7 +327,7 @@
 	(export loltron)
 
 	(define (loltron x)
-		(show "lol " x))
+		(print "lol " x))
 
 	;;; 
 	;;; Client connections
@@ -340,7 +340,7 @@
 
 	(define (json-rpc-terminate reason fd pending)
 		(close-port fd)
-		(if reason (show "json-rpc connection closed: " reason))
+		(if reason (print "json-rpc connection closed: " reason))
 		(if pending (print "WARNING: there are still pending requests which will remain stuck waiting."))
 		'json-rpc-closed)
 
@@ -384,7 +384,7 @@
 				(fork-named (tuple 'json-rpc host port 'at fd)
 					(λ () (initialize-json-rpc-thread fd)))
 				(begin
-					(show "json-rpc: connection failed to " (cons host port))
+					(print "json-rpc: connection failed to " (cons host port))
 					#false))))
 
 
@@ -447,12 +447,12 @@
 
 (for-each 
 	(lambda (x)
-		(show "at " x)
+		(print "at " x)
 		(lets ((ok? value tail (json-decode x)))
 			(if ok?
 				(begin
-					(show " parsed " value) 
-					(show " tail " tail))
+					(print " parsed " value) 
+					(print " tail " tail))
 				(print " *** PARSE FAILED ***"))))
 	(list
 		"1 "
@@ -490,7 +490,7 @@
 (for-each
 	(lambda (obj)
 		(display obj)
-		(show " => " (bytes->string (json-encode obj)))
+		(print " => " (bytes->string (json-encode obj)))
 		(print ""))
 	(list
 		#true

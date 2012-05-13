@@ -446,7 +446,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       call/cc
       call/cc2
       call-with-current-continuation
-      display print-to print print* show
+      display print-to print print* 
       render 
       system-println
       sleep
@@ -737,7 +737,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                  (else #false)))) ;; otherwise use bytecode and plain vm
                            0)
                      (begin
-                        (show "The last value should be a function of one value (the command line arguments), but it is instead " val)
+                        (print "The last value should be a function of one value (the command line arguments), but it is instead " val)
                         2)))
                ((error reason env)
                   (print-repl-error
@@ -754,7 +754,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (if (function? val)
          (try (λ () (val (cons path args))) 127)
          (begin
-            (show "failed to load dump from " path)
+            (print "failed to load dump from " path)
             1))))
   
 ;; -> vm exit with 0 on success, n>0 on error
@@ -805,7 +805,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                      (print-rules command-line-rules)
                      0)
                   ((get dict 'version #false)
-                     (show "Owl Lisp " *owl-version*)
+                     (print "Owl Lisp " *owl-version*)
                      0)
                   ((get dict 'about #false) (print about-owl) 0)
                   ((get dict 'load #false) =>
@@ -815,7 +815,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         (repl-compile compiler env 
                            (if (null? others) "-" (car others)) dict)
                         (begin
-                           (show "compile just one file for now please: " others)
+                           (print "compile just one file for now please: " others)
                            1)))
                   ((get dict 'run #false) =>
                      (λ (path)
@@ -854,7 +854,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (λ (sender message)
          (tuple-case message
             ((set-name obj name)
-               ; (show "meta: naming " name)
+               ; (print "meta: naming " name)
                (meta-storage
                   (set state 1
                      (put (ref state 1) obj name))))
@@ -871,7 +871,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                   (mail sender src)
                   (meta-storage state)))
             (else
-               (show "meta-storage: strange request: " message)
+               (print "meta-storage: strange request: " message)
                (meta-storage state))))))
 
 ;; env → (ff of entry-object → symbol)
@@ -979,7 +979,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       ((equal? str "none") null)
       ((equal? str "some") usual-suspects)
       ((equal? str "all") all)
-      (else (show "Bad native selection: " str))))
+      (else (print "Bad native selection: " str))))
 
 ;;;
 ;;; Step 3 - profit
@@ -990,7 +990,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (λ (opts extra)
          (cond
             ((not (null? extra))
-               (show "Unknown arguments: " extra)
+               (print "Unknown arguments: " extra)
                1)
             (else
                (compiler heap-entry "unused historical thingy"

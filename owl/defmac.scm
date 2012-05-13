@@ -194,6 +194,8 @@
             ((define op val)
                (_define op val))))
 
+      ;; not defining directly because rlambda doesn't yet do variable arity
+      ;(define list ((lambda (x) x) (lambda x x)))
 
       ;; fixme, should use a print-limited variant for debugging
 
@@ -201,7 +203,7 @@
          (syntax-rules (show list)
             ((define* (op . args) . body)
                (define (op . args) 
-                  (show " * " (list (quote op) . args))
+                  (print " * " (list (quote op) . args))
                   .  body))
             ((define* name (lambda (arg ...) . body))
                (define* (name arg ...) . body))))
@@ -266,6 +268,7 @@
             ((and a . b)
                (if a (and . b) #false))))
 
+      ;; now a function
       (define-syntax list
          (syntax-rules ()
             ((list) '())

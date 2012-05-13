@@ -102,8 +102,16 @@
             fix-points      ;; make recursion explicit <3
             alpha-convert   ;; assign separate symbols to all bound values
             cps             ;; convert to continuation passing style
+                            ;; partial eval here?
             build-closures  ;; turn lambdas into closures where necessary
             compile         ;; translate and flatten to bytecode
+                            ;;   |
+                            ;;   '---> split this into separate passes
+                            ;;           + ast->rtl      - refer registers and closures (infinite regs here)
+                            ;;           + convert-calls - lots of args -> enlist tail, convert lambdas accordingly
+                            ;;           + register value analysis? (car&cdr after known type -> _ref, etc)
+                            ;;           + allocate-registers - infinite -> fixed register set
+                            ;;           + 
             execute         ;; call the resulting code
             )) 
 
@@ -261,7 +269,7 @@
             (if exps
                (begin
                   ;(if (env-get env '*interactive* #false)
-                  ;   (show " + " path))
+                  ;   (print " + " path))
                   (lets
                      ((current-prompt (env-get env '*interactive* #false)) ; <- switch prompt during loading
                       (load-env 
@@ -325,10 +333,10 @@
                                        (cond
                                           ((or (primop-of (ref x 2)) 
                                              (has? op name))
-                                             ;(show " + keeping " name)
+                                             ;(print " + keeping " name)
                                              env)
                                           (else 
-                                             ;(show " - forgetting " name)
+                                             ;(print " - forgetting " name)
                                              (env-del env name))))
                                     ;((macro x)
                                     ;   (if (has? op name)
@@ -369,7 +377,7 @@
                ; this goes to repl-trampoline
                (tuple 'ok 'quitter env))
             (else
-               (show "unknown repl op: " op)
+               (print "unknown repl op: " op)
                (repl env in))))
 
       ;; → (name ...) | #false
@@ -795,7 +803,7 @@
                            (print reason)
                            (boing repl env #true))))
                   (else is foo
-                     (show "Repl is rambling: " foo)
+                     (print "Repl is rambling: " foo)
                      (boing repl env #true))))))
 
       (define (repl-port env fd)

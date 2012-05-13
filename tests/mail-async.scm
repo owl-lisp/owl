@@ -12,7 +12,7 @@
    (ref (wait-mail) 2) ;; startup message
    (let loop ((rst rst) (out 0) (in 0)) ;; outgoing mail and incoming expected
       (if (and (= out mails) (= in mails))
-         (show "ok " mails)
+         (print "ok " mails)
          (lets ((rst n (rand rst 3)))
             (cond
                ((eq? n 0) ;; maybe send out
