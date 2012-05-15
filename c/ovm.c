@@ -1080,6 +1080,9 @@ dispatch: /* handle normal bytecode */
          ob = (word *) this[1];
          ip = ((unsigned char *) ob) + W;
          goto invoke; }
+      case 20: { /* apply <n> <a1> .. <an>, an has a list */
+         exit(1);
+      }
       case 21: { /* goto-clos p */
          word *this = (word *) R[*ip];
          R[1] = (word) this;

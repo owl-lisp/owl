@@ -21,8 +21,6 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
-      list-fn
-      atest
       )
 
    (import
@@ -174,22 +172,16 @@
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
 
-      ;; temporary variable arity test
-      (define list-fn
-         (raw (list (fxbor 25 64) 1 0 0 24 4) 0 #false))
-
-      ;; temporary arity dispatch test - return last for 1-3 args, 0 otherwise
-      (define atest
-         (raw
-            (list
-               25 2 0 2
-               24 4
-               25 3 0 2
-               24 5
-               25 4 0 2
-               24 6
-               13 9
-               24 9)
-            0 #false))
-      
+      ;; apply:
+      ; (define (apply [cont] fun . args)
+      ;    - nargs = acc - 2 (cont and fun) 
+      ;    - ob = R[fun] for makign the call
+      ;    - for foo in acc-3
+      ;      + move argument there down by one register (the fn, always safe)
+      ;    - on the last register
+      ;      + unwind list up to null or last register counting them
+      ;         o if last register, keep counting arity and fail at implementation restriction limit
+      ;         o could also check arity intelligently or stop at 256
+      ;    - jump to fun
+      ; )
 ))
