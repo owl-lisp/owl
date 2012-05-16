@@ -30,7 +30,9 @@
       (exports (owl math-extra))
       (exports (owl math))
       (exports (owl tuple))
-      wait)
+      wait
+      call/cc
+      lets/cc)
 
    (import
       (owl list)

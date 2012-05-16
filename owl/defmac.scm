@@ -393,13 +393,6 @@
       ;(define-syntax import  (syntax-rules (_import)  ((import  thing ...) (_import  (quote thing) ...))))
       ;(define-syntax include (syntax-rules (_include) ((include thing ...) (_include (quote thing) ...))))
 
-      (define-syntax lets/cc
-         (syntax-rules (call/cc)
-            ((lets/cc (om . nom) . fail)
-               (syntax-error "let/cc: continuation name cannot be " (quote (om . nom))))
-            ((lets/cc var . body)
-               (call/cc (λ (var) (lets . body))))))
-
       (define (not x)
          (if x #false #true))
 
