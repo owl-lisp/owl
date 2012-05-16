@@ -18,7 +18,7 @@
 
       (define-syntax λ 
          (syntax-rules () 
-            ((λ (v ...) . body) (lambda (v ...) . body))))
+            ((λ . x) (lambda . x))))
 
       (define-syntax syntax-error
          (syntax-rules (error)

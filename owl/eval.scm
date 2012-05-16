@@ -91,7 +91,14 @@
               _sleep iomux clock time sizeb getev)))
 
       (define (execute exp env)
-         (ok (exp) env))
+         (receive (exp)
+            (lambda vals
+               (ok
+                  (cond
+                     ((null? vals) "no vals")
+                     ((null? (cdr vals)) (car vals))
+                     (else (cons 'values vals)))
+                  env))))
 
       ; (op exp env) -> #(ok exp' env') | #(fail info)
       (define compiler-passes
