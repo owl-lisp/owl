@@ -9,6 +9,7 @@
    (import
       (owl list-extra)
       (owl math)
+      (owl primop)
       (owl tuple)
       (owl list)
       (owl symbol)

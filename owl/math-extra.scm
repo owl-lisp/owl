@@ -24,6 +24,7 @@
       (owl list)
       (owl list-extra)
       (owl sort)
+      (owl primop)
       (owl defmac)
       (owl ff)
       (only (owl syscall) error))

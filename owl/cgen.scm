@@ -29,6 +29,7 @@
       (owl ff)
       (owl vector)
       (owl string)
+      (owl primop)
       (owl render)
       (only (owl syscall) error)
       (only (owl assemble) inst->op))

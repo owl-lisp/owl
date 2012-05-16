@@ -445,7 +445,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       seccomp
       apply
       call/cc
-      call/cc2
       call-with-current-continuation
       display print-to print print* 
       render 

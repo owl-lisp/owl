@@ -40,6 +40,7 @@
       (owl list)
       (owl math)
       (owl string)
+      (owl primop)
       (owl vector)
       (owl list-extra)
       (owl iff))

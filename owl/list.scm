@@ -42,6 +42,7 @@
 
    (import
       (owl defmac)
+      (owl primop)
       (owl boolean))
 
    (begin

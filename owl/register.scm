@@ -18,6 +18,7 @@
       (owl ff)
       (owl math)
       (owl list-extra)
+      (owl primop)
       (owl io)
       (owl equal)
       (only (owl syscall) error)

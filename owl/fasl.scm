@@ -70,6 +70,7 @@
       (owl defmac)
       (owl vector)
       (owl math)
+      (owl primop)
       (owl ff)
       (owl lazy)
       (owl list)
@@ -340,12 +341,8 @@
             (else
                (decoder (ll) got fail))))
 
-      ;; fixme: temp here
-      (define call/cc2
-         ('_sans_cps (λ (c f) (f c (λ (r a b) (c a b))))))
-
       (define (decode-or ll err) ; -> ll obj | null (err why)
-         (call/cc2 ; setjmp2000
+         (call/cc ; setjmp2000
             (λ (ret)
                (lets ((fail (λ (why) (ret null (err why)))))
                   (cond

@@ -12,6 +12,7 @@
       (only (owl syscall) error)
       (owl equal)
       (owl list-extra)
+      (owl primop)
       (owl ff)
       (owl io)
       (owl gensym)

@@ -21,8 +21,10 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
+
       apply apply-cont ;; apply post- and pre-cps
-      call/cc*
+      call/cc call-with-current-continuation 
+      lets/cc
       )
 
    (import
@@ -176,7 +178,7 @@
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
 
-      (define call/cc*
+      (define call/cc
          ('_sans_cps
             (λ (k f)
                (f k
@@ -184,5 +186,15 @@
                      ((c a) (k a))
                      ((c a b) (k a b))
                      ((c . x) (apply-cont k x)))))))
+
+      (define call-with-current-continuation call/cc)
+
+      (define-syntax lets/cc 
+         (syntax-rules (call/cc)
+            ((lets/cc (om . nom) . fail) 
+               (syntax-error "let/cc: continuation name cannot be " (quote (om . nom)))) 
+            ((lets/cc var . body) 
+               (call/cc (λ (var) (lets . body))))))
+
 
 ))
