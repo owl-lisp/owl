@@ -1,9 +1,4 @@
-/********************\
- * owl lisp runtime *
-\********************/
-
-/* todo: could be more convenient to have instructions fadd a b → hi lo, fsub a b → borrow a' */
-/* todo: control gc from lisp side? */
+/* owl lisp runtime */
 
 #include <signal.h>
 #include <unistd.h>
@@ -37,14 +32,13 @@ DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 #include <string.h>
 size_t strlen(const char *s);
-/* sys_mirp */
 
-/* possibly enable seccomp support if we are on newish Linux, and exit via syscall to avoid calling exit_group in some libcs */
 #ifdef __gnu_linux__
 #ifndef NO_SECCOMP
 #include <sys/prctl.h>
 #include <sys/syscall.h>
-#define EXIT(n) syscall(__NR_exit, n); exit(n) /* exit only needed to avoid compiler complaints */
+/* normal exit() segfaults in seccomp */
+#define EXIT(n) syscall(__NR_exit, n); exit(n)
 #else
 #define EXIT(n) exit(n)
 #endif
@@ -63,11 +57,10 @@ void set_nonblock (int sock) {
 #endif
 }
 
+#define V(ob) *((word *) ob)
 #define word uintptr_t
 #define W    sizeof(word)
 #define NWORDS 1024*1024*8  /* static malloc'd heap size if used as a library */
-
-#define V(ob) *((word *) ob)
 
 /* memstart <= genstart <= memend */
 static word *genstart;
@@ -240,8 +233,8 @@ static word *compact() {
    return(new); 
 }
 
-/* the GC is a generational variant of the threading collector described in 
-   "Efficient Garbage Compaction Algorithm"-paper by Johannes Martin (1982) */
+/* the GC is a generational version of the threading collector described in 
+   "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) */
 
 void fix_pointers(word *pos, int delta, word *end) {
    while(1) {
@@ -431,7 +424,7 @@ int count_objs(word *words) {
    return(n);
 }
 
-void add_signal_handler() {
+void set_signal_handler() {
 #ifndef WIN32
    struct sigaction sa;
    sa.sa_handler = signal_handler;
@@ -530,7 +523,7 @@ word boot(int nargs, char **argv) {
    setvbuf(stdout, NULL, _IONBF, 0);
    setvbuf(stderr, NULL, _IONBF, 0);
    /* set up signal handler */
-   add_signal_handler();
+   set_signal_handler();
    /* can i has nonblocking stdio */
    set_nonblock(0);
    set_nonblock(1);
@@ -1080,9 +1073,30 @@ dispatch: /* handle normal bytecode */
          ob = (word *) this[1];
          ip = ((unsigned char *) ob) + W;
          goto invoke; }
-      case 20: { /* apply <n> <a1> .. <an>, an has a list */
-         exit(1);
-      }
+      case 20: { /* cont=r3, fn=r4, a0=r5, */ 
+         int reg = 4;
+         int arity = 1; /* the cont is always passed along */
+         word *lst;
+         ob = (word *) R[4];
+         acc -= 3; /* ignore cont, function and stop before last one (the list) */
+         while(acc--) { /* move explicitly given arguments down by one to correct positions */
+            R[reg] = R[reg+1]; /* copy args down*/
+            reg++;
+            arity++;
+         }
+         lst = (word *) R[reg+1];
+         while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
+            /* FIXME: unwind only up to last register and add limited rewinding to arity check */
+            if (reg > 128) { /* dummy handling for now */
+               fprintf(stderr, "TOO LARGE APPLY\n");
+               exit(3);
+            }
+            R[reg++] = lst[1];
+            lst = (word *) lst[2];
+            arity++;
+         }
+         acc = arity;
+         goto apply; }
       case 21: { /* goto-clos p */
          word *this = (word *) R[*ip];
          R[1] = (word) this;
@@ -1208,8 +1222,8 @@ dispatch: /* handle normal bytecode */
          }
          next(4); }
       case 36: { /* size o r */
-         word ob = R[*ip++];
-         R[*ip++] = (immediatep(ob)) ? fixnum(0) : fixnum(imm_val(V(ob))-1);
+         word *ob = (word *) R[*ip++];
+         R[*ip++] = (immediatep(ob)) ? fixnum(0) : fixnum(imm_val(*ob)-1);
          break; }
       case 37: { /* ms r */
 #ifndef WIN32

@@ -443,6 +443,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       time-ms
       halt
       seccomp
+      apply
       call/cc
       call/cc2
       call-with-current-continuation

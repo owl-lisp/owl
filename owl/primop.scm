@@ -21,6 +21,7 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
+      apply
       )
 
    (import
@@ -31,8 +32,7 @@
       (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
 
       (define (func lst) 
-         (raw 
-            (cons 17 lst)        ;; (nargs n op1...)
+         (raw (cons 17 lst)        ;; (nargs n op1...) 
             0 #false))
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
@@ -132,6 +132,8 @@
       (define fx- (func '(4 40 4 5 6 7 24 7)))
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
       (define fx<< (func '(4 59 4 5 6 7 24 7)))
+      
+      (define apply (raw '(20) 0 #false)) ;; <- no arity, just call 20
 
       (define primops-2
          (list
@@ -172,16 +174,4 @@
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
 
-      ;; apply:
-      ; (define (apply [cont] fun . args)
-      ;    - nargs = acc - 2 (cont and fun) 
-      ;    - ob = R[fun] for makign the call
-      ;    - for foo in acc-3
-      ;      + move argument there down by one register (the fn, always safe)
-      ;    - on the last register
-      ;      + unwind list up to null or last register counting them
-      ;         o if last register, keep counting arity and fail at implementation restriction limit
-      ;         o could also check arity intelligently or stop at 256
-      ;    - jump to fun
-      ; )
 ))

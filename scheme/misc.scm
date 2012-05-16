@@ -2,7 +2,7 @@
    (export 
       member memq memv 
       assoc assv assq
-      apply rationalize
+      rationalize
       string->integer
       string->number
       )
@@ -47,16 +47,16 @@
       (define assoc assv)
 
       ;; a silly non-primitive apply
-      (define (apply func l)
-         (if (null? l)
-            (func)
-            (lets ((a l l)) (if (null? l) (func a)
-            (lets ((b l l)) (if (null? l) (func a b)
-            (lets ((c l l)) (if (null? l) (func a b c)
-            (lets ((d l l)) (if (null? l) (func a b c d)
-            (lets ((e l l)) (if (null? l) (func a b c d e)
-            (lets ((f l l)) (if (null? l) (func a b c d e f)
-               (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
+      ;(define (apply func l)
+      ;   (if (null? l)
+      ;      (func)
+      ;      (lets ((a l l)) (if (null? l) (func a)
+      ;      (lets ((b l l)) (if (null? l) (func a b)
+      ;      (lets ((c l l)) (if (null? l) (func a b c)
+      ;      (lets ((d l l)) (if (null? l) (func a b c d)
+      ;      (lets ((e l l)) (if (null? l) (func a b c d e)
+      ;      (lets ((f l l)) (if (null? l) (func a b c d e f)
+      ;         (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
 
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
