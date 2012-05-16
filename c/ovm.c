@@ -1073,18 +1073,32 @@ dispatch: /* handle normal bytecode */
          ob = (word *) this[1];
          ip = ((unsigned char *) ob) + W;
          goto invoke; }
-      case 20: { /* cont=r3, fn=r4, a0=r5, */ 
-         int reg = 4;
-         int arity = 1; /* the cont is always passed along */
+      case 20: { 
+         int reg, arity;
          word *lst;
-         ob = (word *) R[4];
-         acc -= 3; /* ignore cont, function and stop before last one (the list) */
-         while(acc--) { /* move explicitly given arguments down by one to correct positions */
-            R[reg] = R[reg+1]; /* copy args down*/
-            reg++;
-            arity++;
+         if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5, */ 
+            reg = 4; /* include cont */
+            arity = 1;
+            ob = (word *) R[reg];
+            acc -= 3; /* ignore cont, function and stop before last one (the list) */
+            while(acc--) { /* move explicitly given arguments down by one to correct positions */
+               R[reg] = R[reg+1]; /* copy args down*/
+               reg++;
+               arity++;
+            }
+            lst = (word *) R[reg+1];
+         } else { /* _sans_cps apply: func=r3, a0=r4, */ 
+            reg = 3; /* include cont */
+            arity = 0;
+            ob = (word *) R[reg];
+            acc -= 2; /* ignore function and stop before last one (the list) */
+            while(acc--) { /* move explicitly given arguments down by one to correct positions */
+               R[reg] = R[reg+1]; /* copy args down*/
+               reg++;
+               arity++;
+            }
+            lst = (word *) R[reg+1];
          }
-         lst = (word *) R[reg+1];
          while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
             /* FIXME: unwind only up to last register and add limited rewinding to arity check */
             if (reg > 128) { /* dummy handling for now */

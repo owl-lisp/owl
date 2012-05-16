@@ -21,7 +21,8 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
-      apply
+      apply apply-cont ;; apply post- and pre-cps
+      call/cc*
       )
 
    (import
@@ -134,6 +135,7 @@
       (define fx<< (func '(4 59 4 5 6 7 24 7)))
       
       (define apply (raw '(20) 0 #false)) ;; <- no arity, just call 20
+      (define apply-cont (raw (list (fxbor 20 64)) 0 #false))
 
       (define primops-2
          (list
@@ -173,5 +175,14 @@
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
+
+      (define call/cc*
+         ('_sans_cps
+            (λ (k f)
+               (f k
+                  (case-lambda
+                     ((c a) (k a))
+                     ((c a b) (k a b))
+                     ((c . x) (apply-cont k x)))))))
 
 ))
