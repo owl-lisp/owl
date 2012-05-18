@@ -93,8 +93,9 @@ unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was miss
 #define make_header(size, type)      (((size) << 12) | ((type) << 3) | 6)
 #define make_raw_header(size, type)  (((size) << 12) | ((type) << 3) | 2054)
 #define headerp(val)                 (((val) & 6) == 6)
-#define fixnum(val)                  (((val) << 12) | 2) 
-#define negative_fixnum(val)         (((val) << 12) | 258)
+#define F(val)                  (((val) << 12) | 2) 
+#define F(val)                       (((val) << 12) | 2) 
+#define negative_F(val)         (((val) << 12) | 258)
 #define fixval(desc)                 ((desc) >> 12)
 #define fixnump(desc)                (((desc)&4095) == 2)
 #define fixnums(a,b)                 fixnump((a)|(b))
@@ -151,7 +152,7 @@ static word *fp;
 #define PAIRHDR 12302
 #define NUMHDR  12366
 #define allocate(size, to) to = fp; fp += size;
-#define error(opcode, a, b) R[4] = fixnum(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
+#define error(opcode, a, b) R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 #define assert(exp,val,code) if(unlikely(!(exp))) {error(code, val, ITRUE);}
@@ -558,7 +559,7 @@ static word prim_connect(word *host, word port) {
       return(IFALSE);
    }
    set_nonblock(sock);
-   return(fixnum(sock));
+   return(F(sock));
 }
 
 static word prim_less(word a, word b) {
@@ -616,7 +617,7 @@ static int prim_refb(word pword, int pos) {
    hsize = ((imm_val(hdr)-1)*W) - ((hdr>>8)&7); /* bytes - pads */ 
    if (pos >= hsize) 
       return(IFALSE);
-   return(fixnum(((unsigned char *) ob)[pos+W]));
+   return(F(((unsigned char *) ob)[pos+W]));
 }
 
 static word prim_ref(word pword, word pos)  {
@@ -628,7 +629,7 @@ static word prim_ref(word pword, word pos)  {
    if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */ 
       size = ((imm_val(hdr)-1)*W) - ((hdr>>8)&7);
       if (pos >= size) { return(IFALSE); }
-      return(fixnum(((unsigned char *) ob)[pos+W]));
+      return(F(((unsigned char *) ob)[pos+W]));
    }
    size = imm_val(hdr);
    if (!pos || size <= pos) /* tuples are indexed from 1 (probably later 0-255)*/
@@ -687,8 +688,8 @@ static word prim_sys(int op, word a, word b, word c) {
          size = (imm_val(*buff)-1)*W;
          if (len > size) return(IFALSE);
          wrote = write(fd, ((char *)buff)+W, len);
-         if (wrote > 0) return(fixnum(wrote));
-         if (errno == EAGAIN || errno == EWOULDBLOCK) return(fixnum(0));
+         if (wrote > 0) return(F(wrote));
+         if (errno == EAGAIN || errno == EWOULDBLOCK) return(F(0));
          return(IFALSE); }
       case 1: { /* 1 = fopen <str> <mode> <to> */
          char *path = (char *) a;
@@ -704,7 +705,7 @@ static word prim_sys(int op, word a, word b, word c) {
             return(IFALSE);
          }
          set_nonblock(val);
-         return(fixnum(val)); }
+         return(F(val)); }
       case 2: 
          return(close(fixval(a)) ? IFALSE : ITRUE);
       case 3: { /* 3 = sopen port -> False | fd  */
@@ -724,7 +725,7 @@ static word prim_sys(int op, word a, word b, word c) {
             return(IFALSE);
          }
          set_nonblock(s);
-         return(fixnum(s)); }
+         return(F(s)); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = fixval(a);
          struct sockaddr_in addr;
@@ -740,7 +741,7 @@ static word prim_sys(int op, word a, word b, word c) {
          bytecopy(ipa, ((char *) fp) + W, 4);
          fp[2] = PAIRHDR;
          fp[3] = (word) fp;
-         fp[4] = fixnum(fd);
+         fp[4] = F(fd);
          pair = fp+2;
          fp += 5;
          return((word) pair); }
@@ -783,9 +784,9 @@ static word prim_sys(int op, word a, word b, word c) {
          max_heap_mb = fixval(a);
          return(a);
       case 8: /* get machine word size (in bytes) */
-         return(fixnum(W));
+         return(F(W));
       case 9: /* get memory limit (in mb) */
-         return(fixnum(max_heap_mb));
+         return(F(max_heap_mb));
       case 10: /* enter linux seccomp mode */
 #ifdef __gnu_linux__ 
 #ifndef NO_SECCOMP
@@ -822,7 +823,7 @@ static word prim_sys(int op, word a, word b, word c) {
          closedir((DIR *)fliptag(a));
          return(ITRUE);
       case 14: { /* set-ticks n _ _ -> old */
-         word old = fixnum(slice); 
+         word old = F(slice); 
          slice = fixval(a);
          return(old); }
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
@@ -833,8 +834,8 @@ static word prim_sys(int op, word a, word b, word c) {
          size = (imm_val(*buff)-1)*W;
          if (len > size) return(IFALSE);
          wrote = send(fd, ((char *)buff)+W, len, 0); /* <- no MSG_DONTWAIT in win32 */
-         if (wrote > 0) return(fixnum(wrote));
-         if (errno == EAGAIN || errno == EWOULDBLOCK) return(fixnum(0));
+         if (wrote > 0) return(F(wrote));
+         if (errno == EAGAIN || errno == EWOULDBLOCK) return(F(0));
          return(IFALSE); }
       case 16: { /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
          char *name = (char *)a;
@@ -906,7 +907,7 @@ word vm(word *ob, word *args) {
    unsigned short acc = 0; /* no support for >255arg functions */
    int op; /* opcode to execute */
    static word R[NR];
-   word load_imms[] = {fixnum(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
+   word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
    usegc = 1; /* enble gc (later have if always evabled) */
 
    /* clear blank regs */
@@ -948,7 +949,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          R[0] = IFALSE;
          breaked = 0;
          R[4] = R[3];
-         R[3] = fixnum(2);
+         R[3] = F(2);
          R[5] = IFALSE;
          R[6] = IFALSE;
          ticker = 0xffffff;
@@ -981,7 +982,7 @@ switch_thread: /* enter mcp if present */
       ob = (word *) R[0]; 
       R[0] = IFALSE; /* remove mcp cont */
       /* R3 marks the syscall to perform */
-      R[3] = breaked ? ((breaked & 8) ? fixnum(14) : fixnum(10)) : fixnum(1);
+      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1);
       R[4] = (word) state;
       R[5] = IFALSE;
       R[6] = IFALSE;
@@ -1030,7 +1031,7 @@ dispatch: /* handle normal bytecode */
       case 10: { /* type o r */
          word ob = R[*ip++];
          if (allocp(ob)) ob = *((word *) ob);
-         R[*ip++] = fixnum(ob&4095);
+         R[*ip++] = F(ob&4095);
          break; }
       case 11: { /* jit2 a t ol oh */
          word a = R[*ip];
@@ -1047,7 +1048,7 @@ dispatch: /* handle normal bytecode */
       case 13: /* ldi{2bit what} [to] */
          R[*ip++] = load_imms[op>>6];
          break;
-      case 14: R[ip[1]] = fixnum(*ip); next(2);
+      case 14: R[ip[1]] = F(*ip); next(2);
 #ifdef NATIVECALL
       case 15: { /* testing */
          A4 = ((word (*)(word, word, word))(A0+W))(A1, A2, A3); 
@@ -1058,7 +1059,7 @@ dispatch: /* handle normal bytecode */
          next(3); 
       case 17: /* narg n, todo: add argument listing also here or drop */
          if (unlikely(acc != *ip)) {
-            error(256, fixnum(*ip), ob);
+            error(256, F(*ip), ob);
          }
          next(1);
       case 18: /* goto-code p */
@@ -1167,9 +1168,9 @@ dispatch: /* handle normal bytecode */
          word a = (fixval(A0)<<16) | fixval(A1); 
          word b = fixval(A2);
          word q = a / b;
-         A3 = fixnum(q>>16);
-         A4 = fixnum(q&0xffff);
-         A5 = fixnum(a - q*b);
+         A3 = F(q>>16);
+         A4 = F(q&0xffff);
+         A5 = F(a - q*b);
          next(6); }
       case 27: /* syscall cont op arg1 arg2 */
          ob = (word *) R[0];
@@ -1181,10 +1182,10 @@ dispatch: /* handle normal bytecode */
       case 28: { /* sizeb obj to */ /* todo: to be merged with size? */
          word ob = R[*ip];
          if (immediatep(ob)) {
-            A1 = fixnum(0);
+            A1 = F(0);
          } else {
             word hdr = *((word *) ob);
-            A1 = (rawp(hdr)) ? fixnum((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : fixnum(0);
+            A1 = (rawp(hdr)) ? F((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : F(0);
          }
          next(2); }
       case 29: { /* ncons a b r */
@@ -1237,7 +1238,7 @@ dispatch: /* handle normal bytecode */
          next(4); }
       case 36: { /* size o r */
          word *ob = (word *) R[*ip++];
-         R[*ip++] = (immediatep(ob)) ? fixnum(0) : fixnum(imm_val(*ob)-1);
+         R[*ip++] = (immediatep(ob)) ? F(0) : F(imm_val(*ob)-1);
          break; }
       case 37: { /* ms r */
 #ifndef WIN32
@@ -1261,8 +1262,8 @@ dispatch: /* handle normal bytecode */
          next(4); }
       case 39: { /* fx* a b l h */
          word res = fixval(R[*ip]) * fixval(A1);
-         A2 = fixnum(res&0xffff);
-         A3 = fixnum((res>>16)&0xffff);
+         A2 = F(res&0xffff);
+         A3 = F((res>>16)&0xffff);
          next(4); }
       case 40: { /* fx- a b r u, args prechecked, signs ignored */
          word r = (A0|0x10000000) - (A1 & 0xffff000);
@@ -1376,13 +1377,13 @@ dispatch: /* handle normal bytecode */
          next(3); }
       case 58: { /* fx>> a b hi lo */
          word r = fixval(A0) << (16 - fixval(A1));
-         A2 = fixnum(r>>16);
-         A3 = fixnum(r&0xffff);
+         A2 = F(r>>16);
+         A3 = F(r&0xffff);
          next(4); }
       case 59: { /* fx<< a b hi lo */
          word res = fixval(R[*ip]) << fixval(A1);
-         A2 = fixnum(res>>16);
-         A3 = fixnum(res&0xffff);
+         A2 = F(res>>16);
+         A3 = F(res&0xffff);
          next(4); }
       case 60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
          A3 = prim_lraw(A0, fixval(A1), A2);
@@ -1397,19 +1398,19 @@ dispatch: /* handle normal bytecode */
          ob[5] = (word) ob;
          if (seccompp) {
             unsigned long secs = seccomp_time / 1000;
-            A1 = fixnum(seccomp_time - (secs * 1000));
-            ob[1] = fixnum(secs >> 16);
-            ob[4] = fixnum(secs & 0xffff);
+            A1 = F(seccomp_time - (secs * 1000));
+            ob[1] = F(secs >> 16);
+            ob[4] = F(secs & 0xffff);
             seccomp_time += (secs == 0xffffffff) ? 0 : 10; /* virtual 10ms passes on each call */
          } else {
             gettimeofday(&tp, NULL);
-            A1 = fixnum(tp.tv_usec / 1000);
-            ob[1] = fixnum(tp.tv_sec >> 16);
-            ob[4] = fixnum(tp.tv_sec&0xffff);
+            A1 = F(tp.tv_usec / 1000);
+            ob[1] = F(tp.tv_sec >> 16);
+            ob[4] = F(tp.tv_sec&0xffff);
          }
          next(2); }
       case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
-         A1 = fixnum(ticker&0xffff);
+         A1 = F(ticker&0xffff);
          ticker = fixval(A0);
          next(2); 
       case 63: { /* sys-prim op arg1 arg2 arg3 r1 */
@@ -1417,7 +1418,7 @@ dispatch: /* handle normal bytecode */
          next(5); }
       default: /* bad instruction */
          ip--;
-         error(258, fixnum(*ip), INULL);
+         error(258, F(*ip), INULL);
    }
    goto next_op;
 
@@ -1425,14 +1426,14 @@ super_dispatch: /* run macro instructions */
    switch(op) {
 /* AUTOGENERATED INSTRUCTIONS */
       default:
-         error(258, fixnum(op), ITRUE);
+         error(258, F(op), ITRUE);
    }
    goto apply;
 
 invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    ob = (word *) R[0];
    R[0] = IFALSE;
-   R[3] = fixnum(3);
+   R[3] = F(3);
    if (allocp(ob)) {
       acc = 4;
       goto apply;

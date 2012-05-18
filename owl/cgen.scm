@@ -2,16 +2,13 @@
 ;;; Bytecode2C translator
 ;;;
 
-;; this library is used to translate bytecode fragments to pieces of C-code. 
-;; owl translates code to cps-form before compiling it eventually to bytecode.
-;; as a consequence of this, the bytecode only runs forwards, can only make 
-;; jumps forwards, and thus runs in O(n) being the the number of instructions.
-;; these code fragments can be translated to equivalent fragments of C-code, 
-;; which can be used to automatically build another program-specific custom 
-;; vm alongside the small default one. naturally, as this removes most of the 
-;; instruction dispatch overhead, this increases speed of the resulting 
-;; programs.
+; Each normal owl program (one not using something eval-like) contains
+; a fixed set of bytecode sequences. Owl can optionally compile these 
+; to special instructions in a custom VM when compiling them. This 
+; makes programs run much faster at the expense of making the resulting 
+; executables larger.
 
+;; todo: support variable arity functions
 ;; todo: keep all fixnum variables in registers unboxed with a special type, and add guards to saves and calls to tag them lazily. this would remove a lot of payload shifting from math code.
 
 (define-library (owl cgen)
@@ -49,7 +46,7 @@
             ((and (teq? val fix+) (< val 256))
                (bytes->string
                   (foldr render null
-                     (list "fixnum(" val ")"))))
+                     (list "F(" val ")"))))
             (else 
                ;(print "represent: cannot yet handle " val)
                (fail))))
@@ -124,14 +121,14 @@
 
       (define (cify-type bs regs fail) 
          (lets ((ob to bs (get2 (cdr bs))))
-            (values (list "R["to"]=(allocp(R["ob"]))?V(R["ob"]):R["ob"];R["to"]=fixnum(R["to"]&4095);") bs 
+            (values (list "R["to"]=(allocp(R["ob"]))?V(R["ob"]):R["ob"];R["to"]=F(R["to"]&4095);") bs 
                (put (put regs ob 'alloc) to 'fixnum))))
 
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-sizeb bs regs fail) 
          (lets ((ob to bs (get2 (cdr bs))))
             (values 
-               (list "if(immediatep(R["ob"])){R["to"]=fixnum(0);}else{word h=V(R[" ob "]);R["to"]=fixnum((hdrsize(h)-1)*W-((h>>8)&7));}")
+               (list "if(immediatep(R["ob"])){R["to"]=F(0);}else{word h=V(R[" ob "]);R["to"]=F((hdrsize(h)-1)*W-((h>>8)&7));}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
       ;; fftoggle node to
@@ -149,7 +146,7 @@
             (cond
                (else 
                   (values 
-                     (list "R["to"]=(immediatep(R["ob"]))?fixnum(0):fixnum(imm_val(V(R["ob"]))-1);")
+                     (list "R["to"]=(immediatep(R["ob"]))?F(0):F(imm_val(V(R["ob"]))-1);")
                      bs (put regs to 'fixnum))))))
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -171,7 +168,7 @@
                (else 
                   (values
                      (list "{word res=(((R["a"])+(R["b"]))&0x1ffff000)|2;R["r"]=res&0xffff002;R["o"]=(res&0x10000000)?ITRUE:IFALSE;}")
-                     ;(list "{word res=fixval(R["a"])+fixval(R["b"]);R["r"]=fixnum(res&0xffff);R["o"]=(res>>16)?ITRUE:IFALSE;}")
+                     ;(list "{word res=fixval(R["a"])+fixval(R["b"]);R["r"]=F(res&0xffff);R["o"]=(res>>16)?ITRUE:IFALSE;}")
 
                      bs (put (put regs r 'fixnum) o 'bool))))))
 
@@ -197,14 +194,14 @@
       (define (cify-fxmul bs regs fail) 
          (lets ((a b l h bs (get4 (cdr bs))))
             (values
-               (list "{word res=fixval(R["a"])*fixval(R["b"]);R["l"]=fixnum(res&0xffff);R["h"]=fixnum(res>>16);}")
+               (list "{word res=fixval(R["a"])*fixval(R["b"]);R["l"]=F(res&0xffff);R["h"]=F(res>>16);}")
                bs (put (put regs h 'fixnum) l 'fixnum))))
 
       ; fx- a b r u?
       (define (cify-fxsub bs regs fail) 
          (lets ((a b r u bs (get4 (cdr bs))))
             (values
-               ;(list "{word a=fixval(R["a"]);word b=fixval(R["b"]);if(b>a){R["r"]=fixnum((a|0x10000)-b);R["u"]=ITRUE;}else{R["r"]=fixnum(a-b);R["u"]=IFALSE;}}")
+               ;(list "{word a=fixval(R["a"]);word b=fixval(R["b"]);if(b>a){R["r"]=F((a|0x10000)-b);R["u"]=ITRUE;}else{R["r"]=F(a-b);R["u"]=IFALSE;}}")
                (list "{word res=(R["a"]|0x10000000)-(R["b"]&0xffff000);R["r"]=res&0xffff002;;R["u"]=(res&0x10000000)?IFALSE:ITRUE;}")
                bs (put (put regs r 'fixnum) u 'bool))))
 
@@ -212,21 +209,21 @@
       (define (cify-fxleft bs regs fail) 
          (lets ((a b hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word res=fixval(R["a"])<<fixval(R["b"]);R["hi"]=fixnum(res>>16);R["lo"]=fixnum(res&0xffff);}")
+               (list "{word res=fixval(R["a"])<<fixval(R["b"]);R["hi"]=F(res>>16);R["lo"]=F(res&0xffff);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fx>> a b hi lo
       (define (cify-fxright bs regs fail)
          (lets ((a b hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word r=fixval(R["a"])<<(16-fixval(R["b"]));R["hi"]=fixnum(r>>16);R["lo"]=fixnum(r&0xffff);}")
+               (list "{word r=fixval(R["a"])<<(16-fixval(R["b"]));R["hi"]=F(r>>16);R["lo"]=F(r&0xffff);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
       (define (cify-fxqr bs regs fail)
          (lets ((ah al b qh ql rem bs (get6 (cdr bs))))
             (values
-               (list "{word a=fixval(R["ah"])<<16|fixval(R["al"]);word b=fixval(R["b"]);word q=a/b;R["qh"]=fixnum(q>>16);R["ql"]=fixnum(q&0xffff);R["rem"]=fixnum(a-q*b);}")
+               (list "{word a=fixval(R["ah"])<<16|fixval(R["al"]);word b=fixval(R["b"]);word q=a/b;R["qh"]=F(q>>16);R["ql"]=F(q&0xffff);R["rem"]=F(a-q*b);}")
                bs (put (put (put regs qh 'fixnum) ql 'fixnum) rem 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
@@ -421,12 +418,12 @@
                   (λ (bs regs fail)
                      (lets ((n to bs (get2 (cdr bs))))
                         (cond
-                           (else (values (list "R["to"]=fixnum(" n ");") bs (put regs to 'fixnum)))))))
+                           (else (values (list "R["to"]=F(" n ");") bs (put regs to 'fixnum)))))))
                (cons 17 ;; arity <n>
                   (λ (bs regs fail)
                      (let ((n (cadr bs)))
                         (values
-                           (list "if(acc!=" n "){error(256," n ",ob)};")
+                           (list "if(acc!=" n "){error(256,F(" n "),ob)};")
                            (cddr bs) regs))))
                (cons 18 ;; goto-code <p>
                   (λ (bs regs fail)
