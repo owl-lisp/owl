@@ -1,3 +1,5 @@
+;; todo: remove implicit UTF-8 conversion from parser and move to a separate pass
+
 (define-library (owl sexp)
    
    (export 
@@ -19,6 +21,10 @@
       (owl eof)
       (owl list-extra)
       (owl ff)
+      (owl lazy)
+      (owl io) ; testing
+      (owl primop)
+      (owl unicode)
       (only (owl syscall) error)
       (only (owl intern) intern-symbols string->uninterned-symbol)
       (only (owl regex) get-sexp-regex))
@@ -363,24 +369,31 @@
 
       ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
       (define (read-exps-from data red fail)
-         (sexp-parser data
-            (λ (data drop val pos)
-               (if (eof? val)
-                  (reverse red)
-                  (read-exps-from data (cons val red) fail)))
-            (λ (pos reason)
-               (if (null? red)
-                  (fail "syntax error in first expression")
-                  (fail (list 'syntax 'error 'after (car red)))))
-            0))
+         (lets/cc ret  ;; <- not needed if fail is already a cont
+            ((data 
+               (utf8-decoder data 
+                  (λ (self line data) 
+                     (ret (fail (list "Bad UTF-8 data on line " line ": " (ltake line 10))))))))
+            (sexp-parser data
+               (λ (data drop val pos)
+                  (if (eof? val)
+                     (reverse red)
+                     (read-exps-from data (cons val red) fail)))
+               (λ (pos reason)
+                  (if (null? red)
+                     (fail "syntax error in first expression")
+                     (fail (list 'syntax 'error 'after (car red)))))
+               0)))
 
+      ;(print "reading..")
+      ;(receive (read-exps-from (string->list "42" null (λ x (print "fail: " x))))
+      ;   (lambda xs (print " => " xs)))
 
       (define (list->number lst base)
          (try-parse (get-number-in-base base) lst #false #false #false))
 
       (define (string->sexp str fail)
          (try-parse (get-sexp) (str-iter str) #false #false fail))
-
 
       ;; parse all contents of vector to a list of sexps, or fail with 
       ;; fail-val and print error message with further info if errmsg 
