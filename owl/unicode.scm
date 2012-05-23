@@ -1,5 +1,5 @@
 ;;;
-;;; UTF-8 and Unicode stuff 
+;;; Unicode and UTF-8
 ;;;
 
 ;; todo: remove dependencies to remaining few bignum ops
@@ -13,6 +13,7 @@
       utf8-decode             ;; ll -> list | #false
       utf8-sloppy-decode      ;; ll -> list
       ;utf8-normalize         ;; ll -> list
+      utf8-decoder            ;; byte-ll fail → cp-ll | (cp ... . (fail self line data))
       encode-point
       two-byte-point
       three-byte-point
@@ -24,6 +25,7 @@
       (except (owl list) render)
       (owl list-extra)
       (owl defmac)
+      (owl lazy)
       (owl math)
       (only (owl syscall) error))
 
@@ -180,7 +182,7 @@
                   (get-extension-bytes (cdr lst) 3 (fxband #b111 hd) min-4byte))
                (else
                   ; invalid leading byte
-                  (values #false (cdr lst))))))
+                  (values #false lst)))))
 
       ;; bs default-codepoint -> unicode-code-points | #false if error and no default-codepoint
       (define (decoder lst out default)
@@ -206,6 +208,28 @@
       ; ll -> lst', rewrite all errors with #
       (define (utf8-sloppy-decode lst)
          (decoder lst null 35))
+
+
+      ; byte-ll fail → cp-ll | (cp ... . (fail self line data))
+      ; self :: data(') line → continue
+
+      (define (utf8-decoder ll fail)
+         (let loop ((ll ll) (line 0))
+            (cond
+               ((null? ll)
+                  null)
+               ((pair? ll)
+                  (lets ((val ll (decode-char ll)))
+                     (cond
+                        (val
+                           (if (eq? val #\newline)
+                              (pair val (loop ll (+ line 1)))
+                              (pair val (loop ll line))))
+                        ;; drop bom here later
+                        (else
+                           (fail loop line ll)))))
+               (else
+                  (loop (ll) line)))))
 
 
       ;;;
