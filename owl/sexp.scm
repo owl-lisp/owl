@@ -368,26 +368,24 @@
          (get-greedy* sexp-parser))
 
       ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
-      (define (read-exps-from data red fail)
+      (define (read-exps-from data done fail)
          (lets/cc ret  ;; <- not needed if fail is already a cont
             ((data 
                (utf8-decoder data 
                   (λ (self line data) 
                      (ret (fail (list "Bad UTF-8 data on line " line ": " (ltake line 10))))))))
+            (print data)
             (sexp-parser data
                (λ (data drop val pos)
-                  (if (eof? val)
-                     (reverse red)
-                     (read-exps-from data (cons val red) fail)))
+                  (cond
+                     ((eof? val) (reverse done))
+                     ((null? data) (reverse (cons val done))) ;; only for non-files
+                     (else (read-exps-from data (cons val done) fail))))
                (λ (pos reason)
-                  (if (null? red)
+                  (if (null? done)
                      (fail "syntax error in first expression")
-                     (fail (list 'syntax 'error 'after (car red)))))
+                     (fail (list 'syntax 'error 'after (car done) 'at pos))))
                0)))
-
-      ;(print "reading..")
-      ;(receive (read-exps-from (string->list "42" null (λ x (print "fail: " x))))
-      ;   (lambda xs (print " => " xs)))
 
       (define (list->number lst base)
          (try-parse (get-number-in-base base) lst #false #false #false))
