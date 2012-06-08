@@ -2,14 +2,11 @@
 
 ME=$$
 
-/bin/echo -n '#!'   > tmp/script-$ME
-for part in $@
-do
-   /bin/echo -n "`pwd`"
-   /bin/echo -n "/"
-   /bin/echo -n $part
-   /bin/echo -n " "
-done >> tmp/script-$ME
+(echo -n '#!';
+ for part in $@
+ do
+   /bin/echo -n "`pwd`/$part "
+ done) | sed 's/ $//' > tmp/script-$ME
 
 /bin/echo "" >> tmp/script-$ME
 
