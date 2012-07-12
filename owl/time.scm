@@ -15,6 +15,7 @@
       (owl math))
 
    (begin
+
       (define (elapsed-real-time thunk)
          (display "timing: ")
          (flush-port 1)
@@ -28,7 +29,20 @@
             (print elapsed "ms")
             res))
 
-      (define timed elapsed-real-time)
+      (define-syntax timed
+         (syntax-rules ()
+            ((timed exp)
+               (timed exp (quote exp)))
+            ((timed exp comment)
+               (lets
+                  ((ss sms (clock))
+                   (res exp)
+                   (es ems (clock))
+                   (elapsed
+                     (- (+ ems (* es 1000))
+                        (+ sms (* ss 1000)))))
+                  (print*-to stderr (list comment ": " elapsed "ms"))
+                  res))))
 
       ;; note: just passing unix time without adding the extra seconds
       (define (time)
