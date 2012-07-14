@@ -114,7 +114,9 @@ static word *fp;
 #define immediatep(x)      (((word)x)&2)
 #define allocp(x)          (!immediatep(x))
 #define rawp(hdr)          ((hdr)&RAWBIT)
-#define next(n)            ip += n; break;
+/* clone jump here */
+#define nextp(n)           ip += n; op = *ip++; EXEC /* faster on new machines, bigger vm */
+#define NEXT(n)            ip += n; op = *ip++; goto main_dispatch
 #define stringp(ob)        (allocp(ob) && rawp(*ob))
 #define pairp(ob)          (allocp(ob) && *((word *)ob)==PAIRHDR)
 #define INULL  10
@@ -164,6 +166,19 @@ static word *fp;
 #define MINGEN 1024*32
 #define OCLOSE(proctype) { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype) { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
+#define EXEC switch(op&63) { \
+      case 0: goto op0; case 1: goto op1; case 2: goto op2; case 3: goto op3; case 4: goto op4; case 5: goto op5; \
+      case 6: goto op6; case 7: goto op7; case 8: goto op8; case 9: goto op9; \
+      case 10: goto op10; case 11: goto op11; case 12: goto op12; case 13: goto op13; case 14: goto op14; case 15: goto badinst; \
+      case 16: goto op16; case 17: goto op17; case 18: goto op18; case 19: goto op19; case 20: goto op20; case 21: goto op21; \
+      case 22: goto op22; case 23: goto op23; case 24: goto op24; case 25: goto op25; case 26: goto op26; case 27: goto op27; \
+      case 28: goto op28; case 29: goto op29; case 30: goto op30; case 31: goto op31; case 32: goto op32; case 33: goto op33; \
+      case 34: goto op34; case 35: goto op35; case 36: goto op36; case 37: goto op37; case 38: goto op38; case 39: goto op39; \
+      case 40: goto op40; case 41: goto op41; case 42: goto op42; case 43: goto op43; case 44: goto op44; case 45: goto op45; \
+      case 46: goto op46; case 47: goto op47; case 48: goto op48; case 49: goto op49; case 50: goto op50; case 51: goto op51; \
+      case 52: goto op52; case 53: goto op53; case 54: goto op54; case 55: goto op55; case 56: goto op56; case 57: goto op57; \
+      case 58: goto op58; case 59: goto op59; case 60: goto op60; case 61: goto op61; case 62: goto op62; case 63: goto op63; \
+   }
 
 static __inline__ void rev(word pos) {
    word val = *((word *) pos);
@@ -1001,426 +1016,420 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       while(--p >= 0) { R[p] = fp[p+1]; }
       ip = ((unsigned char *) ob) + W;
    }
+
    op = *ip++;
+
    if (op) {
-      goto dispatch;
+      main_dispatch:
+      EXEC;
    } else {
       op = *ip<<8 | ip[1];
       goto super_dispatch;
    }
-   
-next_op:
-   op = *ip++;
-dispatch: /* handle normal bytecode */
-   switch(op&63) {
-      case 0: op = (*ip << 8) | ip[1]; goto super_dispatch;
-      case 1: {word *ob = (word *)R[*ip]; R[ip[2]] = ob[ip[1]]; next(3);}
-      case 2: OGOTO(*ip,ip[1]); /* fixme, these macros are not used in cgen output anymore*/
-      case 3: OCLOSE(TCLOS); break;
-      case 4: OCLOSE(TPROC); break;
-      case 5: /* mov2 from1 to1 from2 to2 */
-         R[ip[1]] = R[ip[0]];
-         R[ip[3]] = R[ip[2]];
-         next(4);
-      case 6: CLOSE1(TCLOS); break;
-      case 7: CLOSE1(TPROC); break;
-      case 8: /* jlq a b o, extended jump  */
-         if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
-         next(4); 
-      case 9: R[ip[1]] = R[*ip]; next(2);
-      case 10: { /* type o r */
-         word ob = R[*ip++];
-         if (allocp(ob)) ob = *((word *) ob);
-         R[*ip++] = F(ob&4095);
-         break; }
-      case 11: { /* jit2 a t ol oh */
-         word a = R[*ip];
-         if (immediatep(a) && ((a>>3)&0xff) == ip[1]) {
-            ip += ip[2] + (ip[3] << 8);
-         }
-         next(4); }
-      case 12: { /* jat2 a t ol oh */
-         word a = R[*ip];
-         if (allocp(a) && (((*((word *) a))>>3)&0x1ff) == ip[1]) {
-            ip += ip[2] + (ip[3] << 8);
-         }
-         next(4); }
-      case 13: /* ldi{2bit what} [to] */
-         R[*ip++] = load_imms[op>>6];
-         break;
-      case 14: R[ip[1]] = F(*ip); next(2);
+  
+   op0: op = (*ip << 8) | ip[1]; goto super_dispatch;
+   op1: {word *ob = (word *)R[*ip]; R[ip[2]] = ob[ip[1]]; NEXT(3);}
+   op2: OGOTO(*ip,ip[1]); /* fixme, these macros are not used in cgen output anymore*/
+   op3: OCLOSE(TCLOS); NEXT(0);
+   op4: OCLOSE(TPROC); NEXT(0);
+   op5: /* mov2 from1 to1 from2 to2 */
+      R[ip[1]] = R[ip[0]];
+      R[ip[3]] = R[ip[2]];
+      NEXT(4);
+   op6: CLOSE1(TCLOS); NEXT(0);
+   op7: CLOSE1(TPROC); NEXT(0);
+   op8: /* jlq a b o, extended jump  */
+      if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
+      NEXT(4); 
+   op9: R[ip[1]] = R[*ip]; NEXT(2);
+   op10: { /* type o r */
+      word ob = R[*ip++];
+      if (allocp(ob)) ob = *((word *) ob);
+      R[*ip++] = F(ob&4095);
+      NEXT(0); }
+   op11: { /* jit2 a t ol oh */
+      word a = R[*ip];
+      if (immediatep(a) && ((a>>3)&0xff) == ip[1]) {
+         ip += ip[2] + (ip[3] << 8);
+      }
+      NEXT(4); }
+   op12: { /* jat2 a t ol oh */
+      word a = R[*ip];
+      if (allocp(a) && (((*((word *) a))>>3)&0x1ff) == ip[1]) {
+         ip += ip[2] + (ip[3] << 8);
+      }
+      NEXT(4); }
+   op13: /* ldi{2bit what} [to] */
+      R[*ip++] = load_imms[op>>6];
+      NEXT(0);
+   op14: R[ip[1]] = F(*ip); NEXT(2);
 #ifdef NATIVECALL
-      case 15: { /* testing */
-         A4 = ((word (*)(word, word, word))(A0+W))(A1, A2, A3); 
-         next(5); }
+   op15: { /* testing */
+      A4 = ((word (*)(word, word, word))(A0+W))(A1, A2, A3); 
+      NEXT(5); }
 #endif
-      case 16: /* jv[which] a o1 a2*/
-         if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
-         next(3); 
-      case 17: /* narg n, todo: add argument listing also here or drop */
-         if (unlikely(acc != *ip)) {
-            error(256, F(*ip), ob);
-         }
-         next(1);
-      case 18: /* goto-code p */
-         ob = (word *) R[*ip]; /* needed in case of gc */
-         acc = ip[1];
-         ip = ((unsigned char *) R[*ip]) + W;
-         goto invoke;
-      case 19: { /* goto-proc p */
-         word *this = (word *) R[*ip];
-         R[1] = (word) this;
-         acc = ip[1];
-         ob = (word *) this[1];
-         ip = ((unsigned char *) ob) + W;
-         goto invoke; }
-      case 20: { 
-         int reg, arity;
-         word *lst;
-         if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5, */ 
-            reg = 4; /* include cont */
-            arity = 1;
-            ob = (word *) R[reg];
-            acc -= 3; /* ignore cont, function and stop before last one (the list) */
-            while(acc--) { /* move explicitly given arguments down by one to correct positions */
-               R[reg] = R[reg+1]; /* copy args down*/
-               reg++;
-               arity++;
-            }
-            lst = (word *) R[reg+1];
-         } else { /* _sans_cps apply: func=r3, a0=r4, */ 
-            reg = 3; /* include cont */
-            arity = 0;
-            ob = (word *) R[reg];
-            acc -= 2; /* ignore function and stop before last one (the list) */
-            while(acc--) { /* move explicitly given arguments down by one to correct positions */
-               R[reg] = R[reg+1]; /* copy args down*/
-               reg++;
-               arity++;
-            }
-            lst = (word *) R[reg+1];
-         }
-         while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
-            /* FIXME: unwind only up to last register and add limited rewinding to arity check */
-            if (reg > 128) { /* dummy handling for now */
-               fprintf(stderr, "TOO LARGE APPLY\n");
-               exit(3);
-            }
-            R[reg++] = lst[1];
-            lst = (word *) lst[2];
+   op16: /* jv[which] a o1 a2*/
+      if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
+      NEXT(3); 
+   op17: /* narg n, todo: add argument listing also here or drop */
+      if (unlikely(acc != *ip)) {
+         error(256, F(*ip), ob);
+      }
+      NEXT(1);
+   op18: /* goto-code p */
+      ob = (word *) R[*ip]; /* needed in opof gc */
+      acc = ip[1];
+      ip = ((unsigned char *) R[*ip]) + W;
+      goto invoke;
+   op19: { /* goto-proc p */
+      word *this = (word *) R[*ip];
+      R[1] = (word) this;
+      acc = ip[1];
+      ob = (word *) this[1];
+      ip = ((unsigned char *) ob) + W;
+      goto invoke; }
+   op20: { 
+      int reg, arity;
+      word *lst;
+      if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5, */ 
+         reg = 4; /* include cont */
+         arity = 1;
+         ob = (word *) R[reg];
+         acc -= 3; /* ignore cont, function and stop before last one (the list) */
+         while(acc--) { /* move explicitly given arguments down by one to correct positions */
+            R[reg] = R[reg+1]; /* copy args down*/
+            reg++;
             arity++;
          }
-         acc = arity;
-         goto apply; }
-      case 21: { /* goto-clos p */
-         word *this = (word *) R[*ip];
-         R[1] = (word) this;
-         acc = ip[1];
-         this = (word *) this[1];
-         R[2] = (word) this;
-         ob = (word *) this[1];
-         ip = ((unsigned char *) ob) + W;
-         goto invoke;
-         break; }
-      case 22: { /* cast o t r */
-         word *ob = (word *) R[*ip];
-         word type = fixval(A1) & 0xff;
-         A2 = prim_cast(ob, type);
-         next(3); }
-      case 23: { /* mkt t s f1 .. fs r */
-         word t = *ip++;
-         word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
-         word *ob, p = 0;
-         allocate(s+1, ob); /* s fields + header */
-         *ob = make_header(s+1, t);
-         while (p < s) {
-            ob[p+1] = R[ip[p]];
-            p++;
+         lst = (word *) R[reg+1];
+      } else { /* _sans_cps apply: func=r3, a0=r4, */ 
+         reg = 3; /* include cont */
+         arity = 0;
+         ob = (word *) R[reg];
+         acc -= 2; /* ignore function and stop before last one (the list) */
+         while(acc--) { /* move explicitly given arguments down by one to correct positions */
+            R[reg] = R[reg+1]; /* copy args down*/
+            reg++;
+            arity++;
          }
-         R[ip[p]] = (word) ob;
-         next(s+1); }
-      case 24: /* ret val */
-         ob = (word *) R[3];
-         R[3] = R[*ip];
-         acc = 1;
-         goto apply; 
-      case 25: { /* jmp-nargs(>=?) a hi lo */
-         int needed = *ip;
-         if (acc == needed) {
-            if (op & 64) /* args+ */
-               R[acc + 3] = INULL;
-         } else if ((op & 64) && acc > needed) {
-            word tail = INULL;  /* todo: no call overflow handling yet */
-            while (acc > needed) {
-               fp[0] = PAIRHDR;
-               fp[1] = R[acc + 2];
-               fp[2] = tail;
-               tail = (word) fp;
-               fp += 3;
-               acc--;
-            }
-            R[acc + 3] = tail;
-         } else {
-            ip += (ip[1] << 8) | ip[2];
+         lst = (word *) R[reg+1];
+      }
+      while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
+         /* FIXME: unwind only up to last register and add limited rewinding to arity check */
+         if (reg > 128) { /* dummy handling for now */
+            fprintf(stderr, "TOO LARGE APPLY\n");
+            exit(3);
          }
-         next(3); }
-      case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-         word a = (fixval(A0)<<16) | fixval(A1); 
-         word b = fixval(A2);
-         word q = a / b;
-         A3 = F(q>>16);
-         A4 = F(q&0xffff);
-         A5 = F(a - q*b);
-         next(6); }
-      case 27: /* syscall cont op arg1 arg2 */
-         ob = (word *) R[0];
-         R[0] = IFALSE;
-         R[3] = A1; R[4] = R[*ip]; R[5] = A2; R[6] = A3;
-         acc = 4;
-         if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
-         goto apply;
-      case 28: { /* sizeb obj to */ /* todo: to be merged with size? */
-         word ob = R[*ip];
-         if (immediatep(ob)) {
-            A1 = F(0);
-         } else {
-            word hdr = *((word *) ob);
-            A1 = (rawp(hdr)) ? F((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : F(0);
+         R[reg++] = lst[1];
+         lst = (word *) lst[2];
+         arity++;
+      }
+      acc = arity;
+      goto apply; }
+   op21: { /* goto-clos p */
+      word *this = (word *) R[*ip];
+      R[1] = (word) this;
+      acc = ip[1];
+      this = (word *) this[1];
+      R[2] = (word) this;
+      ob = (word *) this[1];
+      ip = ((unsigned char *) ob) + W;
+      goto invoke; }
+   op22: { /* cast o t r */
+      word *ob = (word *) R[*ip];
+      word type = fixval(A1) & 0xff;
+      A2 = prim_cast(ob, type);
+      NEXT(3); }
+   op23: { /* mkt t s f1 .. fs r */
+      word t = *ip++;
+      word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
+      word *ob, p = 0;
+      allocate(s+1, ob); /* s fields + header */
+      *ob = make_header(s+1, t);
+      while (p < s) {
+         ob[p+1] = R[ip[p]];
+         p++;
+      }
+      R[ip[p]] = (word) ob;
+      NEXT(s+1); }
+   op24: /* ret val */
+      ob = (word *) R[3];
+      R[3] = R[*ip];
+      acc = 1;
+      goto apply; 
+   op25: { /* jmp-nargs(>=?) a hi lo */
+      int needed = *ip;
+      if (acc == needed) {
+         if (op & 64) /* args+ */
+            R[acc + 3] = INULL;
+      } else if ((op & 64) && acc > needed) {
+         word tail = INULL;  /* todo: no call overflow handling yet */
+         while (acc > needed) {
+            fp[0] = PAIRHDR;
+            fp[1] = R[acc + 2];
+            fp[2] = tail;
+            tail = (word) fp;
+            fp += 3;
+            acc--;
          }
-         next(2); }
-      case 29: { /* ncons a b r */
-         *fp = NUMHDR;
-         fp[1] = A0;
-         fp[2] = A1;
-         A2 = (word) fp;
-         fp += 3;
-         next(3); }
-      case 30: { /* ncar a rd */
-         word *ob = (word *) R[*ip];
-         assert(allocp(ob), ob, 30);
-         A1 = ob[1];
-         next(2); }
-      case 31: { /* ncdr a r */
-         word *ob = (word *) R[*ip];
-         assert(allocp(ob), ob, 31);
-         A1 = ob[2];
-         next(2); }
-      case 32: { /* bind tuple <n> <r0> .. <rn> */
-         word *tuple = (word *) R[*ip++];
-         word hdr, pos = 1, n = *ip++;
-         assert(allocp(tuple), tuple, 32);
-         hdr = *tuple;
-         assert_not((rawp(hdr) || fixval(hdr)-1 != n), tuple, 32);
-         while(n--) { R[*ip++] = tuple[pos++]; }
-         break; }
-      case 33: { /* jrt a t o, jump by raw type (ignoring padding info) */
-         word a = R[*ip];
-         if (allocp(a) && (*(word *)a & 2296) == (2048 | (ip[1]<<3))) {
-				ip += ip[2];
-         }
-         next(3); }
-      case 34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
-         A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
-         next(3); }
-      case 35: { /* listuple type size lst to */
-         word type = fixval(R[*ip]);
-         word size = fixval(A1);
-         word *lst = (word *) A2;
-         word *ob;
-         allocate(size+1, ob);
-         A3 = (word) ob;
-         *ob++ = make_header(size+1, type);
-         while(size--) {
-            assert((allocp(lst) && *lst == PAIRHDR), lst, 35);
-            *ob++ = lst[1];
-            lst = (word *) lst[2];
-         }
-         next(4); }
-      case 36: { /* size o r */
-         word *ob = (word *) R[*ip++];
-         R[*ip++] = (immediatep(ob)) ? F(0) : F(imm_val(*ob)-1);
-         break; }
-      case 37: { /* ms r */
+         R[acc + 3] = tail;
+      } else {
+         ip += (ip[1] << 8) | ip[2];
+      }
+      NEXT(3); }
+   op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
+      word a = (fixval(A0)<<16) | fixval(A1); 
+      word b = fixval(A2);
+      word q = a / b;
+      A3 = F(q>>16);
+      A4 = F(q&0xffff);
+      A5 = F(a - q*b);
+      NEXT(6); }
+   op27: /* syscall cont op arg1 arg2 */
+      ob = (word *) R[0];
+      R[0] = IFALSE;
+      R[3] = A1; R[4] = R[*ip]; R[5] = A2; R[6] = A3;
+      acc = 4;
+      if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
+      goto apply;
+   op28: { /* sizeb obj to */ /* todo: to be merged with size? */
+      word ob = R[*ip];
+      if (immediatep(ob)) {
+         A1 = F(0);
+      } else {
+         word hdr = *((word *) ob);
+         A1 = (rawp(hdr)) ? F((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : F(0);
+      }
+      NEXT(2); }
+   op29: { /* ncons a b r */
+      *fp = NUMHDR;
+      fp[1] = A0;
+      fp[2] = A1;
+      A2 = (word) fp;
+      fp += 3;
+      NEXT(3); }
+   op30: { /* ncar a rd */
+      word *ob = (word *) R[*ip];
+      assert(allocp(ob), ob, 30);
+      A1 = ob[1];
+      NEXT(2); }
+   op31: { /* ncdr a r */
+      word *ob = (word *) R[*ip];
+      assert(allocp(ob), ob, 31);
+      A1 = ob[2];
+      NEXT(2); }
+   op32: { /* bind tuple <n> <r0> .. <rn> */
+      word *tuple = (word *) R[*ip++];
+      word hdr, pos = 1, n = *ip++;
+      assert(allocp(tuple), tuple, 32);
+      hdr = *tuple;
+      assert_not((rawp(hdr) || fixval(hdr)-1 != n), tuple, 32);
+      while(n--) { R[*ip++] = tuple[pos++]; }
+      NEXT(0); }
+   op33: { /* jrt a t o, jump by raw type (ignoring padding info) */
+      word a = R[*ip];
+      if (allocp(a) && (*(word *)a & 2296) == (2048 | (ip[1]<<3))) {
+         ip += ip[2];
+      }
+      NEXT(3); }
+   op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
+      A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
+      NEXT(3); }
+   op35: { /* listuple type size lst to */
+      word type = fixval(R[*ip]);
+      word size = fixval(A1);
+      word *lst = (word *) A2;
+      word *ob;
+      allocate(size+1, ob);
+      A3 = (word) ob;
+      *ob++ = make_header(size+1, type);
+      while(size--) {
+         assert((allocp(lst) && *lst == PAIRHDR), lst, 35);
+         *ob++ = lst[1];
+         lst = (word *) lst[2];
+      }
+      NEXT(4); }
+   op36: { /* size o r */
+      word *ob = (word *) R[*ip++];
+      R[*ip++] = (immediatep(ob)) ? F(0) : F(imm_val(*ob)-1);
+      NEXT(0); }
+   op37: { /* ms r */
 #ifndef WIN32
-         if (!seccompp)
-            usleep(fixval(A0)*1000);
+      if (!seccompp)
+         usleep(fixval(A0)*1000);
 #else
-         Sleep(fixval(A0));
+      Sleep(fixval(A0));
 #endif
-         A1 = (errno == EINTR) ? ITRUE : IFALSE; 
-         next(2); }
-      case 38: { /* fx+ a b r o, types prechecked, signs ignored */
-         /* values are (n<<12)|2*/
-         word res = ((A0 + A1) & 0x1ffff000) | 2;
-         if (res & 0x10000000) {
-            A2 = res & 0xffff002;
-            A3 = ITRUE;
-         } else {
-            A2 = res;
-            A3 = IFALSE;
-         }
-         next(4); }
-      case 39: { /* fx* a b l h */
-         word res = fixval(R[*ip]) * fixval(A1);
-         A2 = F(res&0xffff);
-         A3 = F((res>>16)&0xffff);
-         next(4); }
-      case 40: { /* fx- a b r u, args prechecked, signs ignored */
-         word r = (A0|0x10000000) - (A1 & 0xffff000);
-         A3 = (r & 0x10000000) ? IFALSE : ITRUE;
-         A2 = r & 0xffff002;
-         next(4); }
-      case 41: { /* red? node r (has highest type bit?) */
-         word *node = (word *) R[*ip];
-         A1 = (allocp(node) && ((*node)&(FFRED<<3))) ? ITRUE : IFALSE;
-         next(2); }
-      case 42: /* mkblack l k v r t */ 
-         A4 = prim_mkff(TFF,A0,A1,A2,A3);
-         next(5);
-      case 43: /* mkred l k v r t */ 
-         A4 = prim_mkff(TFF|FFRED,A0,A1,A2,A3);
-         next(5);
-      case 44: /* less a b r */
-         A2 = prim_less(A0, A1);
-         next(3);
-      case 45: { /* set t o v r */
-         A3 = prim_set(A0, A1, A2);
-         next(4);
-         break; }
-      case 46: { /* fftoggle node to (probably useless to have as a separate primop, as are some other ff things ) */
-         word *node = (word *) R[*ip];
-         word *new, h;
-         assert(allocp(node), node, 46);
-         new = fp;
-         h = *node++;
-         A1 = (word) new;
-         *new++ = (h^(FFRED<<3));
-         switch(hdrsize(h)) {
-            case 5:  *new++ = *node++;
-            case 4:  *new++ = *node++;
-            default: *new++ = *node++;
-                     *new++ = *node++; }
-         fp = new;
-         next(2); }
-      case 47:  /* ref t o r */ /* fixme: deprecate this later */
-         A2 = prim_ref(A0, A1);
-         next(3);
-         break;
-      case 48: { /* refb t o r */ /* todo: merge with ref, though 0-based  */
-         A2 = prim_refb(A0, fixval(A1));
-         next(3); }
-      case 49: { /* withff node l k v r */
-         word hdr, *ob = (word *) R[*ip];
-         assert(allocp(ob), ob, 49);
-         hdr = *ob++ >> 3;
-         assert(((hdr&31)==TFF),ob,49) 
-         A2 = *ob++; /* key */
-         A3 = *ob++; /* value */
-         A1 = (hdr & FFLEFT) ? *ob++ : IFALSE; 
-         A4 = (hdr & FFRIGHT) ? *ob++ : IFALSE; 
-         next(5); }
-      case 50: { /* run thunk quantum */ /* fixme: maybe move to sys */
-         word hdr;
-         ob = (word *) A0;
-         R[0] = R[3];
-         ticker = bank ? bank : fixval(A1);
-         bank = 0;
-         assert(allocp(ob),ob,50);
-         hdr = *ob;
-         if (imm_type(hdr) == TTUPLE) {
-            int pos = hdrsize(hdr) - 1;
-            word code = ob[pos];
-            acc = pos - 3;
-            while(--pos) { R[pos] = ob[pos]; }
-            ip = ((unsigned char *) code) + W;
-         } else {
-            /* call a thunk with terminal continuation */
-            R[3] = IHALT; /* exit via R0 when the time comes */
-            acc = 1;
-            goto apply;
-         }
-         break; }
-      case 51: { /* cons a b r */
-         *fp = PAIRHDR;
-         fp[1] = A0;
-         fp[2] = A1;
-         A2 = (word) fp;
-         fp += 3;
-         next(3); }
-      case 52: { /* car a r */
-         word *ob = (word *) R[*ip++];
-         assert(pairp(ob), ob, 52);
-         R[*ip++] = ob[1];
-         break; }
-      case 53: { /* cdr a r */
-         word *ob = (word *) R[*ip++];
-         assert(pairp(ob), ob, 52);
-         R[*ip++] = ob[2];
-         break; }
-      case 54: /* eq a b r */
-         A2 = (R[*ip] == A1) ? ITRUE : IFALSE;
-         next(3);
-      case 55: { /* band a b r, prechecked */
-         word a = R[*ip];
-         word b = A1;
-         A2 = a & b;
-         next(3); }
-      case 56: { /* bor a b r, prechecked */
-         word a = R[*ip];
-         word b = A1;
-         A2 = a | b;
-         next(3); }
-      case 57: { /* bxor a b r, prechecked */
-         word a = R[*ip];
-         word b = A1;
-         A2 = a ^ (b ^ 2); /* clear fixnum tag from b */
-         next(3); }
-      case 58: { /* fx>> a b hi lo */
-         word r = fixval(A0) << (16 - fixval(A1));
-         A2 = F(r>>16);
-         A3 = F(r&0xffff);
-         next(4); }
-      case 59: { /* fx<< a b hi lo */
-         word res = fixval(R[*ip]) << fixval(A1);
-         A2 = F(res>>16);
-         A3 = F(res&0xffff);
-         next(4); }
-      case 60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
-         A3 = prim_lraw(A0, fixval(A1), A2);
-         next(4);
-      case 61: /* clock <secs> <ticks> */ { /* fixme: sys */
-         struct timeval tp;
-         word *ob;
-         allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
-         ob[0] = ob[3] = NUMHDR; 
-         A0 = (word) (ob + 3);
-         ob[2] = INULL; 
-         ob[5] = (word) ob;
-         if (seccompp) {
-            unsigned long secs = seccomp_time / 1000;
-            A1 = F(seccomp_time - (secs * 1000));
-            ob[1] = F(secs >> 16);
-            ob[4] = F(secs & 0xffff);
-            seccomp_time += (secs == 0xffffffff) ? 0 : 10; /* virtual 10ms passes on each call */
-         } else {
-            gettimeofday(&tp, NULL);
-            A1 = F(tp.tv_usec / 1000);
-            ob[1] = F(tp.tv_sec >> 16);
-            ob[4] = F(tp.tv_sec&0xffff);
-         }
-         next(2); }
-      case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
-         A1 = F(ticker&0xffff);
-         ticker = fixval(A0);
-         next(2); 
-      case 63: { /* sys-prim op arg1 arg2 arg3 r1 */
-         A4 = prim_sys(fixval(A0), A1, A2, A3);
-         next(5); }
-      default: /* bad instruction */
-         ip--;
-         error(258, F(*ip), INULL);
-   }
-   goto next_op;
+      A1 = (errno == EINTR) ? ITRUE : IFALSE; 
+      NEXT(2); }
+   op38: { /* fx+ a b r o, types prechecked, signs ignored */
+      /* values are (n<<12)|2*/
+      word res = ((A0 + A1) & 0x1ffff000) | 2;
+      if (res & 0x10000000) {
+         A2 = res & 0xffff002;
+         A3 = ITRUE;
+      } else {
+         A2 = res;
+         A3 = IFALSE;
+      }
+      NEXT(4); }
+   op39: { /* fx* a b l h */
+      word res = fixval(R[*ip]) * fixval(A1);
+      A2 = F(res&0xffff);
+      A3 = F((res>>16)&0xffff);
+      NEXT(4); }
+   op40: { /* fx- a b r u, args prechecked, signs ignored */
+      word r = (A0|0x10000000) - (A1 & 0xffff000);
+      A3 = (r & 0x10000000) ? IFALSE : ITRUE;
+      A2 = r & 0xffff002;
+      NEXT(4); }
+   op41: { /* red? node r (has highest type bit?) */
+      word *node = (word *) R[*ip];
+      A1 = (allocp(node) && ((*node)&(FFRED<<3))) ? ITRUE : IFALSE;
+      NEXT(2); }
+   op42: /* mkblack l k v r t */ 
+      A4 = prim_mkff(TFF,A0,A1,A2,A3);
+      NEXT(5);
+   op43: /* mkred l k v r t */ 
+      A4 = prim_mkff(TFF|FFRED,A0,A1,A2,A3);
+      NEXT(5);
+   op44: /* less a b r */
+      A2 = prim_less(A0, A1);
+      NEXT(3);
+   op45: { /* set t o v r */
+      A3 = prim_set(A0, A1, A2);
+      NEXT(4); }
+   op46: { /* fftoggle - toggle node color */
+      word *node = (word *) R[*ip];
+      word *new, h;
+      assert(allocp(node), node, 46);
+      new = fp;
+      h = *node++;
+      A1 = (word) new;
+      *new++ = (h^(FFRED<<3));
+      switch(hdrsize(h)) {
+         case 5:  *new++ = *node++;
+         case 4:  *new++ = *node++;
+         default: *new++ = *node++;
+                  *new++ = *node++; }
+      fp = new;
+      NEXT(2); }
+   op47:  /* ref t o r */ /* fixme: deprecate this later */
+      A2 = prim_ref(A0, A1);
+      NEXT(3);
+   op48: { /* refb t o r */ /* todo: merge with ref, though 0-based  */
+      A2 = prim_refb(A0, fixval(A1));
+      NEXT(3); }
+   op49: { /* withff node l k v r */
+      word hdr, *ob = (word *) R[*ip];
+      assert(allocp(ob), ob, 49);
+      hdr = *ob++ >> 3;
+      assert(((hdr&31)==TFF),ob,49) 
+      A2 = *ob++; /* key */
+      A3 = *ob++; /* value */
+      A1 = (hdr & FFLEFT) ? *ob++ : IFALSE; 
+      A4 = (hdr & FFRIGHT) ? *ob++ : IFALSE; 
+      NEXT(5); }
+   op50: { /* run thunk quantum */ /* fixme: maybe move to sys */
+      word hdr;
+      ob = (word *) A0;
+      R[0] = R[3];
+      ticker = bank ? bank : fixval(A1);
+      bank = 0;
+      assert(allocp(ob),ob,50);
+      hdr = *ob;
+      if (imm_type(hdr) == TTUPLE) {
+         int pos = hdrsize(hdr) - 1;
+         word code = ob[pos];
+         acc = pos - 3;
+         while(--pos) { R[pos] = ob[pos]; }
+         ip = ((unsigned char *) code) + W;
+      } else {
+         /* call a thunk with terminal continuation */
+         R[3] = IHALT; /* exit via R0 when the time comes */
+         acc = 1;
+         goto apply;
+      }
+      NEXT(0); }
+   op51: { /* cons a b r */
+      *fp = PAIRHDR;
+      fp[1] = A0;
+      fp[2] = A1;
+      A2 = (word) fp;
+      fp += 3;
+      NEXT(3); }
+   op52: { /* car a r */
+      word *ob = (word *) R[*ip++];
+      assert(pairp(ob), ob, 52);
+      R[*ip++] = ob[1];
+      NEXT(0); }
+   op53: { /* cdr a r */
+      word *ob = (word *) R[*ip++];
+      assert(pairp(ob), ob, 52);
+      R[*ip++] = ob[2];
+      NEXT(0); }
+   op54: /* eq a b r */
+      A2 = (R[*ip] == A1) ? ITRUE : IFALSE;
+      NEXT(3);
+   op55: { /* band a b r, prechecked */
+      word a = R[*ip];
+      word b = A1;
+      A2 = a & b;
+      NEXT(3); }
+   op56: { /* bor a b r, prechecked */
+      word a = R[*ip];
+      word b = A1;
+      A2 = a | b;
+      NEXT(3); }
+   op57: { /* bxor a b r, prechecked */
+      word a = R[*ip];
+      word b = A1;
+      A2 = a ^ (b ^ 2); /* clear fixnum tag from b */
+      NEXT(3); }
+   op58: { /* fx>> a b hi lo */
+      word r = fixval(A0) << (16 - fixval(A1));
+      A2 = F(r>>16);
+      A3 = F(r&0xffff);
+      NEXT(4); }
+   op59: { /* fx<< a b hi lo */
+      word res = fixval(R[*ip]) << fixval(A1);
+      A2 = F(res>>16);
+      A3 = F(res&0xffff);
+      NEXT(4); }
+   op60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
+      A3 = prim_lraw(A0, fixval(A1), A2);
+      NEXT(4);
+   op61: /* clock <secs> <ticks> */ { /* fixme: sys */
+      struct timeval tp;
+      word *ob;
+      allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
+      ob[0] = ob[3] = NUMHDR; 
+      A0 = (word) (ob + 3);
+      ob[2] = INULL; 
+      ob[5] = (word) ob;
+      if (seccompp) {
+         unsigned long secs = seccomp_time / 1000;
+         A1 = F(seccomp_time - (secs * 1000));
+         ob[1] = F(secs >> 16);
+         ob[4] = F(secs & 0xffff);
+         seccomp_time += (secs == 0xffffffff) ? 0 : 10; /* virtual 10ms passes on each call */
+      } else {
+         gettimeofday(&tp, NULL);
+         A1 = F(tp.tv_usec / 1000);
+         ob[1] = F(tp.tv_sec >> 16);
+         ob[4] = F(tp.tv_sec&0xffff);
+      }
+      NEXT(2); }
+   op62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
+      A1 = F(ticker&0xffff);
+      ticker = fixval(A0);
+      NEXT(2); 
+   op63: { /* sys-prim op arg1 arg2 arg3 r1 */
+      A4 = prim_sys(fixval(A0), A1, A2, A3);
+      NEXT(5); }
+
+   badinst:
+      error(256, F(op), ITRUE);
 
 super_dispatch: /* run macro instructions */
    switch(op) {
