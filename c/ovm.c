@@ -940,9 +940,18 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } else if (hdr == 518) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      } else if ((hdr&255) == 70 && acc == 3) { /* ff of any color, (<ff> key def) -> val */
+      } else if ((hdr&255) == 70) { /* ff of any color, (<ff> key def) -> val */
          word *cont = (word *) R[3];
-         R[3] = prim_get(ob, R[4], R[5]); 
+         if (acc == 3) {
+            R[3] = prim_get(ob, R[4], R[5]); 
+         } else if (acc == 2) {
+            R[3] = prim_get(ob, R[4], (word) 0); /* 0 is invalid owl value */
+            if (!R[3]) { /* domain error */
+               error(260, ob, R[4]);
+            }
+         } else {
+            error(259, ob, INULL);
+         }
          ob = cont;
          acc = 1;
          goto apply;
