@@ -360,6 +360,7 @@ static word *gc(int size, word *regs) {
 
 void signal_handler(int signal) {
 #ifndef WIN32
+   printf("vm: signal %d\n", signal);
    switch(signal) {
       case SIGINT: breaked |= 2; break;
       case SIGPIPE: break;
