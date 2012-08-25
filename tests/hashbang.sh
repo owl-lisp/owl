@@ -2,7 +2,7 @@
 
 ME=$$
 
-(echo -n '#!';
+(/bin/echo -n '#!';
  for part in $@
  do
    /bin/echo -n "`pwd`/$part "
