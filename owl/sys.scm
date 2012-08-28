@@ -16,6 +16,7 @@
       (owl defmac)
       (owl string)
       (owl math)
+      (owl equal)
       (owl eof)
       (owl list)
       (owl vector))
@@ -53,10 +54,12 @@
             (if dfd
                (let loop ((st st))
                   (let ((val (read-dir dfd)))
-                     (if (eof? val) 
-                        st
-                        (loop (op st val)))))
-               st)))
+                     (cond
+                        ((eof? val) st)
+                        ((equal? val ".") (loop st))
+                        ((equal? val "..") (loop st))
+                        (else (loop (op st val))))))
+               #false)))
 
       (define (dir->list path)
          (dir-fold (λ (seen this) (cons this seen)) null path))
