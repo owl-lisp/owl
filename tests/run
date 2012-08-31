@@ -14,7 +14,8 @@ shift
 
 test -x $1 || { echo "No executable at '$1'."; exit 2; }
 
-test -d tmp || mkdir tmp || fail "cannot make tmp/"
+test -d tmp && rm -rf tmp # don't want old files screwing up tests
+mkdir tmp
 
 LOG=tmp/units-$$.out
 
