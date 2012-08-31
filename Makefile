@@ -18,10 +18,10 @@ fasl/boot.fasl: fasl/init.fasl
 
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
 	# selfcompile boot.fasl until a fixed point is reached
-	$(TIME) bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
+	time bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
 	ls -la fasl/bootp.fasl
 	# check that the new image passes tests
-	tests/run bin/vm fasl/bootp.fasl
+	tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
 	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
 	
@@ -46,7 +46,7 @@ c/ol.c: fasl/ol.fasl
 bin/ol: c/ol.c
 	# compile the real owl repl binary
 	$(CC) $(CFLAGS) -o bin/olp c/ol.c
-	tests/run bin/olp
+	tests/run all bin/olp
 	test -f bin/ol && mv bin/ol bin/ol-old || true
 	mv bin/olp bin/ol
 
@@ -54,14 +54,14 @@ bin/ol: c/ol.c
 ## running unit tests manually
 
 fasltest: bin/vm fasl/ol.fasl
-	tests/run bin/vm fasl/ol.fasl
+	tests/run all bin/vm fasl/ol.fasl
 
 test: bin/ol
-	tests/run bin/ol
+	tests/run all bin/ol
 
 random-test: bin/vm bin/ol fasl/ol.fasl
-	tests/run-random bin/vm fasl/ol.fasl
-	tests/run-random bin/ol
+	tests/run random bin/vm fasl/ol.fasl
+	tests/run random bin/ol
 
 
 ## MinGW builds for win32 

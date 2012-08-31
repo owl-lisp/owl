@@ -1,7 +1,5 @@
 #!/usr/bin/ol --run
 
-;; RANDOM -- tag to run this as part of random-tests
-
 ;; todo: move to (owl proof) after dust settles
 
 ;; DSL - still being prototyped

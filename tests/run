@@ -1,5 +1,19 @@
 #!/bin/sh
 
+SUFFIX=""
+
+case $1 in 
+	random) SUFFIX=-rand;;
+	all)    SUFFIX="";;
+	*)
+		echo "$ run (random | all) cmd [flags]";
+		exit 1;;
+esac
+
+shift
+
+test -x $1 || { echo "No executable at '$1'."; exit 2; }
+
 test -d tmp || mkdir tmp || fail "cannot make tmp/"
 
 LOG=tmp/units-$$.out
@@ -15,12 +29,12 @@ touch $LOG
 
 MAXMEM=1048576 # 1GB
 MAXTIME=60
-for file in tests/*.scm
+for file in tests/*$SUFFIX.scm
 do
    (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; $@ -q $file 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done
 
-for file in tests/*.sh
+for file in tests/*$SUFFIX.sh
 do
    (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; sh $file $@ 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done

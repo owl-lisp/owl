@@ -1,6 +1,4 @@
 
-;; RANDOM
-
 (define seed (time-ms))
 
 (define (test n max)

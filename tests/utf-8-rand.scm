@@ -1,6 +1,4 @@
 
-;; RANDOM
-
 (define seed (time-ms))
 
 ;; decode 1000 encoded (valid) strings

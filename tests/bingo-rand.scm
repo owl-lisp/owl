@@ -5,8 +5,6 @@
 ; - fini prints the content of the first message and mails 'halt to all 0..n
 ; - each thread starts dropping messages when 'fini has sent 'halt to them
 
-;; RANDOM
-
 (define seed (* (time-ms) (time-ms)))
 
 (define n 30) ;; make 100 threads, ids 0-99

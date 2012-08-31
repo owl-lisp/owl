@@ -1,7 +1,5 @@
 ;; test a suffix array
 
-;; RANDOM
-
 ; note: end = minimum 
 
 (define (lex-less? vec a b)

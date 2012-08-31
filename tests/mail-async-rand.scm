@@ -1,7 +1,5 @@
 ;; send and receive mails asynchronously between threads and check that the order is correct
 
-;; RANDOM
-
 ; n mails to send between each thread pair (to both directions)
 (define mails 300)
 

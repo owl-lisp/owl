@@ -1,5 +1,3 @@
-;; RANDOM
-
 (define (divide a b) (- (bisect (lambda (q) (> (* q b) a)) 0 a) 1))
 
 (define (square n) (- (bisect (lambda (q) (> (* q q) n)) 0 n) 1))

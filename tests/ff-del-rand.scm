@@ -1,5 +1,3 @@
-;; RANDOM
-
 (define seed (* (time-ms) (expt (time-ms) 4)))
 
 ; (print seed)

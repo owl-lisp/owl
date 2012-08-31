@@ -2,8 +2,6 @@
 ;;; a bit of testing
 ;;;
 
-;; RANDOM
-
 ; lset could be on toplevel
 
 (define (lset l p v)

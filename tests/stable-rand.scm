@@ -1,7 +1,5 @@
 ;;; check that the default sort is stable
 
-;; RANDOM
-
 (define rst (seed->rands (time-ms)))
 
 ;; (i ...) → ((i . nth-i) ...)
