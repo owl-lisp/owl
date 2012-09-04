@@ -169,7 +169,7 @@ static word *fp;
 #define EXEC switch(op&63) { \
       case 0: goto op0; case 1: goto op1; case 2: goto op2; case 3: goto op3; case 4: goto op4; case 5: goto op5; \
       case 6: goto op6; case 7: goto op7; case 8: goto op8; case 9: goto op9; \
-      case 10: goto op10; case 11: goto op11; case 12: goto op12; case 13: goto op13; case 14: goto op14; case 15: goto badinst; \
+      case 10: goto op10; case 11: goto op11; case 12: goto op12; case 13: goto op13; case 14: goto op14; case 15: goto op15; \
       case 16: goto op16; case 17: goto op17; case 18: goto op18; case 19: goto op19; case 20: goto op20; case 21: goto op21; \
       case 22: goto op22; case 23: goto op23; case 24: goto op24; case 25: goto op25; case 26: goto op26; case 27: goto op27; \
       case 28: goto op28; case 29: goto op29; case 30: goto op30; case 31: goto op31; case 32: goto op32; case 33: goto op33; \
@@ -1079,6 +1079,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A4 = ((word (*)(word, word, word))(A0+W))(A1, A2, A3); 
       NEXT(5); }
 #endif
+   op15: { /* type-byte o r */
+      word ob = R[*ip++];
+      if (allocp(ob)) ob = *((word *) ob);
+      R[*ip++] = F((ob>>3)&255); /* take just the 8-bit type tag */
+      NEXT(0); }
    op16: /* jv[which] a o1 a2*/
       if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
       NEXT(3); 
@@ -1438,9 +1443,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op63: { /* sys-prim op arg1 arg2 arg3 r1 */
       A4 = prim_sys(fixval(A0), A1, A2, A3);
       NEXT(5); }
-
-   badinst:
-      error(256, F(op), ITRUE);
 
 super_dispatch: /* run macro instructions */
    switch(op) {

@@ -66,7 +66,6 @@
       (define set-ticker  (func '(2 62 4 5 24 5)))
       (define sys-prim    (func '(5 63 4 5 6 7 8 24 8)))
       (define clock       (func '(1 9 3 5 61 3 4 2 5 2)))
-      (define call-native (func '(5 15 4 5 6 7 8 24 8)))
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
       (define raw         (func '(4 60 4 5 6 7 24 7)))
@@ -76,6 +75,7 @@
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
       (define type        (func '(2 10 4 5 24 5)))
+      (define type-byte   (func '(2 15 4 5 24 5))) ;; fetch just type information. old type will be removed later.
       (define size        (func '(2 36 4 5 24 5)))
       (define cast        (func '(3 22 4 5 6 24 6)))
       (define ref         (func '(3 47 4 5 6 24 6)))
@@ -103,7 +103,6 @@
       (define primops-1
          (list
             ;;; input arity includes a continuation
-            (tuple 'call-native  15 4 1 call-native) ;; (call-native <code> a1 a2 a3) -> r
             (tuple 'sys          27 4 1 sys)
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
             (tuple 'raw          60 3 1 raw)   ;; make raw object, and *add padding byte count to type variant*
@@ -117,6 +116,7 @@
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
             (tuple 'type         10 1 1 type)  ;;  get all the low the type bits
+            (tuple 'type-byte    15 1 1 type-byte) ;;  get just the type info
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
             (tuple 'cast         22 2 1 cast)  ;; cast object type (works for immediates and allocated)
             (tuple 'ref          47 2 1 ref)   ;;
