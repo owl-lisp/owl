@@ -11,6 +11,52 @@
 ;   |   |    '-----> type/low 5 bits
 ;   |   '----------> type/variant (if any)
 ;   '--------------> rawness
+;
+; new bit allocation
+;                            .------------> 24-bit payload if immediate
+;                            |      .-----> type tag if immediate
+;                            |      |.----> immediateness
+;   .------------------------| .----||.---> mark bit (can only be 1 during gc, removable?)
+;  [pppppppp pppppppp pppppppp ttttttim]
+;   '-------------------------------|
+;                                   '-----> 4- or 8-byte aligned pointer if not immediate
+; 
+; old type tags
+;
+;   hi     lo     all  imm/all/raw  type
+;  --------------------------------------
+;    0      0       0     imm       fix+
+;    1      0      32     imm       fix-
+;    0      0       0     raw       bytecode
+;    1      0      32     all       proc
+;    2      0      64     all       clos 
+;    0      1       1     all       pair
+;    0      2       2     imm       #false
+;    1      2      34     imm       #true
+;    0      2       2     all       tuple
+;  0-7      3       -     raw       raw string node (variable padding at hi) <- no more room for padding in type!
+;    0      9       9     all       big+
+;    1      9      41     all       big-
+;    2      9      73     all       rat
+;    3      9     105     all       imag
+;    0     11      11     all       vector (leaf)
+;    5     11     171     raw       vector (byte)
+;    0     10      10     all       rlist (spine)
+;    1     10      42     all       rlist (node)
+;    0     13      13     all       string (wide leaf)
+;    0      8       8     all       ff (black leaf)                  '
+;    1      8      40     all       ff (black, one branch (l/r?))     |
+;    2      8      72     all       ff (black, one branch (l/r?))     |
+;    3      8     104     all       ff (black, full node)             |
+;    4      8     136     all       ff (red leaf)                      > cost many bits but worth it
+;    5      8     168     all       ff (red, one branch (l/r?))       |
+;    6      8     200     all       ff (red, one branch (l/r?))       |
+;    7      8     232     all       ff (red, full node)              '
+; 
+; not here: char (add later since it's a separate type in R7RS?), eof
+; could use a type for very finite immediate types (bools, eof, null, ...) if it gets crowded
+; this would be a good time to add #empty!
+;
 
 (define-library (owl dump)
 
