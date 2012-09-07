@@ -57,115 +57,81 @@ void set_nonblock (int sock) {
 #endif
 }
 
-#define V(ob) *((word *) ob)
-#define word uintptr_t
-#define W    sizeof(word)
-#define NWORDS 1024*1024*8  /* static malloc'd heap size if used as a library */
-
-/* memstart <= genstart <= memend */
-static word *genstart;
-static word *memstart;
-static word *memend;
-static word max_heap_mb; /* max heap size in MB */
-static int breaked;      /* set in signal handler, passed over to owl in thread switch */
-unsigned char *hp;       /* heap pointer when loading heap */
-static int seccompp;     /* are we in seccomp? */
-static unsigned long seccomp_time; /* virtual time within seccomp sandbox in ms */
-
-int usegc;
-int slice;
-
-word vm();
-void exit(int rval);
-void *realloc(void *ptr, size_t size);
-void free(void *ptr);
-char *getenv(const char *name);
-
-unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
-   unsigned int p = 0;
-   while(p < max && *pos++) {
-      p++;
-   }
-   return(p);
-}
-
-#define make_immediate(value, type)  (((value) << 12) | ((type) << 3) | 2)
-#define make_header(size, type)      (((size) << 12) | ((type) << 3) | 6)
-#define make_raw_header(size, type)  (((size) << 12) | ((type) << 3) | 2054)
-#define headerp(val)                 (((val) & 6) == 6)
-#define F(val)                  (((val) << 12) | 2) 
-#define F(val)                       (((val) << 12) | 2) 
-#define negative_F(val)         (((val) << 12) | 258)
-#define fixval(desc)                 ((desc) >> 12)
-#define fixnump(desc)                (((desc)&4095) == 2)
-#define fixnums(a,b)                 fixnump((a)|(b))
-#define scale(p,root)                ((word) p + (word) root)
-#define MAXOBJ 0xffff
-#define fliptag(ptr)                 ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
-
-#define NR 190 /* fixme, should be ~32*/
-static word *fp;
-
-#define RAWBIT             2048
-#define header(x)          *(word *x)
-#define imm_type(x)        (((x) >> 3) & 0xff)
-#define imm_majortype(x)   (((x) >> 3) & 31)
-#define imm_val(x)         ((x) >> 12)
-#define immediatep(x)      (((word)x)&2)
-#define allocp(x)          (!immediatep(x))
-#define rawp(hdr)          ((hdr)&RAWBIT)
-/* clone jump here */
-#define nextp(n)           ip += n; op = *ip++; EXEC /* faster on new machines, bigger vm */
-#define NEXT(n)            ip += n; op = *ip++; goto main_dispatch
-#define stringp(ob)        (allocp(ob) && rawp(*ob))
-#define pairp(ob)          (allocp(ob) && *((word *)ob)==PAIRHDR)
-#define INULL  10
-#define IFALSE 18
-#define ITRUE 274
-#define IHALT  10 /* FIXME: adde a distinct IHALT */ 
-#define TEXEC    0
-#define TPAIR    1
-#define TTUPLE   2
-#define TFF      8
-#define TINT     9      /* positive (big) integer */
-#define TBYTES  11      /* a small byte vector */
-#define FFRED  128      /* FF options */
-#define FFLEFT  64
-#define FFRIGHT 32
-#define TPROC   32      /* EXEC options */
-#define TCLOS   64
-#define TCODE  256
-#define TINTN   41      /* negative (big) integer */
-#define TRAT    73      /* rational */
-#define cont(n)            *((word *) ((word)n&-4))
-#define flagged(n)         (n&1)
-#define flag(n)            (((word)n)^1)
-#define nextptr(n)         ((word *) n+1)
-#define A0                  R[*ip]               
-#define A1                  R[ip[1]]
-#define A2                  R[ip[2]]
-#define A3                  R[ip[3]]
-#define A4                  R[ip[4]]
-#define A5                  R[ip[5]]
-#define G(ptr,n)            ((word *)(ptr))[n]
+#define word                        uintptr_t
+#define V(ob)                       *((word *) (ob))
+#define W                           sizeof(word)
+#define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
+#define make_immediate(value, type) (((value) << 12) | ((type) << 3) | 2)
+#define make_header(size, type)     (((size) << 12) | ((type) << 3) | 6)
+#define make_raw_header(size, type) (((size) << 12) | ((type) << 3) | 2054)
+#define headerp(val)                (((val) & 6) == 6)
+#define F(val)                      (((val) << 12) | 2) 
+#define fixval(desc)                ((desc) >> 12)
+#define fixnump(desc)               (((desc)&4095) == 2)
+#define fixnums(a,b)                fixnump((a)|(b))
+#define scale(p,root)               ((word) p + (word) root)
+#define MAXOBJ                      0xffff /* max words in tuple including header */
+#define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
+#define NR                          190 /* fixme, should be ~32*/
+#define RAWBIT                      2048
+#define header(x)                   *(word *x)
+#define imm_type(x)                 (((x) >> 3) & 0xff)
+#define imm_majortype(x)            (((x) >> 3) & 31)
+#define imm_val(x)                  ((x) >> 12)
+#define immediatep(x)               (((word)x)&2)
+#define allocp(x)                   (!immediatep(x))
+#define rawp(hdr)                   ((hdr)&RAWBIT)
+#define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
+#define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* faster for newer machines, bigger vm */
+#define stringp(ob)                 (allocp(ob) && rawp(*ob))
+#define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
+#define INULL                       10
+#define IFALSE                      18
+#define ITRUE                       274
+#define IHALT                       10 /* FIXME: adde a distinct IHALT */ 
+#define TEXEC                       0
+#define TPAIR                       1
+#define TTUPLE                      2
+#define TFF                         8
+#define TINT                        9      /* positive (big) integer */
+#define TBYTES                      11     /* a small byte vector */
+#define FFRED                       128    /* FF options */
+#define FFLEFT                      64
+#define FFRIGHT                     32
+#define TPROC                       32      /* EXEC options */
+#define TCLOS                       64
+#define TCODE                       256
+#define TINTN                       41      /* negative (big) integer */
+#define TRAT                        73      /* rational */
+#define cont(n)                     V((word)n&-4)
+#define flagged(n)                  (n&1)
+#define flag(n)                     (((word)n)^1)
+#define nextptr(n)                  ((word *) n+1)
+#define A0                          R[*ip]               
+#define A1                          R[ip[1]]
+#define A2                          R[ip[2]]
+#define A3                          R[ip[3]]
+#define A4                          R[ip[4]]
+#define A5                          R[ip[5]]
+#define G(ptr,n)                    ((word *)(ptr))[n]
 #define flagged_or_raw(hdr)         (hdr&2049)
 #define hdrsize(hdr)                imm_val(hdr)
-#define TICKS 10000                 /* # of function calls in a thread quantum  */
-#define PAIRHDR 12302
-#define NUMHDR  12366
-#define allocate(size, to) to = fp; fp += size;
-#define error(opcode, a, b) R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
-#define assert(exp,val,code) if(unlikely(!(exp))) {error(code, val, ITRUE);}
-#define assert_not(exp,val,code) if(unlikely(exp)) {error(code, val, ITRUE);}
-#define OGOTO(f,n); ob = (word *) R[f]; acc = n; goto apply
-#define REF1(o,r) R[r] = ((word *) R[1])[o]
-#define RET(n)   ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
-#define MEMPAD (NR+2)*8
-#define MINGEN 1024*32
-#define OCLOSE(proctype) { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
-#define CLOSE1(proctype) { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
+#define TICKS                       10000 /* # of function calls in a thread quantum  */
+#define PAIRHDR                     12302
+#define NUMHDR                      12366
+#define allocate(size, to)          to = fp; fp += size;
+#define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
+#define likely(x)                   __builtin_expect((x),1)
+#define unlikely(x)                 __builtin_expect((x),0)
+#define assert(exp,val,code)        if(unlikely(!(exp))) {error(code, val, ITRUE);}
+#define assert_not(exp,val,code)    if(unlikely(exp)) {error(code, val, ITRUE);}
+#define OGOTO(f,n); ob = (word *)   R[f]; acc = n; goto apply
+#define REF1(o,r) R[r] = ((word *)  R[1])[o]
+#define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
+#define MEMPAD                      (NR+2)*8
+#define MINGEN                      1024*32
+#define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
+#define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define EXEC switch(op&63) { \
       case 0: goto op0; case 1: goto op1; case 2: goto op2; case 3: goto op3; case 4: goto op4; case 5: goto op5; \
       case 6: goto op6; case 7: goto op7; case 8: goto op8; case 9: goto op9; \
@@ -180,8 +146,34 @@ static word *fp;
       case 58: goto op58; case 59: goto op59; case 60: goto op60; case 61: goto op61; case 62: goto op62; case 63: goto op63; \
    }
 
+/* memstart <= genstart <= memend */
+static word *genstart;
+static word *memstart;
+static word *memend;
+static word max_heap_mb; /* max heap size in MB */
+static int breaked;      /* set in signal handler, passed over to owl in thread switch */
+unsigned char *hp;       /* heap pointer when loading heap */
+static int seccompp;     /* are we in seccomp? */
+static unsigned long seccomp_time; /* virtual time within seccomp sandbox in ms */
+static word *fp;
+int usegc;
+int slice;
+
+word vm();
+void exit(int rval);
+void *realloc(void *ptr, size_t size);
+void free(void *ptr);
+char *getenv(const char *name);
+unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
+   unsigned int p = 0;
+   while(p < max && *pos++) {
+      p++;
+   }
+   return(p);
+}
+
 static __inline__ void rev(word pos) {
-   word val = *((word *) pos);
+   word val = V(pos);
    word next = cont(val);
    *(word *) pos = next;
    cont(val) = (val&1)^(pos|1);
@@ -205,7 +197,7 @@ static void marks(word *pos, word *end) {
          if (flagged(val)) {
             pos = ((word *) flag(chase((word *) val))) - 1;
          } else {
-            word hdr = *((word *) val);
+            word hdr = V(val);
             rev((word) pos);
             if (flagged_or_raw(hdr)) {
                pos--;
@@ -1055,7 +1047,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op9: R[ip[1]] = R[*ip]; NEXT(2);
    op10: { /* type o r */
       word ob = R[*ip++];
-      if (allocp(ob)) ob = *((word *) ob);
+      if (allocp(ob)) ob = V(ob);
       R[*ip++] = F(ob&4095);
       NEXT(0); }
    op11: { /* jit2 a t ol oh */
@@ -1066,7 +1058,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(4); }
    op12: { /* jat2 a t ol oh */
       word a = R[*ip];
-      if (allocp(a) && (((*((word *) a))>>3)&0x1ff) == ip[1]) {
+      if (allocp(a) && ((V(a)>>3)&0x1ff) == ip[1]) {
          ip += ip[2] + (ip[3] << 8);
       }
       NEXT(4); }
