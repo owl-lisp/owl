@@ -1,4 +1,4 @@
-/* owl lisp runtime */
+/* Owl Lisp runtime */
 
 #include <signal.h>
 #include <unistd.h>
@@ -10,6 +10,10 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
+#include <string.h>
+
+/* Portability Issues */
 
 #ifdef WIN32 
 #include <winsock2.h>
@@ -25,13 +29,6 @@ typedef unsigned long in_addr_t;
 #include <sys/wait.h>
 #define O_BINARY 0
 #endif
-
-/* prim_sys requirements */
-#include <dirent.h>  // opendir
-DIR *opendir(const char *name);
-DIR *fdopendir(int fd);
-#include <string.h>
-size_t strlen(const char *s);
 
 #ifdef __gnu_linux__
 #ifndef NO_SECCOMP
@@ -52,53 +49,44 @@ size_t strlen(const char *s);
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
+#define FBITS                       16           /* bits in fixnum (and immediate payload width) */
+#define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
+#define MAXOBJ                      0xffff       /* max words in tuple including header */
 #define make_immediate(value, type) (((value) << 12) | ((type) << 3) | 2)
-#define make_header(size, type)     (((size) << 12) | ((type) << 3) | 6)
-#define make_raw_header(size, type) (((size) << 12) | ((type) << 3) | 2054)
+#define make_header(size, type)     (((size) << 12)  | ((type) << 3) | 6)
+#define make_raw_header(size, type) (((size) << 12)  | ((type) << 3) | 2054)
 #define headerp(val)                (((val) & 6) == 6)
 #define F(val)                      (((val) << 12) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> 12)
 #define fixnump(desc)               (((desc)&4095) == 2)
-#define fixnums(a,b)                fixnump((a)|(b))
-#define scale(p,root)               ((word) p + (word) root)
-#define MAXOBJ                      0xffff /* max words in tuple including header */
 #define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32*/
 #define RAWBIT                      2048
 #define header(x)                   *(word *x)
 #define imm_type(x)                 (((x) >> 3) & 0xff)
-#define imm_majortype(x)            (((x) >> 3) & 31)
 #define imm_val(x)                  ((x) >> 12)
 #define immediatep(x)               (((word)x)&2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr)&RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* faster for newer machines, bigger vm */
-#define stringp(ob)                 (allocp(ob) && rawp(*ob))
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       10
 #define IFALSE                      18
 #define ITRUE                       274
 #define IHALT                       10 /* FIXME: adde a distinct IHALT */ 
-#define TEXEC                       0
-#define TPAIR                       1
 #define TTUPLE                      2
 #define TFF                         8
-#define TINT                        9      /* positive (big) integer */
 #define TBYTES                      11     /* a small byte vector */
 #define FFRED                       128    /* FF options */
 #define FFLEFT                      64
 #define FFRIGHT                     32
 #define TPROC                       32      /* EXEC options */
 #define TCLOS                       64
-#define TCODE                       256
-#define TINTN                       41      /* negative (big) integer */
-#define TRAT                        73      /* rational */
 #define cont(n)                     V((word)n&-4)
 #define flagged(n)                  (n&1)
 #define flag(n)                     (((word)n)^1)
-#define nextptr(n)                  ((word *) n+1)
 #define A0                          R[*ip]               
 #define A1                          R[ip[1]]
 #define A2                          R[ip[2]]
@@ -118,10 +106,9 @@ size_t strlen(const char *s);
 #define assert(exp,val,code)        if(unlikely(!(exp))) {error(code, val, ITRUE);}
 #define assert_not(exp,val,code)    if(unlikely(exp)) {error(code, val, ITRUE);}
 #define OGOTO(f,n); ob = (word *)   R[f]; acc = n; goto apply
-#define REF1(o,r) R[r] = ((word *)  R[1])[o]
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
-#define MEMPAD                      (NR+2)*8
-#define MINGEN                      1024*32
+#define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
+#define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define EXEC switch(op&63) { \
@@ -158,7 +145,8 @@ void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
-
+DIR *opendir(const char *name);
+DIR *fdopendir(int fd);
 
 /* Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) */
 
@@ -365,6 +353,7 @@ void signal_handler(int signal) {
 /* small functions defined locally after some portability issues */
 static void bytecopy(char *from, char *to, int n) { while(n--) *to++ = *from++; }
 static void wordcopy(word *from, word *to, int n) { while(n--) *to++ = *from++; }
+
 unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
    unsigned int p = 0;
    while(p < max && *pos++) p++;
@@ -397,8 +386,8 @@ word strp2owl(char *sp) {
    int len;
    word *res;
    if (!sp) return IFALSE;
-   len = lenn(sp, 65536);
-   if (len == 65536) return INULL; /* can't touch this */
+   len = lenn(sp, FMAX+1);
+   if (len == FMAX+1) return INULL; /* can't touch this */
    res = mkbvec(len, 11); /* make a bvec instead of a string since we don't know the encoding */
    bytecopy(sp, ((char *)res)+W, len);
    return (word)res;
@@ -494,7 +483,6 @@ unsigned char *load_heap(char *path) {
    close(fd);
    return hp;
 }
-
 
 /* Primops called from VM and generated C-code */
 
@@ -746,8 +734,8 @@ static word prim_sys(int op, word a, word b, word c) {
          unsigned int len;
          struct dirent *dire = readdir(dirp);
          if (!dire) return make_immediate(0, 4); /* eof at end of dir stream */
-         len = strlen(dire->d_name);
-         if (len > 0xffff) return IFALSE; /* false for errors, like too long file names */
+         len = lenn(dire->d_name, FMAX+1);
+         if (len == FMAX+1) return IFALSE; /* false for errors, like too long file names */
          res = mkbvec(len, 3); /* make a fake raw string (OS may not use valid UTF-8) */
          bytecopy((char *)&dire->d_name, (char *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
          return (word)res; }
@@ -790,7 +778,7 @@ static word prim_lraw(word wptr, int type, word revp) {
       ob = (word *) ob[2];
    }
    if ((word) ob != INULL) return IFALSE;
-   if (len > 0xffff) return IFALSE;
+   if (len > FMAX) return IFALSE;
    nwords = (len/W) + ((len % W) ? 2 : 1);
    allocate(nwords, raw);
    pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
@@ -851,9 +839,9 @@ word boot(int nargs, char **argv) {
       hp = (unsigned char *) &heap;
    }
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
-   memstart = genstart = fp = (word *) realloc(NULL, (0xffff + MEMPAD)*W); /* at least one argument string always fits */
+   memstart = genstart = fp = (word *) realloc(NULL, (FMAX + MEMPAD)*W); /* at least one argument string always fits */
    if (!memstart) exit(3);
-   memend = memstart + 0xffff - MEMPAD;
+   memend = memstart + FMAX - MEMPAD;
    this = nargs-1;
    usegc = 1;
    while(this >= 0) { /* build an owl string list to oargs at bottom of heap */
@@ -863,13 +851,13 @@ word boot(int nargs, char **argv) {
       word *tmp;
       int len = 0, size;
       while(*pos++) len++;
-      if (len > 0xffff) {
+      if (len > FMAX) {
          puts("owl: command line argument too long");
          exit(1);
       }
       size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
       if ((word)fp + size >= (word)memend) {
-         oargs = gc(0xffff, oargs); /* oargs points to topmost pair, may move as a result of gc */
+         oargs = gc(FMAX, oargs); /* oargs points to topmost pair, may move as a result of gc */
          fp = oargs + 3;
       }
       pads = (size-1)*W - len;
@@ -1189,11 +1177,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(3); }
    op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-      word a = (fixval(A0)<<16) | fixval(A1); 
+      word a = (fixval(A0)<<FBITS) | fixval(A1); 
       word b = fixval(A2);
       word q = a / b;
-      A3 = F(q>>16);
-      A4 = F(q&0xffff);
+      A3 = F(q>>FBITS);
+      A4 = F(q&FMAX);
       A5 = F(a - q*b);
       NEXT(6); }
    op27: /* syscall cont op arg1 arg2 */
@@ -1286,8 +1274,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(4); }
    op39: { /* fx* a b l h */
       word res = fixval(R[*ip]) * fixval(A1);
-      A2 = F(res&0xffff);
-      A3 = F((res>>16)&0xffff);
+      A2 = F(res&FMAX);
+      A3 = F((res>>FBITS)&FMAX);
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
       word r = (A0|0x10000000) - (A1 & 0xffff000);
@@ -1398,14 +1386,14 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = a ^ (b ^ 2); /* clear fixnum tag from b */
       NEXT(3); }
    op58: { /* fx>> a b hi lo */
-      word r = fixval(A0) << (16 - fixval(A1));
-      A2 = F(r>>16);
-      A3 = F(r&0xffff);
+      word r = fixval(A0) << (FBITS - fixval(A1));
+      A2 = F(r>>FBITS);
+      A3 = F(r&FMAX);
       NEXT(4); }
    op59: { /* fx<< a b hi lo */
       word res = fixval(R[*ip]) << fixval(A1);
-      A2 = F(res>>16);
-      A3 = F(res&0xffff);
+      A2 = F(res>>FBITS);
+      A3 = F(res&FMAX);
       NEXT(4); }
    op60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
       A3 = prim_lraw(A0, fixval(A1), A2);
@@ -1421,18 +1409,18 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if (seccompp) {
          unsigned long secs = seccomp_time / 1000;
          A1 = F(seccomp_time - (secs * 1000));
-         ob[1] = F(secs >> 16);
-         ob[4] = F(secs & 0xffff);
+         ob[1] = F(secs >> FBITS);
+         ob[4] = F(secs & FMAX);
          seccomp_time += (secs == 0xffffffff) ? 0 : 10; /* virtual 10ms passes on each call */
       } else {
          gettimeofday(&tp, NULL);
          A1 = F(tp.tv_usec / 1000);
-         ob[1] = F(tp.tv_sec >> 16);
-         ob[4] = F(tp.tv_sec&0xffff);
+         ob[1] = F(tp.tv_sec >> FBITS);
+         ob[4] = F(tp.tv_sec & FMAX);
       }
       NEXT(2); }
    op62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
-      A1 = F(ticker&0xffff);
+      A1 = F(ticker & FMAX);
       ticker = fixval(A0);
       NEXT(2); 
    op63: { /* sys-prim op arg1 arg2 arg3 r1 */
