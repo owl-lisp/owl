@@ -1074,11 +1074,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       R[*ip++] = load_imms[op>>6];
       NEXT(0);
    op14: R[ip[1]] = F(*ip); NEXT(2);
-#ifdef NATIVECALL
-   op15: { /* testing */
-      A4 = ((word (*)(word, word, word))(A0+W))(A1, A2, A3); 
-      NEXT(5); }
-#endif
    op15: { /* type-byte o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = *((word *) ob);
