@@ -166,7 +166,7 @@
    (import (owl defmac))
 
    (begin
-      (define (eof? x) (eq? (type x) 34))))
+      (define (eof? x) (eq? (type-old x) 34))))
 
 (import (owl eof))
 

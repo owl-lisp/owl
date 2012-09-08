@@ -12,7 +12,7 @@
       (only (owl syscall) error))
 
    (begin
-      (define (tuple? x) (eq? (type x) 22))
+      (define (tuple? x) (eq? (type-old x) 22))
 
       (define (list->tuple lst)
          (let ((l (length lst)))

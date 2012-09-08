@@ -83,7 +83,7 @@
                         (keyword literals (pattern ...) 
                         (template ...)))))))
             ;; note that these could now come straight from primops
-            '(cons car cdr eq? type size cast fetch ref sys-prim refb
+            '(cons car cdr eq? type type-old size cast fetch ref sys-prim refb
               pick mk mkr sys fxbor fxbxor fread _fopen fclose fsend lraw
               raw _connect _sopen accept mkt bind set lesser? call-native
               mkred mkblack ff-bind ff-toggle ffcar ffcdr red? listuple

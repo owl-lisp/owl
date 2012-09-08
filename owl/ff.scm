@@ -48,7 +48,7 @@
       ; usually better than an association list.
 
       (define (ff? obj)
-         (eq? 64 (fxband (type obj) #b11111000)))
+         (eq? 64 (fxband (type-old obj) #b11111000)))
 
       (define empty-ff #false)   
 
@@ -451,7 +451,7 @@
 
       ;; just one value? == is the root-node a black key-value pair
       (define (ff-singleton? ff)
-         (eq? 70 (type ff)))
+         (eq? 70 (type-old ff)))
 
       (define-syntax getf
          (syntax-rules ()

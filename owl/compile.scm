@@ -377,7 +377,7 @@
                      (rtl-jump (car free) rands (cdr free) inst))))))
 
       (define (fn-type obj)
-         (let ((t (type obj)))
+         (let ((t (type-old obj)))
             (cond
                ((eq? 2054 (fxband #b100011111111 t)) ;; raw bytecode
                   (tuple 'code (refb obj 0)))

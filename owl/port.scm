@@ -19,9 +19,9 @@
       (define type-socket     (fxbor type-port 32))
       (define type-tcp-client (fxbor type-port 54))
 
-      (define (port? x)       (eq? (type x) 98))
-      (define (socket? x)     (eq? (type x) 354))
-      (define (tcp? x)        (eq? (type x) 498))
+      (define (port? x)       (eq? (type-old x) 98))
+      (define (socket? x)     (eq? (type-old x) 354))
+      (define (tcp? x)        (eq? (type-old x) 498))
 
       (define (fd->port fd)   (cast fd type-port))
       (define (fd->socket fd) (cast fd type-socket))

@@ -51,9 +51,9 @@
                         #false)
                      ; same size
                      ((eq? sa (size b))
-                        (let ((ta (type a)))
+                        (let ((ta (type-old a)))
                            ; check equal types
-                           (if (eq? ta (type b))
+                           (if (eq? ta (type-old b))
                               (if (eq? (fxband ta 2048) 0)
                                  ; equal ntuples, check fields
                                  (eq-fields a b equal? sa)

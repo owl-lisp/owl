@@ -92,11 +92,11 @@
       ;;; Encoder
       ;;;
 
-      (define (immediate? obj) (eq? (fxband (type obj) #b111) #b010))
+      (define (immediate? obj) (eq? (fxband (type-old obj) #b111) #b010))
 
-      (define (allocated? obj) (eq? (fxband (type obj) #b111) #b110))
+      (define (allocated? obj) (eq? (fxband (type-old obj) #b111) #b110))
 
-      (define (raw? obj) (eq? (fxband (type obj) #b100000000110) #b100000000110))
+      (define (raw? obj) (eq? (fxband (type-old obj) #b100000000110) #b100000000110))
 
       (define low7 #b1111111)
 
@@ -113,7 +113,7 @@
                (cons (band num #b01111111) tail))))
 
       (define (type-byte-of val)
-         (fxband (>> (type val) 3) 255))
+         (fxband (>> (type-old val) 3) 255))
 
       (define (enc-immediate val tail)
          (cons 0

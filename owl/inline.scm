@@ -39,9 +39,9 @@
 	(define inline-closure (λ (x) x))
 	(define inline-closures (λ (a b) (values a b)))
 
-	(define (closure? val) (eq? (type val) 518))
-	(define (proc? val) (eq? (type val) 262))
-	(define (code? val) (eq? (type val) 2054))
+	(define (closure? val) (eq? (type-old val) 518))
+	(define (proc? val) (eq? (type-old val) 262))
+	(define (code? val) (eq? (type-old val) 2054))
 
 	(define (inline-closure ob)
 		(if (closure? val)
