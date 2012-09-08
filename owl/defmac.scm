@@ -12,6 +12,12 @@
       case-lambda
       define-values
       not o i self
+
+      type-bytecode
+      type-proc
+      type-clos
+      type-fix+
+      type-fix-
       )
 
    (begin
@@ -406,4 +412,17 @@
 
       (define (i x) x)
       (define (k x y) x)
+
+      ;; type tags
+
+      ;; bytecode = raw #[opcode ...] byte vector
+      ;; proc     = #(<bytecode> <litral0|env0> ... <literaln|envn>)
+      ;; clos     = #(<proc> <env0> .. <envn>)
+      (define type-bytecode 0) ;; currently clashes with fixnums
+      (define type-proc    32) ;; 
+      (define type-clos    64)
+      (define type-fix+     0) ;; clashes with bytecode
+      (define type-fix-    32) ;; clashes with proc
+
+
 ))

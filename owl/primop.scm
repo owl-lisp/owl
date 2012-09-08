@@ -81,6 +81,7 @@
       (define refb        (func '(3 48 4 5 6 24 6)))
       (define ff-toggle   (func '(2 46 4 5 24 5)))
 
+      ;; might use a fixed bit of type later
       (define (raw? obj) (eq? (fxband (type-old obj) #b100000000110) #b100000000110))
 
       ;; make thread sleep for a few thread scheduler rounds

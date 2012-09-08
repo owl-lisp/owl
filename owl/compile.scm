@@ -377,13 +377,17 @@
                      (rtl-jump (car free) rands (cdr free) inst))))))
 
       (define (fn-type obj)
-         (let ((t (type-old obj)))
+         (let ((t (type obj)))
             (cond
-               ((eq? 2054 (fxband #b100011111111 t)) ;; raw bytecode
-                  (tuple 'code (refb obj 0)))
-               ((eq? t 262)
+               ((eq? type-bytecode t) ;; raw bytecode
+                  (let ((op (refb obj 0)))
+                     (if (eq? op 17)
+                        (tuple 'code (refb obj 1))
+                        #false))) ;; don't know, check at runtime via regular call
+                        ;; fixme: arity jump is now the most common function, so known calls will be barely used. remove and add more generic ones later?
+               ((eq? t type-proc)
                   (tuple 'proc (refb (ref obj 1) 0)))
-               ((eq? t 518)
+               ((eq? t type-clos)
                   (tuple 'clos (refb (ref (ref obj 1) 1) 0)))
                (else
                   (tuple 'bad-fn 0)))))
@@ -402,7 +406,7 @@
                      ;(if (or (not rator) (ff? rator)) ;; finite functions are also applicable
                      ;   #false
                      ;   (error "Bad operator: " rator))
-                     #false
+                     #false ;; <- can't remember why we're not failing here. changed while adding variable arity?
                      )))
             (else 
                ;(print "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)

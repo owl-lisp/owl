@@ -1159,7 +1159,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op25: { /* jmp-nargs(>=?) a hi lo */
       int needed = *ip;
       if (acc == needed) {
-         if (op & 64) /* args+ */
+         if (op & 64) /* add empty extra arg list */
             R[acc + 3] = INULL;
       } else if ((op & 64) && acc > needed) {
          word tail = INULL;  /* todo: no call overflow handling yet */
