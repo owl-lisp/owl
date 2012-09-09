@@ -1,5 +1,5 @@
 Owl Lisp -- yet another pet lisp 
-Copyright (c) 2008-2011 Aki Helin
+Copyright (c) 2012 Aki Helin
 
 OVERVIEW
 ~~~~~~~~
@@ -31,10 +31,12 @@ Alternatively you can try it out with
 FILES
 ~~~~~~
 
+   bin/ol      - the owl interpreter/compiler
    c/ovm.c     - the virtual machine / shared owl lisp runtime
-   lib/*.l     - some libraries required to build owl
-   bench/*.l   - some benchmarks
-   bin/ol      - the owl interpreter
+   owl/*.scm   - implementation of owl repl and compiler
+   bench/*.scm - some benchmarks
+   fasl/*.fasl - bytecode images for bin/vm used during boot
+   bin/vm      - plain VM used during boot
 
 
 USAGE
