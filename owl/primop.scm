@@ -117,9 +117,9 @@
             (tuple 'fxband       55 2 1 fxband)
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
-            (tuple 'type         10 1 1 type)  ;;  get all the low the type bits
-            (tuple 'type-old     10 1 1 type)  ;;  get all the low the type bits
-            (tuple 'type-byte    15 1 1 type-byte) ;;  get just the type info
+            (tuple 'type-old     10 1 1 type-old)  ;;  get the header along with type info (deprecated)
+            (tuple 'type-byte    15 1 1 type-byte) ;; get just the type bits (new)
+            (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
             (tuple 'cast         22 2 1 cast)  ;; cast object type (works for immediates and allocated)
             (tuple 'ref          47 2 1 ref)   ;;

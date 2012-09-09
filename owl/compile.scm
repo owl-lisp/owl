@@ -376,21 +376,24 @@
                   (tuple 'move rator (car free)
                      (rtl-jump (car free) rands (cdr free) inst))))))
 
+      ;; value-to-be-called → #(<functype> <arity>) | #false = don't know, just call and see what happens at runtime
       (define (fn-type obj)
-         (let ((t (type obj)))
-            (cond
-               ((eq? type-bytecode t) ;; raw bytecode
-                  (let ((op (refb obj 0)))
-                     (if (eq? op 17)
-                        (tuple 'code (refb obj 1))
-                        #false))) ;; don't know, check at runtime via regular call
-                        ;; fixme: arity jump is now the most common function, so known calls will be barely used. remove and add more generic ones later?
-               ((eq? t type-proc)
-                  (tuple 'proc (refb (ref obj 1) 0)))
-               ((eq? t type-clos)
-                  (tuple 'clos (refb (ref (ref obj 1) 1) 0)))
-               (else
-                  (tuple 'bad-fn 0)))))
+         ;; known call check doesn't work as such anymore (arity check can fail in other branches and most common case is not handled) so disabled for now
+         ;; resulting in all calls going via a regular call instruction
+         ;(let ((t (type obj)))
+         ;   (cond
+         ;      ((eq? type-bytecode t) ;; raw bytecode
+         ;         (let ((op (refb obj 0)))
+         ;            (if (eq? op 17)
+         ;               (tuple 'code (refb obj 1))
+         ;               #false)))
+         ;      ((eq? t type-proc)
+         ;         (tuple 'proc (refb (ref obj 1) 0)))
+         ;      ((eq? t type-clos)
+         ;         (tuple 'clos (refb (ref (ref obj 1) 1) 0)))
+         ;      (else
+         ;         (tuple 'bad-fn 0))))
+         #false)
 
       (define bad-arity "Bad arity: ")
 
