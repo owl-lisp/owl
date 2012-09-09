@@ -104,8 +104,8 @@
 
       ;; dispatch low 8 bits of a fixnum, returning the subnode
       (define (vec-dispatch-1 v n)
-         (type-case v ;; <- could be removed to increase speed
-            ((alloc 43) ; vector dispatch node with #[Leaf D0 ... D255]
+         (case (type v)
+            (type-vector-dispatch ; vector dispatch node with #[Leaf D0 ... D255]
                (lets ((n _ (fx+ (fxband n 255) 2))) ;; jump over header and leaf
                   (ref v n)))
             (else
@@ -113,13 +113,13 @@
 
       ; dispatch the high 8 bits of a fixnum, returning the subnode
       (define (vec-dispatch-2 v d) ; -> v'
-         (type-case v ;; <- could be removed to increase speed
-            ((alloc 43) ; vector dispatch node
+         (case (type v)
+            (type-vector-dispatch
                (lets 
                   ((p _ (fx>> d 8))
                    (p _ (fx+ p 2)))
                   (ref v p)))
-            ((alloc 11)
+            (type-vector-leaf
                (error "Leaf vector in dispatch-2: " v))
             (else
                (error "Bad vector node in dispatch-2: obj " v))))
@@ -141,11 +141,11 @@
             ((raw 11)
                (refb v (fxband n 255)))
             ((alloc 43) 
-               (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
+                (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
             ((alloc 11)
-               (if (eq? n 255)
-                  (ref v 256)
-                  (lets ((n _ (fx+ (fxband n 255) 1)))
+                (if (eq? n 255)
+                   (ref v 256)
+                   (lets ((n _ (fx+ (fxband n 255) 1)))
                      (ref v n))))
             (else
                (error "bad vector node in vec-ref-digit: type " (type-old v)))))
@@ -161,7 +161,7 @@
 
       ; vec x n -> vec[n] or fail 
       (define (vec-ref v n)
-         (cond
+         (cond 
             ((teq? n fix+)
                (cond
                   ((teq? v (raw 11)) ; short path for raw byte vector access

@@ -19,6 +19,9 @@
       type-fix+
       type-fix-
       type-pair
+      type-vector-dispatch
+      type-vector-leaf
+      type-vector-raw
       )
 
    (begin
@@ -170,6 +173,10 @@
             ((case thing ((a . b) . body) . clauses)
                (if (memv thing (quote (a . b)))
                   (begin . body)
+                  (case thing . clauses)))
+            ((case thing (atom exp) . clauses) ;; added for (case (type foo) (type-foo thenfoo) (type-bar thenbar) ...)
+               (if (eq? thing atom)
+                  exp
                   (case thing . clauses)))))
 
       (define-syntax define
@@ -482,10 +489,13 @@
       ; NOTE: old types had special use for low and high bits, so the numbers are all over the place for now
 
       ;; ALLOCATED
-      (define type-bytecode 0) ;; RAW
-      (define type-proc    32)
-      (define type-clos    64)
-      (define type-pair     1)
+      (define type-bytecode          0) ;; RAW
+      (define type-proc             32)
+      (define type-clos             64)
+      (define type-pair              1)
+      (define type-vector-dispatch  43)
+      (define type-vector-leaf      11)
+      (define type-vector-raw      171) ;; RAW
 
       ;; IMMEDIATE
       (define type-fix+     0)
