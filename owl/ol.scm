@@ -152,21 +152,21 @@
 
 (import (owl rlist))
 
-(import (owl render))
- 
-(import (only (owl queue))) ; just load it
-
-
-(import (owl intern))
-
-(define-library (owl eof) ;; these trivial things could be combined to a base lib now that they don't have a renderer
+(define-library (owl eof)
 
    (export eof?)
 
    (import (owl defmac))
 
    (begin
-      (define (eof? x) (eq? (type-old x) 34))))
+      (define (eof? x) 
+         (eq? type-eof (type x)))))
+
+(import (owl render))
+ 
+(import (only (owl queue))) ; just load it
+
+(import (owl intern))
 
 (import (owl eof))
 

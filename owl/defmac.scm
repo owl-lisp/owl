@@ -22,6 +22,8 @@
       type-vector-dispatch
       type-vector-leaf
       type-vector-raw
+      type-ff-black-leaf
+      type-eof
       )
 
    (begin
@@ -496,9 +498,12 @@
       (define type-vector-dispatch  43)
       (define type-vector-leaf      11)
       (define type-vector-raw      171) ;; RAW
+      (define type-ff-black-leaf     8)
+      (define type-symbol            4)
 
       ;; IMMEDIATE
       (define type-fix+     0)
       (define type-fix-    32)
+      (define type-eof     20) ;; moved from 4, clasing with symbols
 
 ))

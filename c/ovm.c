@@ -695,7 +695,7 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          fp = res;
          if (n == 0) { /* EOF */
-            return make_immediate(0, 4); 
+            return make_immediate(0, 20); 
          }
          return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
       case 6:

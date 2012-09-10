@@ -1,5 +1,7 @@
 #!/bin/sh
 
+## TODO: convert to output an RSS feed which can be muxed to wgo
+
 renice +20 $$ > /dev/null 2>&1 # make sure we're being nice
 
 cd $HOME/ram/owl-lisp || exit 1

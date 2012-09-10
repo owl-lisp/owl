@@ -451,7 +451,7 @@
 
       ;; just one value? == is the root-node a black key-value pair
       (define (ff-singleton? ff)
-         (eq? 70 (type-old ff)))
+         (eq? type-ff-black-leaf (type ff)))
 
       (define-syntax getf
          (syntax-rules ()

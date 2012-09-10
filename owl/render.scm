@@ -16,6 +16,7 @@
       (owl rlist)
       (owl syscall)
       (owl lazy)
+      (owl eof)
       (owl math)
       (owl port)
       (only (owl fasl) partial-object-closure)
@@ -94,6 +95,7 @@
             ((socket? obj) (ilist #\# #\[ #\s #\o #\c #\k #\e #\t #\space (render (port->fd obj) (cons #\] tl))))
             ((tcp? obj) (ilist #\# #\[ #\t #\c #\p #\space (render (port->fd obj) (cons #\] tl))))
             ((port? obj) (ilist #\# #\[ #\f #\d #\space (render (port->fd obj) (cons #\] tl))))
+            ((eof? obj) (ilist #\# #\e #\o #\f tl))
 
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
@@ -206,6 +208,7 @@
             ((socket? obj) (render obj (λ () (k sh))))
             ((tcp? obj)    (render obj (λ () (k sh))))
             ((port? obj)   (render obj (λ () (k sh))))
+            ((eof? obj)    (render obj (λ () (k sh))))
 
             (else 
                (append (string->list "#<WTF>") (delay (k sh))))))
