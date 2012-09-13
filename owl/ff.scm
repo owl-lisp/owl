@@ -10,7 +10,102 @@
 ; allow O(log n) maps (called ffs to avoid collision with 
 ; the standard map function) of arbitrary objects. 
 
- 
+;; transitional association list based ff library which also uses #false for empty, but doesn't use any ff nodes
+(define-library (owl ff-transitional)
+
+   (export get put del keys ff-update fupd ff-union ff-diff ff-fold ff-foldr ff-map ff-iter ff? ff-singleton? list->ff ff->list empty-ff getf)
+
+   (import
+      (owl defmac)
+      (owl list))
+
+   (begin
+
+      ;; O(n)!
+      (define (get ff k d)
+         (cond
+            ((not ff) d)
+            ((null? ff) d)
+            (else
+               (let ((this (caar ff)))
+                  (cond
+                     ((eq? this k) (cdar ff))
+                     ((lesser? this k) (get (cdr ff) k d))
+                     (else d))))))
+
+      ;; O(n)!
+      (define (put ff k v)
+         (cond
+            ((not ff)
+               (put null k v))
+            ((null? ff)
+               (list (cons k v)))
+            (else
+               (let ((this (caar ff)))
+                  (cond
+                     ((eq? this k)
+                        (cons (cons k v) (cdr ff)))
+                     ((lesser? this k)
+                        (cons (car ff)
+                           (put (cdr ff) k v)))
+                     (else
+                        (cons (cons k v) ff)))))))
+
+      (define (del ff k)
+         (if ff
+            (let ((new (remove (λ (x) (eq? (car x) k)) ff)))
+               (if (null? new)
+                  #false
+                  new))
+            ff))
+     
+      (define (keys ff) 
+         (if ff (map car ff) null))
+
+      (define ff-update put)
+      (define fupd put)
+
+      (define (ff-fold op state ff)
+         (if ff
+            (fold (λ (state node) (op state (car node) (cdr node))) state ff)
+            state))
+
+      (define (ff-foldr op state ff)
+         (ff-fold op state (reverse ff)))
+
+      (define (ff-union a b collide)
+         (ff-fold
+            (λ (a bk bv)
+               (let ((av (get a bk #false)))
+                  (if av
+                     (put a bk (collide av bv))
+                     (put a bk bv))))
+            a b))
+
+      (define (ff-diff a b)
+         (ff-fold (λ (a bk bv) (del a bk)) a b))
+
+      (define (getf ff k) (get ff k #false))
+
+      (define empty-ff #false) ;; sigh
+
+      (define ff->list (λ (x) x))
+
+      (define (list->ff l) (fold (λ (ff n) (put ff (car n) (cdr n))) empty-ff l))
+
+      (define (ff-singleton? ff)
+         (and (pair? ff) (null? (cdr ff))))
+
+      (define (ff? x)
+         (or (not x) 
+            (and (list? x) (all pair? x))))
+      
+      (define (ff-map ff op)
+         (map (λ (node) (cons (car node) (op (car node) (cdr node)))) ff))
+
+      (define ff-iter ff->list)
+))
+
 (define-library (owl ff)
    (export 
       get         ; O(log2 n), ff x key x default-value -> value | default-value 
@@ -440,7 +535,7 @@
          (ff-fold
             (lambda (a bk bv)
                (let ((av (get a bk #false)))
-                  (if av
+                  (if av ;; <- BUG, does not imply bk is not set
                      (put a bk (collide av bv))
                      (put a bk bv))))
             a b))
