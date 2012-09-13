@@ -399,10 +399,6 @@
                (lets ((q r (quotrem a b))) 
                   (and (< (abs r) (abs b)) (= (+ (* q b) r) a)))
 
-      theorem bad-1
-         ∀ a ∊ Int
-            (= a 42) = #false
-
       theorem expt-1
          ∀ a ∊ Num ∀ p ∊ Byte
             (and (< 0 p) (< p 10)) ⇒ 
