@@ -988,6 +988,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"
       (λ (opts extra)
+         slartibartfast
          (cond
             ((not (null? extra))
                (print "Unknown arguments: " extra)
