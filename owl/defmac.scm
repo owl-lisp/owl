@@ -443,9 +443,19 @@
       ;                            |      |.----> immediateness
       ;   .------------------------| .----||.---> mark bit (can only be 1 during gc, removable?)
       ;  [pppppppp pppppppp pppppppp ttttttim]
-      ;   '--------------------------?----|
-      ;                              ?    '-----> 4- or 8-byte aligned pointer if not immediate
-      ;                              '----------> worh saving as raw-bit to get a bitwise check in GC if 32 types are enough for core types? 
+      ;   '-------------------------------|
+      ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
+      ;
+      ; object representation conversion todo:
+      ;  - move all object sizes to the leftmost 16 bits (final position)
+      ;  - make a new kind of raw object which doesn't use type to store padding byte count, but the blank bits on the right before type
+      ;    + use one of them to store rawness for bitwise test in gc?
+      ;  - convert bytecode, raw vectors and strings to the new format
+      ;    + add a separate type for null-terminated native string while at it?
+      ;  - remove remaining type collisions and fit types to new range
+      ;    + likely needs a temporary ff library with the same api
+      ;  - move type info and immediate payloads
+      ;  - switch fixnum size
       ;
       ;
       ; old type tags
@@ -491,9 +501,9 @@
       ; NOTE: old types had special use for low and high bits, so the numbers are all over the place for now
 
       ;; ALLOCATED
-      (define type-bytecode          0) ;; RAW
-      (define type-proc             32)
-      (define type-clos             64)
+      (define type-bytecode          0) ;; RAW → 129
+      (define type-proc             32) ;;     → 127
+      (define type-clos             64) ;;     → 128
       (define type-pair              1)
       (define type-vector-dispatch  43)
       (define type-vector-leaf      11)
