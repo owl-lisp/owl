@@ -1179,7 +1179,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
       word a = (fixval(A0)<<FBITS) | fixval(A1); 
       word b = fixval(A2);
-      word q = a / b;
+      word q;
+      if (unlikely(b == 0)) {
+         error(26, F(a), F(b));
+      }
+      q = a / b;
       A3 = F(q>>FBITS);
       A4 = F(q&FMAX);
       A5 = F(a - q*b);
