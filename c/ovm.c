@@ -112,7 +112,7 @@ typedef unsigned long in_addr_t;
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
 #define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
-#define INITCELLS                   1000000
+#define INITCELLS                   1000
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define EXEC switch(op&63) { \
@@ -311,14 +311,14 @@ static word *gc(int size, word *regs) {
    word *realend = memend;
    int nfree, nused;
    fp = regs + hdrsize(*regs);
-	check_heap(fp); /* pre GC heap integrity check */
+	//check_heap(fp); /* pre GC heap integrity check */
    root = fp+1;
    *root = (word) regs;
    memend = fp;
    mark(root, fp);
    fp = compact();
    regs = (word *) *root;
-	check_heap(regs + hdrsize(*regs)); /* post GC heap integrity check */
+	//check_heap(regs + hdrsize(*regs)); /* post GC heap integrity check */
    memend = realend;
    nfree = (word)memend - (word)regs;
    nused = (word)regs - (word)genstart; 
