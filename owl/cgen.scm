@@ -146,7 +146,7 @@
             (cond
                (else 
                   (values 
-                     (list "R["to"]=(immediatep(R["ob"]))?F(0):F(imm_val(V(R["ob"]))-1);")
+                     (list "R["to"]=(immediatep(R["ob"]))?F(0):F(hdrsize(V(R["ob"]))-1);")
                      bs (put regs to 'fixnum))))))
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -249,7 +249,7 @@
             (values
                (ilist "{word *ob=(word *)R["ob"];word hdr;"
                   (assert-alloc regs ob "IFALSE" 
-                     (ilist "hdr=*ob;assert_not((rawp(hdr)||imm_val(hdr)!="(+ 1 n)"),ob,IFALSE);"
+                     (ilist "hdr=*ob;assert_not((rawp(hdr)||hdrsize(hdr)!="(+ 1 n)"),ob,IFALSE);"
                         (foldr
                            (λ (n tl) ;; n = (reg . pos)
                               (ilist "R[" (car n) "]=ob[" (cdr n) "];" tl))

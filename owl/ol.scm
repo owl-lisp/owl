@@ -694,17 +694,18 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                << < <= = >= > >> 
                equal? has? mem
                band bor bxor
-               sort suffix-array 
-               bisect bisect-range
+               sort
+               ; suffix-array bisect
                fold foldr for map reverse length zip append unfold
                lref lset iota
-               vec-ref vec-len vec-fold vec-foldr
+               ;vec-ref vec-len vec-fold vec-foldr
                ;print 
                mail interact 
                take keep remove 
                thread-controller
                ;sexp-parser 
-               rand seed->rands))))
+               rand seed->rands
+               ))))
 
 (import (owl usuals))
 
