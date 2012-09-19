@@ -429,6 +429,7 @@
       ;;;
       ;
       ; OLD TAGS
+      ;
       ;  [r hhhlllll hig]  <- 12 bits for object identification
       ;   | '-+'---+ ||'-> gc bit, 0 while running
       ;   |   |    | |'--> immediate?
@@ -447,25 +448,26 @@
       ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
       ;  object headers are further
       ;
-      ;                     R    PPP
+      ;                         RPPP
       ;  [ssssssss ssssssss ________ tttttt10]
       ;   '---------------| '------| '----|
       ;                   |        |      '-----> object type
-      ;                   |        '------------> to be allocated (tag notifuing special freeing needs for gc, rawness, pads, ...)
+      ;                   |        '------------> tags notifying about special freeing needs for gc (fds), rawness, padding bytes, etc non-type info
       ;                   '--------------------->
       ;  
       ;  user defined record types:
       ;   [hdr] [class-pointer] [field0] ... [fieldn]
       ;
       ; object representation conversion todo:
-      ;  - move padding byte count and rawness to 8 bit spare area in headers
-      ;    + should it get crowded, only needs 3 bits if raw bit is set
-      ;  - convert bytecode, raw vectors and strings to the new format
-      ;    + add a separate type for null-terminated native string while at it?
-      ;  - remove remaining type collisions and fit types to new range
-      ;    + likely needs a temporary ff library with the same api
-      ;  - move type info and immediate payloads
+      ;  - set header bits to 0
+      ;  - slide type bits right by 1 bit
+      ;  - squeeze types to fit 6 bits
+      ;     + have things that would benefit from bitwise access in VM be in aligned types with sufficient spare low bits
+      ;       o ff nodes?
+      ;  - move immediate payloads
       ;  - switch fixnum size
+      ;  - fix bignum math to work with compile-time settable n-bit fixnums
+      ;     + default to 24, try out 56 and maybe later support both
       ;
       ;
       ; old type tags
@@ -495,7 +497,7 @@
       ;    1      8      40     all       ff (black, one branch (l/r?))     |
       ;    2      8      72     all       ff (black, one branch (l/r?))     |
       ;    3      8     104     all       ff (black, full node)             |
-      ;    4      8     136     all       ff (red leaf)                      > cost many bits but worth it
+      ;    4      8     136     all       ff (red leaf)                      >
       ;    5      8     168     all       ff (red, one branch (l/r?))       |
       ;    6      8     200     all       ff (red, one branch (l/r?))       |
       ;    7      8     232     all       ff (red, full node)              '

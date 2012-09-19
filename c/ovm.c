@@ -48,6 +48,7 @@ typedef unsigned long in_addr_t;
 /*** Macros ***/
 
 #define SPOS                        16 /* current position of size bits in header, on the way to 16 */
+#define TPOS                        3  /* current position of type bits in header, on the way to 2 */
 #define word                        uintptr_t
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
@@ -55,10 +56,9 @@ typedef unsigned long in_addr_t;
 #define FBITS                       16           /* bits in fixnum (and immediate payload width) */
 #define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
-#define make_immediate(value, type) (((value) << 12)  | ((type) << 3) | 2)
-#define make_header(size, type)     (((size) << SPOS) | ((type) << 3) | 6)
-#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << 3) | 2054 | ((p) << 8))
-#define headerp(val)                (((val) & 6) == 6)
+#define make_immediate(value, type) (((value) << 12)  | ((type) << TPOS) | 2)
+#define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 6)
+#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2054 | ((p) << 8))
 #define F(val)                      (((val) << 12) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> 12)
@@ -164,8 +164,6 @@ static __inline__ void rev(word pos) {
 
 static __inline__ word *chase(word *pos) {
    word val = cont(pos);
-   if (headerp(val))
-      return pos;
    while (allocp(val) && flagged(val)) {
       pos = (word *) val;
       val = cont(pos);
@@ -204,7 +202,7 @@ static word *compact() {
          *new = *old;
          while (flagged(*new)) {
             rev((word) new);
-            if (headerp(*new) && flagged(*new)) {
+            if (immediatep(*new) && flagged(*new)) {
                *new = flag(*new);
             }
          }
@@ -281,8 +279,8 @@ void check_heap(word *fp) {
 	while (pos < fp) {
 		word h = *pos;
 		word s = hdrsize((uintptr_t)h); /* <- looking for potential sign issues in type promotion */
-		if (!headerp(h))
-			fprintf(stderr, "DEBUG: object has a non-header first field\n");
+		if (!immediatep(h))
+			fprintf(stderr, "DEBUG: object has a non-immediate first field\n");
 		if (s <= 0 || s > 0xffff)
 			fprintf(stderr, "DEBUG: object has a bad size: header %p has size %p\n", (word *)h, (word *)s);
 		if (rawp(h)) {
@@ -295,8 +293,8 @@ void check_heap(word *fp) {
 					continue;
 				if ((word) f > (word) pos) 
 					fprintf(stderr, "DEBUG: up-pointer in heap\n");
-				if (!headerp(V(f)))
-					fprintf(stderr, "DEBUG: pointer to non-header\n");
+				if (!immediatep(V(f)))
+					fprintf(stderr, "DEBUG: pointer to non-immediate header\n");
 			}
 		}
    }
@@ -968,13 +966,13 @@ word vm(word *ob, word *args) {
 apply: /* apply something at ob to values in regs, or maybe switch context */
    //fprintf(stderr, "VM APPLY\n");
    if (likely(allocp(ob))) {
-      word hdr = *ob & 4095;
-      if (hdr == 262) { /* proc  */ 
+      word hdr = *ob & 4091; /* back to 4095 after header bit is zeroed */ 
+      if (hdr == 258) { /* proc  */ 
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if (hdr == 518) { /* clos */
+      } else if (hdr == 514) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      } else if ((hdr&255) == 70) { /* ff of any color, (<ff> key def) -> val */
+      } else if ((hdr&255) == 66) { /* ff of any color, (<ff> key def) -> val */
          word *cont = (word *) R[3];
          if (acc == 3) {
             R[3] = prim_get(ob, R[4], R[5]); 
@@ -989,7 +987,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if ((hdr & 2303) != 2054) { /* not even code */
+      } else if ((hdr & 2303) != 2050) { /* not even code */
          error(259, ob, INULL);
       } 
       if (unlikely(!ticker--)) goto switch_thread;
