@@ -57,7 +57,7 @@ typedef unsigned long in_addr_t;
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
 #define make_immediate(value, type) (((value) << 12)  | ((type) << 3) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << 3) | 6)
-#define make_raw_header(size, type) (((size) << SPOS) | ((type) << 3) | 2054)
+#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << 3) | 2054 | ((p) << 8))
 #define headerp(val)                (((val) & 6) == 6)
 #define F(val)                      (((val) << 12) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
@@ -358,7 +358,7 @@ static word *gc(int size, word *regs) {
       /* (can continue using these kind of generations to
       trade some memory for time (the parent generation 
       may keep freeable memory (for the OS, not owl) a bit
-      longer as the major GC intervals become sparser) */
+      longer as the major GC intervals become sparser)) */
    } else {
       genstart = regs; /* start new generation */
    }
@@ -412,13 +412,13 @@ void set_signal_handler() {
 #endif
 }
 
-/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count */
+/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
 static word *mkbvec(int len, int type) {
    int nwords = (len/W) + ((len % W) ? 2 : 1);
    int pads = (nwords-1)*W - len;
    word *ob = fp;
    fp += nwords;
-   *ob = make_raw_header(nwords, type|(pads<<5));
+   *ob = make_raw_header(nwords, type, pads);
    return ob;
 }
 
@@ -480,7 +480,7 @@ word *get_obj(word *ptrs, int me) {
          bytes = get_nat();
          size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
          pads = (size-1)*W - bytes;
-         *fp++ = make_raw_header(size, type + (pads<<5));
+         *fp++ = make_raw_header(size, type, pads);
          wp = (unsigned char *) fp;
          while (bytes--) { *wp++ = *hp++; };
          while (pads--) { *wp++ = 0; };
@@ -699,7 +699,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (fd < 0) return IFALSE;
          set_nonblock(fd);
          ipa = (char *) &addr.sin_addr;
-         *fp = make_raw_header(2, TBYTES|((4%W)<<5));
+         *fp = make_raw_header(2, TBYTES, 4%W);
          bytecopy(ipa, ((char *) fp) + W, 4);
          fp[2] = PAIRHDR;
          fp[3] = (word) fp;
@@ -732,7 +732,7 @@ static word prim_sys(int op, word a, word b, word c) {
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
             fp = res + read_nwords;
-            *res = make_raw_header(read_nwords, TBYTES|(pads<<5));
+            *res = make_raw_header(read_nwords, TBYTES, pads);
             return (word)res;
          }
          fp = res;
@@ -824,7 +824,7 @@ static word prim_lraw(word wptr, int type, word revp) {
    nwords = (len/W) + ((len % W) ? 2 : 1);
    allocate(nwords, raw);
    pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
-   *raw = make_raw_header(nwords, (type|(pads<<5)));
+   *raw = make_raw_header(nwords, type, pads);
    ob = lst;
    pos = ((unsigned char *) raw) + W;
    while ((word) ob != INULL) {
@@ -905,7 +905,7 @@ word boot(int nargs, char **argv) {
       pads = (size-1)*W - len;
       tmp = fp;
       fp += size;
-      *tmp = make_raw_header(size, 3 + (pads<<5));
+      *tmp = make_raw_header(size, 3, pads);
       pos = ((char *) tmp) + W;
       while(*str) *pos++ = *str++;
       *fp = PAIRHDR;
@@ -942,7 +942,7 @@ word boot(int nargs, char **argv) {
    set_nonblock(2);
    /* clear the pointers */
    /* fixme, wrong when heap has > 65534 objects */
-   ptrs[0] = make_raw_header(nobjs+1,0);
+   ptrs[0] = make_raw_header(nobjs+1,0,0);
    if (file_heap != NULL) free((void *) file_heap);
    return vm(entry, oargs);
 }

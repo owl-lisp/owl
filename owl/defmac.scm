@@ -428,7 +428,7 @@
       ;;; TYPE TAGS
       ;;;
       ;
-      ; the vm currently uses
+      ; OLD TAGS
       ;  [r hhhlllll hig]  <- 12 bits for object identification
       ;   | '-+'---+ ||'-> gc bit, 0 while running
       ;   |   |    | |'--> immediate?
@@ -437,19 +437,29 @@
       ;   |   '----------> type/variant (if any)
       ;   '--------------> rawness
       ;
-      ; new bit allocation
+      ; NEW TAGS
       ;                            .------------> 24-bit payload if immediate
       ;                            |      .-----> type tag if immediate
       ;                            |      |.----> immediateness
       ;   .------------------------| .----||.---> mark bit (can only be 1 during gc, removable?)
-      ;  [pppppppp pppppppp pppppppp ttttttim]
+      ;  [pppppppp pppppppp pppppppp tttttti0]
       ;   '-------------------------------|
       ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
+      ;  object headers are further
+      ;
+      ;                     R    PPP
+      ;  [ssssssss ssssssss ________ tttttt10]
+      ;   '---------------| '------| '----|
+      ;                   |        |      '-----> object type
+      ;                   |        '------------> to be allocated (tag notifuing special freeing needs for gc, rawness, pads, ...)
+      ;                   '--------------------->
+      ;  
+      ;  user defined record types:
+      ;   [hdr] [class-pointer] [field0] ... [fieldn]
       ;
       ; object representation conversion todo:
-      ;  - move all object sizes to the leftmost 16 bits (final position)
-      ;  - make a new kind of raw object which doesn't use type to store padding byte count, but the blank bits on the right before type
-      ;    + use one of them to store rawness for bitwise test in gc?
+      ;  - move padding byte count and rawness to 8 bit spare area in headers
+      ;    + should it get crowded, only needs 3 bits if raw bit is set
       ;  - convert bytecode, raw vectors and strings to the new format
       ;    + add a separate type for null-terminated native string while at it?
       ;  - remove remaining type collisions and fit types to new range
