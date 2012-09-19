@@ -48,7 +48,7 @@ typedef uintptr_t word;
 
 /*** Macros ***/
 
-#define SPOS                        16 /* current position of size bits in header, on the way to 16 */
+#define SPOS                        16 /* position of size bits in header immediate values */
 #define TPOS                        3  /* current position of type bits in header, on the way to 2 */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
@@ -67,7 +67,7 @@ typedef uintptr_t word;
 #define NR                          190 /* fixme, should be ~32*/
 #define RAWBIT                      2048
 #define header(x)                   *(word *x)
-#define imm_type(x)                 (((x) >> 3) & 0xff)
+#define imm_type(x)                 (((x) >> TPOS) & 0xff) /* todo, width changes to 6 bits soon */
 #define imm_val(x)                  ((x) >> 12)
 #define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               (((word)x)&2)
@@ -75,8 +75,8 @@ typedef uintptr_t word;
 #define rawp(hdr)                   ((hdr)&RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* faster for newer machines, bigger vm */
-#define PAIRHDR                     make_header(3,1) /* 196622 */
-#define NUMHDR                      make_header(3,9) /* 196686 */
+#define PAIRHDR                     make_header(3,1)
+#define NUMHDR                      make_header(3,9)
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       10
 #define IFALSE                      18
@@ -90,7 +90,7 @@ typedef uintptr_t word;
 #define FFRIGHT                     32
 #define TPROC                       32      /* EXEC options */
 #define TCLOS                       64
-#define cont(n)                     V((word)n&-4)
+#define cont(n)                     V((word)n&(~1))
 #define flagged(n)                  (n&1)
 #define flag(n)                     (((word)n)^1)
 #define A0                          R[*ip]               
@@ -100,7 +100,7 @@ typedef uintptr_t word;
 #define A4                          R[ip[4]]
 #define A5                          R[ip[5]]
 #define G(ptr,n)                    ((word *)(ptr))[n]
-#define flagged_or_raw(hdr)         (hdr&2049)
+#define flagged_or_raw(hdr)         (hdr&(RAWBIT|1))
 #define TICKS                       10000 /* # of function calls in a thread quantum  */
 #define allocate(size, to)          to = fp; fp += size;
 #define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
@@ -584,7 +584,7 @@ static word prim_cast(word *ob, int type) {
       allocate(size, new);
       res = new;
       /* (hdr & 0b...11111111111111111111100000000111) | tttttttt000 */
-      *new++ = (hdr&(~2040))|(type<<3);
+      *new++ = (hdr&(~2040))|(type<<TPOS);
       wordcopy(ob,new,size-1);
       return (word)res;
    }
@@ -966,7 +966,7 @@ word vm(word *ob, word *args) {
 apply: /* apply something at ob to values in regs, or maybe switch context */
    //fprintf(stderr, "VM APPLY\n");
    if (likely(allocp(ob))) {
-      word hdr = *ob & 4091; /* back to 4095 after header bit is zeroed */ 
+      word hdr = *ob & 4091; /* TODO: back to 4095 after header bit is zeroed */ 
       if (hdr == 258) { /* proc  */ 
          R[1] = (word) ob; ob = (word *) ob[1];
       } else if (hdr == 514) { /* clos */
@@ -1089,7 +1089,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op10: { /* type o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F(ob&4095);
+      R[*ip++] = F(ob&4095); /* TODO: restore 4 after header change is done */
       NEXT(0); }
    op11: { /* jit2 a t ol oh */
       word a = R[*ip];
@@ -1240,7 +1240,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       acc = 4;
       if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
       goto apply;
-   op28: { /* sizeb obj to */ /* todo: to be merged with size? */
+   op28: { /* sizeb obj to */
       word ob = R[*ip];
       if (immediatep(ob)) {
          A1 = F(0);
