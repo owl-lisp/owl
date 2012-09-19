@@ -44,12 +44,12 @@ typedef unsigned long in_addr_t;
 #define EXIT(n) exit(n)
 #endif
 
+typedef uintptr_t word;
 
 /*** Macros ***/
 
 #define SPOS                        16 /* current position of size bits in header, on the way to 16 */
 #define TPOS                        3  /* current position of type bits in header, on the way to 2 */
-#define word                        uintptr_t
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
@@ -69,7 +69,7 @@ typedef unsigned long in_addr_t;
 #define header(x)                   *(word *x)
 #define imm_type(x)                 (((x) >> 3) & 0xff)
 #define imm_val(x)                  ((x) >> 12)
-#define hdrsize(x)                  ((((word)x) >> SPOS) & 0xffff)
+#define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               (((word)x)&2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr)&RAWBIT)
