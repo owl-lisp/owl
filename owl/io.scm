@@ -374,8 +374,8 @@
       (define (write-bytes port byte-list)
          (printer byte-list 0 null port))
 
-      (define (print-to to obj)
-         (printer (render obj '(10)) 0 null to))
+      (define (print-to to . stuff)
+         (printer (foldr render '(10) stuff) 0 null to))
 
       (define (write-to to obj)
          (printer (serialize obj '()) 0 null to))
