@@ -13,7 +13,8 @@
 #include <dirent.h>
 #include <string.h>
 
-/* Portability Issues */
+
+/*** Portability Issues ***/
 
 #ifdef WIN32 
 #include <winsock2.h>
@@ -43,19 +44,21 @@ typedef unsigned long in_addr_t;
 #define EXIT(n) exit(n)
 #endif
 
-/* Macros */
+typedef uintptr_t word;
 
-#define word                        uintptr_t
+/*** Macros ***/
+
+#define SPOS                        16 /* position of size bits in header immediate values */
+#define TPOS                        3  /* current position of type bits in header, on the way to 2 */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
 #define FBITS                       16           /* bits in fixnum (and immediate payload width) */
 #define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
-#define make_immediate(value, type) (((value) << 12) | ((type) << 3) | 2)
-#define make_header(size, type)     (((size) << 12)  | ((type) << 3) | 6)
-#define make_raw_header(size, type) (((size) << 12)  | ((type) << 3) | 2054)
-#define headerp(val)                (((val) & 6) == 6)
+#define make_immediate(value, type) (((value) << 12)  | ((type) << TPOS) | 2)
+#define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 6)
+#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2054 | ((p) << 8))
 #define F(val)                      (((val) << 12) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> 12)
@@ -64,13 +67,16 @@ typedef unsigned long in_addr_t;
 #define NR                          190 /* fixme, should be ~32*/
 #define RAWBIT                      2048
 #define header(x)                   *(word *x)
-#define imm_type(x)                 (((x) >> 3) & 0xff)
+#define imm_type(x)                 (((x) >> TPOS) & 0xff) /* todo, width changes to 6 bits soon */
 #define imm_val(x)                  ((x) >> 12)
+#define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               (((word)x)&2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr)&RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* faster for newer machines, bigger vm */
+#define PAIRHDR                     make_header(3,1)
+#define NUMHDR                      make_header(3,9)
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       10
 #define IFALSE                      18
@@ -84,7 +90,7 @@ typedef unsigned long in_addr_t;
 #define FFRIGHT                     32
 #define TPROC                       32      /* EXEC options */
 #define TCLOS                       64
-#define cont(n)                     V((word)n&-4)
+#define cont(n)                     V((word)n&(~1))
 #define flagged(n)                  (n&1)
 #define flag(n)                     (((word)n)^1)
 #define A0                          R[*ip]               
@@ -94,11 +100,8 @@ typedef unsigned long in_addr_t;
 #define A4                          R[ip[4]]
 #define A5                          R[ip[5]]
 #define G(ptr,n)                    ((word *)(ptr))[n]
-#define flagged_or_raw(hdr)         (hdr&2049)
-#define hdrsize(hdr)                imm_val(hdr)
+#define flagged_or_raw(hdr)         (hdr&(RAWBIT|1))
 #define TICKS                       10000 /* # of function calls in a thread quantum  */
-#define PAIRHDR                     12302
-#define NUMHDR                      12366
 #define allocate(size, to)          to = fp; fp += size;
 #define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
 #define likely(x)                   __builtin_expect((x),1)
@@ -109,6 +112,7 @@ typedef unsigned long in_addr_t;
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
 #define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
+#define INITCELLS                   1000
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define EXEC switch(op&63) { \
@@ -125,7 +129,7 @@ typedef unsigned long in_addr_t;
       case 58: goto op58; case 59: goto op59; case 60: goto op60; case 61: goto op61; case 62: goto op62; case 63: goto op63; \
    }
 
-/* Globals and Prototypes */
+/*** Globals and Prototypes ***/
 
 /* memstart <= genstart <= memend */
 static word *genstart;
@@ -148,7 +152,8 @@ char *getenv(const char *name);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 
-/* Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) */
+
+/*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
 static __inline__ void rev(word pos) {
    word val = V(pos);
@@ -159,8 +164,6 @@ static __inline__ void rev(word pos) {
 
 static __inline__ word *chase(word *pos) {
    word val = cont(pos);
-   if (headerp(val))
-      return pos;
    while (allocp(val) && flagged(val)) {
       pos = (word *) val;
       val = cont(pos);
@@ -168,7 +171,7 @@ static __inline__ word *chase(word *pos) {
    return pos;
 }
 
-static void marks(word *pos, word *end) {
+static void mark(word *pos, word *end) {
    while (pos != end) {
       word val = *pos;
       if (allocp(val) && val >= ((word) genstart)) { 
@@ -199,7 +202,7 @@ static word *compact() {
          *new = *old;
          while (flagged(*new)) {
             rev((word) new);
-            if (headerp(*new) && flagged(*new)) {
+            if (immediatep(*new) && flagged(*new)) {
                *new = flag(*new);
             }
          }
@@ -245,8 +248,9 @@ int adjust_heap(int cells) {
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + cells;
-   if (!usegc) /* only run when the vm is running (temp) */
+   if (!usegc) { /* only run when the vm is running (temp) */
       return 0;
+   }
    if (seccompp) /* realloc is not allowed within seccomp */
       return 0;
    memstart = realloc(memstart, new_words*W);
@@ -265,20 +269,54 @@ int adjust_heap(int cells) {
    }
 }
 
+/* memstart                                      end
+    v                                            v
+   [hdr f1 ... fn] [hdr ...] ... [hdr f1 .. fm]  
+   should work at any point in program operation when run for fp
+ */
+void check_heap(word *fp) {
+	word *pos = memstart;
+	while (pos < fp) {
+		word h = *pos;
+		word s = hdrsize((uintptr_t)h); /* <- looking for potential sign issues in type promotion */
+		if (!immediatep(h))
+			fprintf(stderr, "DEBUG: object has a non-immediate first field\n");
+		if (s <= 0 || s > 0xffff)
+			fprintf(stderr, "DEBUG: object has a bad size: header %p has size %p\n", (word *)h, (word *)s);
+		if (rawp(h)) {
+			pos += s;
+		} else {
+			s--; pos++; /* skip header */
+			while(s--) {
+				word f = *pos++;
+				if (immediatep(f)) 
+					continue;
+				if ((word) f > (word) pos) 
+					fprintf(stderr, "DEBUG: up-pointer in heap\n");
+				if (!immediatep(V(f)))
+					fprintf(stderr, "DEBUG: pointer to non-immediate header\n");
+			}
+		}
+   }
+   if (pos != fp)
+      fprintf(stderr, "DEBUG: heap didn't end exactly where it should have\n");
+}
+
 /* input desired allocation size and root object, 
    return a pointer to the same object after compaction, resizing, possible heap relocation etc */
 static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
    int nfree, nused;
-   fp = regs + imm_val(*regs);
+   fp = regs + hdrsize(*regs);
+	//check_heap(fp); /* pre GC heap integrity check */
    root = fp+1;
    *root = (word) regs;
-   fflush(stdout);
    memend = fp;
-   marks(root, fp);
+   mark(root, fp);
    fp = compact();
    regs = (word *) *root;
+	//check_heap(regs + hdrsize(*regs)); /* post GC heap integrity check */
    memend = realend;
    nfree = (word)memend - (word)regs;
    nused = (word)regs - (word)genstart; 
@@ -291,7 +329,7 @@ static word *gc(int size, word *regs) {
       nfree -= size*W + MEMPAD;   /* how much really could be snipped off */
       if (nfree < (heapsize / 20) || nfree < 0) {
          /* increase heap size if less than 5% is free by ~10% of heap size (growth usually implies more growth) */
-         regs[imm_val(*regs)] = 0; /* use an invalid descriptor to denote end live heap data  */
+         regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data  */
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
          if (nfree <= size) {
@@ -304,7 +342,7 @@ static word *gc(int size, word *regs) {
          int dec = -(nfree/10);
          int new = nfree - dec;
          if (new > size*W*2 + MEMPAD) {
-            regs[imm_val(*regs)] = 0; /* as above */
+            regs[hdrsize(*regs)] = 0; /* as above */
             regs = (word *) ((word)regs + adjust_heap(dec+MEMPAD*W));
             heapsize = (word) memend - (word) memstart; 
             nfree = (word) memend - (word) regs; 
@@ -318,14 +356,15 @@ static word *gc(int size, word *regs) {
       /* (can continue using these kind of generations to
       trade some memory for time (the parent generation 
       may keep freeable memory (for the OS, not owl) a bit
-      longer as the major GC intervals become sparser) */
+      longer as the major GC intervals become sparser)) */
    } else {
       genstart = regs; /* start new generation */
    }
    return regs;
 }
 
-/* OS Interaction and Helpers */
+
+/*** OS Interaction and Helpers ***/
 
 void set_nonblock (int sock) {
 #ifdef WIN32
@@ -371,13 +410,13 @@ void set_signal_handler() {
 #endif
 }
 
-/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count */
+/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
 static word *mkbvec(int len, int type) {
    int nwords = (len/W) + ((len % W) ? 2 : 1);
    int pads = (nwords-1)*W - len;
    word *ob = fp;
    fp += nwords;
-   *ob = make_raw_header(nwords, type|(pads<<5));
+   *ob = make_raw_header(nwords, type, pads);
    return ob;
 }
 
@@ -439,7 +478,7 @@ word *get_obj(word *ptrs, int me) {
          bytes = get_nat();
          size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
          pads = (size-1)*W - bytes;
-         *fp++ = make_raw_header(size, type + (pads<<5));
+         *fp++ = make_raw_header(size, type, pads);
          wp = (unsigned char *) fp;
          while (bytes--) { *wp++ = *hp++; };
          while (pads--) { *wp++ = 0; };
@@ -484,7 +523,8 @@ unsigned char *load_heap(char *path) {
    return hp;
 }
 
-/* Primops called from VM and generated C-code */
+
+/*** Primops called from VM and generated C-code ***/
 
 static word prim_connect(word *host, word port) {
    int sock;
@@ -543,8 +583,8 @@ static word prim_cast(word *ob, int type) {
       word *new, *res; /* <- could also write directly using *fp++ */
       allocate(size, new);
       res = new;
-      /* #b11111111111111111111100000000111 */
-      *new++ = (hdr&(~2040))|(type<<3);
+      /* (hdr & 0b...11111111111111111111100000000111) | tttttttt000 */
+      *new++ = (hdr&(~2040))|(type<<TPOS);
       wordcopy(ob,new,size-1);
       return (word)res;
    }
@@ -556,7 +596,7 @@ static int prim_refb(word pword, int pos) {
    if (immediatep(ob))
       return -1;
    hdr = *ob;
-   hsize = ((imm_val(hdr)-1)*W) - ((hdr>>8)&7); /* bytes - pads */ 
+   hsize = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7); /* bytes - pads */ 
    if (pos >= hsize) 
       return IFALSE;
    return F(((unsigned char *) ob)[pos+W]);
@@ -569,11 +609,11 @@ static word prim_ref(word pword, word pos)  {
    if(immediatep(ob)) { return IFALSE; }
    hdr = *ob;
    if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */ 
-      size = ((imm_val(hdr)-1)*W) - ((hdr>>8)&7);
+      size = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
       if (pos >= size) { return IFALSE; }
       return F(((unsigned char *) ob)[pos+W]);
    }
-   size = imm_val(hdr);
+   size = hdrsize(hdr);
    if (!pos || size <= pos) /* tuples are indexed from 1 (probably later 0-255)*/
       return IFALSE;
    return ob[pos];
@@ -587,8 +627,8 @@ static word prim_set(word wptr, word pos, word val) {
    pos = fixval(pos);
    if(immediatep(ob)) { return IFALSE; }
    hdr = *ob;
-   if (rawp(hdr) || imm_val(hdr) < pos) { return IFALSE; }
-   hdr = imm_val(hdr); /* get size */
+   if (rawp(hdr) || hdrsize(hdr) < pos) { return IFALSE; }
+   hdr = hdrsize(hdr);
    allocate(hdr, new);
    while(p <= hdr) {
       new[p] = (pos == p && p) ? val : ob[p];
@@ -605,7 +645,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *buff = (word *) b;
          int wrote, size, len = fixval(c);
          if (immediatep(buff)) return IFALSE;
-         size = (imm_val(*buff)-1)*W;
+         size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = write(fd, ((char *)buff)+W, len);
          if (wrote > 0) return F(wrote);
@@ -657,7 +697,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (fd < 0) return IFALSE;
          set_nonblock(fd);
          ipa = (char *) &addr.sin_addr;
-         *fp = make_raw_header(2, TBYTES|((4%W)<<5));
+         *fp = make_raw_header(2, TBYTES, 4%W);
          bytecopy(ipa, ((char *) fp) + W, 4);
          fp[2] = PAIRHDR;
          fp[3] = (word) fp;
@@ -690,7 +730,7 @@ static word prim_sys(int op, word a, word b, word c) {
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
             fp = res + read_nwords;
-            *res = make_raw_header(read_nwords, TBYTES|(pads<<5));
+            *res = make_raw_header(read_nwords, TBYTES, pads);
             return (word)res;
          }
          fp = res;
@@ -751,7 +791,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *buff = (word *) b;
          int wrote, size, len = fixval(c);
          if (immediatep(buff)) return IFALSE;
-         size = (imm_val(*buff)-1)*W;
+         size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = send(fd, ((char *)buff)+W, len, 0); /* <- no MSG_DONTWAIT in win32 */
          if (wrote > 0) return F(wrote);
@@ -782,7 +822,7 @@ static word prim_lraw(word wptr, int type, word revp) {
    nwords = (len/W) + ((len % W) ? 2 : 1);
    allocate(nwords, raw);
    pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
-   *raw = make_raw_header(nwords, (type|(pads<<5)));
+   *raw = make_raw_header(nwords, type, pads);
    ob = lst;
    pos = ((unsigned char *) raw) + W;
    while ((word) ob != INULL) {
@@ -839,9 +879,9 @@ word boot(int nargs, char **argv) {
       hp = (unsigned char *) &heap;
    }
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
-   memstart = genstart = fp = (word *) realloc(NULL, (FMAX + MEMPAD)*W); /* at least one argument string always fits */
+   memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
    if (!memstart) exit(3);
-   memend = memstart + FMAX - MEMPAD;
+   memend = memstart + FMAX + INITCELLS - MEMPAD;
    this = nargs-1;
    usegc = 1;
    while(this >= 0) { /* build an owl string list to oargs at bottom of heap */
@@ -863,7 +903,7 @@ word boot(int nargs, char **argv) {
       pads = (size-1)*W - len;
       tmp = fp;
       fp += size;
-      *tmp = make_raw_header(size, 3 + (pads<<5));
+      *tmp = make_raw_header(size, 3, pads);
       pos = ((char *) tmp) + W;
       while(*str) *pos++ = *str++;
       *fp = PAIRHDR;
@@ -900,7 +940,7 @@ word boot(int nargs, char **argv) {
    set_nonblock(2);
    /* clear the pointers */
    /* fixme, wrong when heap has > 65534 objects */
-   ptrs[0] = make_raw_header(nobjs+1,0);
+   ptrs[0] = make_raw_header(nobjs+1,0,0);
    if (file_heap != NULL) free((void *) file_heap);
    return vm(entry, oargs);
 }
@@ -914,6 +954,7 @@ word vm(word *ob, word *args) {
    static word R[NR];
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
    usegc = 1; /* enble gc (later have if always evabled) */
+   //fprintf(stderr, "VM STARTED\n");
 
    /* clear blank regs */
    while(acc < NR) { R[acc++] = INULL; }
@@ -923,14 +964,15 @@ word vm(word *ob, word *args) {
    acc = 2; /* boot always calls with 2 args*/
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
+   //fprintf(stderr, "VM APPLY\n");
    if (likely(allocp(ob))) {
-      word hdr = *ob & 4095;
-      if (hdr == 262) { /* proc  */ 
+      word hdr = *ob & 4091; /* TODO: back to 4095 after header bit is zeroed */ 
+      if (hdr == 258) { /* proc  */ 
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if (hdr == 518) { /* clos */
+      } else if (hdr == 514) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      } else if ((hdr&255) == 70) { /* ff of any color, (<ff> key def) -> val */
+      } else if ((hdr&255) == 66) { /* ff of any color, (<ff> key def) -> val */
          word *cont = (word *) R[3];
          if (acc == 3) {
             R[3] = prim_get(ob, R[4], R[5]); 
@@ -945,7 +987,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if ((hdr & 2303) != 2054) { /* not even code */
+      } else if ((hdr & 2303) != 2050) { /* not even code */
          error(259, ob, INULL);
       } 
       if (unlikely(!ticker--)) goto switch_thread;
@@ -1005,7 +1047,9 @@ switch_thread: /* enter mcp if present */
       goto apply;
    }
 invoke: /* nargs and regs ready, maybe gc and execute ob */
-   if (((word)fp) + 1024*64 >= ((word) memend)) { /* <- fixme... can be lowered after the compiler pass */
+   if (((word)fp) + 1024*64 >= ((word) memend))
+      //(1)  // always gc
+	{
       int p = 0; 
       *fp = make_header(NR+2, 50); /* hdr r_0 .. r_(NR-1) ob */ 
       while(p < NR) { fp[p+1] = R[p]; p++; } 
@@ -1020,6 +1064,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
 
    if (op) {
       main_dispatch:
+      //fprintf(stderr, "vm: %d\n", op);
       EXEC;
    } else {
       op = *ip<<8 | ip[1];
@@ -1044,7 +1089,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op10: { /* type o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F(ob&4095);
+      R[*ip++] = F(ob&4095); /* TODO: restore 4 after header change is done */
       NEXT(0); }
    op11: { /* jit2 a t ol oh */
       word a = R[*ip];
@@ -1179,7 +1224,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
       word a = (fixval(A0)<<FBITS) | fixval(A1); 
       word b = fixval(A2);
-      word q = a / b;
+      word q;
+      if (unlikely(b == 0)) {
+         error(26, F(a), F(b));
+      }
+      q = a / b;
       A3 = F(q>>FBITS);
       A4 = F(q&FMAX);
       A5 = F(a - q*b);
@@ -1191,7 +1240,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       acc = 4;
       if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
       goto apply;
-   op28: { /* sizeb obj to */ /* todo: to be merged with size? */
+   op28: { /* sizeb obj to */
       word ob = R[*ip];
       if (immediatep(ob)) {
          A1 = F(0);
@@ -1222,7 +1271,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word hdr, pos = 1, n = *ip++;
       assert(allocp(tuple), tuple, 32);
       hdr = *tuple;
-      assert_not((rawp(hdr) || fixval(hdr)-1 != n), tuple, 32);
+      assert_not((rawp(hdr) || hdrsize(hdr)-1 != n), tuple, 32);
       while(n--) { R[*ip++] = tuple[pos++]; }
       NEXT(0); }
    op33: { /* jrt a t o, jump by raw type (ignoring padding info) */
@@ -1250,7 +1299,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(4); }
    op36: { /* size o r */
       word *ob = (word *) R[*ip++];
-      R[*ip++] = (immediatep(ob)) ? F(0) : F(imm_val(*ob)-1);
+      R[*ip++] = (immediatep(ob)) ? F(0) : F(hdrsize(*ob)-1);
       NEXT(0); }
    op37: { /* ms r */
 #ifndef WIN32

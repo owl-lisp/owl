@@ -428,7 +428,8 @@
       ;;; TYPE TAGS
       ;;;
       ;
-      ; the vm currently uses
+      ; OLD TAGS
+      ;
       ;  [r hhhlllll hig]  <- 12 bits for object identification
       ;   | '-+'---+ ||'-> gc bit, 0 while running
       ;   |   |    | |'--> immediate?
@@ -437,15 +438,41 @@
       ;   |   '----------> type/variant (if any)
       ;   '--------------> rawness
       ;
-      ; new bit allocation
+      ; NEW TAGS
       ;                            .------------> 24-bit payload if immediate
       ;                            |      .-----> type tag if immediate
       ;                            |      |.----> immediateness
       ;   .------------------------| .----||.---> mark bit (can only be 1 during gc, removable?)
-      ;  [pppppppp pppppppp pppppppp ttttttim]
-      ;   '--------------------------?----|
-      ;                              ?    '-----> 4- or 8-byte aligned pointer if not immediate
-      ;                              '----------> worh saving as raw-bit to get a bitwise check in GC if 32 types are enough for core types? 
+      ;  [pppppppp pppppppp pppppppp tttttti0]
+      ;   '-------------------------------|
+      ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
+      ;  object headers are further
+      ;
+      ;                         RPPP
+      ;  [ssssssss ssssssss ________ tttttt10]
+      ;   '---------------| '------| '----|
+      ;                   |        |      '-----> object type
+      ;                   |        '------------> tags notifying about special freeing needs for gc (fds), rawness, padding bytes, etc non-type info
+      ;                   '--------------------->
+      ;  
+      ;  user defined record types:
+      ;   [hdr] [class-pointer] [field0] ... [fieldn]
+      ;
+      ; object representation conversion todo:
+      ;  - change size of allocated objects to return #false for immediates
+      ;    + fix old assumptions that it's 0
+      ;      + also allows empty nodes to be used for empty vectors (could reserve an immediate later)
+      ;  - change immediate? and alloc? to check size instead of raw header
+      ;  - change type-old primop to clear header bit to check if there are further abstraction violations
+      ;  - set header bits to 0
+      ;  - slide type bits right by 1 bit
+      ;  - squeeze types to fit 6 bits
+      ;     + have things that would benefit from bitwise access in VM be in aligned types with sufficient spare low bits
+      ;       o ff nodes?
+      ;  - move immediate payloads
+      ;  - switch fixnum size
+      ;  - fix bignum math to work with compile-time settable n-bit fixnums
+      ;     + default to 24, try out 56 and maybe later support both
       ;
       ;
       ; old type tags
@@ -475,7 +502,7 @@
       ;    1      8      40     all       ff (black, one branch (l/r?))     |
       ;    2      8      72     all       ff (black, one branch (l/r?))     |
       ;    3      8     104     all       ff (black, full node)             |
-      ;    4      8     136     all       ff (red leaf)                      > cost many bits but worth it
+      ;    4      8     136     all       ff (red leaf)                      >
       ;    5      8     168     all       ff (red, one branch (l/r?))       |
       ;    6      8     200     all       ff (red, one branch (l/r?))       |
       ;    7      8     232     all       ff (red, full node)              '
@@ -491,9 +518,9 @@
       ; NOTE: old types had special use for low and high bits, so the numbers are all over the place for now
 
       ;; ALLOCATED
-      (define type-bytecode          0) ;; RAW
-      (define type-proc             32)
-      (define type-clos             64)
+      (define type-bytecode          0) ;; RAW → 129
+      (define type-proc             32) ;;     → 127
+      (define type-clos             64) ;;     → 128
       (define type-pair              1)
       (define type-vector-dispatch  43)
       (define type-vector-leaf      11)

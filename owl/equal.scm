@@ -47,8 +47,8 @@
                (let ((sa (size a)))
                   (cond
                      ; a is immediate -> would have been eq?
-                     ((eq? sa 0) 
-                        #false)
+                     ((eq? sa 0) #false) ;; BADGER, remove soon
+                     ((not sa)   #false) ;; BADGER, leave
                      ; same size
                      ((eq? sa (size b))
                         (let ((ta (type-old a)))
