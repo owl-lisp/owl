@@ -1299,7 +1299,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(4); }
    op36: { /* size o r */
       word *ob = (word *) R[*ip++];
-      R[*ip++] = (immediatep(ob)) ? F(0) : F(hdrsize(*ob)-1);
+      R[*ip++] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
       NEXT(0); }
    op37: { /* ms r */
 #ifndef WIN32

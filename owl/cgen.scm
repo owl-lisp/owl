@@ -128,7 +128,7 @@
       (define (cify-sizeb bs regs fail) 
          (lets ((ob to bs (get2 (cdr bs))))
             (values 
-               (list "if(immediatep(R["ob"])){R["to"]=F(0);}else{word h=V(R[" ob "]);R["to"]=F((hdrsize(h)-1)*W-((h>>8)&7));}")
+               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=F((hdrsize(h)-1)*W-((h>>8)&7));}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
       ;; fftoggle node to
@@ -146,7 +146,7 @@
             (cond
                (else 
                   (values 
-                     (list "R["to"]=(immediatep(R["ob"]))?F(0):F(hdrsize(V(R["ob"]))-1);")
+                     (list "R["to"]=(immediatep(R["ob"]))?IFALSE:F(hdrsize(V(R["ob"]))-1);")
                      bs (put regs to 'fixnum))))))
 
       ;; lraw lst-reg type-reg flipp-reg to

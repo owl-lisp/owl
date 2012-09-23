@@ -12,6 +12,8 @@
       case-lambda
       define-values
       not o i self
+      immediate?
+      allocated?
 
       type-bytecode
       type-proc
@@ -532,5 +534,9 @@
       (define type-fix+     0)
       (define type-fix-    32)
       (define type-eof     20) ;; moved from 4, clasing with symbols
+
+      
+      (define (immediate? obj) (eq? #false (size obj)))
+      (define allocated? size)
 
 ))
