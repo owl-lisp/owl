@@ -34,7 +34,7 @@
 
       (define (func lst) 
          (raw (cons 17 lst)        ;; (nargs n op1...) 
-            0 #false))
+            type-bytecode #false))
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
@@ -80,9 +80,6 @@
       (define ref         (func '(3 47 4 5 6 24 6)))
       (define refb        (func '(3 48 4 5 6 24 6)))
       (define ff-toggle   (func '(2 46 4 5 24 5)))
-
-      ;; might use a fixed bit of type later
-      (define (raw? obj) (eq? (fxband (type-old obj) #b100000000110) #b100000000110))
 
       ;; make thread sleep for a few thread scheduler rounds
       (define (wait n) 
@@ -139,8 +136,8 @@
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
       (define fx<< (func '(4 59 4 5 6 7 24 7)))
       
-      (define apply (raw '(20) 0 #false)) ;; <- no arity, just call 20
-      (define apply-cont (raw (list (fxbor 20 64)) 0 #false))
+      (define apply (raw '(20) type-bytecode #false)) ;; <- no arity, just call 20
+      (define apply-cont (raw (list (fxbor 20 64)) type-bytecode #false))
 
       (define primops-2
          (list

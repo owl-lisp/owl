@@ -87,7 +87,7 @@
       (owl math))
 
    (begin
-      (define (byte-vector? x) (eq? (fxband (type-old x)     #b100011111000) 2136))
+      (define (byte-vector? x) (eq? (fxband (type-old x)     #b100011111000) 2136)) ;; collision, not changed yet
 
       ;; internals
       ;
@@ -109,7 +109,7 @@
                (lets ((n _ (fx+ (fxband n 255) 2))) ;; jump over header and leaf
                   (ref v n)))
             (else
-               (error "Bad vector node in dispatch-1: type " (type-old v)))))
+               (error "Bad vector node in dispatch-1: type " (type v)))))
 
       ; dispatch the high 8 bits of a fixnum, returning the subnode
       (define (vec-dispatch-2 v d) ; -> v'
@@ -148,7 +148,7 @@
                    (lets ((n _ (fx+ (fxband n 255) 1)))
                      (ref v n))))
             (else
-               (error "bad vector node in vec-ref-digit: type " (type-old v)))))
+               (error "bad vector node in vec-ref-digit: type " (type v)))))
 
 
       ; find the node holding the last digit and read it

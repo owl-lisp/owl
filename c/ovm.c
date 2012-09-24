@@ -987,7 +987,8 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if ((hdr & 2303) != 2050) { /* not even code */
+      } else if ((hdr & 2303) != 2050 && ((hdr >> TPOS) & 63) != 31) { /* not even code */
+         printf("VM: bad rator, type %d\n", (hdr >> TPOS) & 63);
          error(259, ob, INULL);
       } 
       if (unlikely(!ticker--)) goto switch_thread;

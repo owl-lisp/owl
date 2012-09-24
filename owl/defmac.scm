@@ -16,6 +16,7 @@
       immediate? allocated? raw?
 
       type-bytecode
+      type-bytecode-2     ;; new type, both need to work during transition
       type-proc
       type-clos
       type-fix+
@@ -26,6 +27,7 @@
       type-vector-raw
       type-ff-black-leaf
       type-eof
+      type-tuple
       )
 
    (begin
@@ -516,20 +518,22 @@
       ; NOTE: old types had special use for low and high bits, so the numbers are all over the place for now
 
       ;; ALLOCATED
-      (define type-bytecode          0) ;; RAW → 129
-      (define type-proc             32) ;;     → 127
-      (define type-clos             64) ;;     → 128
+      (define type-bytecode-2       31) ;; new type has to be &31 first
+      (define type-bytecode          0)
+      (define type-proc             32)
+      (define type-clos             64)
       (define type-pair              1)
       (define type-vector-dispatch  43)
       (define type-vector-leaf      11)
       (define type-vector-raw      171) ;; RAW
       (define type-ff-black-leaf     8)
       (define type-symbol            4)
+      (define type-tuple             2)
 
       ;; IMMEDIATE
-      (define type-fix+     0)
-      (define type-fix-    32)
-      (define type-eof     20) ;; moved from 4, clasing with symbols
+      (define type-fix+              0)
+      (define type-fix-             32)
+      (define type-eof              20) ;; moved from 4, clasing with symbols
 
       
       (define (immediate? obj) (eq? #false (size obj)))
