@@ -57,7 +57,6 @@
       decode-or            ; (byte ...) fail → object | (fail reason)
 		encode					; obj -> (byte ... 0), n-alloc-objs (mainly for bootstrapping)
 		tuple->list				; TEMPORARILY HERE
-		raw?						; TEMPORARILY HERE
 		objects-below			; obj -> (obj ...), all allocated objects below obj
       decode-stream        ; ll failval → (ob ...) | (ob .. failval)
       object-closure       ; obj -> ff of (obj -> n-occurrences)
@@ -89,8 +88,6 @@
       ;;;
       ;;; Encoder
       ;;;
-
-      (define (raw? obj) (eq? (fxband (type-old obj) #b100000000110) #b100000000110))
 
       (define low7 #b1111111)
 

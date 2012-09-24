@@ -12,8 +12,8 @@
       case-lambda
       define-values
       not o i self
-      immediate?
-      allocated?
+
+      immediate? allocated? raw?
 
       type-bytecode
       type-proc
@@ -461,10 +461,6 @@
       ;   [hdr] [class-pointer] [field0] ... [fieldn]
       ;
       ; object representation conversion todo:
-      ;  - change size of allocated objects to return #false for immediates
-      ;    + fix old assumptions that it's 0
-      ;      + also allows empty nodes to be used for empty vectors (could reserve an immediate later)
-      ;  - change immediate? and alloc? to check size instead of raw header
       ;  - change type-old primop to clear header bit to check if there are further abstraction violations
       ;  - set header bits to 0
       ;  - slide type bits right by 1 bit
@@ -538,5 +534,5 @@
       
       (define (immediate? obj) (eq? #false (size obj)))
       (define allocated? size)
-
+      (define raw? sizeb)
 ))

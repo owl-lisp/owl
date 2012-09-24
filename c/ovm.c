@@ -1243,10 +1243,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op28: { /* sizeb obj to */
       word ob = R[*ip];
       if (immediatep(ob)) {
-         A1 = F(0);
+         A1 = IFALSE;
       } else {
          word hdr = V(ob);
-         A1 = (rawp(hdr)) ? F((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : F(0);
+         A1 = (rawp(hdr)) ? F((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : IFALSE;
       }
       NEXT(2); }
    op29: { /* ncons a b r */
