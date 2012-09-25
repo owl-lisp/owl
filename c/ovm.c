@@ -57,8 +57,8 @@ typedef uintptr_t word;
 #define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
 #define make_immediate(value, type) (((value) << 12)  | ((type) << TPOS) | 2)
-#define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 6)
-#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2054 | ((p) << 8))
+#define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
+#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2050 | ((p) << 8))
 #define F(val)                      (((val) << 12) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> 12)
@@ -79,7 +79,7 @@ typedef uintptr_t word;
 #define NUMHDR                      make_header(3,9)
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       make_immediate(0,13)
-#define IFALSE                      18
+#define IFALSE                      18   /* clash */ 
 #define ITRUE                       274
 #define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
 #define TTUPLE                      2

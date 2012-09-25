@@ -29,6 +29,7 @@
       type-eof
       type-tuple
       type-symbol
+      type-bool
       )
 
    (begin
@@ -464,9 +465,10 @@
       ;   [hdr] [class-pointer] [field0] ... [fieldn]
       ;
       ; object representation conversion todo:
-      ;  - clear pair type collision and update pair?
-      ;  - change type-old primop to clear header bit to check if there are further abstraction violations
-      ;  - set header bits to 0
+      ;  - convert hardcoded constants everywhere to macros or exported static globals
+      ;     + could add a type macro later if needed, 
+      ;        (is? foo pair) == (eq? (type foo) (type-id-of pair)) 
+      ;                       == (eq? (type foo) 1)
       ;  - slide type bits right by 1 bit
       ;  - squeeze types to fit 6 bits
       ;     + have things that would benefit from bitwise access in VM be in aligned types with sufficient spare low bits
@@ -475,49 +477,9 @@
       ;  - switch fixnum size
       ;  - fix bignum math to work with compile-time settable n-bit fixnums
       ;     + default to 24, try out 56 and maybe later support both
-      ;
-      ;
-      ; old type tags
-      ;
-      ;   hi     lo     all  imm/all/raw  type
-      ;  --------------------------------------
-      ;    0      0       0     imm       fix+
-      ;    1      0      32     imm       fix-
-      ;    0      0       0     raw       bytecode
-      ;    1      0      32     all       proc
-      ;    2      0      64     all       clos
-      ;    0      1       1     all       pair
-      ;    0      2       2     imm       #false
-      ;    1      2      34     imm       #true
-      ;    0      2       2     all       tuple
-      ;  0-7      3       -     raw       raw string node (variable padding at hi) <- no more room for padding in type!
-      ;    0      9       9     all       big+
-      ;    1      9      41     all       big-
-      ;    2      9      73     all       rat
-      ;    3      9     105     all       imag
-      ;    0     11      11     all       vector (leaf)
-      ;    5     11     171     raw       vector (byte)
-      ;    0     10      10     all       rlist (spine)
-      ;    1     10      42     all       rlist (node)
-      ;    0     13      13     all       string (wide leaf)
-      ;    0      8       8     all       ff (black leaf)                  '
-      ;    1      8      40     all       ff (black, one branch (l/r?))     |
-      ;    2      8      72     all       ff (black, one branch (l/r?))     |
-      ;    3      8     104     all       ff (black, full node)             |
-      ;    4      8     136     all       ff (red leaf)                      >
-      ;    5      8     168     all       ff (red, one branch (l/r?))       |
-      ;    6      8     200     all       ff (red, one branch (l/r?))       |
-      ;    7      8     232     all       ff (red, full node)              '
-      ;
-      ; not here: char (add later since it's a separate type in R7RS?), eof
-      ; could use a type for very finite immediate types (bools, eof, null, ...) if it gets crowded
-      ; this would be a good time to add #empty!
-      ;
-
-
-      ;; type tags
-      ; NOTE: there are temporarily clashes now that immediateness and rawness are being discarded
-      ; NOTE: old types had special use for low and high bits, so the numbers are all over the place for now
+      ;  - add user definable record type support 
+      ;     + would be nice to have some support for algebraic data types using them
+      ;     + switch the compiler to use them to make the intermediate language structure more explicit
 
       ;; ALLOCATED
       (define type-bytecode-2       31) ;; new type has to be &31 first
@@ -538,6 +500,7 @@
       (define type-fix-             32)
       (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-null             13) ;; moved from 1, clashing with pairs
+      (define type-bool              2) ;; clash with tuples
 
       
       (define (immediate? obj) (eq? #false (size obj)))
