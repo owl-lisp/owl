@@ -536,7 +536,8 @@
       ;; IMMEDIATE
       (define type-fix+              0)
       (define type-fix-             32)
-      (define type-eof              20) ;; moved from 4, clasing with symbols
+      (define type-eof              20) ;; moved from 4, clashing with symbols
+      (define type-null             13) ;; moved from 1, clashing with pairs
 
       
       (define (immediate? obj) (eq? #false (size obj)))

@@ -78,10 +78,10 @@ typedef uintptr_t word;
 #define PAIRHDR                     make_header(3,1)
 #define NUMHDR                      make_header(3,9)
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
-#define INULL                       10
+#define INULL                       make_immediate(0,13)
 #define IFALSE                      18
 #define ITRUE                       274
-#define IHALT                       10 /* FIXME: adde a distinct IHALT */ 
+#define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
 #define TTUPLE                      2
 #define TFF                         8
 #define TBYTES                      11     /* a small byte vector */
@@ -436,24 +436,22 @@ word strp2owl(char *sp) {
 
 word get_nat() {
    word result = 0;
-   int new, i;
-   again:
-   i = *hp++;
-   new = result << 7;
-   if (result != (new >> 7)) exit(9); /* overflow kills */
-   result = new + (i & 127);
-   if (i & 128) goto again;
+   word new, i;
+   do {
+      i = *hp++;
+      new = result << 7;
+      if (result != (new >> 7)) exit(9); /* overflow kills */
+      result = new + (i & 127);
+   } while (i & 128);
    return result;
 }  
 
 word *get_field(word *ptrs, int pos) {
    if (0 == *hp) {
       unsigned char type;
-      int value;
       hp++;
       type = *hp++;
-      value = get_nat();
-      *fp++ = make_immediate(value, type);
+      *fp++ = make_immediate(get_nat(), type);
    } else {
       word diff = get_nat();
       if (ptrs != NULL) *fp++ = ptrs[pos-diff];
@@ -988,7 +986,6 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          acc = 1;
          goto apply;
       } else if ((hdr & 2303) != 2050 && ((hdr >> TPOS) & 63) != 31) { /* not even code */
-         printf("VM: bad rator, type %d\n", (hdr >> TPOS) & 63);
          error(259, ob, INULL);
       } 
       if (unlikely(!ticker--)) goto switch_thread;
