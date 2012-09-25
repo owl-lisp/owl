@@ -1087,7 +1087,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op10: { /* type o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F(ob&4095); /* TODO: restore 4 after header change is done */
+      R[*ip++] = F(ob&4091); /* TODO: restore 4 after header change is done */
       NEXT(0); }
    op11: { /* jit2 a t ol oh */
       word a = R[*ip];

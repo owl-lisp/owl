@@ -48,7 +48,8 @@
    (begin
       (define null '())
 
-      (define (pair? x) (eq? (type-old x) 14))
+      (define (pair? x) (eq? type-pair (type x)))
+
       (define (null? x) (eq? x null))
 
       (define-syntax withcc
