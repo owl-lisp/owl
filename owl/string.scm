@@ -77,13 +77,12 @@
    (include "owl/unicode-char-folds.scm")
 
    (begin
-      (define (string? x) (eq? (fxband (type-old x) 2300) 2076))
 
       (define-syntax raw-string?
          (syntax-rules ()
             ((raw-string? x)
                ;; raw object of correct type, discarding padding bits
-               (eq? (fxband (type-old x) 2300) 2076))))
+               (eq? (fxband (type-old x) #b100011111000) #b100000011000))))
 
       (define (string? x) 
          (cond
@@ -97,7 +96,7 @@
 
       (define (string-length str)
          (cond
-            ((eq? (fxband (type-old str) 2300) 2076)
+            ((raw-string? str)
                ;(lets
                ;   ((hi all (fx<< (size str) 2))
                ;    (pads lo (fx>> (type-old str) 8))

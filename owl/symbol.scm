@@ -13,10 +13,10 @@
       (only (owl syscall) error))
 
    (begin
-      (define (symbol? x) (eq? (type-old x) 38))
+      (define (symbol? x) (eq? (type x) type-symbol))
 
       (define (symbol->string x) 
-         (if (eq? (type-old x) 38)
+         (if (eq? (type x) type-symbol)
             (let ((str (ref x 1)))
                (cond
                   ((string=? str "")

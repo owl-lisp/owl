@@ -28,6 +28,7 @@
       type-ff-black-leaf
       type-eof
       type-tuple
+      type-symbol
       )
 
    (begin
@@ -463,6 +464,7 @@
       ;   [hdr] [class-pointer] [field0] ... [fieldn]
       ;
       ; object representation conversion todo:
+      ;  - clear pair type collision and update pair?
       ;  - change type-old primop to clear header bit to check if there are further abstraction violations
       ;  - set header bits to 0
       ;  - slide type bits right by 1 bit
@@ -529,6 +531,7 @@
       (define type-ff-black-leaf     8)
       (define type-symbol            4)
       (define type-tuple             2)
+      (define type-symbol            4)
 
       ;; IMMEDIATE
       (define type-fix+              0)
