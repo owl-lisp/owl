@@ -79,8 +79,10 @@ typedef uintptr_t word;
 #define NUMHDR                      make_header(3,9)
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       make_immediate(0,13)
-#define IFALSE                      18   /* clash */ 
-#define ITRUE                       274
+#define IFALSE                      make_immediate(1,13)
+#define ITRUE                       make_immediate(2,13)
+#define IEMPTY                      make_immediate(3,13) /* empty ff */
+#define IEOF                        make_immediate(4,13)
 #define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
 #define TTUPLE                      2
 #define TFF                         8
@@ -449,9 +451,16 @@ word get_nat() {
 word *get_field(word *ptrs, int pos) {
    if (0 == *hp) {
       unsigned char type;
+      word val;
       hp++;
       type = *hp++;
-      *fp++ = make_immediate(get_nat(), type);
+      val = make_immediate(get_nat(), type);
+      /* .-- these can be removed after fasl image update
+         |     
+         v   */
+      val = (val ==  18) ? IFALSE : val; // old false
+      val = (val == 274) ?  ITRUE : val; // old true
+      *fp++ = val;
    } else {
       word diff = get_nat();
       if (ptrs != NULL) *fp++ = ptrs[pos-diff];
@@ -732,9 +741,8 @@ static word prim_sys(int op, word a, word b, word c) {
             return (word)res;
          }
          fp = res;
-         if (n == 0) { /* EOF */
-            return make_immediate(0, 20); 
-         }
+         if (n == 0)
+            return IEOF;
          return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
       case 6:
          EXIT(fixval(a)); /* stop the press */
@@ -1087,7 +1095,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op10: { /* type o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F(ob&4091); /* TODO: restore 4 after header change is done */
+      R[*ip++] = F(ob&4091);
       NEXT(0); }
    op11: { /* jit2 a t ol oh */
       word a = R[*ip];
@@ -1108,7 +1116,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op15: { /* type-byte o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>3)&255); /* take just the 8-bit type tag */
+      R[*ip++] = F((ob>>3)&63); /* take just the type tag (going to 31) */
       NEXT(0); }
    op16: /* jv[which] a o1 a2*/
       if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 

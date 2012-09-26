@@ -159,8 +159,11 @@
    (import (owl defmac))
 
    (begin
+      (define eof-value
+         (cast 4 13))
       (define (eof? x) 
-         (eq? type-eof (type x)))))
+         ;(eq? type-eof (type x))
+         (eq? x eof-value))))
 
 (import (owl render))
  

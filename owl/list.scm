@@ -46,6 +46,7 @@
       (owl boolean))
 
    (begin
+
       (define null '())
 
       (define (pair? x) (eq? type-pair (type x)))
