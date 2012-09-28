@@ -41,6 +41,7 @@
       remainder modulo
       truncate round
       rational complex
+      *max-fixnum*
       )
 
    (import
@@ -242,15 +243,17 @@
 
       (define big-one (ncons 1 null))
 
+      (define *max-fixnum* #xffff)
+
       (define (nat-inc n)
          (cond
             ((teq? n fix+)
-               (if (eq? n #xffff)
+               (if (eq? n *max-fixnum*)
                   (ncons 0 big-one)
                   (lets ((n x (fx+ n 1))) n)))
             ((teq? n int+)
                (let ((lo (ncar n)))
-                  (if (eq? lo #xffff)
+                  (if (eq? lo *max-fixnum*)
                      (ncons 0 (nat-inc (ncdr n)))
                      (lets ((lo x (fx+ lo 1)))
                         (ncons lo (ncdr n))))))
@@ -1083,7 +1086,7 @@
                   ((null? na)
                      (if (null? nb)
                         (let ((b-lead (ncar b)))
-                           (if (eq? b-lead #xffff)
+                           (if (eq? b-lead *max-fixnum*)
                               (if (eq? n 0)
                                  0
                                  (shift-local-down (ncar a) #x7fff (subi n 1)))
@@ -1166,7 +1169,7 @@
                   (cond
                      ((null? dr) (values tl dr)) ; failed below
                      (dr
-                        (let ((d (subi d 1))) ; int- (of was -#xffff), fix- or fix+
+                        (let ((d (subi d 1))) ; int- (of was -*max-fixnum*), fix- or fix+
                            (if (negative? d)
                               (values (ncons (add d #x10000) tl) #true) ; borrow
                               (values (ncons d tl) #false))))
@@ -1250,7 +1253,7 @@
             (lets ((rb (nrev b)))
                (if (lesser? #b0000111111111111 (ncar rb))
                   ; scale them to get a more fitting head for b
-                  ; and also get rid of the special case where it is #xffff
+                  ; and also get rid of the special case where it is *max-fixnum*
                   (>> (nat-rem-reverse (<< a 8) (<< b 8)) 8)
                   (let ((r (rrem (nrev a) rb)))
                      (cond

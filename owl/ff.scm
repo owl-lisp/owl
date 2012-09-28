@@ -106,6 +106,8 @@
       (define ff-iter ff->list)
 ))
 
+
+
 (define-library (owl ff)
    (export 
       get         ; O(log2 n), ff x key x default-value -> value | default-value 
@@ -147,6 +149,7 @@
 
       (define empty-ff #false)   
 
+      ;; todo: test how much slower it would be if this was on lisp side without vm support
       (define-syntax wiff
          (syntax-rules ()
             ((wiff (name l k v r) . rest)
@@ -262,16 +265,17 @@
 
       ;;; plain bytecoded versions for testing ----------------------------------
 
-      ;(define (get ff key def)
-      ;   (if ff
-      ;      (wiff (ff l k v r)
-      ;         (cond
-      ;            ((eq? key k) v)
-      ;            ((lesser? key k) (get l key def))
-      ;            (else (get r key def))))
-      ;      def))
-      (define (get ff key def) 
-         (ff key def))
+      (define (get ff key def)
+         (if ff
+            (wiff (ff l k v r)
+               (cond
+                  ((eq? key k) v)
+                  ((lesser? key k) (get l key def))
+                  (else (get r key def))))
+            def))
+
+      ;(define (get ff key def) 
+      ;   (ff key def))
 
       ;; ff key val -> ff' | #false
       (define (ff-update ff key val)

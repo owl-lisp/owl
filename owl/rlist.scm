@@ -26,7 +26,7 @@
 		rlist->list ; O(n)
 		list->rlist ; O(n log n), temp
 		rlist			; (rlist ...) -> rl
-      rrev   ; O(n log n)
+      rrev        ; O(n log n)
 		) 
 		
 		; *   (equal? rl rl') = #true, but not necessarily (eq? rl rl')
@@ -57,16 +57,17 @@
 
       (define-syntax node
          (syntax-rules ()
-            ((node a l r) (mkt 42 a l r))))
+            ((node a l r) (mkt type-rlist-node a l r))))
 
       (define-syntax if-node
          (syntax-rules (teq? alloc)
             ((if-node val a b)
-               (if (eq? (type val) 42) a b))))
+               (if (eq? (type val) type-rlist-node)
+                  a b))))
 
       (define-syntax spine
          (syntax-rules ()
-            ((spine w t rl) (mkt 10 w t rl))))
+            ((spine w t rl) (mkt type-rlist-spine w t rl))))
 
       ;; cons 
 

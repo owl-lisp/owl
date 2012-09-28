@@ -48,6 +48,7 @@ typedef uintptr_t word;
 
 /*** Macros ***/
 
+#define IPOS                        12 /* position of immediate payload, on the way to 8 */
 #define SPOS                        16 /* position of size bits in header immediate values */
 #define TPOS                        3  /* current position of type bits in header, on the way to 2 */
 #define V(ob)                       *((word *) (ob))
@@ -56,7 +57,7 @@ typedef uintptr_t word;
 #define FBITS                       16           /* bits in fixnum (and immediate payload width) */
 #define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
-#define make_immediate(value, type) (((value) << 12)  | ((type) << TPOS) | 2)
+#define make_immediate(value, type) (((value) << IPOS)  | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
 #define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2050 | ((p) << 8))
 #define F(val)                      (((val) << 12) | 2) 
@@ -429,7 +430,7 @@ word strp2owl(char *sp) {
    if (!sp) return IFALSE;
    len = lenn(sp, FMAX+1);
    if (len == FMAX+1) return INULL; /* can't touch this */
-   res = mkbvec(len, 11); /* make a bvec instead of a string since we don't know the encoding */
+   res = mkbvec(len, TBYTES); /* make a bvec instead of a string since we don't know the encoding */
    bytecopy(sp, ((char *)res)+W, len);
    return (word)res;
 }
@@ -972,19 +973,20 @@ word vm(word *ob, word *args) {
 apply: /* apply something at ob to values in regs, or maybe switch context */
    //fprintf(stderr, "VM APPLY\n");
    if (likely(allocp(ob))) {
-      word hdr = *ob & 4091; /* TODO: back to 4095 after header bit is zeroed */ 
-      if (hdr == 258) { /* proc  */ 
+      word hdr = *ob & 4095; /* cut size out, take just header info */
+      if (hdr == make_header(0,TPROC)) { /* proc  */ 
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if (hdr == 514) { /* clos */
+      } else if (hdr == make_header(0,TCLOS)) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      } else if ((hdr&255) == 66) { /* ff of any color, (<ff> key def) -> val */
+      /* } else if ((hdr&255) == 66) {
          word *cont = (word *) R[3];
+         fprintf(stderr, "callable ff:s temporarily not supported\n");
          if (acc == 3) {
             R[3] = prim_get(ob, R[4], R[5]); 
          } else if (acc == 2) {
-            R[3] = prim_get(ob, R[4], (word) 0); /* 0 is invalid owl value */
-            if (!R[3]) { /* domain error */
+            R[3] = prim_get(ob, R[4], (word) 0);
+            if (!R[3]) {
                error(260, ob, R[4]);
             }
          } else {
@@ -992,10 +994,10 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          }
          ob = cont;
          acc = 1;
-         goto apply;
-      } else if ((hdr & 2303) != 2050 && ((hdr >> TPOS) & 63) != 31) { /* not even code */
+         goto apply; */
+      } else if ((hdr & 2303) != 2050 && ((hdr >> TPOS) & 63) != 16) { /* not even code */
          error(259, ob, INULL);
-      } 
+      }
       if (unlikely(!ticker--)) goto switch_thread;
       ip = ((unsigned char *) ob) + W;
       goto invoke;
@@ -1113,12 +1115,13 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       R[*ip++] = load_imms[op>>6];
       NEXT(0);
    op14: R[ip[1]] = F(*ip); NEXT(2);
-   op15: { /* type-byte o r */
+   op15: { /* type-byte o r <- actually sixtet */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>3)&63); /* take just the type tag (going to 31) */
+      R[*ip++] = F((ob>>3)&63); /* take just the type tag */
       NEXT(0); }
    op16: /* jv[which] a o1 a2*/
+      /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
       if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
       NEXT(3); 
    op17: /* narg n, todo: add argument listing also here or drop */
@@ -1231,6 +1234,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word a = (fixval(A0)<<FBITS) | fixval(A1); 
       word b = fixval(A2);
       word q;
+      /* FIXME: b=0 should be explicitly checked for at lisp side */
       if (unlikely(b == 0)) {
          error(26, F(a), F(b));
       }
@@ -1317,25 +1321,29 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A1 = BOOL(errno == EINTR);
       NEXT(2); }
    op38: { /* fx+ a b r o, types prechecked, signs ignored */
-      /* values are (n<<12)|2*/
-      word res = ((A0 + A1) & 0x1ffff000) | 2;
+      /* values are (n<<IPOS)|2*/
+      /* word res = ((A0 + A1) & 0x1ffff000) | 2; <- no hacks during immediate and range transition
       if (res & 0x10000000) {
          A2 = res & 0xffff002;
          A3 = ITRUE;
       } else {
          A2 = res;
          A3 = IFALSE;
-      }
+      } */
+      word res = fixval(A0) + fixval(A1);
+      word low = res & FMAX;
+      A3 = (res & (1 << FBITS)) ? ITRUE : IFALSE;
+      A2 = F(low);
       NEXT(4); }
    op39: { /* fx* a b l h */
-      word res = fixval(R[*ip]) * fixval(A1);
+      word res = fixval(R[*ip]) * fixval(A1); /* <- danger! won't fit word soon */
       A2 = F(res&FMAX);
       A3 = F((res>>FBITS)&FMAX);
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
-      word r = (A0|0x10000000) - (A1 & 0xffff000);
-      A3 = (r & 0x10000000) ? IFALSE : ITRUE;
-      A2 = r & 0xffff002;
+      word r = (fixval(A0)|(1<<FBITS)) - fixval(A1);
+      A3 = (r & (1<<FBITS)) ? IFALSE : ITRUE;
+      A2 = F(r&FMAX);
       NEXT(4); }
    op41: { /* red? node r (has highest type bit?) */
       word *node = (word *) R[*ip];
@@ -1438,7 +1446,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op57: { /* bxor a b r, prechecked */
       word a = R[*ip];
       word b = A1;
-      A2 = a ^ (b ^ 2); /* clear fixnum tag from b */
+      A2 = a ^ (b & (FMAX << IPOS)); /* inherit a's type info */
       NEXT(3); }
    op58: { /* fx>> a b hi lo */
       word r = fixval(A0) << (FBITS - fixval(A1));

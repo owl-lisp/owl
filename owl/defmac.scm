@@ -16,7 +16,6 @@
       immediate? allocated? raw?
 
       type-bytecode
-      type-bytecode-2     ;; new type, both need to work during transition
       type-proc
       type-clos
       type-fix+
@@ -29,8 +28,11 @@
       type-eof
       type-tuple
       type-symbol
-      type-bool
       type-const
+      type-rlist-spine
+      type-rlist-node
+
+      type-deprecated         ; used only while moving types
       )
 
    (begin
@@ -352,9 +354,11 @@
                (let ((type (ref tuple 1)))
                   (tuple-case 42 tuple type case ...)))))
 
+      ;; FIXME: now fetches type on each test. take it later just once after removing the (teq? ..) cases
+      ;; FIXME: remove the new keyword later. now needed to differentiate between old immediates and type ids
       (define-syntax type-case
          (syntax-rules 
-            (else -> teq? imm alloc)
+            (else -> teq? imm alloc new)
             
             ((type-case ob (else . more))
                (begin . more))
@@ -363,12 +367,16 @@
             ((type-case (op . args) . rest)
                (let ((foo (op . args)))
                   (type-case foo . rest)))
-            ((type-case ob (type -> name . then) . more)
+            ((type-case ob ((new id) . then) . else) ;; new types
+               (if (eq? id (type ob))
+                  (begin . then)
+                  (type-case ob . else)))
+            ((type-case ob (type -> name . then) . more) ;; old, remove later
                (if (teq? ob type)
                   (let ((name ob)) . then)
                   (type-case ob . more)))
-            ((type-case ob (pat . then) . more)
-               (if (teq? ob pat)
+            ((type-case ob (type . then) . more) ;; old, remove later
+               (if (teq? ob type)
                   (begin . then)
                   (type-case ob . more)))))
 
@@ -453,7 +461,8 @@
       ;  [pppppppp pppppppp pppppppp tttttti0]
       ;   '-------------------------------|
       ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
-      ;  object headers are further
+      ;
+      ; object headers are further
       ;
       ;                         RPPP
       ;  [ssssssss ssssssss ________ tttttt10]
@@ -466,14 +475,14 @@
       ;   [hdr] [class-pointer] [field0] ... [fieldn]
       ;
       ; object representation conversion todo:
+      ;  - get rid of all uses of type-old
+      ;     + involves type juggling to avoid collisions in reduced bit range
+      ;     + types need to fit 5 bits before header bit space is freed
       ;  - convert hardcoded constants everywhere to macros or exported static globals
       ;     + could add a type macro later if needed, 
       ;        (is? foo pair) == (eq? (type foo) (type-id-of pair)) 
       ;                       == (eq? (type foo) 1)
       ;  - slide type bits right by 1 bit
-      ;  - squeeze types to fit 6 bits
-      ;     + have things that would benefit from bitwise access in VM be in aligned types with sufficient spare low bits
-      ;       o ff nodes?
       ;  - move immediate payloads
       ;  - switch fixnum size
       ;  - fix bignum math to work with compile-time settable n-bit fixnums
@@ -481,30 +490,48 @@
       ;  - add user definable record type support 
       ;     + would be nice to have some support for algebraic data types using them
       ;     + switch the compiler to use them to make the intermediate language structure more explicit
+      ;     + would be nice to have something like:
+      ;         (match foo
+      ;            ((cons a b) ..) ; <- primitive type
+      ;            (null ...)      ; <- immediate value from env? or require '() or #null?
+      ;            ((slartibartfast fjordname length dimension) ...) ; <- record type
+      ;            (else ...))
+      ;  - remove teq and deprecated type jump instructions
+      ;              
+
+      ;; type to which old type is moved while changing
+      (define type-deprecated       43) ;; vector dispatch
+
+      ;; note - there are 6 type bits, but one is currently wasted in old header position
+      ;; to the right of them, so all types must be <32 until they can be slid to right 
+      ;; position.
 
       ;; ALLOCATED
-      (define type-bytecode-2       31) ;; new type has to be &31 first
-      (define type-bytecode          0)
-      (define type-proc             32)
-      (define type-clos             64)
+      (define type-bytecode          0) ;; going to 16
+      (define type-proc             32) ;; going to 17
+      (define type-clos             64) ;; going to 18
       (define type-pair              1)
-      (define type-vector-dispatch  43)
+      (define type-vector-dispatch  15)
       (define type-vector-leaf      11)
-      (define type-vector-raw      171) ;; RAW
+      (define type-vector-raw       19) ;; going 171 -> 19, see also TBYTES in c/ovm.c
       (define type-ff-black-leaf     8)
       (define type-symbol            4)
       (define type-tuple             2)
       (define type-symbol            4)
+      (define type-rlist-node       14)
+      (define type-rlist-spine      10)
 
       ;; IMMEDIATE
       (define type-fix+              0)
       (define type-fix-             32)
       (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
-      (define type-bool              2) ;; clash with tuples
 
-      
+      ;;           allocated/pointers     allocated/rawdata    immediate
+      ;; (size  x)         n                       n               #false
+      ;; (sizeb x)       #false                    n               #false
+
       (define (immediate? obj) (eq? #false (size obj)))
       (define allocated? size)
-      (define raw? sizeb)
+      (define raw?       sizeb)
 ))
