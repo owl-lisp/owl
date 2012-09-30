@@ -1,55 +1,143 @@
-#!/bin/sh
+#!/bin/bash
 
-## TODO: convert to output an RSS feed which can be muxed to wgo
+# a script to build owl and some related tools periodically from scratch.
+# you probably don't want to run this.
 
-renice +20 $$ > /dev/null 2>&1 # make sure we're being nice
+WORK=$HOME/ram # normally a ramdisk, don't want to ssds too much
 
-cd $HOME/ram/owl-lisp || exit 1
+notify() {
+	mailx -S "from=Note <$(whoami)@$(hostname --long)>" -S smtp=mail.panoulu.net -s "$(echo $@)" aohelin@gmail.com
+}
 
-ulimit -c unlimited # save core if we happen to trigger something nasty
+notify_irc() {
+	echo "IRC NOTIFICATION: $1"
+	echo -e "NICK $(hostname)-$$\nUSER builder 8 x $(hostname -s) $(hostname -d)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT" | nc irc.freenode.net 6667
+}
 
-echo "Running on `date`"
+renice +20 $$
 
-# maybe run a round of unit tests
-test -x bin/ol && (\
-   ME=`date '+%s'`; \
-   echo " - tests at `date`"; \
-   make random-test > test-$ME.txt 2>&1 \
-      && date >> test-runs \
-      || ( cp test-$ME.txt $HOME/aoh/owl/logs/fail-$ME.txt; \
-           twidge update "Ay, caramba! Test failure after `cat test-runs | wc -l` rounds. See http://haltp.org/aoh/owl/logs/fail-$ME.txt"; \
-           rm bin/ol-failed; \
-           mv bin/ol bin/ol-failed;))
+date | notify "Builder.sh started on $(hostname)"
+date | notify_irc "builder started on $(hostname)"
 
-rm test-*.txt
+test -d $WORK || {
+   echo "work directory '$WORK' doesn't exist";
+   exit 2;
+}
 
-ROUNDS=`cat test-runs | wc -l`
-echo $ROUNDS | grep "10000$" && twidge update "$ROUNDS unit test rounds passed since last commit."
+thisgit() {
+   git log | head -n 1 | sed -e 's/.* \(......\).*/\1.../'
+}
 
-# don't use all cpu
-# sleep 1
+cd $WORK
 
-# recurse unless updated
-test -f $HOME/owl-updated || exec bin/builder
+test -d owl-lisp || git clone http://haltp.org/git/owl-lisp.git
+test -d radamsa  || git clone http://haltp.org/git/radamsa.git
+test -d blab     || git clone http://haltp.org/git/blab.git
 
-# pull, rebuild and report
-make clean;
-echo "" > test-runs
-WHO=`cat $HOME/owl-updated`
-ME=`date '+%s'`
-OUT="$HOME/aoh/owl/logs/build-$ME.txt"
-rm $HOME/owl-updated $HOME/owl-ok
-git pull > $OUT 2>&1 
-echo "" >> $OUT
-git show -s HEAD^{commit} >> $OUT
-echo "" >> $OUT
-MSG=`git show -s HEAD^{commit} | tail -n 1 | sed -e 's/^[ \t]*//' | dd bs=1 count=50 2>/dev/null`
-STATUS=`make >> $OUT && echo -n "ok" 2>&1 || echo -n "BAD"`
-chmod oug+r $HOME/aoh/owl/logs/*.txt
-twidge update "Push by $WHO, status $STATUS: \"$MSG\" (http://haltp.org/aoh/owl/logs/build-$ME.txt)"
+ROUNDS=100      # unit test rounds
+THEOREMS=1000   # iterations of theorem test
+TIMELIMIT=3000  # max build seconds
 
-# tailcall possibly updated self unless a core has been left
+while true
+do
+	cd $WORK
 
-test -f *core* && { twidge update "O_ops, I seem to have dropped a core."; exit 2; }
+	echo "Build cycle on $(date)"
 
-exec bin/builder
+	## BUILD OWL
+
+	echo " - fresh owl build"
+	cd owl-lisp
+	git pull
+	make clean
+	VERSION=$(thisgit)
+	echo building owl
+	(ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || { 
+		# notify on first try
+		echo build failed
+		test "$(cat .lastbuild)" = "$VERSION" \
+			|| notify_irc "aoh, clean owl build FAILED for $VERSION on $(hostname)"
+		echo "$VERSION" > .lastbuild # don't talk about this one anymore
+		sleep 300;
+		continue; # don't try to do the rest, owl is broken
+	}
+	# notify if this is a new version
+	test "$(cat .lastbuild)" = "$VERSION" \
+		|| notify_irc "clean owl build succeeded for $VERSION on $(hostname)"
+	echo $VERSION > .lastbuild
+
+
+   ## BUILD RADAMSA 
+
+   cd $HOME/ram
+	echo " - fresh radamsa build"
+	cd radamsa
+	git pull
+	make clean
+	rm -rf owl-lisp
+	cp -a ../owl-lisp .
+	VERSION="radamsa $(thisgit), owl $(cd owl-lisp && thisgit)"
+	(ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || {
+		test "$(cat .lastbuild)" = "$VERSION" \
+			|| notify_irc "aoh, radamsa build FAILED for $VERSION: $(cat build.log | grep ERROR | head -n 1)"
+		echo "$VERSION" > .lastbuild
+		notify "Radamsa build failed on $(hostname)" < build.log;
+		echo "FAIL";
+	}
+	test "$(cat .lastbuild)" = "$VERSION" \
+		|| notify_irc "build success for $VERSION"
+	echo "updated version to $VERSION"
+	echo $VERSION > .lastbuild
+
+
+   ## BUILD BLAB 
+
+	cd $HOME/ram
+	echo " - fresh blab build"
+	cd blab
+	git pull
+	make clean
+	rm -rf owl-lisp
+	cp -a ../owl-lisp .
+	VERSION="blab $(thisgit), owl $(cd owl-lisp && thisgit)"
+	(ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || {
+		test "$(cat .lastbuild)" = "$VERSION" \
+			|| notify_irc "aoh, blab build FAILED for $VERSION: $(cat build.log | grep ERROR | head -n 1)"
+		notify "Blab build failed on $(hostname)" < build.log;
+		echo "$VERSION" > .lastbuild
+		echo "FAIL";
+	}
+	test "$(cat .lastbuild)" = "$VERSION" \
+		|| notify_irc "build success for $VERSION"
+	echo "updated version to $VERSION"
+	echo $VERSION > .lastbuild
+
+
+   ## RANDOMIZED UNIT TESTS
+
+	cd $WORK/owl-lisp
+	VERSION=$(thisgit)
+	echo " - running $ROUNDS randomized owl unit test rounds"
+	for round in $(seq $ROUNDS)
+	do
+		echo "    + $round/$ROUNDS"
+		(ulimit -S -t $TIMELIMIT; make random-test > test.log 2>&1) || {
+			notify "Owl random test failed on $(hostname)" < test.log;
+         notify_irc "aoh, randomized test FAILED on $(hostname) using owl $VERSION";
+			sleep 60;
+			continue;
+		}
+	done
+
+
+   ## THEOREM TEST ONLY 
+
+   SEED=$(echo -n $$; bin/ol -e '(time-ms)')
+	VERSION=$(thisgit)
+	echo " - running theorem test for a while with seed $SEED"
+	bin/ol --run tests/theorem-rand.scm --seed $SEED -n $THEOREMS &> random.log || { cp random.log /tmp; notify_irc "aoh, theorem test FAILED on $(hostname) with seed $SEED, owl $VERSION"; }
+
+   sleep 10
+
+done
+
