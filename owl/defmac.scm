@@ -31,9 +31,7 @@
       type-const
       type-rlist-spine
       type-rlist-node
-
-      type-deprecated         ; used only while moving types
-      )
+   )
 
    (begin
 
@@ -443,17 +441,6 @@
       ;;; TYPE TAGS
       ;;;
       ;
-      ; OLD TAGS
-      ;
-      ;  [r hhhlllll hig]  <- 12 bits for object identification
-      ;   | '-+'---+ ||'-> gc bit, 0 while running
-      ;   |   |    | |'--> immediate?
-      ;   |   |    | '---> header?
-      ;   |   |    '-----> type/low 5 bits
-      ;   |   '----------> type/variant (if any)
-      ;   '--------------> rawness
-      ;
-      ; NEW TAGS
       ;                            .------------> 24-bit payload if immediate
       ;                            |      .-----> type tag if immediate
       ;                            |      |.----> immediateness
@@ -471,37 +458,6 @@
       ;                   |        '------------> tags notifying about special freeing needs for gc (fds), rawness, padding bytes, etc non-type info
       ;                   '--------------------->
       ;  
-      ;  user defined record types:
-      ;   [hdr] [class-pointer] [field0] ... [fieldn]
-      ;
-      ; object representation conversion todo:
-      ;  - get rid of all uses of type-old
-      ;     + involves type juggling to avoid collisions in reduced bit range
-      ;     + types need to fit 5 bits before header bit space is freed
-      ;  - convert hardcoded constants everywhere to macros or exported static globals
-      ;     + could add a type macro later if needed, 
-      ;        (is? foo pair) == (eq? (type foo) (type-id-of pair)) 
-      ;                       == (eq? (type foo) 1)
-      ;  - slide type bits right by 1 bit
-      ;  - move immediate payloads
-      ;  - switch fixnum size
-      ;  - fix bignum math to work with compile-time settable n-bit fixnums
-      ;     + default to 24, try out 56 and maybe later support both
-      ;  - add user definable record type support 
-      ;     + would be nice to have some support for algebraic data types using them
-      ;     + switch the compiler to use them to make the intermediate language structure more explicit
-      ;     + would be nice to have something like:
-      ;         (match foo
-      ;            ((cons a b) ..) ; <- primitive type
-      ;            (null ...)      ; <- immediate value from env? or require '() or #null?
-      ;            ((slartibartfast fjordname length dimension) ...) ; <- record type
-      ;            (else ...))
-      ;  - remove teq and deprecated type jump instructions
-      ;              
-
-      ;; type to which old type is moved while changing
-      (define type-deprecated       43) ;; vector dispatch
-
       ;; note - there are 6 type bits, but one is currently wasted in old header position
       ;; to the right of them, so all types must be <32 until they can be slid to right 
       ;; position.
@@ -521,6 +477,7 @@
       (define type-rlist-node       14)
       (define type-rlist-spine      10)
 
+      ; 8 - black ff leaf
       ;; IMMEDIATE
       (define type-fix+              0)
       (define type-fix-             32)

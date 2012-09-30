@@ -60,16 +60,16 @@ typedef uintptr_t word;
 #define make_immediate(value, type) (((value) << IPOS)  | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
 #define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2050 | ((p) << 8))
-#define F(val)                      (((val) << 12) | 2) 
+#define F(val)                      (((val) << IPOS) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
-#define fixval(desc)                ((desc) >> 12)
+#define fixval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc)&4095) == 2)
 #define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32*/
 #define RAWBIT                      2048
 #define header(x)                   *(word *x)
 #define imm_type(x)                 (((x) >> TPOS) & 0xff) /* todo, width changes to 6 bits soon */
-#define imm_val(x)                  ((x) >> 12)
+#define imm_val(x)                  ((x) >> IPOS)
 #define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               (((word)x)&2)
 #define allocp(x)                   (!immediatep(x))
@@ -572,9 +572,9 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
          return ff[2];
       hdr = *ff;
       if (prim_less(key, this) == ITRUE) {
-         ff = (word *) ((hdr & (FFLEFT << 3)) ? ff[3] : IFALSE); /* left branch always at 3, if any */
-      } else if (hdr & (FFRIGHT << 3)) {
-         ff = (word *) ((hdr & (FFLEFT << 3)) ? ff[4] : ff[3]); /* right pos depends on if there is a left branch */
+         ff = (word *) ((hdr & (FFLEFT << TPOS)) ? ff[3] : IFALSE); /* left branch always at 3, if any */
+      } else if (hdr & (FFRIGHT << TPOS)) {
+         ff = (word *) ((hdr & (FFLEFT << TPOS)) ? ff[4] : ff[3]); /* right pos depends on if there is a left branch */
       } else {
          return def;
       }
@@ -1101,13 +1101,13 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op11: { /* jit2 a t ol oh */
       word a = R[*ip];
-      if (immediatep(a) && ((a>>3)&0xff) == ip[1]) {
+      if (immediatep(a) && imm_type(a) == ip[1]) {
          ip += ip[2] + (ip[3] << 8);
       }
       NEXT(4); }
    op12: { /* jat2 a t ol oh */
       word a = R[*ip];
-      if (allocp(a) && ((V(a)>>3)&0x1ff) == ip[1]) {
+      if (allocp(a) && imm_type(V(a)) == ip[1]) { /* <- warning, matches raw now */
          ip += ip[2] + (ip[3] << 8);
       }
       NEXT(4); }
@@ -1118,7 +1118,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op15: { /* type-byte o r <- actually sixtet */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>3)&63); /* take just the type tag */
+      R[*ip++] = F((ob>>TPOS)&63); /* take just the type tag */
       NEXT(0); }
    op16: /* jv[which] a o1 a2*/
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
@@ -1286,7 +1286,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op33: { /* jrt a t o, jump by raw type (ignoring padding info) */
       word a = R[*ip];
-      if (allocp(a) && (*(word *)a & 2296) == (2048 | (ip[1]<<3))) {
+      if (allocp(a) && (*(word *)a & 2296) == (2048 | (ip[1]<<TPOS))) {
          ip += ip[2];
       }
       NEXT(3); }
@@ -1308,9 +1308,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(4); }
    op36: { /* size o r */
-      word *ob = (word *) R[*ip++];
+      word *ob = (word *) R[*ip];
       R[*ip++] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
-      NEXT(0); }
+      NEXT(1); }
    op37: { /* ms r */
 #ifndef WIN32
       if (!seccompp)
@@ -1347,7 +1347,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(4); }
    op41: { /* red? node r (has highest type bit?) */
       word *node = (word *) R[*ip];
-      A1 = BOOL(allocp(node) && ((*node)&(FFRED<<3)));
+      A1 = BOOL(allocp(node) && ((*node)&(FFRED<<TPOS)));
       NEXT(2); }
    op42: /* mkblack l k v r t */ 
       A4 = prim_mkff(TFF,A0,A1,A2,A3);
@@ -1368,7 +1368,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       new = fp;
       h = *node++;
       A1 = (word) new;
-      *new++ = (h^(FFRED<<3));
+      *new++ = (h^(FFRED<<TPOS));
       switch(hdrsize(h)) {
          case 5:  *new++ = *node++;
          case 4:  *new++ = *node++;
@@ -1385,7 +1385,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op49: { /* withff node l k v r */
       word hdr, *ob = (word *) R[*ip];
       assert(allocp(ob), ob, 49);
-      hdr = *ob++ >> 3;
+      hdr = *ob++ >> TPOS;
       assert(((hdr&31)==TFF),ob,49) 
       A2 = *ob++; /* key */
       A3 = *ob++; /* value */
