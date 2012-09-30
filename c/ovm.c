@@ -1308,9 +1308,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(4); }
    op36: { /* size o r */
-      word *ob = (word *) R[*ip];
-      R[*ip++] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
-      NEXT(1); }
+      word *ob = (word *) R[ip[0]];
+      R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
+      NEXT(2); }
    op37: { /* ms r */
 #ifndef WIN32
       if (!seccompp)
