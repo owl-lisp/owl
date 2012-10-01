@@ -11,13 +11,13 @@ notify() {
 
 notify_irc() {
 	echo "IRC NOTIFICATION: $1"
-	echo -e "NICK $(hostname)-$$\nUSER builder 8 x $(hostname -s) $(hostname -d)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT" | nc irc.freenode.net 6667
+	echo -e "NICK $(hostname)-$$\nUSER builder 8 x $(hostname -s) $(hostname -d)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT" | nc -i 5 -q 10 irc.freenode.net 6667
 }
 
 renice +20 $$
 
 date | notify "Builder.sh started on $(hostname)"
-date | notify_irc "builder started on $(hostname)"
+date | notify_irc "builder started on $(hostname) ($(uname -m))"
 
 test -d $WORK || {
    echo "work directory '$WORK' doesn't exist";
