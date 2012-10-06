@@ -38,10 +38,10 @@
 (define input '(+ (* 3 x x) (* a x x) (* b x) 5))
 
 (define (test args)
-	(let loop ((n 100000) (last null))
+	(let loop ((n 2000000) (last null))
 		(if (eq? n 0)
 			(if (equal? last output)
-				(print (cons 42 null))
+				(print "OK")
 				(print last))
 			(loop (- n 1) (deriv input)))))
 

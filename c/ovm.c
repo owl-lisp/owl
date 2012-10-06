@@ -75,7 +75,7 @@ typedef uintptr_t word;
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr)&RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
-#define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* faster for newer machines, bigger vm */
+#define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
 #define PAIRHDR                     make_header(3,1)
 #define NUMHDR                      make_header(3,9)
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)

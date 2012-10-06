@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# TODO: needed also a convenient way to compare fasl/init.fasl to fasl/ol.fasl
+# TODO: pretty autoupdating graphs to somewhere in http://haltp.org/
+# TODO: metametrics (fasl size, lines of code, etc) + how to handle in overview?
+
+BESTOF=5
+
+# check deps in case someone tries to run this elsewhere
+for dep in ol time seq
+do
+   test -x "/usr/bin/$dep" || { echo "I demand /usr/bin/$dep"; exit 1; }
+done
+
+ulimit -S -t 600 # kill overly long running benchmark (implies broken owl or microcontroller)
+
+# cmd → print time in ms
+owltime() {
+   START=$(ol -e '(time-ms)')
+   $@ | grep -q "^OK$" || { echo "Test failed: $@"; exit 2; } # maybe should report 0 and carry on
+   ol -e "(- (time-ms) $START)"
+}
+
+# bench/foo.scm → print best-of-$BESTOF time in ms
+besttime() {
+   BESTFASL=1333333337
+   BESTBIN=1333333337
+
+   # fasl time
+   for round in $(ol -e "(iota 0 1 $BESTOF)") # "(0" "1" "2)"
+   do
+      THIS=$(owltime bin/vm fasl/ol.fasl --run $1)
+      test "$THIS" -lt "$BESTFASL" && BESTFASL="$THIS"
+   done
+
+   # binary time
+   BIN="./$(echo $1 | sed 's/\.scm$//')"
+   cat $1 | bin/ol -x c -O2 -o - | gcc -x c -O2 -o $BIN -
+   for round in $(ol -e "(iota 0 1 $BESTOF)") # "(0" "1" "2)"
+   do
+      THIS=$(owltime $BIN)
+      test "$THIS" -lt "$BESTBIN" && BESTBIN="$THIS"
+   done
+
+   echo "$1: ${BESTFASL}ms fasl, ${BESTBIN}ms binary"
+}
+
+for benchmark in bench/*.scm
+do
+   besttime $benchmark
+done

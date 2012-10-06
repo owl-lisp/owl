@@ -79,9 +79,10 @@
 
 (define (test args)
 	(display "crunching: ")
-	(let loop ((n 50) (last 0))
+	(let loop ((n 130) (last 0))
 		(if (= n 0)
-         (list (- last 65494))
+         (if (= last 65536)
+            (print "\nOK"))
 			(begin
 				(display "* ")
 				(loop (- n 1) (compute))))))

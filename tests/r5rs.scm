@@ -196,7 +196,7 @@
                                       ===>  (a 3 4 5 6 b)
       `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))) 
                                       ===>  ((foo 7) . cons)
-      `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)
+      `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8) ;; note: will fail unless sqrt preserves exactness
                                      ===>  #(10 5 2 4 3 8)
 
      `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          
@@ -326,8 +326,8 @@
       (max 3.9 4)                     ===>  4.0  ; inexact ;; no it's not --owl
 
       ;; additions
-      (sqrt (expt 11111111111 2))     ===> 11111111111
-      (sqrt -4)                       ===> 0+2i
+      (sqrt (expt 11111111111 2))     ===> 11111111111 ;; note: will fail unless sqrt preserves exactness
+      (sqrt -4)                       ===> 0+2i ;; ditto
       (expt 0 0)                      ===> 1
       (expt 0 1)                      ===> 0
       (number->string 3333333333333333 2) 
