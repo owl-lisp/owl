@@ -129,6 +129,7 @@ do
 		echo "    + $round/$ROUNDS"
       sleep 30;
 		(ulimit -S -t $TIMELIMIT; make random-test > test.log 2>&1) || {
+         cp test.log /tmp/test-fail-$(ol -e '(time-ms)').log;
 			notify "Owl random test failed on $(hostname)" < test.log;
          notify_irc "aoh, randomized test FAILED on $(hostname) using owl $VERSION";
 			sleep 60;
