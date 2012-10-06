@@ -2,15 +2,21 @@
 
 # a script to build owl and some related tools periodically from scratch.
 # you probably don't want to run this.
+# TODO: integrate benchmark reporting after they have been updated
 
 WORK=$HOME/ram # normally a ramdisk, don't want to ssds too much
+EMAIL="aohelin@gmail.com"
+
+case "$(hostname)" in 
+ haltp) SMTP=mail.utanet.fi   ;;
+ *)     SMTP=mail.panoulu.net ;;
+esac
 
 notify() {
-	mailx -S "from=Note <$(whoami)@$(hostname --long)>" -S smtp=mail.panoulu.net -s "$(echo $@)" aohelin@gmail.com
+	mailx -S "from=Note <$(whoami)@$(hostname --long)>" -S smtp=$SMTP -s "$(echo $@)" $EMAIL
 }
 
 notify_irc() {
-	echo "IRC NOTIFICATION: $1"
 	echo -e "NICK $(hostname)-$$\nUSER builder 8 x $(hostname -s) $(hostname -d)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT" | nc -i 5 -q 10 irc.freenode.net 6667
 }
 
@@ -121,6 +127,7 @@ do
 	for round in $(seq $ROUNDS)
 	do
 		echo "    + $round/$ROUNDS"
+      sleep 30;
 		(ulimit -S -t $TIMELIMIT; make random-test > test.log 2>&1) || {
 			notify "Owl random test failed on $(hostname)" < test.log;
          notify_irc "aoh, randomized test FAILED on $(hostname) using owl $VERSION";
@@ -137,7 +144,7 @@ do
 	echo " - running theorem test for a while with seed $SEED"
 	bin/ol --run tests/theorem-rand.scm --seed $SEED -n $THEOREMS &> random.log || { cp random.log /tmp; notify_irc "aoh, theorem test FAILED on $(hostname) with seed $SEED, owl $VERSION"; }
 
-   sleep 10
+   sleep 60
 
 done
 
