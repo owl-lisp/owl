@@ -8,7 +8,7 @@
 
 (define (seek env val)
 	(cond
-		((null? env) False)
+		((null? env) #false)
 		((eq? (caar env) val) (cdar env))
 		(else (seek (cdr env) val))))
 
@@ -36,7 +36,7 @@
 		((and (pair? x) (pair? y))
 			(unify (cdr x) (cdr y)
 				(unify (car x) (car y) env)))
-		(else False)))
+		(else #false)))
 
 
 (define (apply-env exp env)
@@ -117,7 +117,7 @@
 
 	(define (end-cont)
 		(print "}")
-		False)
+		#false)
 
 	(define (forcer fk count)
 		(cond
@@ -141,7 +141,7 @@
 		(prove-term goal null
 			(lambda (subst fk)
             (let ((res (substitute goal subst)))
-               (show " - " (substitute goal subst))
+               (print " - " (substitute goal subst))
                (if (equal? res expected)
                   (print "correct: (42)")))
 				(forcer fk 1))
@@ -152,7 +152,7 @@
 (define (process- db exp)
 	(if (eq? (car exp) 'rule)
 		(begin
-			(show " + " exp)
+			(print " + " exp)
 			(append db (list (cdr exp))))
 		(begin
 			(prove db exp)
@@ -173,8 +173,10 @@
 			rule)))
 				
 (define (minilog exps)
-   (show " => " (car (reverse (fold process- '() (map preprocess exps)))))
+   (print " => " (car (reverse (fold process- '() (map preprocess exps)))))
    (list (+ 40 2)))
+
+;; () = 0, (x . a) = 1 + a, _ = anything
 
 (define (test args)
 	(minilog '(
@@ -187,39 +189,53 @@
 		(rule (= () (x . _) false))
 
 		(rule (+ () a a))
-		(rule (+ a () a))
+		;(rule (+ a () a))
 		(rule (+ (x . a) b (x . c)) 
 			(+ a b c))
 
 		(rule (- a b c) 
 			(+ c b a))
 
-		(rule (* () _ ()))
+		(rule (* () a ()))
+		;(rule (* a () ()))
 	 
 		(rule (* (x . a) b c)
 			(* a b d)
-			(+ d b c))
+			(+ d b c)
+         )
 	
       (rule (/ a b c) 
          (* b c a))
 
 		(rule (fakt () (x)))
 	 
-		(rule (fakt a b)
-			(- a (x) c)
+		(rule (fakt (x . c) b)
 			(fakt c d)
-			(* d a b))
+			(* c d f)
+         (+ f d b))
+   
+      (rule (sqrt a b)
+         (* b b a))
 
       (rule (self a b) ;; a! / (a-1)! = a
          (fakt a c)
          (- a (x) d)
          (fakt d e)
          (/ c e b)
-         ;(* a (x x) b)
          )
 
-      (fakt (x x x x) a)
-      (fakt (x x x x) a)
+      (fakt (x x x) a) ; 3! = 120
+      (fakt (x x x x) a) ; 4! = 120
+      (fakt (x x x x x) a) ; 5! = 120
+      (fakt (x x x x x) a) ; 5! = 120
+      (fakt (x x x x x) a) ; 5! = 120
+      (fakt (x x x x x) a) ; 5! = 120
+      (sqrt a (x x x x x))
+      (sqrt a (x x x x x))
+      (sqrt a (x x x x x))
+      (sqrt a (x x x x x))
+
+      (self (x x x) a)
 		)))
 
 test

@@ -1,5 +1,5 @@
 
-(define end 300000)
+(define end 100000)
 
 (define (work p)
    (if (= p end)
