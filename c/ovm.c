@@ -1094,7 +1094,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
       NEXT(4); 
    op9: R[ip[1]] = R[*ip]; NEXT(2);
-   op10: { /* type o r */
+   op10: { /* type-old o r */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
       R[*ip++] = F(ob&4091);
@@ -1118,7 +1118,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op15: { /* type-byte o r <- actually sixtet */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>TPOS)&63); /* take just the type tag */
+      R[*ip++] = F((ob>>TPOS)&255); /* take just the type tag, later &63 */
       NEXT(0); }
    op16: /* jv[which] a o1 a2*/
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */

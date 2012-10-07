@@ -15,18 +15,14 @@
 
    (begin
 
-      (define type-port       12)
-      (define type-socket     (fxbor type-port 32))
-      (define type-tcp-client (fxbor type-port 54))
-
-      (define (port? x)       (eq? (type-old x) 98))
-      (define (socket? x)     (eq? (type-old x) 354))
-      (define (tcp? x)        (eq? (type-old x) 498))
+      (define (port? x)       (eq? (type x) type-port))
+      (define (socket? x)     (eq? (type x) type-socket))
+      (define (tcp? x)        (eq? (type x) type-tcp-client))
 
       (define (fd->port fd)   (cast fd type-port))
       (define (fd->socket fd) (cast fd type-socket))
       (define (fd->tcp fd)    (cast fd type-tcp-client))
 
-      (define (port->fd port) (cast port 0))
+      (define (port->fd port) (cast port type-fix+))
 
 ))

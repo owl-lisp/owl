@@ -31,6 +31,9 @@
       type-const
       type-rlist-spine
       type-rlist-node
+      type-port 
+      type-socket
+      type-tcp-client
    )
 
    (begin
@@ -483,6 +486,10 @@
       (define type-fix-             32)
       (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
+      (define type-port             12)
+      (define type-socket           44)
+      (define type-tcp-client       62)
+
 
       ;;           allocated/pointers     allocated/rawdata    immediate
       ;; (size  x)         n                       n               #false

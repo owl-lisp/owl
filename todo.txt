@@ -1,5 +1,5 @@
 TODO QUEUE-ISH:
-  + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding ingo)
+  + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
     - raw strings  (padding)
     - byte vectors (padding)
     - ff nodes     (convert? new unbalanced nodes + rewrite soon?)

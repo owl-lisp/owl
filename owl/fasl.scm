@@ -103,8 +103,9 @@
             (send-biggish-num (>> num 7)
                (cons (band num #b01111111) tail))))
 
-      (define (type-byte-of val)
-         (fxband (>> (type-old val) 3) 255))
+      (define type-byte-of type)
+         ;(type-byte-of val)
+         ;(fxband (>> (type-old val) 3) 255)
 
       (define (enc-immediate val tail)
          (cons 0

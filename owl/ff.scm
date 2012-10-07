@@ -134,7 +134,7 @@
       (owl list))
 
    (begin
-      ;
+
       ; Based on Okasaki's book and code from a functional pearl.
       ; 
       ; The ff nodes are actually compressed. A leaf node takes 
@@ -145,7 +145,9 @@
       ; usually better than an association list.
 
       (define (ff? obj)
-         (eq? 64 (fxband (type-old obj) #b11111000)))
+         (eq? (fxband (type obj) #b11111) 8)
+         ;(eq? 64 (fxband (type-old obj) #b11111000))
+         )
 
       (define empty-ff #false)   
 

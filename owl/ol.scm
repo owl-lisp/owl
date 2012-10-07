@@ -643,7 +643,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
                (try (λ () (val args)) 127)))
          ((error reason env)
             (print-repl-error
-               (list "ol: cannot run " path " as there there was an error during loading:" reason))
+               (list "ol: cannot run" path "because there was an error during loading:" reason))
             2))
       1))
 

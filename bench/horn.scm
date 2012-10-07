@@ -236,7 +236,8 @@
       (sqrt a (x x x x x))
 
       (self (x x x) a)
-		)))
+		))
+   (print "OK"))
 
 test
 

@@ -50,21 +50,21 @@
                      ((not sa)   #false)
                      ; same size
                      ((eq? sa (size b))
-                        (let ((ta (type-old a)))
+                        (let ((ta (type a)))
                            ; check equal types
-                           (if (eq? ta (type-old b))
-                              (if (eq? (fxband ta 2048) 0)
-                                 ; equal ntuples, check fields
-                                 (eq-fields a b equal? sa)
+                           (if (eq? ta (type b))
+                              (if (raw? a)
                                  ; equal raw objects, check bytes
                                  (lets
                                     ((ea (sizeb a)) ; raw objects may have padding bytes, so recheck the sizes
-                                 (eb (sizeb b)))
+                                     (eb (sizeb b)))
                                     (if (eq? ea eb)
                                        (if (eq? ea 0)
                                           #true
                                           (eq-bytes a b (- ea 1)))
-                                       #false)))
+                                       #false))
+                                 ; equal ntuples, check fields
+                                 (eq-fields a b equal? sa))
                               #false)))
                      (else #false))))))
 
