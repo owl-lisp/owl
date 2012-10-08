@@ -96,6 +96,7 @@
             ((tcp? obj) (ilist #\# #\[ #\t #\c #\p #\space (render (port->fd obj) (cons #\] tl))))
             ((port? obj) (ilist #\# #\[ #\f #\d #\space (render (port->fd obj) (cons #\] tl))))
             ((eof? obj) (ilist #\# #\e #\o #\f tl))
+            ((eq? obj #empty) (ilist #\# #\e #\m #\p #\t #\y tl))
 
             (else 
                (append (string->list "#<WTF>") tl)))) ;; What This Format?
@@ -209,14 +210,17 @@
             ((tcp? obj)    (render obj (λ () (k sh))))
             ((port? obj)   (render obj (λ () (k sh))))
             ((eof? obj)    (render obj (λ () (k sh))))
+            ((eq? obj #empty)    (render obj (λ () (k sh))))
 
             (else 
                (append (string->list "#<WTF>") (delay (k sh))))))
 
       (define (self-quoting? val)
          (or 
+            ;; note, all immediates are
             (number? val) (string? val) (boolean? val) (function? val) 
-            (port? val) (tcp? val) (socket? val) (null? val) (rlist? val)))
+            (port? val) (tcp? val) (socket? val) (null? val) (rlist? val)
+            (eq? val #empty)))
 
       ;; could drop val earlier to possibly gc it while rendering 
       (define (maybe-quote val lst)

@@ -30,6 +30,7 @@
       (only (owl regex) get-sexp-regex))
 
    (begin
+
       (define (between? lo x hi)
          (and (<= lo x) (<= x hi)))
 
@@ -45,7 +46,7 @@
       (define (symbol-char? n) 
          (or (symbol-lead-char? n) 
             (or
-               (between? 48 n 57)
+               (between? #\0 n #\9)
                (> n 127))))         ;; allow high code points in symbols
 
       (define get-symbol 
@@ -94,14 +95,22 @@
 
       (define get-sign
          (get-any-of (get-imm 43) (get-imm 45) (get-epsilon 43)))
-         
+        
+      (define bases
+         (list->ff
+            (list
+               (cons #\b  2)
+               (cons #\o  8)
+               (cons #\d 10)
+               (cons #\x 16))))
+
       ; fixme, # and cooked later
       (define get-base 
          (get-any-of
-            (get-word "#b" 2)
-            (get-word "#o" 8)
-            (get-word "#d" 10)
-            (get-word "#x" 16)
+            (let-parses
+               ((skip (get-imm #\#))
+                (char (get-byte-if (λ (x) (getf bases x)))))
+               (getf bases char))
             (get-epsilon 10)))
 
       (define (get-natural base)
@@ -186,7 +195,7 @@
               
       (define get-rest-of-line
          (let-parses
-            ((chars (get-kleene* (get-byte-if (lambda (x) (not (eq? x 10))))))
+            ((chars (get-greedy* (get-byte-if (lambda (x) (not (eq? x 10))))))
              (skip (get-imm 10))) ;; <- note that this won't match if line ends to eof
             chars))
 
@@ -225,7 +234,7 @@
                'comment)))
 
       (define maybe-whitespace (get-kleene* get-a-whitespace))
-      (define whitespace (get-kleene+ get-a-whitespace))
+      (define whitespace (get-greedy+ get-a-whitespace))
 
       (define (get-list-of parser)
          (let-parses
@@ -266,7 +275,7 @@
                      (getf quoted-values char))
                   (let-parses
                      ((skip (get-imm #\x))
-                      (hexes (get-kleene+ (get-byte-if (digit-char? 16))))
+                      (hexes (get-greedy+ (get-byte-if (digit-char? 16))))
                       (skip (get-imm #\;)))
                      (bytes->number hexes 16)))))
             char))
@@ -309,8 +318,8 @@
       ;; fixme: add named characters #\newline, ...
       (define get-quoted-char
          (let-parses
-            ((skip (get-imm 35)) ; #
-             (skip (get-imm 92)) ; \
+            ((skip (get-imm #\#))
+             (skip (get-imm #\\))
              (codepoint (get-either get-named-char get-rune)))
             codepoint))
 
@@ -318,13 +327,23 @@
       (define get-funny-word
          (get-any-of
             (get-word "..." '...)
-            (get-word "#true" #true)    ;; get the longer ones first if present
-            (get-word "#false" #false)
-            (get-word "#t" #true)
-            (get-word "#f" #false)
-            (get-word "#T" #true)
-            (get-word "#F" #false)
-            ))
+            (let-parses
+               ((skip (get-imm #\#))
+                (val
+                  (get-any-of
+                     (get-word "true" #true)    ;; get the longer ones first if present
+                     (get-word "false" #false)
+                     (get-word "empty" #empty)
+                     (get-word "t" #true)
+                     (get-word "f" #false)
+                     (get-word "T" #true)
+                     (get-word "F" #false)
+                     (get-word "e" #empty)
+                     (let-parses
+                        ((bang (get-imm #\!))
+                         (line get-rest-of-line))
+                        (list 'quote (list 'hashbang (list->string line)))))))
+               val)))
 
       (define (get-vector-of parser)
          (let-parses
@@ -341,7 +360,7 @@
             ((skip maybe-whitespace)
              (val
                (get-any-of
-                  get-hashbang
+                  ;get-hashbang
                   get-number         ;; more than a simple integer
                   get-sexp-regex     ;; must be before symbols, which also may start with /
                   get-symbol
