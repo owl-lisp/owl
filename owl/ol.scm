@@ -557,7 +557,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
      `((help     "-h" "--help")
        (about    "-a" "--about")
        (version  "-v" "--version")
-       (evaluate "-e" "--eval"     has-arg comment "evaluate expressions in the given string")
+       (evaluate "-e" "--eval"     has-arg comment "evaluate given expression and print result")
+       (test     "-t" "--test"     has-arg comment "evaluate given expression exit with 0 unless the result is #false")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
@@ -567,8 +568,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
-       (profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
-       (debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
+       ;(profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
+       ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads #false "--no-threads" comment "do not include threading and io to generated c-code")
        )))
@@ -772,8 +773,19 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             (list "An error occurred when evaluating: " str ":" reason))
          (exit-owl 1))
       (else
-         (print "Multifail")
          (exit-owl 2))))
+
+;; exit with 0 if value is non-false, 1 if it's false, 127 if error
+(define (try-test-string env str)
+   (tuple-case (repl-string env str)
+      ((ok val env)
+         (exit-owl (if val 0 1)))
+      ((error reason partial-env)
+         (print-repl-error 
+            (list "An error occurred when evaluating: " str ":" reason))
+         (exit-owl 127))
+      (else
+         (exit-owl 127))))
 
 (define (greeting env seccomp?)
    (if (env-get env '*interactive* #f)
@@ -789,8 +801,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (process-arguments (cdr vm-args) command-line-rules error-usage-text
          (λ (dict others)
             (lets 
-               ((env 
-                  (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet evaluate run output output-format))
+               ((env ;; be quiet automatically if any of these are set
+                  (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet test evaluate run output output-format))
                      (env-set env '*interactive* #false)
                      (env-set env '*interactive* #true)))
                 (env ;; maybe set debug causing (owl eval) to print intermediate steps
@@ -804,30 +816,33 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                         #true)
                      #false)))
                (cond
-                  ((get dict 'help #false)
+                  ((getf dict 'help)
                      (print brief-usage-text)
                      (print-rules command-line-rules)
                      0)
-                  ((get dict 'version #false)
+                  ((getf dict 'version)
                      (print "Owl Lisp " *owl-version*)
                      0)
-                  ((get dict 'about #false) (print about-owl) 0)
-                  ((get dict 'load #false) =>
+                  ((getf dict 'about) (print about-owl) 0)
+                  ((getf dict 'load) =>
                      (λ (path) (try-load-state path others)))
-                  ((or (get dict 'output #false) (get dict 'output-format #false))
+                  ((or (getf dict 'output) (getf dict 'output-format))
                      (if (< (length others) 2) ;; can take just one file or stdin
                         (repl-compile compiler env 
                            (if (null? others) "-" (car others)) dict)
                         (begin
                            (print "compile just one file for now please: " others)
                            1)))
-                  ((get dict 'run #false) =>
+                  ((getf dict 'run) =>
                      (λ (path)
                         (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path
                            (get dict 'profile #false))))
-                  ((get dict 'evaluate #false) => 
+                  ((getf dict 'evaluate) => 
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting
+                  ((getf dict 'test) => 
+                     (λ (str)
+                        (try-test-string env str)))
                   ((null? others)
                      (greeting env seccomp?)
                      (repl-trampoline repl 

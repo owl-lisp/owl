@@ -325,11 +325,11 @@
                #false)))
 
       (define (print-syntax-error reason bytes posn)
-         (print reason)
-         (write-bytes stdout '(32 32 32)) ; indent by 3 spaces
-         (write-bytes stdout (cons 96 (append (force-ll bytes) '(39 10))))
-         (write-bytes stdout (map (λ (x) 32) (iota 0 1 (+ posn 4)))) ; move to right position
-         (write-bytes stdout '(94 10)))
+         (print-to stderr reason)
+         (write-bytes stderr '(32 32 32)) ; indent by 3 spaces
+         (write-bytes stderr (cons 96 (append (force-ll bytes) '(39 10))))
+         (write-bytes stderr (map (λ (x) 32) (iota 0 1 (+ posn 4)))) ; move to right position
+         (write-bytes stderr '(94 10)))
 
       ; find the row where the error occurs
       ; keep the row number stored so it can be shown in output
@@ -337,7 +337,7 @@
          (let row-loop ((row 1) (bytes bytes) (pos 0) (rthis null))
             (cond
                ((null? bytes)
-                  (for-each display (list path ":" row " "))
+                  (for-each (λ (x) (display-to stderr x)) (list path ":" row " "))
                   (print-syntax-error reason (reverse rthis) (- pos err-posn)))
                ((not (pair? bytes)) ; force
                   (row-loop row (bytes) pos rthis))
