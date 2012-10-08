@@ -8,8 +8,12 @@ WORK=$HOME/ram # normally a ramdisk, don't want to ssds too much
 EMAIL="aohelin@gmail.com"
 
 case "$(hostname)" in 
- haltp) SMTP=mail.utanet.fi   ;;
- *)     SMTP=mail.panoulu.net ;;
+ haltp) 
+   SMTP=mail.utanet.fi;
+   DELAY=10 ;; # don't want to spin up fans here
+ *)     
+   SMTP=mail.panoulu.net ;
+   DELAY=0 ;; # please do run
 esac
 
 notify() {
@@ -40,8 +44,8 @@ test -d owl-lisp || git clone http://haltp.org/git/owl-lisp.git
 test -d radamsa  || git clone http://haltp.org/git/radamsa.git
 test -d blab     || git clone http://haltp.org/git/blab.git
 
-ROUNDS=100      # unit test rounds
-THEOREMS=1000   # iterations of theorem test
+TESTMINS=15     # minutes of random unit tests 
+THEOREMS=5000   # iterations of theorem test
 TIMELIMIT=3000  # max build seconds
 
 while true
@@ -123,20 +127,22 @@ do
 
 	cd $WORK/owl-lisp
 	VERSION=$(thisgit)
-	echo " - running $ROUNDS randomized owl unit test rounds"
-	for round in $(seq $ROUNDS)
-	do
-		echo "    + $round/$ROUNDS"
-      sleep 30;
+	echo " - running $TESTMINS minutes of randomized unit tests"
+   END=$(ol -e "(+ (time) (* $TESTMINS 60))")
+   while true
+   do
+      LEFT=$(ol -e "(- $END (time))")
+      test "$LEFT" -lt 1 && break
+      echo " - ${LEFT}s left"
+      sleep $DELAY # optional, machine-specific
 		(ulimit -S -t $TIMELIMIT; make random-test > test.log 2>&1) || {
          cp test.log /tmp/test-fail-$(ol -e '(time-ms)').log;
 			notify "Owl random test failed on $(hostname)" < test.log;
          notify_irc "aoh, randomized test FAILED on $(hostname) using owl $VERSION";
-			sleep 60;
+			sleep 600;
 			continue;
 		}
-	done
-
+   done
 
    ## THEOREM TEST ONLY 
 
@@ -145,7 +151,7 @@ do
 	echo " - running theorem test for a while with seed $SEED"
 	bin/ol --run tests/theorem-rand.scm --seed $SEED -n $THEOREMS &> random.log || { cp random.log /tmp; notify_irc "aoh, theorem test FAILED on $(hostname) with seed $SEED, owl $VERSION"; }
 
-   sleep 60
+   sleep $DELAY
 
 done
 

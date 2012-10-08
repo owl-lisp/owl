@@ -1,4 +1,8 @@
 TODO QUEUE-ISH:
+  + avoid hardcoded ff type conversion issues by starting rewrite now and using unbalanced trees temporarily?
+    - could also at least temporarily implement everything on lisp side
+      o could also benchmark the difference vm support makes by using new bench/run
+         * is this the last subremark?
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
     - raw strings  (padding)
     - byte vectors (padding)
@@ -32,4 +36,6 @@ TODO QUEUE-ISH:
      - reduces code size or fasl image size, or
      - makes owl boot faster, or run some other goal task faster (e.g. math unit test, etc)
   + in general, there should be a warning when updated version is slower or boot image is more than 1% larger than the old one
+  + great type battle 2 - user defined sum/product types
+     - possibly using the spare header byte below size
       
