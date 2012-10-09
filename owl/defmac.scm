@@ -34,6 +34,8 @@
       type-port 
       type-socket
       type-tcp-client
+      type-ff               ;; k v, k v l or i v l r
+      type-ff-right         ;; k v r
    )
 
    (begin
@@ -479,6 +481,11 @@
       (define type-symbol            4)
       (define type-rlist-node       14)
       (define type-rlist-spine      10)
+
+      ;; transitional trees
+      (define type-ff               24)   ;; black[key val] or black[key val left] or black[key val left right]
+      (define type-ff-right         25)   ;; black[key val right]
+      ; + type-ff-red, type-ff-right
 
       ; 8 - black ff leaf
       ;; IMMEDIATE

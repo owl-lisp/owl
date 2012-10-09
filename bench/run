@@ -18,7 +18,7 @@ done
 
 ulimit -S -t 600 # kill overly long running benchmark (implies broken owl or microcontroller)
 
-# regex cmd ... → print time in ms
+# regex cmd ... → print time in ms if regex matches output, otherwise 0
 rextime() {
    REGEX=$1 # output must have a match
    shift
@@ -26,6 +26,7 @@ rextime() {
    $@ | grep -q $REGEX && ol -e "(- (time-ms) $START)" || echo "0" # to signal test failed
 }
 
+# cmd ... → print time in ms if exits successfully, otherwise 0
 justtime() {
    START=$(ol -e '(time-ms)')
    $@ && ol -e "(- (time-ms) $START)" || echo "0" # to signal test failed
@@ -34,11 +35,9 @@ justtime() {
 # regex command ... → print best-of-$BESTOF time in ms
 besttime() {
    BEST=1333333337
-   # fasl time
    for round in $(ol -e "(iota 0 1 $BESTOF)") # "(0" "1" "2)"
    do
-      THIS=$(rextime $@)
-      test "$THIS" -lt "$BEST" && BEST="$THIS"
+      BEST=$(ol -e "(min $(rextime $@) $BEST)")
    done
    echo $BEST
 }

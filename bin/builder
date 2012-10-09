@@ -132,7 +132,7 @@ do
    while true
    do
       LEFT=$(ol -e "(- $END (time))")
-      test "$LEFT" -lt 1 && break
+      ol -t "(< $LEFT 1)" && break
       echo " - ${LEFT}s left"
       sleep $DELAY # optional, machine-specific
 		(ulimit -S -t $TIMELIMIT; make random-test > test.log 2>&1) || {
