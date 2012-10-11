@@ -234,13 +234,13 @@
                         (black-bright left this this-val (putn right key val))))))))
 
       (define (get ff key def)
-         (if ff
+         (if (eq? ff #empty)
+            def
             (wifff (ff l k v r)
                (cond
                   ((eq? key k) v)
                   ((lesser? key k) (get l key def))
-                  (else (get r key def))))
-            def))
+                  (else (get r key def))))))
 
       ;(define (get ff key def) 
       ;   (ff key def))
@@ -512,7 +512,31 @@
          (λ (ff x) 
             (if (not (ff-ok? ff))
                (print "FF BAD " (ff->sexp ff)))
-            (put ff x (if (= x 32) 'correct (+ x 100))))
+            (put ff x (if (= x 42) 'correct (+ x 100))))
          #empty
          (iota 0 1 100))
       42 'miss))
+
+
+(lets
+   ((rs (seed->rands (time-ms)))
+    (rs keys (random-permutation rs (iota 0 1 10)))
+    (pairs (map (λ (x) (cons x (+ x 100))) keys))
+    (ff (list->ff pairs))
+    (_ (print (ff->list ff)))
+    (rs keys (random-permutation rs keys))
+    (ff (fold (λ (ff x) (put ff x (+ x 200))) ff keys))
+    (rs keys (random-permutation rs keys)))
+   (for-each
+      (λ (key)
+         (let ((val (get ff key 'missing)))
+            (if (= val (+ key 200))
+               (print " ff[" key "] = " val)
+               (print " ff[" key "] = " val " <- WRONG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"))))
+      keys)
+   (print (fold (λ (ff key) (del ff key)) ff keys)))
+
+
+
+
+
