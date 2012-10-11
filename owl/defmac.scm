@@ -36,9 +36,10 @@
       type-tcp-client
 
       ;; sketching types
-      type-ff               ;; k v, k v l r
-      type-ff-right         ;; k v r, k v l r+
-      type-ff-left          ;; k v l, k v l+ r
+      type-ff               ;; k v, k v l, k v l r, black node with children in order
+      type-ff-r             ;; k v r, black node, only right black child
+      type-ff-red           ;; k v, k v l, k v l r, red node with (black) children in order
+      type-ff-red-r         ;; k v r, red node, only right (black) child
 
       ;; k v, l k v r       -- type-ff
       ;; k v r, k v l r+    -- type-ff-right
@@ -492,8 +493,9 @@
 
       ;; transitional trees or future ffs
       (define type-ff               24)
-      (define type-ff-right         25)
-      (define type-ff-left          26)
+      (define type-ff-r             25)
+      (define type-ff-red           26)
+      (define type-ff-red-r         27)
 
       ; + type-ff-red, type-ff-right
 
