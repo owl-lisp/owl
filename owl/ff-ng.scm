@@ -1,4 +1,5 @@
 (define-library (owl ff-ng)
+
    (export 
       get         ; O(log2 n), ff x key x default-value -> value | default-value 
       put         ; O(log2 n), ff x key x value -> ff'
@@ -14,12 +15,15 @@
       ff?
       ff-singleton? ; ff → bool (has just one key?)
       list->ff ff->list 
+      ff->sexp
+      ff-ok?
       
       getf       ; (getf ff key) == (get ff key #false)
       )
 
    (import 
       (owl defmac)
+      (owl math)
       (owl io)
       (owl list))
 
@@ -29,7 +33,7 @@
       (define redness   #b10)
       (define rightness #b01)
 
-      (define (mkblack l k v r)
+      (define (black l k v r)
          (if (eq? l #empty)
             (if (eq? r #empty)
                (mkt type-ff k v)
@@ -38,7 +42,7 @@
                (mkt type-ff k v l)
                (mkt type-ff k v l r))))
 
-      (define (mkred l k v r)
+      (define (red l k v r)
          (if (eq? l #empty)
             (if (eq? r #empty)
                (mkt type-ff-red k v)
@@ -62,6 +66,24 @@
          (syntax-rules ()
             ((right? node) (eq? rightness (fxband (type node) rightness)))))
 
+      ;; preserve structure, intended for debugging only
+      (define (color ff)
+         (if (red? ff) 'R 'B))
+
+      (define (ff->sexp ff)
+         (if (eq? ff #empty)
+            ff
+            (case (size ff)
+               (2 (lets ((k v ff)) (list (color ff) k)))
+               (3 (lets ((k v x ff)) 
+                  (if (right? ff) 
+                     (list (color ff) k '-> (ff->sexp x))
+                     (list (color ff) (ff->sexp x) '<- k))))
+               (4 (lets ((k v l r ff))
+                  (list (color ff) (ff->sexp l) '<- k '-> (ff->sexp r))))
+               (else
+                  (list 'BAD 'NODE ff)))))
+
       (define (explode node)
          (case (size node)
             (2 (lets ((k v node)) (values #empty k v #empty)))
@@ -72,16 +94,49 @@
             (else
                (lets ((k v l r node))
                   (values l k v r)))))
-      
+
+      (define (red-red-violation? ff)
+         (if (eq? ff #empty)
+            #false
+            (lets ((l k v r (explode ff)))
+               (or
+                  (and (red? ff) (or (red? l) (red? r)))
+                  (red-red-violation? l)
+                  (red-red-violation? r)))))
+     
+      ;; ff → nat | #false if difference spotted
+      (define (black-depth ff)
+         (if (eq? ff #empty)
+            0
+            (lets 
+               ((l k v r (explode ff))
+                (ld (black-depth l))
+                (rd (black-depth r)))
+               (if (and ld rd (= ld rd))
+                  (+ ld (if (red? ff) 0 1))
+                  #false))))
+
+      ;; are invariants in order
+      (define (ff-ok? ff)
+         (cond
+            ((not (black-depth ff))
+               (print "FF ERROR, black depths differ")
+               #false)
+            ((red-red-violation? ff)
+               (print "FF ERROR, red-red violation")
+               #false)
+            (else 
+               #true)))
+
       (define (ff? obj)
          (if (eq? obj #empty)
             #true
             (eq? 24 (fxband (type obj) #b1111100))))
 
       ;; old prim
-      (define-syntax wiff
+      (define-syntax wifff
          (syntax-rules ()
-            ((wiff (name l k v r) . rest)
+            ((wifff (name l k v r) . rest)
                (lets ((l k v r (explode name))) . rest))))
 
       ;; toggle redness, name of old prim
@@ -117,70 +172,70 @@
       ;  / \           / \
       ; b   c         c   d
 
-      (define (mkblack-bleft left key val right)
+      (define (black-bleft left key val right)
          (if (red? left)
             (if (red? right)
-               (mkred (color-black left) key val (color-black right))
-               (wiff (left ll lk lv lr)
+               (red (color-black left) key val (color-black right))
+               (wifff (left ll lk lv lr)
                   (cond
                      ((red? ll)   ; case 1
-                        (wiff (ll a xk xv b)
+                        (wifff (ll a xk xv b)
                            (let ((yk lk) (yv lv) (c lr))
-                              (mkred (mkblack a xk xv b) yk yv (mkblack c key val right)))))
+                              (red (black a xk xv b) yk yv (black c key val right)))))
                      ((red? lr) ; case 2
-                        (wiff (lr b yk yv c)
+                        (wifff (lr b yk yv c)
                            (let ((a ll) (xk lk) (xv lv))
-                              (mkred (mkblack a xk xv b) yk yv (mkblack c key val right)))))
+                              (red (black a xk xv b) yk yv (black c key val right)))))
                      (else
-                        (mkblack left key val right)))))
-            (mkblack left key val right)))
+                        (black left key val right)))))
+            (black left key val right)))
 
-      (define (mkblack-bright left key val right)
+      (define (black-bright left key val right)
          (if (red? right)
-            (wiff (right rl rk rv rr)
+            (wifff (right rl rk rv rr)
                (cond
                   ((red? rl) ; case 3
-                     (wiff (rl b yk yv c)
+                     (wifff (rl b yk yv c)
                         (let ((zk rk) (zv rv) (d rr))
-                           (mkred 
-                              (mkblack left key val b)
+                           (red 
+                              (black left key val b)
                               yk yv
-                              (mkblack c zk zv d)))))
+                              (black c zk zv d)))))
                   ((red? rr) ; case 4
-                     (wiff (rr c zk zv d)
+                     (wifff (rr c zk zv d)
                         (let ((b rl) (yk rk) (yv rv))
-                           (mkred
-                              (mkblack left key val b)
+                           (red
+                              (black left key val b)
                               yk yv
-                              (mkblack c zk zv d)))))
+                              (black c zk zv d)))))
                   (else
-                     (mkblack left key val right))))
-            (mkblack left key val right)))
+                     (black left key val right))))
+            (black left key val right)))
                   
       (define (putn node key val)
          (if (eq? node #empty)
-            (mkred #false key val #false)
+            (red #empty key val #empty)
             (if (red? node)
-               (wiff (node left this this-val right)
+               (wifff (node left this this-val right)
                   (cond
                      ((lesser? key this)
-                        (mkred (putn left key val) this this-val right))
+                        (red (putn left key val) this this-val right))
                      ((eq? key this)
-                        (mkred left key val right))
+                        (red left key val right))
                      (else
-                        (mkred left this this-val (putn right key val)))))
-               (wiff (node left this this-val right)
+                        (red left this this-val (putn right key val)))))
+               (wifff (node left this this-val right)
                   (cond
                      ((lesser? key this)
-                        (mkblack-bleft (putn left key val) this this-val right))
+                        (black-bleft (putn left key val) this this-val right))
                      ((eq? key this)
-                        (mkblack left key val right))
+                        (black left key val right))
                      (else
-                        (mkblack-bright left this this-val (putn right key val))))))))
+                        (black-bright left this this-val (putn right key val))))))))
 
       (define (get ff key def)
          (if ff
-            (wiff (ff l k v r)
+            (wifff (ff l k v r)
                (cond
                   ((eq? key k) v)
                   ((lesser? key k) (get l key def))
@@ -195,7 +250,7 @@
       (define (ff-update ff key val)
          (if (eq? ff #empty)
             #false
-            (wiff (ff l k v r)
+            (wifff (ff l k v r)
                (cond
                   ((lesser? key k)
                      (if (not (eq? l #empty))   ; #(k v l ...)
@@ -214,9 +269,7 @@
 
       ;; TODO: benchmark fupd+ins vs put with real programs
       (define (put ff key val)
-         (print (list 'put ff key val))
          (let ((ff (putn ff key val)))
-            (print "made")
             (if (red? ff) (color-black ff) ff)))
 
       (define fupd ff-update)
@@ -228,7 +281,7 @@
       ;; FIXME, use types directly later
       (define (ff-foldr op state tree)
          (if (nonempty? tree)
-            (wiff (tree l k v r)
+            (wifff (tree l k v r)
                (if (nonempty? l)
                   (if (nonempty? r)
                      (lets
@@ -246,7 +299,7 @@
       ;; FIXME, as above
       (define (ff-fold op state tree)
          (if (nonempty? tree)
-            (wiff (tree l k v r)
+            (wifff (tree l k v r)
                (if (nonempty? l)
                   (if (nonempty? r)
                      (lets
@@ -265,7 +318,7 @@
        ;; iterate key-value pairs in order
        (define (ff-iterate tree tl)
          (if (nonempty? tree)
-            (wiff (tree l k v r)
+            (wifff (tree l k v r)
                (ff-iterate l
                   (cons (cons k v)
                      (λ () (ff-iterate r tl)))))
@@ -274,7 +327,7 @@
        ;; iterate key-value pairs in reverse order
        (define (ff-iterrate tree tl)
          (if (nonempty? tree)
-            (wiff (tree l k v r)
+            (wifff (tree l k v r)
                (ff-iterrate r
                   (cons (cons k v)
                      (λ () (ff-iterrate l tl)))))
@@ -288,10 +341,10 @@
       (define (ff-map ff op)
          (if (eq? ff #empty)
             #empty
-            (wiff (ff l k v r)
+            (wifff (ff l k v r)
                (if (red? ff)
-                  (mkred   (ff-map l op) k (op k v) (ff-map r op))
-                  (mkblack (ff-map l op) k (op k v) (ff-map r op))))))
+                  (red   (ff-map l op) k (op k v) (ff-map r op))
+                  (black (ff-map l op) k (op k v) (ff-map r op))))))
 
       (define (list->ff lst)
          (fold
@@ -314,34 +367,34 @@
       (define (ball-left left key val right)
          (cond
             ((red? left)
-               (mkred (color-black left) key val right))
+               (red (color-black left) key val right))
             ((red? right)
-               (wiff (right r zk zv c)
-                  (wiff (r a yk yv b)
-                     (mkred
-                        (mkblack left key val a)
+               (wifff (right r zk zv c)
+                  (wifff (r a yk yv b)
+                     (red
+                        (black left key val a)
                         yk yv
-                        (mkblack-bright b zk zv (color-red c))))))
+                        (black-bright b zk zv (color-red c))))))
             (else
-               (mkblack-bright left key val (color-red right)))))
+               (black-bright left key val (color-red right)))))
 
       (define (ball-right left key val right)
          (cond
             ((red? right)
-               (mkred left key val (color-black right)))
+               (red left key val (color-black right)))
             ((red? left)
-               (wiff (left a xk xv b)
-                  (wiff (b b yk yv c)
-                     (mkred 
-                        (mkblack-bleft (color-red a) xk xv b)
+               (wifff (left a xk xv b)
+                  (wifff (b b yk yv c)
+                     (red 
+                        (black-bleft (color-red a) xk xv b)
                         yk yv
-                        (mkblack c key val right)))))
+                        (black c key val right)))))
             (else
-               (mkblack-bleft (color-red left) key val right))))
+               (black-bleft (color-red left) key val right))))
 
       ;; converted old primops, could also test types and ref the right spot
-      (define (ffcar node) (wiff (node l k v r) l))
-      (define (ffcdr node) (wiff (node l k v r) r))
+      (define (ffcar node) (wifff (node l k v r) l))
+      (define (ffcdr node) (wifff (node l k v r) r))
 
       (define (app left right)
          (cond
@@ -353,42 +406,42 @@
                (if (red? right)
                   (let ((middle (app (ffcdr left) (ffcar right))))
                      (if (red? middle)
-                        (wiff (middle ml mk mv mr)
-                           (wiff (left ll lk lv lr)
-                              (wiff (right rl rk rv rr)
-                                 (mkred
-                                    (mkred ll lk lv ml)
+                        (wifff (middle ml mk mv mr)
+                           (wifff (left ll lk lv lr)
+                              (wifff (right rl rk rv rr)
+                                 (red
+                                    (red ll lk lv ml)
                                     mk mv
-                                    (mkred mr rk rv rr)))))
-                        (wiff (left a xk xv b)
-                           (wiff (right c yk yv d)
-                              (mkred a xk xv 
-                                 (mkred middle yk yv d))))))
-                  (wiff (left a xk xv b)
-                     (mkred a xk xv (app b right)))))
+                                    (red mr rk rv rr)))))
+                        (wifff (left a xk xv b)
+                           (wifff (right c yk yv d)
+                              (red a xk xv 
+                                 (red middle yk yv d))))))
+                  (wifff (left a xk xv b)
+                     (red a xk xv (app b right)))))
             ((red? right)
-               (wiff (right rl rk rv rr)
-                  (mkred (app left rl) rk rv rr)))
+               (wifff (right rl rk rv rr)
+                  (red (app left rl) rk rv rr)))
             (else
                ;;; both are black
                (let ((middle (app (ffcdr left) (ffcar right))))
                   (if (red? middle)
-                     (wiff (middle ml mk mv mr)
-                        (wiff (left ll lk lv lr)
-                           (wiff (right rl rk rv rr)
-                              (mkred
-                                 (mkblack ll lk lv ml)
+                     (wifff (middle ml mk mv mr)
+                        (wifff (left ll lk lv lr)
+                           (wifff (right rl rk rv rr)
+                              (red
+                                 (black ll lk lv ml)
                                  mk mv
-                                 (mkblack mr rk rv rr)))))
-                     (wiff (left ll lk lv lr)
-                        (wiff (right rl rk rv rr)
+                                 (black mr rk rv rr)))))
+                     (wifff (left ll lk lv lr)
+                        (wifff (right rl rk rv rr)
                            (ball-left
                               ll lk lv
-                              (mkblack middle rk rv rr)))))))))
+                              (black middle rk rv rr)))))))))
 
       (define (deln ff key)
          (if (nonempty? ff)
-            (wiff (ff left this-key val right)
+            (wifff (ff left this-key val right)
                (cond
                   ((lesser? key this-key)
                      (let ((sub (deln left key)))
@@ -396,7 +449,7 @@
                            ((eq? sub left)   
                               ff)
                            ((red? left)
-                              (mkred     sub this-key val right))
+                              (red     sub this-key val right))
                            (else
                               (ball-left sub this-key val right)))))
                   ((eq? key this-key)
@@ -407,7 +460,7 @@
                            ((eq? sub right)
                               ff)
                            ((red? right)
-                              (mkred left this-key val sub))
+                              (red left this-key val sub))
                            (else
                               (ball-right left this-key val sub)))))))
             ff))
@@ -451,12 +504,15 @@
 
 ))
 
+(import (owl ff-ng))
+
 (print 
    (get
       (fold 
          (λ (ff x) 
-            (print (list 'putting x 'to ff))
-            (put ff x (if (= x 4) 'hit (+ x 100))))
+            (if (not (ff-ok? ff))
+               (print "FF BAD " (ff->sexp ff)))
+            (put ff x (if (= x 32) 'correct (+ x 100))))
          #empty
-         (iota 0 1 10))
-      4 'miss))
+         (iota 0 1 100))
+      42 'miss))
