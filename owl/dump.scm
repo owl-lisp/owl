@@ -30,7 +30,7 @@
       (only (owl syscall) error mail exit-owl)
       (only (owl env) signal-halt signal-tag)
       (only (owl unicode) utf8-decode)
-      (only (owl thread) thread-controller)
+      (only (owl thread) start-thread-controller)
       (only (owl queue) qnull))
 
    (begin
@@ -304,17 +304,15 @@
       ;; todo: move with-threading to lib-threads and import from there
       (define (with-threading ob)
          (λ (args)
-            (thread-controller thread-controller
+            (start-thread-controller
                (list
                   (tuple 'root
                      (λ ()
                         (start-base-threads)    ;; get basic io running
                         (exit-owl (ob args))))) ;; exit thread scheduler with exit value of this thread (if it doesn't crash)
-               null
-               (list->ff
-                  (list 
-                     (cons signal-tag signal-halt)
-                     (cons 'root qnull))))))   ;; the init thread usually needs a mailbox
+               (list 
+                  (cons signal-tag signal-halt)
+                  (cons 'root qnull)))))   ;; the init thread usually needs a mailbox
 
       (define (cook-format str)
          (cond

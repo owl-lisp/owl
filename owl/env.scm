@@ -39,7 +39,7 @@
 
       (define lookup ;; <- to be replaced with env-get
          (let ((undefined (tuple 'undefined)))
-            (lambda (env key)
+            (λ (env key)
                (get env key undefined))))
 
       ;; get a value from env, or return def if not there or not a value

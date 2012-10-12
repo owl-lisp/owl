@@ -4,7 +4,7 @@
 
 ;; thread controller is like the kernel of owl lisp. it handles 
 ;; activation and suspension of threads, and has a tuple of 
-;; functions are like the system calls via which threads can 
+;; functions which are like the system calls, via which a thread
 ;; send requests via the thread scheduler to other threads or 
 ;; the underlying system.
 
@@ -13,13 +13,14 @@
 (define-library (owl thread)
 
    (export 
+      start-thread-controller
       thread-controller 
       repl-signal-handler)
 
    (import
       (owl defmac)
       (owl queue)
-      (owl ff)
+      (owl ff-ng)
       (owl function)
       (owl primop)
       (owl list)
@@ -31,6 +32,7 @@
       (owl io))
 
    (begin
+
       (define (bad-syscall id a b c todo done state)
          (system-println "mcp: got bad syscall")
          (values todo done state))
@@ -133,7 +135,7 @@
                            (cond
                               ((eq? req 'link)
                                  ;; forker wants to receive any issues the thread runs into
-                                 (let ((links (get state link-tag #false)))
+                                 (let ((links (get state link-tag empty)))
                                     (put state link-tag
                                        (put links new-id (list id)))))
                               ((eq? req 'mailbox)
@@ -323,7 +325,7 @@
 
                      (scheduler scheduler (cons (tuple id (λ () (cont 'started-profiling))) todo) done 
                         (put state 'prof           ;; profiling data is stored under key 'prof
-                           (put #false 'tc tc)))))) ;; store normal scheduler there for resuming on syscall 21
+                           (put empty 'tc tc)))))) ;; store normal scheduler there for resuming on syscall 21
              (syscalls
                (set syscalls 21 ;; end-profiling syscall doesn't do anything when not profiling
                   (λ (id cont b c todo done state tc) 
@@ -332,7 +334,7 @@
 
       (define (enter-mcp controller threads state)
          ; could break here also when threads is just repl-input
-         (controller
+         (controller controller
             (list 
                (tuple 'mcp 
                   (λ ()
@@ -356,6 +358,10 @@
                   ; out of time, usual suspect, short path here
                   (self self todo (cons (tuple id a) done) state)
                   ((ref mcp-syscalls op) id a b c todo done state self)))))
+
+      (define (start-thread-controller threads state-alist)
+         (thread-controller thread-controller threads
+            null (list->ff state-alist)))
 
       ;; signal handler which kills the 'repl-eval thread if there, or repl 
       ;; if not, meaning we are just at toplevel minding our own business.

@@ -39,6 +39,8 @@ TODO QUEUE-ISH:
   + type battle part 2 - user defined sum/product types
      - possibly using the spare header byte below size
   + change most 65535:s to *maxrawsize* and *maxsize*
+  + typed bind, with size check
   + better partial evaluation
   + reduce register set
+  + use a signal other than break to start something like old MCP
   + long argument lists and register spilling

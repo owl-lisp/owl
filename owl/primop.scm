@@ -41,12 +41,12 @@
       ;; 2 rebuilds. 
 
       ; these 2 primops require special handling, mainly in cps
-      (define ff-bind 
+      (define ff-bind ;; turn to badinst soon, possibly return later 
          ; (func '(2 49))
          '__ff-bind__
 
          )
-      (define bind 
+      (define bind
          ; (func '(2 32 4 5 24 5))
          '__bind__
          )

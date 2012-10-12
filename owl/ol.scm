@@ -934,7 +934,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                ;; the next value after evaluation will be the new repl heap
                (λ (vm-args)
                   ;; now we're running in the new repl 
-                  (thread-controller thread-controller
+                  (start-thread-controller
                      (list
                         (tuple 'init
                            (λ () 
@@ -970,8 +970,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 (cons '*vm-special-ops* vm-special-ops)
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
                                                 )))))))))
-                     null 
-                     empty)))))))
+                     null)))))))
 
 ;; todo: dumping with fasl option should only dump the fasl and only fasl
 
