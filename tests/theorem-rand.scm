@@ -224,7 +224,7 @@
 (import (owl iff))
 
 (define (Iff rs)
-   (let loop ((rs rs) (out #false))
+   (let loop ((rs rs) (out #empty))
       (lets ((rs n (rand rs elem-ip)))
          (if (eq? n 0)
             (values rs out)
@@ -461,7 +461,7 @@
 
       theorem iff-gen
          ∀ l ∊ (List-of Nat)                                     ; (k_1 k_2 ...)
-            i ← (fold (λ (i k) (iput i k (+ k 1))) #false l)     ; iff of k_n ⇒ k_n+1
+            i ← (fold (λ (i k) (iput i k (+ k 1))) #empty l)     ; iff of k_n ⇒ k_n+1
             (ifold (λ (ok k v) (and ok (= k (- v 1)))) #true i)  ; check all ff[k_n] = k_n+1
 
       theorem lazy-1

@@ -31,6 +31,7 @@
 
 
    (begin
+
       (define sentinel "telomerase") ; something unique as in eq?
 
       ;;; misc utils
@@ -187,7 +188,7 @@
             ((sb (add-poss lst 0))
              (sb (cons (cons sentinel (length sb)) sb)) ; add sentinel
              (sb (sort carless sb))
-             (ls bs (chunk sb #false null -1)))
+             (ls bs (chunk sb #empty null -1)))
             (cdr (ssort-steps ls bs 1)))) ; drop the sentinel (is just length of list at car)
 
       ;;;

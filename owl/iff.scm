@@ -10,35 +10,38 @@
    (export iget iput ifold iff->list)
    
    (import 
-      (owl ff)
       (owl defmac)
+      (owl ff-ng)
       (owl list))
 
    (begin
+
+      (define tag #false) ;; non-digit special ff key
+
       (define (iputl ff num val)
          (if (null? num)
-            (put ff #false val)
-            (let ((these (get ff (ncar num) #false)))
+            (put ff tag val)
+            (let ((these (get ff (ncar num) empty)))
                (put ff (ncar num)
                   (iputl these (ncdr num) val)))))
 
       (define (iput ff num val)
          (if (teq? num fix+)
-            (let ((small (get ff #false #false)))
-               (put ff #false
+            (let ((small (get ff tag empty)))
+               (put ff tag
                   (put small num val)))
             (iputl ff num val)))
 
       (define (igetl ff num def)
          (if ff
             (if (null? num)
-               (get ff #false def)
-               (igetl (get ff (ncar num) #false) (ncdr num) def))
+               (get ff tag def)
+               (igetl (get ff (ncar num) empty) (ncdr num) def))
             def))
 
       (define (iget ff num def)
          (if (teq? num fix+)
-            (get (get ff #false #false) num def)
+            (get (get ff tag empty) num def)
             (igetl ff num def)))
 
       ; private allocated things are private
@@ -54,11 +57,11 @@
 
       (define (iff-walk op st ff taken)
          (lets
-            ((this (get ff #false iff-nan))
+            ((this (get ff tag iff-nan))
              (st (if (eq? this iff-nan) st  
                      (op st (nrev null taken) this))))
             (ff-fold
-               (lambda (st digit more)
+               (λ (st digit more)
                   (if digit
                      (iff-walk op st more (ncons digit taken))
                      st))
@@ -66,11 +69,11 @@
             
       (define (ifold op st ff)
          (ff-fold
-            (lambda (st k v)
+            (λ (st k v)
                (if k 
                   (iff-walk op st v (ncons k null))
                   st))
-            (ff-fold op st (get ff #false #false))
+            (ff-fold op st (get ff tag empty))
             ff))
 
       (define (iff->list iff)

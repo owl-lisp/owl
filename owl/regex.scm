@@ -153,7 +153,7 @@
             (complement? 
                ;; always use an iff for now in [^...]
                (reject-iff
-                  (for #false cs
+                  (for #empty cs
                      (λ (iff val) (iput iff val #true)))))
             ((null? (cdr cs))
                (imm (car cs)))
@@ -161,7 +161,7 @@
                (λ (ff) (accept-ff ff)))
             (else 
                (accept-iff    
-                  (for #false cs
+                  (for #empty cs
                      (λ (iff val) (iput iff val #true)))))))
 
       ;; <ra>|<rb>

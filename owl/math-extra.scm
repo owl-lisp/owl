@@ -28,7 +28,7 @@
       (owl sort)
       (owl primop)
       (owl defmac)
-      (owl ff)
+      (owl ff-ng)
       (only (owl syscall) error))
 
    (begin
@@ -251,7 +251,7 @@
       ; later apply the knowledge about limits
       (define (atkin-candidates lo max)
          (let ((lim (isqrt max)))
-            (let loox ((store #false) (x 1))
+            (let loox ((store #empty) (x 1))
                (if (> x lim)
                   store
                   (let looy ((store store) (y 1))
@@ -331,7 +331,7 @@
             (else
                (sort <
                   (ifold 
-                     (lambda (out k v) (if v (cons k out) out))
+                     (λ (out k v) (if v (cons k out) out))
                      null
                      (atkin-remove-squares hi
                         (atkin-candidates lo hi)))))))
@@ -459,7 +459,7 @@
       ;; find ? such that (expt-mod a ? n) = y
 
       (define (dlp-naive y a n)
-         (let loop ((x 0) (seen #false))
+         (let loop ((x 0) (seen empty))
             (let ((this (expt-mod a x n)))
                (cond
                   ((= y this) x)
@@ -468,7 +468,7 @@
 
       ;; like naive, but avoids useless multiplications and remainders 
       (define (dlp-simple y a n)
-         (let loop ((x 0) (v 1) (seen #false))
+         (let loop ((x 0) (v 1) (seen empty))
             (cond
                ((>= v n) (loop x (rem v n) seen))      ; overflow
                ((= v y) x)                             ; solved
@@ -487,10 +487,10 @@
             (let loop ((x1 0) (v1 1) (x2 1) (v2 a) (step? #false))
                (cond
                   ((= v2 y) x2)                          ; hare finds carot \o/
-                  ((= v1 v2) #false)                      ; hare finds tortoise o_O
+                  ((= v1 v2) #false)                     ; hare finds tortoise o_O
                   (step?                                 ; fast hare is fast
                      (loop x1 v1 (+ x2 1) (dlp-th-step v2 a n) #false))
-                  (else                                    ; enhance
+                  (else                                  ; enhance
                      (loop 
                         (+ x1 1) (dlp-th-step v1 a n)
                         (+ x2 1) (dlp-th-step v2 a n) #true))))))

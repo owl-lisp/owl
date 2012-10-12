@@ -414,7 +414,7 @@
                (if (= (length node) 2) 
                   (iput iff (car node) (cadr node)) 
                   (iput iff (car node) (cdr node))))
-            #false char-folds))
+            #empty char-folds))
 
       (define (unicode-fold-char codepoint tail)
          (let ((mapping (iget char-fold-iff codepoint codepoint)))
