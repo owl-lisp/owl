@@ -11,7 +11,7 @@
 
    (import
       (owl defmac)
-      (owl ff)
+      (owl ff-ng)
       (owl list)
       (owl math)
       (owl list-extra)
@@ -29,7 +29,7 @@
             (λ (ff node)
                (lets ((name op in out wrapper node))
                   (put ff op (cons in out))))
-            #false primops))
+            empty primops))
 
       (define (opcode-arity-ok? op in out)
          (let ((node (getf primop-arities op)))

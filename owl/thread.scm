@@ -63,7 +63,7 @@
       ; remove the thread and report to any interested parties about the event 
       (define (drop-delivering todo done state id msg tc)
          (lets
-            ((links (get state link-tag #false))
+            ((links (get state link-tag empty))
              (subscribers (get links id null)))
             (if (null? subscribers)
                (tc tc todo done (del state id))
@@ -338,7 +338,7 @@
                   (λ ()
                      ((get state signal-tag signal-halt) ; exit by default
                         threads state controller))))
-            null #false))
+            null empty))
 
 
       ; (enter-mcp thread-controller done state) -- no way to go here without the poll, rethink that

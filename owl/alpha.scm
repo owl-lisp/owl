@@ -14,10 +14,10 @@
       (owl ast)
       (owl math)
       (owl list)
-      (owl ff)
       (owl list-extra)
       (only (owl syscall) error)
-      (only (owl env) lookup))
+      (only (owl env) lookup)
+      (owl ff))
 
    (begin
       (define (ok exp env) (tuple 'ok exp env))
@@ -96,6 +96,6 @@
       (define (alpha-convert exp env)
          (lets 
             ((exp free 
-               (alpha exp empty-ff (gensym exp))))
+               (alpha exp empty (gensym exp))))
             (ok exp env)))
-   ))
+))

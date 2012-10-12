@@ -2,7 +2,6 @@
 ;; todo: should (?) be factored to eval, repl and library handling
 ;; todo: add lib-http and allow including remote resources
 ;; todo:  ^ would need a way to sign libraries and/or SSL etc
-;; todo: autoload feature: when a library imports something not there, try to load (owl ff) from each $PREFIX/owl/ff.scm
 
 (define-library (owl eval)
 
@@ -398,8 +397,9 @@
       ;; <export spec> = <identifier> 
       ;;               | (rename <identifier_1> <identifier_2>)
       ;;               | (exports <lib)
+      ;; TODO - use env-keep and check bindings from result instead to avoid absraction violation
       (define (build-export names env fail)
-         (let loop ((names names) (unbound null) (module #false))
+         (let loop ((names names) (unbound null) (module empty))
             (cond
                ((null? names)
                   (cond
@@ -408,7 +408,7 @@
                         (fail (list "Undefined exported value: " (car unbound))))
                      (else
                         (fail (list "Undefined exports: " unbound)))))
-               ((get env (car names) #false) =>
+               ((env-get-raw env (car names) #false) =>
                   (λ (value)
                      (loop (cdr names) unbound (put module (car names) value))))
                ((and  ;; swap name for (rename <local> <exported>)

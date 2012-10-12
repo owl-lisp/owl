@@ -36,7 +36,7 @@
       (owl defmac)
       (owl parse)
       (only (owl syscall) error)
-      (owl ff)
+      (owl ff-ng)
       (owl list)
       (owl math)
       (owl string)
@@ -139,7 +139,7 @@
       (define (make-ff cs)
          (call/cc
             (λ (ret)
-               (for #false cs
+               (for empty cs
                   (λ (ff n) 
                      (if (teq? n fix+)
                         (put ff n #true)

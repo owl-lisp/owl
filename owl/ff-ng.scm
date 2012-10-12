@@ -17,21 +17,25 @@
       list->ff ff->list 
       ff->sexp
       ff-ok?
+      empty
       
       getf       ; (getf ff key) == (get ff key #false)
       )
 
    (import 
       (owl defmac)
-      (owl math)
-      (owl io)
-      (owl list))
+      ;(owl math)
+      ;(owl io)
+      (owl list)
+      )
 
    (begin
 
       ; low 2 bits of ff type (as opposed to high 3 previously) have special meaning
       (define redness   #b10)
       (define rightness #b01)
+
+      (define empty #empty)
 
       (define (black l k v r)
          (if (eq? l #empty)
@@ -103,7 +107,11 @@
                   (and (red? ff) (or (red? l) (red? r)))
                   (red-red-violation? l)
                   (red-red-violation? r)))))
-     
+   
+      ;; fixnum addition, math not defined yte
+      (define (f+ a b)
+         (lets ((c _ (fx+ a b))) c))
+
       ;; ff → nat | #false if difference spotted
       (define (black-depth ff)
          (if (eq? ff #empty)
@@ -112,18 +120,18 @@
                ((l k v r (explode ff))
                 (ld (black-depth l))
                 (rd (black-depth r)))
-               (if (and ld rd (= ld rd))
-                  (+ ld (if (red? ff) 0 1))
+               (if (and ld rd (eq? ld rd))
+                  (f+ ld (if (red? ff) 0 1))
                   #false))))
 
       ;; are invariants in order
       (define (ff-ok? ff)
          (cond
             ((not (black-depth ff))
-               (print "FF ERROR, black depths differ")
+               ;(print "FF ERROR, black depths differ")
                #false)
             ((red-red-violation? ff)
-               (print "FF ERROR, red-red violation")
+               ;(print "FF ERROR, red-red violation")
                #false)
             (else 
                #true)))
@@ -504,39 +512,39 @@
 
 ))
 
-(import (owl ff-ng))
-
-(print 
-   (get
-      (fold 
-         (λ (ff x) 
-            (if (not (ff-ok? ff))
-               (print "FF BAD " (ff->sexp ff)))
-            (put ff x (if (= x 42) 'correct (+ x 100))))
-         #empty
-         (iota 0 1 100))
-      42 'miss))
-
-
-(lets
-   ((rs (seed->rands (time-ms)))
-    (rs keys (random-permutation rs (iota 0 1 10)))
-    (pairs (map (λ (x) (cons x (+ x 100))) keys))
-    (ff (list->ff pairs))
-    (_ (print (ff->list ff)))
-    (rs keys (random-permutation rs keys))
-    (ff (fold (λ (ff x) (put ff x (+ x 200))) ff keys))
-    (rs keys (random-permutation rs keys)))
-   (for-each
-      (λ (key)
-         (let ((val (get ff key 'missing)))
-            (if (= val (+ key 200))
-               (print " ff[" key "] = " val)
-               (print " ff[" key "] = " val " <- WRONG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"))))
-      keys)
-   (print (fold (λ (ff key) (del ff key)) ff keys)))
-
-
-
-
-
+;(import (owl ff-ng))
+;
+;(print 
+;   (get
+;      (fold 
+;         (λ (ff x) 
+;            (if (not (ff-ok? ff))
+;               (print "FF BAD " (ff->sexp ff)))
+;            (put ff x (if (= x 42) 'correct (+ x 100))))
+;         #empty
+;         (iota 0 1 100))
+;      42 'miss))
+;
+;
+;(lets
+;   ((rs (seed->rands (time-ms)))
+;    (rs keys (random-permutation rs (iota 0 1 10)))
+;    (pairs (map (λ (x) (cons x (+ x 100))) keys))
+;    (ff (list->ff pairs))
+;    (_ (print (ff->list ff)))
+;    (rs keys (random-permutation rs keys))
+;    (ff (fold (λ (ff x) (put ff x (+ x 200))) ff keys))
+;    (rs keys (random-permutation rs keys)))
+;   (for-each
+;      (λ (key)
+;         (let ((val (get ff key 'missing)))
+;            (if (= val (+ key 200))
+;               (print " ff[" key "] = " val)
+;               (print " ff[" key "] = " val " <- WRONG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"))))
+;      keys)
+;   (print (fold (λ (ff key) (del ff key)) ff keys)))
+;
+;
+;
+;
+;

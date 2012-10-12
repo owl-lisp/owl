@@ -2,6 +2,8 @@
 ;;; Owl math module, things after basic arithmetic
 ;;;
 
+; todo - http://www.math.dartmouth.edu/~carlp/PDF/complexity12.pdf
+
 (define-library (owl math-extra)
 
    (export 
@@ -153,7 +155,7 @@
 
       (define first-primes
          (list->ff 
-            (map (lambda (x) (cons x x))
+            (map (λ (x) (cons x x))
                '(2 3 5 7 11 13 17))))
 
       ; divide by 2 (shift 1) while even and count shifts

@@ -29,9 +29,6 @@
       (owl symbol))
 
    (begin
-      (define symbol-store
-         (tuple #false 'lambda #false))
-
       ; hack warning, could use normal = and < here, but 
       ; using primitives speeds up parsing a bit
 
@@ -99,7 +96,7 @@
                   (else
                      (set node 3
                         (put-symbol (ref node 3) sym)))))
-            (tuple #false sym #false)))
+            (tuple empty sym empty)))
          
       ;; note, only leaf strings for now
       (define (string->interned-symbol root str)
@@ -108,8 +105,6 @@
                (values root old)
                (let ((new (string->uninterned-symbol str)))
                   (values (put-symbol root new) new)))))
-
-      (define symbol-store (tuple #false))
 
       ; interner is started before the repl at vm boot
 
@@ -196,7 +191,6 @@
             ((pair? sexp)
                (cons (intern-symbols (car sexp)) (intern-symbols (cdr sexp))))
             (else sexp)))
-        
 
       ;; obj → bytecode | #false
       (define (bytecode-of func)

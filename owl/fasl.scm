@@ -59,8 +59,7 @@
 		tuple->list				; TEMPORARILY HERE
 		objects-below			; obj -> (obj ...), all allocated objects below obj
       decode-stream        ; ll failval → (ob ...) | (ob .. failval)
-      object-closure       ; obj -> ff of (obj -> n-occurrences)
-      partial-object-closure ; obj want? -> ff of (obj -> n-occurrences)
+      sub-objects          ; obj wanted? -> ((obj . n-occurrences) ...)
 		)
 
    (import
@@ -68,12 +67,13 @@
       (owl vector)
       (owl math)
       (owl primop)
-      (owl ff)
+      (owl ff-ng)
       (owl lazy)
       (owl list)
       (owl rlist))
 
    (begin
+
       (define enodata #false) ;; reason to fail if out of data (progressive readers want this)
 
       (define (read-tuple tuple pos lst)
@@ -124,7 +124,12 @@
                      (if (raw? obj)
                         seen
                         (fold clos seen (tuple->list obj)))))))
-         (clos #false root))
+         (clos empty root))
+
+      ;; don't return ff, type of which is changing atm
+      (define (sub-objects root pred)
+         (ff->list
+            (partial-object-closure root pred)))
 
       (define (object-closure obj)
          (partial-object-closure obj (λ (x) #t)))
@@ -260,7 +265,7 @@
       (define (get-nat ll fail top)
          (lets ((ll b (grab ll fail)))
             (if (eq? 0 (fxband b 128)) ; leaf case
-               (values ll (+ (<< top 7) b))
+               (values ll (bor (<< top 7) b))
                (get-nat ll fail (bor (<< top 7) (band b low7))))))
       
       (define (decode-immediate ll fail)

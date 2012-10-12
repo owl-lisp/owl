@@ -28,6 +28,7 @@
       ff-singleton? ; ff → bool (has just one key?)
       list->ff ff->list 
       empty-ff   ; could become Empty later
+      empty
       
       getf       ; (getf ff key) == (get ff key #false)
       )
@@ -53,6 +54,7 @@
          )
 
       (define empty-ff #false)   
+      (define empty #false)
 
       ;; todo: test how much slower it would be if this was on lisp side without vm support
       (define-syntax wiff

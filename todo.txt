@@ -1,12 +1,12 @@
 TODO QUEUE-ISH:
-  + avoid hardcoded ff type conversion issues by starting rewrite now and using unbalanced trees temporarily?
-    - could also at least temporarily implement everything on lisp side
-      o could also benchmark the difference vm support makes by using new bench/run
-         * is this the last subremark?
+  + finish and optimize fully lisp-side ffs
+  + convert owl env to be a new ff and hunt down all abstraction violations that way?
+    - or just proceed module by module
+      o tough because many values flowing between modules are ffs...
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
+    - ff nodes     (being converted)
     - raw strings  (padding)
     - byte vectors (padding)
-    - ff nodes     (convert? new unbalanced nodes + rewrite soon?)
   + remove all uses of type-old now that new type uniquely determines object type
   + convert all type-bit twiddling to use TPOS in ovm.c
   + change it to 2, leaving padding etc in headers to current position
@@ -36,6 +36,9 @@ TODO QUEUE-ISH:
      - reduces code size or fasl image size, or
      - makes owl boot faster, or run some other goal task faster (e.g. math unit test, etc)
   + in general, there should be a warning when updated version is slower or boot image is more than 1% larger than the old one
-  + great type battle 2 - user defined sum/product types
+  + type battle part 2 - user defined sum/product types
      - possibly using the spare header byte below size
-      
+  + change most 65535:s to *maxrawsize* and *maxsize*
+  + better partial evaluation
+  + reduce register set
+  + long argument lists and register spilling

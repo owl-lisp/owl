@@ -47,6 +47,8 @@
 
    (begin
 
+      ;; constants are always inlined, so you pay just one byte of source for readability
+
       (define null '())
 
       (define (pair? x) (eq? type-pair (type x)))

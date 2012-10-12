@@ -11,6 +11,7 @@
       cl-rules)            ;; sexp → cl-rules
 
    (import
+      (owl defmac)
       (owl symbol)
       (owl list-extra)
       (owl lazy)
@@ -22,8 +23,7 @@
       (owl list)
       (owl string)
       (owl equal)
-      (owl ff)
-      (owl defmac))
+      (owl ff))
 
    (begin
       ;; cl-rules is a ff of 
@@ -147,7 +147,7 @@
       ; + cook, pred, terminal, multi, id
 
       (define (process-arguments args rules error-msg cont)
-         (let ((res (walk rules args #false null)))
+         (let ((res (walk rules args empty null)))
             (if res
                (lets ((dict others res))
                   (cont dict others))

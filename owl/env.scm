@@ -10,9 +10,11 @@
       env-del ;; env key → env'
       env-set ;; env-set env key val → env'
       env-keep ;; env (name → name' | #false) → env'
+      env-get-raw ;; env key → value
       )
 
    (import
+      (owl defmac)
       (owl ff)
       (owl list)
       (owl symbol)
@@ -22,8 +24,7 @@
       (owl list-extra)
       (owl math)
       (scheme misc)
-      (owl primop)
-      (owl defmac))
+      (owl primop))
 
    (begin
 
@@ -49,6 +50,8 @@
                   ((value v) v)
                   (else def)))
             (else def)))
+
+      (define env-get-raw get) ;; will use different ff 
 
       (define (env-set env key val)
          (put env key
@@ -198,13 +201,13 @@
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes
-         (for #false primops
+         (for empty primops
             (λ (ff node)
                (put ff (ref node 5) (ref node 2)))))
 
       ;; ff of opcode → wrapper
       (define opcode->wrapper
-         (for #false primops
+         (for empty primops
             (λ (ff node)
                (put ff (ref node 2) (ref node 5)))))
 
@@ -241,7 +244,7 @@
             (λ (out name value)
                (let ((name (namer name)))
                   (if name (put out name value) out)))
-            #false env))
+            empty env))
 
       (define primitive? primop-of)
 

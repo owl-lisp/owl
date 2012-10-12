@@ -19,7 +19,7 @@
       (owl eof)
       (owl math)
       (owl port)
-      (only (owl fasl) partial-object-closure)
+      (only (owl fasl) sub-objects)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
       (only (owl string) render-string string?))
@@ -235,14 +235,14 @@
       ;; val → ff of (ob → node-id)
       (define (label-shared-objects val)
          (lets
-            ((refs (partial-object-closure val shareable?))
+            ((refs (sub-objects val shareable?))
              (shares 
-               (ff-fold 
-                  (λ (shared ob refs) 
-                     ;; (#<1>= #<1>=#<+>) isn't too useful, so not sharing functions
-                     (if (eq? refs 1)
-                        shared
-                        (cons ob shared)))
+               (fold 
+                  (λ (shared p)
+                     (lets ((ob refs p))
+                        (if (eq? refs 1)
+                           shared
+                           (cons ob shared))))
                   null refs)))
             (let loop ((out #false) (shares shares) (n 1))
                (if (null? shares)

@@ -490,11 +490,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ))
 
 
-
-
 ;,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
 ;,load "owl/sys.scm"      ; more operating system interface
-
 
 (define shared-bindings shared-misc)
 
@@ -974,7 +971,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
                                                 )))))))))
                      null 
-                     #false)))))))
+                     empty)))))))
 
 ;; todo: dumping with fasl option should only dump the fasl and only fasl
 

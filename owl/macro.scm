@@ -74,7 +74,7 @@
       ; store nulls to variables in exp
       (define (init-variables exp literals dict)
          (fold 
-            (lambda (dict key) (cons (cons key null) dict))
+            (λ (dict key) (cons (cons key null) dict))
             dict
             (diff (symbols-of exp) literals)))
 
