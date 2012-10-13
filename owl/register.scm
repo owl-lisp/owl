@@ -15,7 +15,7 @@
 
    (import
       (owl defmac)
-      (owl ff)
+      (owl ff-ng)
       (owl math)
       (owl list-extra)
       (owl primop)
@@ -200,9 +200,9 @@
                (if (> a highest-register)
                   ;; needs to be relocated lower, so return here a wish to put is somewhere lower
                   (values code
-                     (put (reg-root #false 3) a (iota 4 1 highest-register))) ; please move me anywhere lower
+                     (put (reg-root empty 3) a (iota 4 1 highest-register))) ; please move me anywhere lower
                   (values code
-                     (reg-touch (reg-root #false 3) a))))
+                     (reg-touch (reg-root empty 3) a))))
 
             ((move a b more)
                (cond
@@ -291,21 +291,21 @@
                            (rtl-retard
                               (tuple 'refi from offset to-new more-new)))))))
             ((goto op nargs)
-               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-code op nargs)
-               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-proc op nargs)
-               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-clos op nargs)
-               (values code (fold reg-root #false (cons op (iota 3 1 (+ 4 nargs))))))
+               (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
             ((jeq a b then else)
                (rtl-retard-jump rtl-retard 'jeq a b     then else))
             ((jn a then else)
-               (rtl-retard-jump rtl-retard 'jn a #false  then else))
+               (rtl-retard-jump rtl-retard 'jn a empty  then else)) ; fp
             ((jf a then else)
-               (rtl-retard-jump rtl-retard 'jf a #false  then else))
+               (rtl-retard-jump rtl-retard 'jf a empty  then else)) ; fp
             ((jz a then else)
-               (rtl-retard-jump rtl-retard 'jz a #false  then else))
+               (rtl-retard-jump rtl-retard 'jz a empty  then else)) ; fp
             ((jit a type then else)
                (rtl-retard-jump rtl-retard 'jit a type then else))
             ((jat a type then else)

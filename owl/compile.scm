@@ -28,7 +28,6 @@
       (owl ast)
       (owl lazy)
       (owl sort)
-      (owl ff)
       (owl primop)
       (owl io)
       (only (owl env) primop-of prim-opcodes)
