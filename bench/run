@@ -44,24 +44,28 @@ besttime() {
 
 # name bench/foo.scm -> print fasl and compiled best-of-n times
 scmtimes() {
-   NAME=$1
-   SOURCE=$2
-   BESTFASL=$(besttime "^OK$" bin/vm fasl/ol.fasl --run $SOURCE)
+   FASL=$1
+   NAME=$2
+   SOURCE=$3
+   BESTFASL=$(besttime "^OK$" bin/vm $FASL --run $SOURCE)
    BIN="./$(echo $SOURCE | sed 's/\.scm$//')"
-   bin/ol -x c -O2 -o $BIN.c $SOURCE
+   bin/vm $FASL -x c -O2 -o $BIN.c $SOURCE
    gcc -O2 -o $BIN $BIN.c
    BESTBIN=$(besttime "^OK$" $BIN)
-   echo "$NAME: ${BESTFASL}ms fasl, ${BESTBIN}ms binary"
+   echo "$FASL, $NAME, ${BESTFASL}ms fasl, ${BESTBIN}ms binary"
 }
 
 # custom tests
 BOOTTIME=$(justtime bin/vm fasl/ol.fasl --run owl/ol.scm -s none -o tmp/out.fasl)
-echo "faslboot: ${BOOTTIME}ms"
+echo "faslboot fasl/ol.fasl: ${BOOTTIME}ms"
+BOOTTIME=$(justtime bin/vm fasl/init.fasl --run owl/ol.scm -s none -o tmp/out.fasl)
+echo "faslboot fasl/init.fasl: ${BOOTTIME}ms"
 
 for benchmark in bench/*.scm
 do
    NAME=$(echo $benchmark | sed -e 's/bench\///' -e 's/\.scm//')
-   scmtimes $NAME $benchmark
+   scmtimes fasl/ol.fasl $NAME $benchmark
+   scmtimes fasl/init.fasl $NAME $benchmark
 done
 
 

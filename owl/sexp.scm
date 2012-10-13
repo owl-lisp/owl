@@ -79,12 +79,12 @@
 
       (define (digit-char? base)
          (if (eq? base 10)
-            (lambda (n) (between? 48 n 57))
-            (lambda (n) (< (get digit-values n 100) base))))
+            (λ (n) (between? 48 n 57))
+            (λ (n) (< (get digit-values n 100) base))))
 
       (define (bytes->number digits base)
          (fold
-            (lambda (n digit)
+            (λ (n digit)
                (let ((d (get digit-values digit #false)))
                   (cond
                      ((or (not d) (>= d base))
@@ -299,7 +299,7 @@
             ((type 
                (get-either
                   (let-parses ((_ (get-imm 44)) (_ (get-imm 64))) 'splice) ; ,@
-                  (get-byte-if (lambda (x) (get quotations x #false)))))
+                  (get-byte-if (λ (x) (get quotations x #false)))))
              (value parser))
             (list (get quotations type #false) value)))
      
