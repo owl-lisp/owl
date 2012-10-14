@@ -497,7 +497,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (define initial-environment-sans-macros
    (fold 
-      (λ (env pair) (put env (car pair) (cdr pair)))
+      (λ (env pair) (env-put-raw env (car pair) (cdr pair)))
       *owl-core*
       shared-bindings))
      

@@ -5,7 +5,7 @@
 
    (import
       (owl defmac)
-      (only (owl ff) ff?)
+      (only (owl ff-ng) ff?)
       (only (owl syscall) interact))
 
    (begin

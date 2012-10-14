@@ -21,13 +21,13 @@
 
    (import 
       (owl defmac)
-      (owl ff)
       (owl list)
       (owl primop)
       (owl compile)
       (owl closure)
       (owl cps)
       (owl alpha)
+      (owl ff) ;; just for empty
       (owl sort)
       (owl fixedpoint)
       (owl ast)
@@ -332,24 +332,29 @@
                   (if (and (list? op) (all symbol? op))
                      (let ((nan (tuple 'defined (tuple 'value 'undefined))))
                         (repl
-                           (ff-fold
-                              (λ (env name val)
-                                 (tuple-case val
-                                    ((defined x)
-                                       (cond
-                                          ((or (primop-of (ref x 2)) 
-                                             (has? op name))
-                                             ;(print " + keeping " name)
-                                             env)
-                                          (else 
-                                             ;(print " - forgetting " name)
-                                             (env-del env name))))
-                                    ;((macro x)
-                                    ;   (if (has? op name)
-                                    ;      env
-                                    ;      (env-del env name)))
-                                    (else env)))
-                              env env)
+                           (env-keep env
+                              (λ (name)
+                                 (if (or (primop-of name) (has? op name))
+                                    name
+                                    #false)))
+                           ;(ff-fold
+                           ;   (λ (env name val)
+                           ;      (tuple-case val
+                           ;         ((defined x)
+                           ;            (cond
+                           ;               ((or (primop-of (ref x 2)) 
+                           ;                  (has? op name))
+                           ;                  ;(print " + keeping " name)
+                           ;                  env)
+                           ;               (else 
+                           ;                  ;(print " - forgetting " name)
+                           ;                  (env-del env name))))
+                           ;         ;((macro x)
+                           ;         ;   (if (has? op name)
+                           ;         ;      env
+                           ;         ;      (env-del env name)))
+                           ;         (else env)))
+                           ;   env env)
                            in))
                      (repl-fail env (list "bad word list: " op)))))
             ((words w)
@@ -362,7 +367,7 @@
                            (cons "Words: "
                               (sort string<?
                                  (map symbol->string
-                                    (ff-fold (λ (words key value) (cons key words)) null env))))))))
+                                    (env-keys env))))))))
                (repl env in))
             ((find)
                (lets 
@@ -370,7 +375,7 @@
                    (rex (thing->rex thing)))
                   (cond
                      ((function? rex)
-                        (prompt env (keep (λ (sym) (rex (symbol->string sym))) (ff-fold (λ (words key value) (cons key words)) null env))))
+                        (prompt env (keep (λ (sym) (rex (symbol->string sym))) (env-keys env))))
                      (else
                         (prompt env "I would have preferred a regex or a symbol.")))
                   (repl env in)))
@@ -399,7 +404,7 @@
       ;;               | (exports <lib)
       ;; TODO - use env-keep and check bindings from result instead to avoid absraction violation
       (define (build-export names env fail)
-         (let loop ((names names) (unbound null) (module empty))
+         (let loop ((names names) (unbound null) (module empty-env))
             (cond
                ((null? names)
                   (cond
@@ -410,12 +415,12 @@
                         (fail (list "Undefined exports: " unbound)))))
                ((env-get-raw env (car names) #false) =>
                   (λ (value)
-                     (loop (cdr names) unbound (put module (car names) value))))
-               ((and  ;; swap name for (rename <local> <exported>)
+                     (loop (cdr names) unbound (env-put-raw module (car names) value))))
+               ((and ;; swap name for (rename <local> <exported>)
                    (match `(rename ,symbol? ,symbol?) (car names))
-                   (get env (cadar names) #false)) =>
+                   (env-get-raw env (cadar names) #false)) =>
                   (λ (value)
-                     (loop (cdr names) unbound (put module (caddar names) value))))
+                     (loop (cdr names) unbound (env-put-raw module (caddar names) value))))
                ((match `(exports ,list?) (car names))
                   (let ((exported (exported-names env (cadr (car names)))))
                      (if exported
@@ -586,7 +591,7 @@
                               (else
                                  (fail (list "I didn't have or find library" (any->string lib)))))))
                      ((eq? status 'ok)
-                        (env-fold put env lib)) ;; <- TODO env op, should be in (owl env)
+                        (env-fold env-put-raw env lib)) ;; <- TODO env op, should be in (owl env)
                      ((eq? status 'circular)
                         (fail (list "Circular dependency causing reload of" (bytes->string (render lib null)))))
                      (else

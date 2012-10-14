@@ -20,7 +20,7 @@
       (owl vector)
       (owl eof)
       (owl list-extra)
-      (owl ff)
+      (owl ff-ng)
       (owl lazy)
       (owl io) ; testing
       (owl primop)

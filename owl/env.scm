@@ -2,6 +2,7 @@
 
 	(export 
       lookup env-bind 
+      empty-env
       apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
       poll-tag link-tag buffer-tag signal-tag signal-halt thread-quantum
@@ -10,7 +11,9 @@
       env-del ;; env key → env'
       env-set ;; env-set env key val → env'
       env-keep ;; env (name → name' | #false) → env'
-      env-get-raw ;; env key → value
+      env-get-raw ;; env key → value      -- temporary
+      env-put-raw ;; env key value → env' -- temporary
+      env-keys ;; env → (key ...)
       )
 
    (import
@@ -27,6 +30,8 @@
       (owl primop))
 
    (begin
+
+      (define empty-env empty) ;; will change with ff impl
 
       (define env-del del)
       (define poll-tag "mcp/polls")
@@ -52,6 +57,7 @@
             (else def)))
 
       (define env-get-raw get) ;; will use different ff 
+      (define env-put-raw put) ;; will use different ff 
 
       (define (env-set env key val)
          (put env key
@@ -239,12 +245,16 @@
                (cons 'values   (tuple 'special 'values)))))
 
       ;; take a subset of env
+      ;; fixme - misleading name
       (define (env-keep env namer)
          (env-fold
             (λ (out name value)
                (let ((name (namer name)))
                   (if name (put out name value) out)))
             empty env))
+
+      (define (env-keys env)
+         (ff-fold (λ (words key value) (cons key words)) null env))
 
       (define primitive? primop-of)
 
