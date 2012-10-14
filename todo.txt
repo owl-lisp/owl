@@ -27,6 +27,9 @@ TODO QUEUE-ISH:
   + rewrite ff library
      - steal left leaning trees?
   + add cgen support to variable arity functions
+  + core library should also provide
+     - heaps
+     - queues
   + add support for recursion with variable arity (recursion transformer predates variable arity)
   + rewrite rlist library, or swapt to the owl version
   + optimize the compiler, bootstraps have gotten too slow

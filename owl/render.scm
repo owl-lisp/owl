@@ -10,7 +10,7 @@
       (owl list-extra)
       (owl boolean)
       (owl symbol)
-      (owl ff)
+      (owl ff-ng)
       (owl tuple)
       (owl function)
       (owl rlist)
@@ -244,7 +244,7 @@
                            shared
                            (cons ob shared))))
                   null refs)))
-            (let loop ((out #false) (shares shares) (n 1))
+            (let loop ((out empty) (shares shares) (n 1))
                (if (null? shares)
                   out
                   (loop (put out (car shares) n) (cdr shares) (+ n 1))))))
@@ -255,7 +255,7 @@
             (ser 
                (if share? ;; O(n), allow skipping
                   (label-shared-objects val)
-                  #false)
+                  empty)
                val (λ (sh) tl))))
 
       (define (serialize val tl)
