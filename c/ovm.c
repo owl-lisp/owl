@@ -780,7 +780,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *res;
          unsigned int len;
          struct dirent *dire = readdir(dirp);
-         if (!dire) return make_immediate(0, 4); /* eof at end of dir stream */
+         if (!dire) return IEOF; /* eof at end of dir stream */
          len = lenn(dire->d_name, FMAX+1);
          if (len == FMAX+1) return IFALSE; /* false for errors, like too long file names */
          res = mkbvec(len, 3); /* make a fake raw string (OS may not use valid UTF-8) */
