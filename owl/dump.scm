@@ -56,10 +56,10 @@
                      (put trail node #true)
                      (tuple->list node)))))
          (define trail
-            (walk (put #false tag null) node))
+            (walk (put empty tag null) node))
 
          (get 
-            (walk (put #false tag null) node)
+            (walk (put empty tag null) node)
             tag null))
 
       (define (file->string path)
@@ -258,7 +258,7 @@
                (lets ((opcode wrapper c-code info))
                   (put sources opcode 
                      (clone-code bytecode extras))))
-            #false native-ops))
+            empty native-ops))
 
 
          ;;;
@@ -269,7 +269,7 @@
             (cond
                ((immediate? obj) (values seen #false))
                ((bytecode? obj)
-                  (values seen (put #false obj 1)))
+                  (values seen (put empty obj 1)))
                ((get seen obj #false) =>
                   (λ (here) (values seen here)))
                (else
@@ -282,12 +282,12 @@
 
       ; ob → ((nrefs . ob) ..) 
       (define (all-code-refs ob)
-         (lets ((refs this (code-refs #false ob)))
+         (lets ((refs this (code-refs empty ob)))
             (ff-fold (λ (out x n) (cons (cons n x) out)) null this)))
 
       ;; _ → ((bytecode . bytecode) ...)
       (define (codes-of ob) 
-         (lets ((refs this (code-refs #false ob)))
+         (lets ((refs this (code-refs empty ob)))
             (ff-fold (λ (out x n) (cons (cons x x) out)) null this)))
 
       ;; ob percent → (codevec ...)

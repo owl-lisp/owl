@@ -13,7 +13,6 @@
       (owl equal)
       (owl list-extra)
       (owl primop)
-      (owl ff)
       (owl io)
       (owl gensym)
       (owl symbol)
@@ -385,7 +384,7 @@
                    (rules 
                      (make-pattern-list literals patterns templates 
                         (lambda (sym)
-                           (not (get env sym #false)))))
+                           (not (env-get-raw env sym #false)))))
                    (transformer 
                      (make-transformer (cons keyword literals) rules)))
                   (let ((env (env-set-macro env keyword transformer)))
