@@ -14,8 +14,6 @@
 
 (define-library (owl math)
 
-   ;(import-old lib-iff)
-
    (export 
       number? fixnum? integer?
       + - * = / 
@@ -48,7 +46,7 @@
       (owl defmac)
       (owl list)
       (owl syscall)
-      (owl ff))
+      (owl ff-ng))
 
    (begin
 

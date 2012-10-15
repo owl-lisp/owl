@@ -16,8 +16,8 @@
       (owl list)
       (owl list-extra)
       (only (owl syscall) error)
-      (only (owl env) lookup)
-      (owl ff))
+      (owl ff-ng)
+      )
 
    (begin
       (define (ok exp env) (tuple 'ok exp env))
@@ -40,7 +40,7 @@
       (define (alpha exp env free)
          (tuple-case exp
             ((var sym)
-               (values (mkvar (lookup env sym)) free))
+               (values (mkvar (getf env sym)) free))
             ((call rator rands)
                (lets
                   ((rator free (alpha rator env free))
@@ -52,7 +52,7 @@
                    (body free
                      (alpha body
                         (for env (zip cons formals new-formals)
-                           (lambda (env node)
+                           (λ (env node)
                               (put env (car node) (cdr node))))
                         free)))
                   (values (mklambda new-formals body) free)))
@@ -62,7 +62,7 @@
                    (body free
                      (alpha body
                         (for env (zip cons formals new-formals)
-                           (lambda (env node)
+                           (λ (env node)
                               (put env (car node) (cdr node))))
                         free)))
                   (values (tuple 'lambda-var fixed? new-formals body) free)))

@@ -32,7 +32,6 @@
       (owl defmac)
       (owl lazy)
       (owl math)
-      (owl ff)
       (owl list)
       (owl string)
       (owl list-extra)
