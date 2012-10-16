@@ -23,7 +23,7 @@
       (owl list)
       (owl string)
       (owl equal)
-      (owl ff)) ;; can be converted after programs getting the dict use ff-ng
+      (owl ff-ng)) ;; MODULE OUTPUT DOWNGRADED
 
    (begin
       ;; cl-rules is a ff of 
@@ -150,7 +150,7 @@
          (let ((res (walk rules args empty null)))
             (if res
                (lets ((dict others res))
-                  (cont dict others))
+                  (cont (downgrade dict) others))
                (begin
                   (print-to stderr error-msg)
                   #false))))

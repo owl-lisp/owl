@@ -114,7 +114,7 @@
 
 (import (owl list))
 
-(import (owl ff))
+(import (owl ff-ng)) ;; shadow time!
 
 (import (only (owl iff))) ;; hack, load it but don't import anything
 
@@ -509,41 +509,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define initial-environment
    (bind-toplevel
       (library-import initial-environment-sans-macros
-         '( 
-            #|
-           (owl primop)      ;; primop wrappers
-           (owl syscall)     ;; calling mcp
-           (owl defmac)      ;; standard toplevel macros
-           (owl unsupported) ;; things we don't have
-           (owl boolean)
-           (owl list)
-           (owl list-extra)
-           (owl sort)
-           (owl ff)
-           (owl queue)
-           (owl math)
-           (owl math-extra)
-           (owl lazy)
-           (owl unicode)
-           (owl string)
-           (owl vector)
-           (owl function)
-           (owl symbol)
-           (owl regex)
-           (owl fasl)
-           (owl rlist)
-           (owl io)
-           (owl cgen)
-           (owl random)
-           (owl suffix)
-           (owl sys)
-           (owl char)
-           (owl bisect)
-           (owl tuple)
-           (scheme misc)
-           |#
-           (owl base)
-           )
+         '((owl base))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
 
@@ -682,7 +648,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (owl vector)
       (owl sort)
       (owl equal)
-      (owl ff)
+      (owl ff-ng)
       (owl sexp))
 
    (begin
