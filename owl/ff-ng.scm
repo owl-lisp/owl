@@ -18,6 +18,8 @@
       ff->sexp
       ff-ok?
       empty
+      upgrade    ; temp
+      downgrade  ; temp
       
       getf       ; (getf ff key) == (get ff key #false)
       )
@@ -519,13 +521,19 @@
 
       ;; todo: placeholder ff-union
       (define (ff-union a b collide)
+         (cond
+            ((not a) (ff-union #empty b collide))
+            ((not b) (ff-union a #empty collide))
+            ((old-ff? a) (ff-union (upgrade a) b collide))
+            ((old-ff? b) (ff-union a (upgrade b) collide))
+            (else
          (ff-fold
             (λ (a bk bv)
                (let ((av (get a bk #false)))
                   (if av ;; <- BUG, does not imply bk is not set
                      (put a bk (collide av bv))
                      (put a bk bv))))
-            a b))
+            a b))))
 
       ;; todo: placeholder ff-diff
       (define (ff-diff a b)
@@ -544,6 +552,10 @@
             (keys (upgrade ff))
             (ff-foldr (λ (out k v) (cons k out)) null ff)))
 
+      (define (downgrade ff)
+         (if (ff? ff)
+            (old-list->ff (ff->list ff))
+            ff))
 ))
 
 ;(import (owl ff-ng))
