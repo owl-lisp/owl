@@ -1,5 +1,5 @@
 ;;;
-;;; Bytecode2C translator
+;;; Bytecode->C translator
 ;;;
 
 ; Each normal owl program (one not using something eval-like) contains
@@ -23,7 +23,7 @@
       (owl list-extra)
       (owl math)
       (owl function)
-      (owl ff)
+      (owl ff-ng)
       (owl vector)
       (owl string)
       (owl primop)
@@ -652,7 +652,7 @@
                      (λ (ret)
                         (list->string
                            (foldr render null
-                              (emit-c ops #false (λ () (ret #false)) null)))))))
+                              (emit-c ops empty (λ () (ret #false)) null)))))))
             #false))
      
    ))

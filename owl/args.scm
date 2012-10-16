@@ -23,7 +23,7 @@
       (owl list)
       (owl string)
       (owl equal)
-      (owl ff))
+      (owl ff)) ;; can be converted after programs getting the dict use ff-ng
 
    (begin
       ;; cl-rules is a ff of 

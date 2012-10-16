@@ -10,7 +10,7 @@ EMAIL="aohelin@gmail.com"
 case "$(hostname)" in 
  haltp) 
    SMTP=mail.utanet.fi;
-   DELAY=10 ;; # don't want to spin up fans here
+   DELAY=30 ;; # don't want to spin up fans here
  *)     
    SMTP=mail.panoulu.net ;
    DELAY=0 ;; # please do run

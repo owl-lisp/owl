@@ -1306,10 +1306,11 @@
             (map (lambda (n) (cons (<< 1 n) n))
                '(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15))))
 
+      ;; FIXME - keep bit-pos in a variable to avoid a frequent lookup. ff change had major speed effect in whole arith.scm
       (define (divex bit a b out)
          (cond
-            ((teq? a fix-) #false)
-            ((teq? a int-) #false)
+            ((teq? a fix-) #false) ;; not divisible
+            ((teq? a int-) #false) ;; not divisible
             ((eq? a 0) (div-finish out))
             ((eq? (band a bit) 0) ; O(1)
                (if (eq? bit 32768)
@@ -1329,9 +1330,10 @@
 
       (define (nat-divide-exact a b)
          (if (eq? (band b 1) 0)
-            (if (eq? (band a 1) 0)
-               (nat-divide-exact (>> a 1) (>> b 1)) 
-               #false)
+            (if (eq? (band a 1) 0) 
+               ;; drop a power of two from both
+               (nat-divide-exact (>> a 1) (>> b 1))
+               #false) ;; not divisible
             (divex 1 a b divex-start)))
 
       (define (maybe-negate a)

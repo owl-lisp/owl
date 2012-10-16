@@ -27,7 +27,7 @@
       (owl closure)
       (owl cps)
       (owl alpha)
-      (owl ff) ;; just for empty
+      (owl ff-ng)
       (owl sort)
       (owl fixedpoint)
       (owl ast)
