@@ -12,7 +12,7 @@
 		 (rst perm-2 (random-permutation rst keys))
 
 		 ;; create a read-black tree in random order
-		 (ff (fold (lambda (ff n) (put ff n n)) #false perm-1))
+		 (ff (fold (lambda (ff n) (put ff n n)) empty perm-1))
 
 		 ;; delete keys in insertion, reverse, rtl and ltr order
 		 (blank-fifo (fold (lambda (ff n) (del ff n)) ff perm-1))
@@ -23,11 +23,11 @@
 		(cond
 			((not (equal? (map car (ff->list ff)) keys))
 				(error "bad ff for keys " perm-1))
-			(blank-fifo (error "delete fifo tail " perm-1))
-			(blank-lifo (error "delete lifo tail " perm-1))
-			(blank-random (error "random delete fail: " (list 'keys perm-1 'delete 'order perm-2)))
-			(blank-inorder (error "left to right deletion fails: " perm-1))
-			(blank-reverse (error "right to left deletion fails: " perm-1))
+			((not (empty? blank-fifo)) (error "delete fifo tail " perm-1))
+			((not (empty? blank-lifo)) (error "delete lifo tail " perm-1))
+			((not (empty? blank-random)) (error "random delete fail: " (list 'keys perm-1 'delete 'order perm-2)))
+			((not (empty? blank-inorder)) (error "left to right deletion fails: " perm-1))
+			((not (empty? blank-reverse)) (error "right to left deletion fails: " perm-1))
 			(else rst))))
 
 (let loop ((rst (seed->rands (time-ms))) (n 0))

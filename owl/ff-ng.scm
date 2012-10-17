@@ -18,6 +18,7 @@
       ff->sexp
       ff-ok?
       empty
+      empty?
       upgrade    ; temp
       downgrade  ; temp
       
@@ -39,6 +40,8 @@
       (define rightness #b01)
 
       (define empty #empty)
+
+      (define (empty? x) (eq? x empty))
 
       (define (black l k v r)
          (if (eq? l #empty)

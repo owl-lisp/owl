@@ -17,7 +17,7 @@
 
 ;; ff of all numbers
 (define wanted 
-   (fold (λ (ff n) (put ff n n)) #false (iota 0 1 n)))
+   (fold (λ (ff n) (put ff n n)) empty (iota 0 1 n)))
 
 (define (drop-mails)
    (wait-mail)
@@ -34,7 +34,7 @@
                      (if (eq? msg 'halt)
                         (drop-mails)
                         (loop (del wanted msg) rst)))))
-            ((not wanted) ;; received all already
+            ((eq? wanted #empty) ;; received all already
                (mail 'fini "i has all")
                (drop-mails))
             (else

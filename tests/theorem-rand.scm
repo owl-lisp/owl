@@ -214,7 +214,7 @@
 
 (define (Ff-of thing)
    (λ (rs)
-      (let loop ((rs rs) (out #false))
+      (let loop ((rs rs) (out empty))
          (lets ((rs n (rand rs elem-ip)))
             (if (eq? n 0)
                (values rs out)
@@ -365,7 +365,7 @@
      
       theorem ff-del-all
          ∀ f ∊ (Ff-of Byte)
-            #false = (ff-fold (λ (ff key val) (del ff key)) f f)
+            empty = (ff-fold (λ (ff key val) (del ff key)) f f)
 
       theorem ff-put
          ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
