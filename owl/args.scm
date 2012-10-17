@@ -150,7 +150,7 @@
          (let ((res (walk rules args empty null)))
             (if res
                (lets ((dict others res))
-                  (cont (downgrade dict) others))
+                  (cont dict others))
                (begin
                   (print-to stderr error-msg)
                   #false))))

@@ -1,3 +1,15 @@
+;;;
+;;; Finite functions (or red-black key-value maps)
+;;;
+
+;; fixme: ff unit tests went missing at some point. add with lib-compare vs naive alists.
+;; fixme: ffc[ad]r are no longer needed as primitives
+
+; Note: objects in owl are *ordered*. The gc was specifically
+; designed to preserve order in order to improve locality and
+; allow O(log n) maps (called ffs to avoid collision with
+; the standard map function) of arbitrary objects.
+
 (define-library (owl ff-ng)
 
    (export 
@@ -19,16 +31,12 @@
       ff-ok?
       empty
       empty?
-      upgrade    ; temp
-      downgrade  ; temp
       
       getf       ; (getf ff key) == (get ff key #false)
       )
 
    (import 
       (owl defmac)
-      ;(owl math)
-      ;(owl io)
       (owl list)
       (prefix (owl ff) old-)
       )
@@ -250,7 +258,6 @@
       (define (get ff key def)
          (cond
             ((not ff) def) ;; COMPAT
-            ((old-ff? ff) (old-get ff key def)) ;; COMPAT
             ((eq? ff #empty) def)
             (else
                (wifff (ff l k v r)
@@ -266,8 +273,6 @@
       ;; ff key val -> ff' | #false
       (define (ff-update ff key val)
          (cond
-            ((eq? ff #false) #false) ;; COMPAT
-            ((old-ff? ff) (old-fupd ff key val)) ;; COMPAT
             ((eq? ff #empty) #false)
             (else
                (wifff (ff l k v r)
@@ -291,9 +296,6 @@
       (define (put ff key val)
          (cond
             ((not ff) (put #empty key val)) ;; COMPAT
-            ((old-ff? ff) 
-               (let ((ff (fold (λ (ff p) (put ff (car p) (cdr p))) #empty (old-ff->list ff))))
-                  (put ff key val))) ;; COMPAT
             (else
                (let ((ff (putn ff key val)))
                   (if (red? ff) (color-black ff) ff)))))
@@ -304,35 +306,26 @@
       ;;; FF Utilities
       ;;;
 
-      (define (upgrade ff)
-         (old-ff-fold put #empty ff))
-
       ;; FIXME, use types directly later
       (define (ff-foldr op state tree)
-         (cond
-            ((old-ff? tree) ;; COMPAT
-               (ff-foldr op state (upgrade tree)))
-            ((nonempty? tree)
-               (wifff (tree l k v r)
-                  (if (nonempty? l)
-                     (if (nonempty? r)
-                        (lets
-                           ((state (ff-foldr op state r))
-                            (state (op state k v)))
-                           (ff-foldr op state l))
-                        (let ((state (op state k v)))
-                           (ff-foldr op state l)))
-                     (if (nonempty? r)
-                        (let ((state (ff-foldr op state r)))
-                           (op state k v))
-                        (op state k v)))))
-            (else
-               state)))
+         (if (eq? tree #empty)
+            state
+            (wifff (tree l k v r)
+               (if (nonempty? l)
+                  (if (nonempty? r)
+                     (lets
+                        ((state (ff-foldr op state r))
+                         (state (op state k v)))
+                        (ff-foldr op state l))
+                     (let ((state (op state k v)))
+                        (ff-foldr op state l)))
+                  (if (nonempty? r)
+                     (let ((state (ff-foldr op state r)))
+                        (op state k v))
+                     (op state k v))))))
 
       ;; FIXME, as above
       (define (ff-fold op state tree)
-         (if (old-ff? tree)
-            (ff-fold op state (upgrade tree))
          (if (nonempty? tree)
             (wifff (tree l k v r)
                (if (nonempty? l)
@@ -348,29 +341,25 @@
                      (let ((state (op state k v)))
                         (ff-fold op state r))
                      (op state k v))))
-            state)))
+            state))
       
        ;; iterate key-value pairs in order
        (define (ff-iterate tree tl)
-         (if (old-ff? tree)
-            (ff-iterate (upgrade tree) tl)
          (if (nonempty? tree)
             (wifff (tree l k v r)
                (ff-iterate l
                   (cons (cons k v)
                      (λ () (ff-iterate r tl)))))
-            tl)))
+            tl))
 
        ;; iterate key-value pairs in reverse order
        (define (ff-iterrate tree tl)
-         (if (old-ff? tree)
-            (ff-iterrate (upgrade tree) tl)
          (if (nonempty? tree)
             (wifff (tree l k v r)
                (ff-iterrate r
                   (cons (cons k v)
                      (λ () (ff-iterrate l tl)))))
-            tl)))
+            tl))
 
       (define (ff-iter  tree) (ff-iterate  tree null))
       (define (ff-iterr tree) (ff-iterrate tree null))
@@ -378,14 +367,12 @@
       ;; note: ff-map will switch argument order in the generic equivalent
       ;; fixme, also much faster if types are used directly
       (define (ff-map ff op)
-         (if (old-ff? ff)
-            (ff-map (upgrade ff) op)
          (if (eq? ff #empty)
             #empty
             (wifff (ff l k v r)
                (if (red? ff)
                   (red   (ff-map l op) k (op k v) (ff-map r op))
-                  (black (ff-map l op) k (op k v) (ff-map r op)))))))
+                  (black (ff-map l op) k (op k v) (ff-map r op))))))
 
       (define (list->ff lst)
          (fold
@@ -395,12 +382,10 @@
             lst))
 
       (define (ff->list ff)
-         (if (old-ff? ff)
-            (ff->list (upgrade ff))
          (ff-foldr
             (λ (lst k v)
                (cons (cons k v) lst))
-            null ff)))
+            null ff))
 
 
       ;;; 
@@ -510,12 +495,10 @@
 
 
       (define (del ff key)
-         (if (old-ff? ff)
-            (del (upgrade ff) key)
          (let ((ff (deln ff key)))
             (if (red? ff)
                (color-black ff)
-               ff))))
+               ff)))
          
 
       ;;;
@@ -527,8 +510,6 @@
          (cond
             ((not a) (ff-union #empty b collide))
             ((not b) (ff-union a #empty collide))
-            ((old-ff? a) (ff-union (upgrade a) b collide))
-            ((old-ff? b) (ff-union a (upgrade b) collide))
             (else
          (ff-fold
             (λ (a bk bv)
@@ -551,14 +532,8 @@
             ((getf ff key) (get ff key #false))))
 
       (define (keys ff)
-         (if (old-ff? ff)
-            (keys (upgrade ff))
-            (ff-foldr (λ (out k v) (cons k out)) null ff)))
+         (ff-foldr (λ (out k v) (cons k out)) null ff))
 
-      (define (downgrade ff)
-         (if (ff? ff)
-            (old-list->ff (ff->list ff))
-            ff))
 ))
 
 ;(import (owl ff-ng))

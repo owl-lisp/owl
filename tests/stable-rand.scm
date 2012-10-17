@@ -4,7 +4,7 @@
 
 ;; (i ...) → ((i . nth-i) ...)
 (define (index lst)
-   (let loop ((lst lst) (ff #false))
+   (let loop ((lst lst) (ff empty))
       (if (null? lst)
          null
          (lets 

@@ -129,11 +129,12 @@
 
       (define-syntax if
          (syntax-rules 
-            (not eq? and null? pair? teq? imm alloc raw
+            (not eq? and null? pair? teq? empty? imm alloc raw
                fix+ fix- int+ int- pair rat comp)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
+            ((if (empty? test) then else) (if (eq? test #empty) then else)) ;; FIXME - handle with partial eval later
             ((if (pair? test) then else) (if (teq? test (alloc 1)) then else))
             ((if (teq? q fix+) . c) (if (teq? q (imm    0)) . c))
             ((if (teq? q fix-) . c) (if (teq? q (imm   32)) . c))

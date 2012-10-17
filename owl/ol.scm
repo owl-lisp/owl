@@ -208,13 +208,13 @@
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes
-         (for #false primops
+         (for empty primops
             (λ (ff node)
                (put ff (ref node 5) (ref node 2)))))
 
       ;; ff of opcode → wrapper
       (define opcode->wrapper
-         (for #false primops
+         (for empty primops
             (λ (ff node)
                (put ff (ref node 2) (ref node 5)))))
 
