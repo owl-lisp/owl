@@ -18,7 +18,7 @@
 
    (import
       (owl defmac)
-      (owl ff)
+      (owl ff-ng)
       (owl list)
       (owl symbol)
       (owl string)

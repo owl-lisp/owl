@@ -14,10 +14,10 @@
       (owl list-extra)
       (only (owl syscall) error)
       (owl io)
-      (owl ff)
       (owl env))
 
    (begin
+
       ; return the least score by pred 
       (define (least pred lst)
          (if (null? lst)
@@ -113,7 +113,7 @@
                            (lambda (node) (has? partition (name-of node)))
                            deps))
                      null)))
-
+            
             (error "unable to resolve dependencies for mutual recursion. remaining bindings are " deps)))
 
       ;;; remove nodes and associated deps
@@ -282,7 +282,7 @@
                         (fold
                            (lambda (env node)
                               (let ((formals (ref (value-of node) 2)))
-                                 (put env 
+                                 (env-put-raw env  
                                     (name-of node) 
                                     (tuple 'recursive formals 
                                        (list (name-of node))))))
@@ -335,7 +335,7 @@
                         (fold
                            (lambda (env node)
                               (let ((formals (ref (value-of node) 2)))
-                                 (put env 
+                                 (env-put-raw env 
                                     (name-of node) 
                                     (tuple 'recursive formals partition))))
                            env nodes)))
