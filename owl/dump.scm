@@ -267,13 +267,13 @@
 
          (define (code-refs seen obj)
             (cond
-               ((immediate? obj) (values seen #false))
+               ((immediate? obj) (values seen empty))
                ((bytecode? obj)
                   (values seen (put empty obj 1)))
                ((get seen obj #false) =>
                   (λ (here) (values seen here)))
                (else
-                  (let loop ((seen seen) (lst (tuple->list obj)) (here #false))
+                  (let loop ((seen seen) (lst (tuple->list obj)) (here empty))
                      (if (null? lst)
                         (values (put seen obj here) here)
                         (lets ((seen this (code-refs seen (car lst))))

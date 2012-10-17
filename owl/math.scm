@@ -46,9 +46,12 @@
       (owl defmac)
       (owl list)
       (owl syscall)
-      (owl ff))
+      (owl ff)
+      )
 
    (begin
+
+      (define *fixnum-bits* 16)
 
       (define (zero? x) (eq? x 0))
 
@@ -1301,27 +1304,25 @@
       ; b is usually shorter, so shift b right and then substract instead 
       ; of moving a by s
 
-      (define bit-poss
-         (list->ff
-            (map (lambda (n) (cons (<< 1 n) n))
-               '(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15))))
+      (define last-bit (subi *fixnum-bits* 1))
 
-      ;; FIXME - keep bit-pos in a variable to avoid a frequent lookup. ff change had major speed effect in whole arith.scm
-      (define (divex bit a b out)
+      (define (divex bit bp a b out)
          (cond
             ((teq? a fix-) #false) ;; not divisible
             ((teq? a int-) #false) ;; not divisible
             ((eq? a 0) (div-finish out))
             ((eq? (band a bit) 0) ; O(1)
-               (if (eq? bit 32768)
+               (if (eq? bp last-bit)
                   (lets 
                      ((a (ncdr a))
                       (a (if (null? (ncdr a)) (ncar a) a)))
-                     (divex 1 a b (ncons 0 out)))
-                  (lets ((_ bit (fx<< bit 1)))
-                     (divex bit a b out))))
+                     (divex 1 0 a b (ncons 0 out)))
+                  (lets 
+                     ((_ bit (fx<< bit 1))
+                      (bp _  (fx+ bp 1)))
+                     (divex bit bp a b out))))
             (else ; shift + substract = amortized O(2b) + O(log a)
-               (divex bit (subi a (<< b (get bit-poss bit #false)))
+               (divex bit bp (subi a (<< b bp))
                   b (ncons (fxbor bit (ncar out)) (ncdr out))))))
 
       (define divex-start (ncons 0 null))
@@ -1331,10 +1332,10 @@
       (define (nat-divide-exact a b)
          (if (eq? (band b 1) 0)
             (if (eq? (band a 1) 0) 
-               ;; drop a power of two from both
+               ;; drop a powers of two from both and get 1 bit to bottom of b
                (nat-divide-exact (>> a 1) (>> b 1))
                #false) ;; not divisible
-            (divex 1 a b divex-start)))
+            (divex 1 0 a b divex-start)))
 
       (define (maybe-negate a)
          (if a (negate a) a))
@@ -1543,6 +1544,7 @@
                   (lets ((hi lo (fx<< s 1)))
                      (cons lo (cdr n)))))))
 
+      ;; FIXME - consider carrying these instead
       (define gcd-shifts 
          (list->ff 
             (map (lambda (x) (cons (<< 1 x) x))

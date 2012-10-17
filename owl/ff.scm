@@ -38,6 +38,7 @@
    (import 
       (owl defmac)
       (owl list)
+      (only (owl syscall) error)
       )
 
    (begin
@@ -307,15 +308,13 @@
                         (set ff 3 (ff-update r key val)))
                      (else #false))))))
 
+      (define fupd ff-update)
+
       ;; TODO: benchmark fupd+ins vs put with real programs
       (define (put ff key val)
-         (cond
-            ((not ff) (put #empty key val)) ;; COMPAT
-            (else
-               (let ((ff (putn ff key val)))
-                  (if (red? ff) (color-black ff) ff)))))
+         (let ((ff (putn ff key val)))
+            (if (red? ff) (color-black ff) ff)))
 
-      (define fupd ff-update)
 
       ;;;
       ;;; FF Utilities
@@ -389,6 +388,7 @@
                   (red   (ff-map l op) k (op k v) (ff-map r op))
                   (black (ff-map l op) k (op k v) (ff-map r op))))))
 
+      ;; could benchmark if sort + grow from bottom is faster
       (define (list->ff lst)
          (fold
             (λ (ff node)
@@ -522,17 +522,13 @@
 
       ;; todo: placeholder ff-union
       (define (ff-union a b collide)
-         (cond
-            ((not a) (ff-union #empty b collide))
-            ((not b) (ff-union a #empty collide))
-            (else
          (ff-fold
             (λ (a bk bv)
                (let ((av (get a bk #false)))
                   (if av ;; <- BUG, does not imply bk is not set
                      (put a bk (collide av bv))
                      (put a bk bv))))
-            a b))))
+            a b))
 
       ;; todo: placeholder ff-diff
       (define (ff-diff a b)

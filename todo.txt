@@ -1,10 +1,6 @@
 TODO QUEUE-ISH:
-  + finish and optimize fully lisp-side ffs
-  + convert owl env to be a new ff and hunt down all abstraction violations that way?
-    - or just proceed module by module
-      o tough because many values flowing between modules are ffs...
+  + optimize fully lisp-side ffs
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
-    - ff nodes     (being converted)
     - raw strings  (padding)
     - byte vectors (padding)
   + remove all uses of type-old now that new type uniquely determines object type

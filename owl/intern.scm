@@ -244,7 +244,7 @@
                         (interner root codes 
                            (put names obj name)))
                      ((flush) ;; clear names before boot
-                        (interner root codes #false))
+                        (interner root codes empty))
                      (else
                         ;(print "unknown interner op: " msg)
                         (interner root codes names))))
