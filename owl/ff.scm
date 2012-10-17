@@ -78,7 +78,7 @@
          (syntax-rules ()
             ((red? node) (eq? redness (fxband (type node) redness))))) ;; false for black nodes and #empty
      
-      ;; does a (non-empty) node of size 3 have a right child? 2 doesn't and 4 has.
+      ;; does a (non-empty) red or black node of size 3 have a right child? 2 never does and 4 always has
       (define-syntax right?
          (syntax-rules ()
             ((right? node) (eq? rightness (fxband (type node) rightness)))))
@@ -254,16 +254,32 @@
                      (else
                         (black-bright left this this-val (putn right key val))))))))
 
+      ;; silly opencoded version using only primops
       (define (get ff key def)
-         (cond
-            ((not ff) def) ;; COMPAT
-            ((eq? ff #empty) def)
-            (else
-               (wifff (ff l k v r)
-                  (cond
-                     ((eq? key k) v)
-                     ((lesser? key k) (get l key def))
-                     (else (get r key def)))))))
+         (if (eq? ff #empty)
+            def
+            (let ((this-k (ref ff 1)))
+               (cond
+                  ((eq? this-k key)
+                     (ref ff 2))
+                  ((lesser? key this-k)
+                     ;; go left if possible
+                     (case (size ff)
+                        (4 (get (ref ff 3) key def))
+                        (2 def)
+                        (else 
+                           (if (right? ff)
+                              def
+                              (get (ref ff 3) key def)))))
+                  (else
+                     ;; go right if possible
+                     (case (size ff)
+                        (4 (get (ref ff 4) key def))
+                        (2 def)
+                        (else 
+                           (if (right? ff)
+                              (get (ref ff 3) key def)
+                              def))))))))
 
       ;(define (get ff key def) 
       ;   (ff key def))
