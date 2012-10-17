@@ -1550,12 +1550,6 @@
             (map (lambda (x) (cons (<< 1 x) x))
                '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15))))
       
-      ; O(1) clear low bits -> do also sub-adjusting ...
-      (define (clear i n) ; clear low n-1 bits
-         (if (eq? n 1)
-            i
-            (subi i (band i (get gcd-shifts n #false)))))
-
       (define (lazy-gcd a b n)
          (let ((av (cdr a)) (bv (cdr b)))
             (cond
@@ -1576,6 +1570,7 @@
                         (lazy-gcd (cons 2 (negate x)) (cons 1 av) n)
                         (lazy-gcd (cons 2 x) (cons 1 bv) n)))))))
 
+      ;; why are the bit values consed to head of numbers?
       (define (nat-gcd a b) (lazy-gcd (cons 1 a) (cons 1 b) 0))
       ;(define nat-gcd gcd-euclid)
 

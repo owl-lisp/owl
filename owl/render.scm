@@ -88,6 +88,9 @@
             ((rlist? obj) ;; fixme: rlist not parsed yet
                (ilist #\# #\r (render (rlist->list obj) tl)))
 
+            ((eq? obj #empty) ;; don't print as #()
+               (ilist #\# #\e #\m #\p #\t #\y tl))
+
             ((ff? obj) ;; fixme: ff not parsed yet this way
                (cons #\# (render (ff->list obj) tl)))
            
@@ -202,6 +205,9 @@
 
             ((rlist? obj) ;; fixme: rlist not parsed yet
                (ilist #\# #\r (ser sh (rlist->list obj) k)))
+
+            ((eq? obj #empty) ;; don't print as #()
+               (ilist #\# #\e #\m #\p #\t #\y (delay (k sh))))
 
             ((ff? obj) ;; fixme: ff not parsed yet this way
                (cons #\# (ser sh (ff->list obj) k)))

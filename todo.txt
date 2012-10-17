@@ -42,4 +42,5 @@ TODO QUEUE-ISH:
   + better partial evaluation
   + reduce register set
   + use a signal other than break to start something like old MCP
+  + (read-string (write-string random-renderable)) == random-renderable (+ sharing)
   + long argument lists and register spilling
