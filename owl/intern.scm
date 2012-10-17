@@ -5,7 +5,7 @@
 ; have mappings:
 ;  - strings->symbol
 ;  - bytes->bytecode (where returned bytecode may use spacial primops)
-;  (- intern-char     -> x → x')
+; (- intern-char     -> x → x')
 
 (define-library (owl intern)
    (export
@@ -24,7 +24,9 @@
       (owl list)
       (owl math)
       (owl function)
-      (owl ff)
+      (owl io)
+      (only (owl primop) apply)
+      (owl ff-ng)
       (owl tuple)
       (owl symbol))
 
@@ -96,7 +98,7 @@
                   (else
                      (set node 3
                         (put-symbol (ref node 3) sym)))))
-            (tuple empty sym empty)))
+            (tuple #false sym #false)))
          
       ;; note, only leaf strings for now
       (define (string->interned-symbol root str)
@@ -199,19 +201,29 @@
             ((function? func) (bytecode-of (ref func 1)))
             (else #false)))
 
+      ;(define (debug . args)
+      ;   ;(apply print-to (cons stderr args))
+      ;   42)
+
       ;; thread with string → symbol, ...
       (define (interner root codes names)
+         ;(debug "interner: wait")
          (lets
             ((env (wait-mail))
              (sender msg env))
             (cond
                ((string? msg) ;; find an old symbol or make a new one
+                  ;(debug "interner: interning " msg)
                   (lets ((root sym (string->interned-symbol root msg)))
                      (mail sender sym)
                      (interner root codes names)))
                ((bytecode? msg) ;; find an old equal bytecode sequence, extended wrapper, or add a new code fragment
+                  ;(debug "interner: interning bytecode")
                   (lets 
-                     ((codes code (intern-code codes msg))
+                     ((codes code 
+                           ; (intern-code codes msg) ;; sharing enabled
+                           (values codes msg) ;; sharing disabled
+                           )
                       (name (get names 'name #false)))
                      (mail sender code)
                      (interner root codes 
@@ -219,6 +231,7 @@
                            names
                            (put names code name)))))    ;; name after first finding
                ((tuple? msg)
+                  ;(debug "interner: tuple command " (ref (ref msg 1) 1)) ; avoid symbol->string
                   (tuple-case msg
                      ((set-name name) ;; use this name for all functions
                         (interner root codes (put names 'name name)))
@@ -236,9 +249,11 @@
                         ;(print "unknown interner op: " msg)
                         (interner root codes names))))
                ((null? msg) ;; get current info
+                  ;(debug "interner: info")
                   (mail sender (tuple 'interner-state root codes names))
                   (interner root codes names))
                (else
+                  ;(debug "interner: bad")
                   (mail sender 'bad-kitty)
                   (interner root codes names)))))
 
@@ -268,7 +283,12 @@
       (define (initialize-interner symbol-list codes names)
          (let 
             ((sym-root (fold put-symbol #false symbol-list))
-             (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
-            (λ () (interner sym-root code-root names))))
+             ;(code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)) ;; sharding disabled
+             (code-root empty)
+            )
+            (λ () (interner sym-root code-root 
+                    ;; names - forget old names temporarily
+                    empty
+                  ))))
 
 ))
