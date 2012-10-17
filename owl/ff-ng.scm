@@ -38,7 +38,6 @@
    (import 
       (owl defmac)
       (owl list)
-      (prefix (owl ff) old-)
       )
 
    (begin
