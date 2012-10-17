@@ -824,53 +824,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
 
 
-;;;
-;;; The meta thread just collects information about functions (names etc)
-;;;
-
-; a test hack: collect also function sources for inlining 
-
-; state = #(names ...)
-(define (meta-storage state)
-   (bind (wait-mail)
-      (λ (sender message)
-         (tuple-case message
-            ((set-name obj name)
-               ; (print "meta: naming " name)
-               (meta-storage
-                  (set state 1
-                     (put (ref state 1) obj name))))
-            ((get-name obj)
-               (let ((name (get (ref state 1) obj 'function)))
-                  (mail sender name)
-                  (meta-storage state)))
-            ((set-source obj src)
-               (meta-storage
-                  (set state 2 
-                     (put (ref state 2) obj src))))
-            ((get-source obj)
-               (let ((src (get (ref state 2) obj #false)))
-                  (mail sender src)
-                  (meta-storage state)))
-            (else
-               (print "meta-storage: strange request: " message)
-               (meta-storage state))))))
-
-;; env → (ff of entry-object → symbol)
-(define (collect-function-names env)
-   (ff-fold
-      (λ (collected name value)
-         (tuple-case value
-            ((defined node)
-               (tuple-case node
-                  ((value val)
-                     (if (function? val)
-                        (put collected val name)
-                        collected))
-                  (else collected)))
-            (else collected)))
-      #false env))
-
 ; *owl* points to owl root directory
 ; initally read from binary path (argv [0] )
 
@@ -911,10 +864,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 
                                     ;; repl needs symbol etc interning, which is handled by this thread
                                     (fork-server 'intern interner-thunk)
-
-                                    ;; this thread will be removed later once 'intern does also the same
-                                    (fork-server 'meta 
-                                       (λ () (meta-storage (tuple initial-names #false))))
 
                                     ;; set a signal handler which stop evaluation instead of owl 
                                     ;; if a repl eval thread is running
