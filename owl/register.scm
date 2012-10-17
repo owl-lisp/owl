@@ -15,7 +15,7 @@
 
    (import
       (owl defmac)
-      (owl ff-ng)
+      (owl ff)
       (owl math)
       (owl list-extra)
       (owl primop)

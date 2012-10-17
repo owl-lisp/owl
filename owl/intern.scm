@@ -26,7 +26,7 @@
       (owl function)
       (owl io)
       (only (owl primop) apply)
-      (owl ff-ng)
+      (owl ff)
       (owl tuple)
       (owl symbol))
 

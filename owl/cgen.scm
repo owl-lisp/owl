@@ -23,7 +23,7 @@
       (owl list-extra)
       (owl math)
       (owl function)
-      (owl ff-ng)
+      (owl ff)
       (owl vector)
       (owl string)
       (owl primop)

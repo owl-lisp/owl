@@ -10,7 +10,7 @@
 ; allow O(log n) maps (called ffs to avoid collision with
 ; the standard map function) of arbitrary objects.
 
-(define-library (owl ff-ng)
+(define-library (owl ff)
 
    (export 
       get         ; O(log2 n), ff x key x default-value -> value | default-value 
@@ -535,7 +535,7 @@
 
 ))
 
-;(import (owl ff-ng))
+;(import (owl ff))
 ;
 ;(print 
 ;   (get

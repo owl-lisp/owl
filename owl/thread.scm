@@ -20,7 +20,7 @@
    (import
       (owl defmac)
       (owl queue)
-      (owl ff-ng)
+      (owl ff)
       (owl function)
       (owl primop)
       (owl list)

@@ -10,7 +10,7 @@
       (owl list-extra)
       (owl boolean)
       (owl symbol)
-      (owl ff-ng)
+      (owl ff)
       (owl tuple)
       (owl function)
       (owl rlist)

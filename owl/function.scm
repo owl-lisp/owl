@@ -5,7 +5,7 @@
 
    (import
       (owl defmac)
-      (only (owl ff-ng) ff?)
+      (only (owl ff) ff?)
       (only (owl syscall) interact))
 
    (begin
@@ -21,8 +21,7 @@
       ;; something executable? being a function or a finite function
       (define (procedure? obj)
          (or (function? obj)
-             (ff? obj)
-             (eq? obj #false))) ;; fixme, to be replaced with #empty soon
+             (ff? obj)))
 
       (define (bytecode? x) 
          (or 

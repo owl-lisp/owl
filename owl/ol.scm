@@ -114,7 +114,7 @@
 
 (import (owl list))
 
-(import (owl ff-ng)) ;; shadow time!
+(import (owl ff))
 
 (import (only (owl iff))) ;; hack, load it but don't import anything
 
@@ -648,7 +648,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (owl vector)
       (owl sort)
       (owl equal)
-      (owl ff-ng)
+      (owl ff)
       (owl sexp))
 
    (begin

@@ -28,7 +28,7 @@
       (owl sort)
       (owl primop)
       (owl defmac)
-      (owl ff-ng)
+      (owl ff)
       (only (owl syscall) error))
 
    (begin

@@ -36,7 +36,7 @@
       (owl defmac)
       (owl parse)
       (only (owl syscall) error)
-      (owl ff-ng)
+      (owl ff)
       (owl list)
       (owl math)
       (owl string)

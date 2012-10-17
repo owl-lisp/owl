@@ -11,7 +11,7 @@
    
    (import 
       (owl defmac)
-      (owl ff-ng)
+      (owl ff)
       (owl list))
 
    (begin

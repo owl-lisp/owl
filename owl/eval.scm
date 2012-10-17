@@ -27,7 +27,7 @@
       (owl closure)
       (owl cps)
       (owl alpha)
-      (owl ff-ng)
+      (owl ff)
       (owl sort)
       (owl fixedpoint)
       (owl ast)

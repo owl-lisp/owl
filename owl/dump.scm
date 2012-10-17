@@ -15,7 +15,7 @@
       (owl fasl)
       (owl list)
       (owl sort)
-      (owl ff-ng)
+      (owl ff)
       (owl symbol)
       (owl vector)
       (owl equal)
