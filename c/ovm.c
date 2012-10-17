@@ -86,7 +86,7 @@ typedef uintptr_t word;
 #define IEOF                        make_immediate(4,13)
 #define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
 #define TTUPLE                      2
-#define TFF                         8
+#define TFF                         24
 #define TBYTES                      11     /* a small byte vector */
 #define FFRED                       128    /* FF options */
 #define FFLEFT                      64
@@ -566,17 +566,22 @@ static word prim_less(word a, word b) {
 }
 
 static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid */
-   while((word) ff != IFALSE) { /* ff = [header key value [maybe left] [maybe right]] */
+   while((word) ff != IEMPTY) { /* ff = [header key value [maybe left] [maybe right]] */
       word this = ff[1], hdr;
       if (this == key) 
          return ff[2];
       hdr = *ff;
-      if (prim_less(key, this) == ITRUE) {
-         ff = (word *) ((hdr & (FFLEFT << TPOS)) ? ff[3] : IFALSE); /* left branch always at 3, if any */
-      } else if (hdr & (FFRIGHT << TPOS)) {
-         ff = (word *) ((hdr & (FFLEFT << TPOS)) ? ff[4] : ff[3]); /* right pos depends on if there is a left branch */
-      } else {
-         return def;
+      switch(hdrsize(hdr)) {
+         case 3: return def; 
+         case 4:
+            if (key < this) {
+               ff = (word *) ((hdr & (1 << TPOS)) ? IEMPTY : ff[3]);
+            } else {
+               ff = (word *) ((hdr & (1 << TPOS)) ? ff[3] : IEMPTY);
+            }
+            break;
+         default:
+            ff = (word *) ((key < this) ? ff[3] : ff[4]);
       }
    }
    return def;
@@ -971,7 +976,7 @@ word vm(word *ob, word *args) {
    acc = 2; /* boot always calls with 2 args*/
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
-   //fprintf(stderr, "VM APPLY\n");
+
    if (likely(allocp(ob))) {
       word hdr = *ob & 4095; /* cut size out, take just header info */
       if (hdr == make_header(0,TPROC)) { /* proc  */ 
@@ -979,31 +984,28 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } else if (hdr == make_header(0,TCLOS)) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      /* } else if ((hdr&255) == 66) {
+      } else if (((hdr>>TPOS)&60)== TFF) { /* low bits have special meaning */
          word *cont = (word *) R[3];
-         fprintf(stderr, "callable ff:s temporarily not supported\n");
          if (acc == 3) {
             R[3] = prim_get(ob, R[4], R[5]); 
          } else if (acc == 2) {
             R[3] = prim_get(ob, R[4], (word) 0);
-            if (!R[3]) {
-               error(260, ob, R[4]);
-            }
+            if (!R[3]) { error(260, ob, R[4]); }
          } else {
             error(259, ob, INULL);
          }
          ob = cont;
          acc = 1;
-         goto apply; */
+         goto apply;
       } else if ((hdr & 2303) != 2050 && ((hdr >> TPOS) & 63) != 16) { /* not even code */
          error(259, ob, INULL);
       }
       if (unlikely(!ticker--)) goto switch_thread;
       ip = ((unsigned char *) ob) + W;
       goto invoke;
-   } else if ((word)ob == IFALSE && acc == 3) { /* ff application: (False key def) -> def */
+   } else if ((word)ob == IEMPTY && acc > 1) { /* ff application: (False key def) -> def */
       ob = (word *) R[3]; /* call cont */
-      R[3] = R[5]; /* default arg */
+      R[3] = (acc > 2) ? R[5] : IFALSE; /* default arg or false if none */
       acc = 1;
       goto apply;
    } else if ((word)ob == IHALT) {
@@ -1384,13 +1386,22 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(3); }
    op49: { /* withff node l k v r */
       word hdr, *ob = (word *) R[*ip];
-      assert(allocp(ob), ob, 49);
-      hdr = *ob++ >> TPOS;
-      assert(((hdr&31)==TFF),ob,49) 
+      hdr = *ob++;
       A2 = *ob++; /* key */
       A3 = *ob++; /* value */
-      A1 = (hdr & FFLEFT) ? *ob++ : IFALSE; 
-      A4 = (hdr & FFRIGHT) ? *ob++ : IFALSE; 
+      switch(hdrsize(hdr)) {
+         case 3: A1 = A4 = IEMPTY; break;
+         case 4: 
+            if (hdr & (1 << TPOS)) { /* has right? */
+               A1 = IEMPTY; A4 = *ob;
+            } else {
+               A1 = *ob; A4 = IEMPTY;
+            }
+            break;
+         default:
+            A1 = *ob++;
+            A4 = *ob;
+      }
       NEXT(5); }
    op50: { /* run thunk quantum */ /* fixme: maybe move to sys */
       word hdr;

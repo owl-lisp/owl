@@ -36,7 +36,7 @@
                x))
             )))
 
-; (work #false 11111 2000000 42) & 0xffff → 
+; (work empty 11111 2000000 42) & 0xffff → 
 ;   245882 del hit
 ;   254118 del miss
 ;   303443 read hit
@@ -46,4 +46,4 @@
 ;   final ff size 20502 of 65535
 
 (λ (args)
-   (work #false 11111 2000000 42))
+   (work empty 11111 2000000 42))

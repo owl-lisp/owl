@@ -156,10 +156,13 @@
             (eq? 24 (fxband (type obj) #b1111100))))
 
       ;; old prim
-      (define-syntax wifff
+      (define-syntax with-ff
          (syntax-rules ()
-            ((wifff (name l k v r) . rest)
-               (lets ((l k v r (explode name))) . rest))))
+            ((with-ff (name l k v r) . rest)
+               (lets ((l k v r (explode name))) . rest))
+            ;((with-ff (name l k v r) . rest)
+            ;   (ff-bind name (lambda (l k v r) . rest)))
+            ))
 
       ;; toggle redness, name of old prim
       (define-syntax ff-toggle
@@ -198,14 +201,14 @@
          (if (red? left)
             (if (red? right)
                (red (color-black left) key val (color-black right))
-               (wifff (left ll lk lv lr)
+               (with-ff (left ll lk lv lr)
                   (cond
                      ((red? ll)   ; case 1
-                        (wifff (ll a xk xv b)
+                        (with-ff (ll a xk xv b)
                            (let ((yk lk) (yv lv) (c lr))
                               (red (black a xk xv b) yk yv (black c key val right)))))
                      ((red? lr) ; case 2
-                        (wifff (lr b yk yv c)
+                        (with-ff (lr b yk yv c)
                            (let ((a ll) (xk lk) (xv lv))
                               (red (black a xk xv b) yk yv (black c key val right)))))
                      (else
@@ -214,17 +217,17 @@
 
       (define (black-bright left key val right)
          (if (red? right)
-            (wifff (right rl rk rv rr)
+            (with-ff (right rl rk rv rr)
                (cond
                   ((red? rl) ; case 3
-                     (wifff (rl b yk yv c)
+                     (with-ff (rl b yk yv c)
                         (let ((zk rk) (zv rv) (d rr))
                            (red 
                               (black left key val b)
                               yk yv
                               (black c zk zv d)))))
                   ((red? rr) ; case 4
-                     (wifff (rr c zk zv d)
+                     (with-ff (rr c zk zv d)
                         (let ((b rl) (yk rk) (yv rv))
                            (red
                               (black left key val b)
@@ -238,7 +241,7 @@
          (if (eq? node #empty)
             (red #empty key val #empty)
             (if (red? node)
-               (wifff (node left this this-val right)
+               (with-ff (node left this this-val right)
                   (cond
                      ((lesser? key this)
                         (red (putn left key val) this this-val right))
@@ -246,7 +249,7 @@
                         (red left key val right))
                      (else
                         (red left this this-val (putn right key val)))))
-               (wifff (node left this this-val right)
+               (with-ff (node left this this-val right)
                   (cond
                      ((lesser? key this)
                         (black-bleft (putn left key val) this this-val right))
@@ -255,7 +258,7 @@
                      (else
                         (black-bright left this this-val (putn right key val))))))))
 
-      ;; silly opencoded version using only primops
+      ;; bytecoded get
       (define (get ff key def)
          (if (eq? ff #empty)
             def
@@ -282,38 +285,35 @@
                               (get (ref ff 3) key def)
                               def))))))))
 
-      ;(define (get ff key def) 
-      ;   (ff key def))
+      ;; primitive get via vm
+      ;(define (get ff key def) (ff key def))
 
-      ;; FIXME, CHECK
-      ;; ff key val -> ff' | #false
+      ;; ff key val -> ff', *key must be in ff*
       (define (ff-update ff key val)
-         (cond
-            ((eq? ff #empty) #false)
-            (else
-               (wifff (ff l k v r)
-                  (cond
-                     ((lesser? key k)
-                        (if (not (eq? l #empty))   ; #(k v l ...)
-                           (set ff 3 (ff-update l key val))
-                           #false))
-                     ((eq? key k)
-                        ; #(k v ...)
-                        (set ff 2 val))
-                     ((not (eq? l #empty))
-                        (if (not (eq? r #empty))   ; #(k v l r)
-                           (set ff 4 (ff-update r key val))
-                           #false))
-                     ((not (eq? r #empty))
-                        (set ff 3 (ff-update r key val)))
-                     (else #false))))))
+         (if (eq? ff #empty)
+            (error "fupd: not there: " key)
+            (let ((this (ref ff 1)))
+               (if (eq? key this)
+                  (set ff 2 val) ;; key and value have fixed position
+                  (case (size ff)
+                     (2 (ff-update #empty key val)) ;; fail
+                     (3 (set ff 3 (ff-update (ref ff 3) key val))) ;; must be here due to contract
+                     (else
+                        (if (lesser? key this)
+                           (set ff 3 (ff-update (ref ff 3) key val))
+                           (set ff 4 (ff-update (ref ff 4) key val)))))))))
 
       (define fupd ff-update)
 
-      ;; TODO: benchmark fupd+ins vs put with real programs
+      ;; TODO: benchmark fupd+ins, get->fupd\/ins vs put with real programs
+      (define tag "foo")
+
       (define (put ff key val)
-         (let ((ff (putn ff key val)))
-            (if (red? ff) (color-black ff) ff)))
+         (let ((res (ff key tag)))    ;; check if the key is already in ff
+            (if (eq? res tag)         ;; not there → insert and rebalance
+               (let ((ff (putn ff key val)))
+                  (if (red? ff) (color-black ff) ff))
+               (fupd ff key val))))   ;; path copy and update only
 
 
       ;;;
@@ -324,7 +324,7 @@
       (define (ff-foldr op state tree)
          (if (eq? tree #empty)
             state
-            (wifff (tree l k v r)
+            (with-ff (tree l k v r)
                (if (nonempty? l)
                   (if (nonempty? r)
                      (lets
@@ -341,7 +341,7 @@
       ;; FIXME, as above
       (define (ff-fold op state tree)
          (if (nonempty? tree)
-            (wifff (tree l k v r)
+            (with-ff (tree l k v r)
                (if (nonempty? l)
                   (if (nonempty? r)
                      (lets
@@ -360,7 +360,7 @@
        ;; iterate key-value pairs in order
        (define (ff-iterate tree tl)
          (if (nonempty? tree)
-            (wifff (tree l k v r)
+            (with-ff (tree l k v r)
                (ff-iterate l
                   (cons (cons k v)
                      (λ () (ff-iterate r tl)))))
@@ -369,7 +369,7 @@
        ;; iterate key-value pairs in reverse order
        (define (ff-iterrate tree tl)
          (if (nonempty? tree)
-            (wifff (tree l k v r)
+            (with-ff (tree l k v r)
                (ff-iterrate r
                   (cons (cons k v)
                      (λ () (ff-iterrate l tl)))))
@@ -383,7 +383,7 @@
       (define (ff-map ff op)
          (if (eq? ff #empty)
             #empty
-            (wifff (ff l k v r)
+            (with-ff (ff l k v r)
                (if (red? ff)
                   (red   (ff-map l op) k (op k v) (ff-map r op))
                   (black (ff-map l op) k (op k v) (ff-map r op))))))
@@ -412,8 +412,8 @@
             ((red? left)
                (red (color-black left) key val right))
             ((red? right)
-               (wifff (right r zk zv c)
-                  (wifff (r a yk yv b)
+               (with-ff (right r zk zv c)
+                  (with-ff (r a yk yv b)
                      (red
                         (black left key val a)
                         yk yv
@@ -426,8 +426,8 @@
             ((red? right)
                (red left key val (color-black right)))
             ((red? left)
-               (wifff (left a xk xv b)
-                  (wifff (b b yk yv c)
+               (with-ff (left a xk xv b)
+                  (with-ff (b b yk yv c)
                      (red 
                         (black-bleft (color-red a) xk xv b)
                         yk yv
@@ -436,8 +436,8 @@
                (black-bleft (color-red left) key val right))))
 
       ;; converted old primops, could also test types and ref the right spot
-      (define (ffcar node) (wifff (node l k v r) l))
-      (define (ffcdr node) (wifff (node l k v r) r))
+      (define (ffcar node) (with-ff (node l k v r) l))
+      (define (ffcdr node) (with-ff (node l k v r) r))
 
       (define (app left right)
          (cond
@@ -449,42 +449,42 @@
                (if (red? right)
                   (let ((middle (app (ffcdr left) (ffcar right))))
                      (if (red? middle)
-                        (wifff (middle ml mk mv mr)
-                           (wifff (left ll lk lv lr)
-                              (wifff (right rl rk rv rr)
+                        (with-ff (middle ml mk mv mr)
+                           (with-ff (left ll lk lv lr)
+                              (with-ff (right rl rk rv rr)
                                  (red
                                     (red ll lk lv ml)
                                     mk mv
                                     (red mr rk rv rr)))))
-                        (wifff (left a xk xv b)
-                           (wifff (right c yk yv d)
+                        (with-ff (left a xk xv b)
+                           (with-ff (right c yk yv d)
                               (red a xk xv 
                                  (red middle yk yv d))))))
-                  (wifff (left a xk xv b)
+                  (with-ff (left a xk xv b)
                      (red a xk xv (app b right)))))
             ((red? right)
-               (wifff (right rl rk rv rr)
+               (with-ff (right rl rk rv rr)
                   (red (app left rl) rk rv rr)))
             (else
                ;;; both are black
                (let ((middle (app (ffcdr left) (ffcar right))))
                   (if (red? middle)
-                     (wifff (middle ml mk mv mr)
-                        (wifff (left ll lk lv lr)
-                           (wifff (right rl rk rv rr)
+                     (with-ff (middle ml mk mv mr)
+                        (with-ff (left ll lk lv lr)
+                           (with-ff (right rl rk rv rr)
                               (red
                                  (black ll lk lv ml)
                                  mk mv
                                  (black mr rk rv rr)))))
-                     (wifff (left ll lk lv lr)
-                        (wifff (right rl rk rv rr)
+                     (with-ff (left ll lk lv lr)
+                        (with-ff (right rl rk rv rr)
                            (ball-left
                               ll lk lv
                               (black middle rk rv rr)))))))))
 
       (define (deln ff key)
          (if (nonempty? ff)
-            (wifff (ff left this-key val right)
+            (with-ff (ff left this-key val right)
                (cond
                   ((lesser? key this-key)
                      (let ((sub (deln left key)))

@@ -262,6 +262,7 @@
       ; bind node left key val right, filling in #false when implicit
       (define (cify-bindff bs regs fail)
          ;; note, may overwrite n while binding
+         (car "cify-bindff not converted yet")
          (lets ((n l k v r bs (get5 (cdr bs))))
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at 
                     ;; least earlier caused an immense slowdown in compiled code
