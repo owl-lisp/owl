@@ -146,28 +146,28 @@
       ;; codes bcode value → codes'
       (define (insert-code codes bcode value)
          (if codes
-            (ff-bind codes
-               (λ (l k v r)
-                  (let ((res (compare-code k bcode)))
-                     (cond
-                        ((eq? res is-equal)
-                           (mkblack l bcode value r))
-                        ((eq? res is-less)
-                           (mkblack (insert-code l bcode value) k v r))
-                        (else
-                           (mkblack l k v (insert-code r bcode value)))))))
-            (mkblack #false bcode value #false)))
+            (lets 
+               ((l k v r codes)
+                (res (compare-code k bcode)))
+               (cond
+                  ((eq? res is-equal)
+                     (tuple l bcode value r))
+                  ((eq? res is-less)
+                     (tuple (insert-code l bcode value) k v r))
+                  (else
+                     (tuple l k v (insert-code r bcode value)))))
+            (tuple #false bcode value #false)))
 
        ;; codes bcode → bcode' | #false
        (define (lookup-code codes bcode)
          (if codes
-            (ff-bind codes
-               (λ (l k v r)
-                  (let ((res (compare-code k bcode)))
-                     (cond
-                        ((eq? res is-equal) v)
-                        ((eq? res is-less) (lookup-code l bcode))
-                        (else (lookup-code r bcode))))))
+            (lets 
+               ((l k v r codes)
+                (res (compare-code k bcode)))
+               (cond
+                  ((eq? res is-equal) v)
+                  ((eq? res is-less) (lookup-code l bcode))
+                  (else (lookup-code r bcode))))
             #false))
 
       ;; codes bcode → codes(') bcode(')
@@ -221,8 +221,8 @@
                   ;(debug "interner: interning bytecode")
                   (lets 
                      ((codes code 
-                           ; (intern-code codes msg) ;; sharing enabled
-                           (values codes msg) ;; sharing disabled
+                           (intern-code codes msg) ;; sharing enabled
+                           ; (values codes msg) ;; sharing disabled
                            )
                       (name (get names 'name #false)))
                      (mail sender code)
@@ -283,9 +283,7 @@
       (define (initialize-interner symbol-list codes names)
          (let 
             ((sym-root (fold put-symbol #false symbol-list))
-             ;(code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)) ;; sharding disabled
-             (code-root empty)
-            )
+             (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
             (λ () (interner sym-root code-root 
                     ;; names - forget old names temporarily
                     empty
