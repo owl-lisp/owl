@@ -33,6 +33,7 @@
       empty?
       
       getf       ; (getf ff key) == (get ff key #false)
+
       )
 
    (import 
@@ -51,6 +52,7 @@
 
       (define (empty? x) (eq? x empty))
 
+      ;; shadowed below
       (define (black l k v r)
          (if (eq? l #empty)
             (if (eq? r #empty)
@@ -60,6 +62,7 @@
                (mkt type-ff k v l)
                (mkt type-ff k v l r))))
 
+      ;; shadowed below
       (define (red l k v r)
          (if (eq? l #empty)
             (if (eq? r #empty)
@@ -68,6 +71,10 @@
             (if (eq? r #empty)
                (mkt type-ff-red k v l)
                (mkt type-ff-red k v l r))))
+
+      ;; vm versions
+      (define black mkblack)
+      (define red mkred)
 
       ;; local temporary helper because all branches are the wrong way around
       (define-syntax nonempty? 
@@ -155,7 +162,7 @@
             #true
             (eq? 24 (fxband (type obj) #b1111100))))
 
-      ;; old prim
+      ;; bytecode above, vm primitive below
       (define-syntax with-ff
          (syntax-rules ()
             ((with-ff (name l k v r) . rest)

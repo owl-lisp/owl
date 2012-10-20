@@ -87,10 +87,9 @@ typedef uintptr_t word;
 #define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
 #define TTUPLE                      2
 #define TFF                         24
+#define FFRIGHT                     1
+#define FFRED                       2
 #define TBYTES                      11     /* a small byte vector */
-#define FFRED                       128    /* FF options */
-#define FFLEFT                      64
-#define FFRIGHT                     32
 #define TPROC                       32      /* EXEC options */
 #define TCLOS                       64
 #define cont(n)                     V((word)n&(~1))
@@ -850,8 +849,8 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    word *ob = fp;
    ob[1] = k;
    ob[2] = v;
-   if (l == IFALSE) {
-      if (r == IFALSE) {
+   if (l == IEMPTY) {
+      if (r == IEMPTY) {
          *ob = make_header(3, t); 
          fp += 3;
       } else {
@@ -859,12 +858,12 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
          ob[3] = r;
          fp += 4;
       }
-   } else if (r == IFALSE) { 
-      *ob = make_header(4, t|FFLEFT); 
+   } else if (r == IEMPTY) { 
+      *ob = make_header(4, t); 
       ob[3] = l;
       fp += 4;
    } else {
-      *ob = make_header(5, t|FFLEFT|FFRIGHT);
+      *ob = make_header(5, t);
       ob[3] = l;
       ob[4] = r;
       fp += 5;

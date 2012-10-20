@@ -20,6 +20,10 @@ TODO QUEUE-ISH:
             ((slartibartfast fjordname length dimension) ...) ; <- record type
             (else ...))
   + remove teq and deprecated type jump instructions
+  + change load_imms in vm to have IEMPTY + support it and others in immediate load and jump instructions
+  + convert red-black trees (ff.scm) to left, leaning
+   + since the red position is fixed, node size of 3 will likely be unambiguous removing the need for rightness-bit
+     - which is stupidly the lowest bit atm
   + rewrite ff library
      - steal left leaning trees?
   + add cgen support to variable arity functions
