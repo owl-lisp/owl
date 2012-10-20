@@ -262,13 +262,12 @@
       ; bind node left key val right, filling in #false when implicit
       (define (cify-bindff bs regs fail)
          ;; note, may overwrite n while binding
-         (car "cify-bindff not converted yet")
          (lets ((n l k v r bs (get5 (cdr bs))))
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at 
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049 
-                  (list "{word *ob=(word *)R["n"];word hdr=*ob>>3;if((hdr&31)!=TFF){error(1049,ob,INULL);};R["k"]=ob[1];R["v"]=ob[2];if(hdr&FFLEFT){R["l"]=ob[3];R["r"]=(hdr&FFRIGHT)?ob[4]:IFALSE;}else{R["l"]=IFALSE;R["r"]=(hdr&FFRIGHT)?ob[3]:IFALSE;}};"))
-               bs 
+                  (list " { word *ob=(word *)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=IEMPTY;R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default: R["l"]=ob[3];R["r"]=ob[4];}}"))
+               bs
                (fold del regs (list l k v r)))))
 
       (define (cify-cast bs regs fail)

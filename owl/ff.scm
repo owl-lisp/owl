@@ -165,10 +165,10 @@
       ;; bytecode above, vm primitive below
       (define-syntax with-ff
          (syntax-rules ()
-            ((with-ff (name l k v r) . rest)
-               (lets ((l k v r (explode name))) . rest))
             ;((with-ff (name l k v r) . rest)
-            ;   (ff-bind name (lambda (l k v r) . rest)))
+            ;   (lets ((l k v r (explode name))) . rest))
+            ((with-ff (name l k v r) . rest)
+               (ff-bind name (lambda (l k v r) . rest)))
             ))
 
       ;; toggle redness, name of old prim
