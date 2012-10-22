@@ -329,8 +329,8 @@ static word *gc(int size, word *regs) {
          breaked |= 8; /* will be passed over to mcp at thread switch*/
       }
       nfree -= size*W + MEMPAD;   /* how much really could be snipped off */
-      if (nfree < (heapsize / 20) || nfree < 0) {
-         /* increase heap size if less than 5% is free by ~10% of heap size (growth usually implies more growth) */
+      if (nfree < (heapsize / 10) || nfree < 0) {
+         /* increase heap size if less than 10% is free by ~10% of heap size (growth usually implies more growth) */
          regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data  */
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
@@ -339,8 +339,8 @@ static word *gc(int size, word *regs) {
             puts("ovm: could not allocate more space");
             EXIT(1);
          }
-      } else if (nfree > (heapsize/10)) {
-         /* decrease heap size if more than 10% is free by 10% of the free space */
+      } else if (nfree > (heapsize/5)) {
+         /* decrease heap size if more than 20% is free by 10% of the free space */
          int dec = -(nfree/10);
          int new = nfree - dec;
          if (new > size*W*2 + MEMPAD) {
@@ -354,11 +354,6 @@ static word *gc(int size, word *regs) {
    } else if (nfree < MINGEN || nfree < size*W*2) {
          genstart = memstart; /* start full generation */
          return gc(size, regs);
-   } else if ((nfree*100)/(nused+nfree) > 95) { 
-      /* (can continue using these kind of generations to
-      trade some memory for time (the parent generation 
-      may keep freeable memory (for the OS, not owl) a bit
-      longer as the major GC intervals become sparser)) */
    } else {
       genstart = regs; /* start new generation */
    }

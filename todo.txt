@@ -32,6 +32,7 @@ TODO QUEUE-ISH:
      - queues
   + add support for recursion with variable arity (recursion transformer predates variable arity)
   + rewrite rlist library, or swapt to the owl version
+  + handle gc triggering properly
   + optimize the compiler, bootstraps have gotten too slow
      - parser is too slow
   + start optimizing the math code
