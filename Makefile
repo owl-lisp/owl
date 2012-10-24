@@ -4,7 +4,7 @@ BINDIR=/bin
 INSTALL=install
 TIME=/usr/bin/time -p
 
-CFLAGS=-Wall -O2 -fomit-frame-pointer -m32
+CFLAGS=-Wall -O2
 #CC=gcc
 
 # owl needs just a single binary
