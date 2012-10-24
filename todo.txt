@@ -1,5 +1,4 @@
 TODO QUEUE-ISH:
-  + optimize fully lisp-side ffs
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
     - raw strings  (padding)
     - byte vectors (padding)
@@ -40,6 +39,7 @@ TODO QUEUE-ISH:
      - reduces code size or fasl image size, or
      - makes owl boot faster, or run some other goal task faster (e.g. math unit test, etc)
   + in general, there should be a warning when updated version is slower or boot image is more than 1% larger than the old one
+  + separate module compilation and fasl-coding
   + type battle part 2 - user defined sum/product types
      - possibly using the spare header byte below size
   + change most 65535:s to *maxrawsize* and *maxsize*

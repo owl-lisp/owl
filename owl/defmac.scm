@@ -477,10 +477,12 @@
       ;; to the right of them, so all types must be <32 until they can be slid to right 
       ;; position.
 
+      ;; these are core data structure type tags which are fixed and some also relied on by the vm
+
       ;; ALLOCATED
-      (define type-bytecode          0) ;; going to 16
-      (define type-proc             32) ;; going to 17
-      (define type-clos             64) ;; going to 18
+      (define type-bytecode         16)
+      (define type-proc             17)
+      (define type-clos             18) ;; going to 18
       (define type-pair              1)
       (define type-vector-dispatch  15)
       (define type-vector-leaf      11)
@@ -491,6 +493,7 @@
       (define type-symbol            4)
       (define type-rlist-node       14)
       (define type-rlist-spine      10)
+      (define type-string           42) ;; todo
 
       ;; transitional trees or future ffs
       (define type-ff               24)

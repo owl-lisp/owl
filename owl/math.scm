@@ -211,8 +211,8 @@
             ;(comp #true)
             (else 
                ;; major type 9, being all non-fixnum numbers
-               (eq? 72 (fxband (type-old a) 248))
-               ;(eq? 9 (fxband 63 (type a)))
+               ;(eq? 72 (fxband (type-old a) 248))
+               (eq? 9 (fxband 31 (type a)))
                )))
 
       (define (integer? a)
