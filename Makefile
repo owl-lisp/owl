@@ -4,7 +4,7 @@ BINDIR=/bin
 INSTALL=install
 TIME=/usr/bin/time -p
 
-CFLAGS=-Wall -O2 -fomit-frame-pointer
+CFLAGS=-Wall -O2 -fomit-frame-pointer -m32
 #CC=gcc
 
 # owl needs just a single binary
@@ -112,13 +112,8 @@ standalone:
 	-rm bin/ol
 	make CFLAGS="-O2 -DNO_SECCOMP" CC="diet gcc" bin/ol
 
-fasl-update:
-	# extra paranoia mode
-	gpg --verify fasl/init.fasl.sig
-	cp fasl/init.fasl fasl/boot.fasl
-	make fasl/ol.fasl
+fasl-update: fasl/ol.fasl
 	cp fasl/ol.fasl fasl/init.fasl
-	gpg -b fasl/init.fasl
 
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.scm | less
