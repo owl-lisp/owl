@@ -82,7 +82,10 @@
          (syntax-rules ()
             ((raw-string? x)
                ;; raw object of correct type, discarding padding bits
-               (eq? (fxband (type-old x) #b100011111000) #b100000011000))))
+               ;(eq? (fxband (type-old x) #b100011111000) #b100000011000)
+               ;; hack to get around current padding info and type clash
+               (and (sizeb x) (eq? type-string (fxband 31 (type x)))) ;; todo - change to type-string-raw
+               )))
 
       (define (string? x) 
          (cond
@@ -234,7 +237,7 @@
 
       (define (make-chunk rcps len ascii?)
          (if ascii?
-            (let ((str (raw (reverse rcps) 3 #false)))
+            (let ((str (raw (reverse rcps) type-string #false)))
                (if str
                   str
                   (error "Failed to make string: " rcps)))
@@ -324,11 +327,11 @@
             ;; allows bad non UTF-8 strings coming for example from command 
             ;; line arguments (like paths having invalid encoding) to be used 
             ;; for opening files.
-            (raw (str-foldr cons '(0) str) 3 #false)
+            (raw (str-foldr cons '(0) str) type-string #false)
             (let ((bs (str-foldr encode-point '(0) str)))
                ; check that the UTF-8 encoded version fits one raw chunk (64KB)
                (if (<= (length bs) #xffff) 
-                  (raw bs 3 #false)
+                  (raw bs type-string #false)
                   #false))))
 
       (define null-terminate c-string)

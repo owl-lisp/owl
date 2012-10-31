@@ -34,6 +34,7 @@
       type-port 
       type-socket
       type-tcp-client
+      type-string
 
       ;; sketching types
       type-ff               ;; k v, k v l, k v l r, black node with children in order
@@ -493,7 +494,7 @@
       (define type-symbol            4)
       (define type-rlist-node       14)
       (define type-rlist-spine      10)
-      (define type-string           42) ;; todo
+      (define type-string            3)
 
       ;; transitional trees or future ffs
       (define type-ff               24)

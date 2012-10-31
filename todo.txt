@@ -1,10 +1,13 @@
 TODO QUEUE-ISH:
+  + remove all uses of type-old now that new type uniquely determines object type
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
     - raw strings  (padding)
     - byte vectors (padding)
-  + remove all uses of type-old now that new type uniquely determines object type
   + convert all type-bit twiddling to use TPOS in ovm.c
   + change it to 2, leaving padding etc in headers to current position
+  + grep 31 from source and remove + change type to return correct bits if still necessary
+  + datum label parsing
+    - battle plan: parse them to distict AST nodes and rewire after parsing
   + move immediate payload offset from 12 to 8
   + switch fixnum size
   + fix bignum math to work with compile-time settable n-bit fixnums
@@ -18,6 +21,7 @@ TODO QUEUE-ISH:
             (null ...)      ; <- immediate value from env? or require '() or #null?
             ((slartibartfast fjordname length dimension) ...) ; <- record type
             (else ...))
+  + check http://trac.sacrideo.us/wg/wiki/ImplementationContrasts for unintentional behavior
   + remove teq and deprecated type jump instructions
   + change load_imms in vm to have IEMPTY + support it and others in immediate load and jump instructions
   + convert red-black trees (ff.scm) to left, leaning
@@ -26,11 +30,17 @@ TODO QUEUE-ISH:
   + rewrite ff library
      - steal left leaning trees?
   + add cgen support to variable arity functions
+  + add support for variable arity in arity error messages (many now complain about desired arity 0)
   + core library should also provide
      - heaps
      - queues
   + add support for recursion with variable arity (recursion transformer predates variable arity)
   + rewrite rlist library, or swapt to the owl version
+  + rewrite macro expander
+     - store free bindings in transformer
+     - restore internal macro definitions 
+     - use env only via (owl env) in a future-proof manner
+     - check issue list, there were some other ones
   + handle gc triggering properly
   + optimize the compiler, bootstraps have gotten too slow
      - parser is too slow

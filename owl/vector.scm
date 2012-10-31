@@ -88,7 +88,11 @@
 
    (begin
 
-      (define (byte-vector? x) (eq? (fxband (type-old x)     #b100011111000) 2136)) ;; collision, not changed yet
+      ;; todo - change to type-vector-raw
+      (define (byte-vector? x) 
+         ;; currently vector? + raw?
+         (and (eq? (fxband 31 (type x)) type-vector-leaf) 
+              (sizeb x)))
 
       ;;;
       ;;; Vector search
