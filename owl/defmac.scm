@@ -487,7 +487,7 @@
       (define type-pair              1)
       (define type-vector-dispatch  15)
       (define type-vector-leaf      11)
-      (define type-vector-raw       19) ;; going 171 -> 19, see also TBYTES in c/ovm.c
+      (define type-vector-raw       19) ;; going 171 -> 19, see also TBVEC in c/ovm.c
       (define type-ff-black-leaf     8)
       (define type-symbol            4)
       (define type-tuple             2)

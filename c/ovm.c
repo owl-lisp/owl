@@ -89,7 +89,7 @@ typedef uintptr_t word;
 #define TFF                         24
 #define FFRIGHT                     1
 #define FFRED                       2
-#define TBYTES                      11     /* a small byte vector */
+#define TBVEC                       19
 #define TBYTECODE                   16
 #define TPROC                       17
 #define TCLOS                       18
@@ -425,7 +425,7 @@ word strp2owl(char *sp) {
    if (!sp) return IFALSE;
    len = lenn(sp, FMAX+1);
    if (len == FMAX+1) return INULL; /* can't touch this */
-   res = mkbvec(len, TBYTES); /* make a bvec instead of a string since we don't know the encoding */
+   res = mkbvec(len, TBVEC); /* make a bvec instead of a string since we don't know the encoding */
    bytecopy(sp, ((char *)res)+W, len);
    return (word)res;
 }
@@ -465,8 +465,6 @@ word *get_obj(word *ptrs, int me) {
    switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
       case 1: {
          type = *hp++;
-         type = (type == 32) ? TPROC : type; /* remove after fasl update */
-         type = (type == 64) ? TCLOS : type;
          size = get_nat();
          *fp++ = make_header(size+1, type); /* +1 to include header in size */
          while(size--) { fp = get_field(ptrs, me); }
@@ -702,7 +700,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (fd < 0) return IFALSE;
          set_nonblock(fd);
          ipa = (char *) &addr.sin_addr;
-         *fp = make_raw_header(2, TBYTES, 4%W);
+         *fp = make_raw_header(2, TBVEC, 4%W);
          bytecopy(ipa, ((char *) fp) + W, 4);
          fp[2] = PAIRHDR;
          fp[3] = (word) fp;
@@ -735,7 +733,7 @@ static word prim_sys(int op, word a, word b, word c) {
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
             fp = res + read_nwords;
-            *res = make_raw_header(read_nwords, TBYTES, pads);
+            *res = make_raw_header(read_nwords, TBVEC, pads); /* <- doesn't accept new! */
             return (word)res;
          }
          fp = res;
@@ -971,9 +969,9 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
 
    if (likely(allocp(ob))) {
       word hdr = *ob & 4095; /* cut size out, take just header info */
-      if ((hdr == make_header(0,TPROC)) || (hdr == make_header(0,32))) { /* proc, remove 32 later  */ 
+      if (hdr == make_header(0,TPROC)) { /* proc, remove 32 later  */ 
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if ((hdr == make_header(0,TCLOS)) || (hdr == make_header(0,64))) { /* clos, remove 64 later */
+      } else if (hdr == make_header(0,TCLOS)) { /* clos, remove 64 later */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
       } else if (((hdr>>TPOS)&60)== TFF) { /* low bits have special meaning */
@@ -989,7 +987,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if ((hdr & 2303) != 2050 && ((hdr >> TPOS) & 31) != TBYTECODE) { /* not even code, extend bits later */
+      } else if (((hdr >> TPOS) & 31) != TBYTECODE) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
       if (unlikely(!ticker--)) goto switch_thread;
@@ -1109,7 +1107,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op15: { /* type-byte o r <- actually sixtet */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>TPOS)&255); /* take just the type tag, later &63 */
+      R[*ip++] = F((ob>>TPOS)&63); /* hits padding bit until shifted */
       NEXT(0); }
    op16: /* jv[which] a o1 a2*/
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */

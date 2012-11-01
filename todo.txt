@@ -1,8 +1,7 @@
 TODO QUEUE-ISH:
-  + remove all uses of type-old now that new type uniquely determines object type
+  + fix compact byte-vector types (raw also at 11 according to vm)
+  + convert old type-case to just switch over (type obj)
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
-    - raw strings  (padding)
-    - byte vectors (padding)
   + convert all type-bit twiddling to use TPOS in ovm.c
   + change it to 2, leaving padding etc in headers to current position
   + grep 31 from source and remove + change type to return correct bits if still necessary
@@ -38,6 +37,7 @@ TODO QUEUE-ISH:
      - queues
   + add support for recursion with variable arity (recursion transformer predates variable arity)
   + rewrite rlist library, or swapt to the owl version
+  + split UTF-8 decoding out of sexp parser
   + rewrite macro expander
      - store free bindings in transformer
      - restore internal macro definitions 

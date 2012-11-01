@@ -100,7 +100,7 @@
 
       ;; dispatch low 8 bits of a fixnum, returning the subnode
       (define (vec-dispatch-1 v n)
-         (case (type v)
+         (case (fxband 31 (type v)) ;; remove after types done
             (type-vector-dispatch ; vector dispatch node with #[Leaf D0 ... D255]
                (lets ((n _ (fx+ (fxband n 255) 2))) ;; jump over header and leaf
                   (ref v n)))
@@ -109,7 +109,7 @@
 
       ; dispatch the high 8 bits of a fixnum, returning the subnode
       (define (vec-dispatch-2 v d) ; -> v'
-         (case (type v)
+         (case (fxband 31 (type v)) ;; remove after types done
             (type-vector-dispatch
                (lets 
                   ((p _ (fx>> d 8))
@@ -118,7 +118,7 @@
             (type-vector-leaf
                (error "Leaf vector in dispatch-2: " v))
             (else
-               (error "Bad vector node in dispatch-2: obj " v))))
+               (error "Bad vector node in dispatch-2: obj " (type v)))))
 
       ; dispatch 8-bit parts (256-way tree)
       ; note, the highest one must know whether it must dispatch one or two bytes
@@ -136,17 +136,17 @@
          (type-case v
             ((raw 11)
                (refb v (fxband n 255)))
-            ((alloc 11)
-                (if (eq? n 255)
-                   (ref v 256)
-                   (lets ((n _ (fx+ (fxband n 255) 1)))
-                     (ref v n))))
             (else
-               (case (type v)
-                  (type-vector-dispatch
-                      (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
+               (case (fxband (type v) 31) ;; remove after types done
                   (type-vector-raw
                      (refb v (fxband n 255)))
+                  (type-vector-dispatch
+                      (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
+                  (type-vector-leaf 
+                      (if (eq? n 255)
+                         (ref v 256)
+                         (lets ((n _ (fx+ (fxband n 255) 1)))
+                           (ref v n))))
                   (else 
                      (error "bad vector node in vec-ref-digit: type " (type v)))))))
 
@@ -165,7 +165,7 @@
                (cond
                   ((teq? v (raw 11)) ; short path for raw byte vector access
                      (refb v n))
-                  ((eq? (type v) type-vector-raw)
+                  ((eq? (fxband 31 (type v)) type-vector-raw) ;; remove after types done
                      (refb v n))
                   ((lesser? n 256)
                      (vec-ref-digit v n))
@@ -188,7 +188,7 @@
             ((teq? n fix+)
                (cond
                   ((teq? v (raw 11)) v)
-                  ((eq? (type v) type-vector-raw) v)
+                  ((eq? (fxband 31 (type v)) type-vector-raw) v) ;; remove after types done
                   ((lesser? n 256) v)
                   (else (vec-dispatch-2 v n))))
             ((teq? n int+)
@@ -204,7 +204,7 @@
             ((raw 11) (sizeb vec))
             ((alloc 11) (size vec))
             (else 
-               (case (type vec)
+               (case (fxband (type vec) 31) ;; remove after types done
                   (type-vector-dispatch
                      (ref vec 2))
                   (type-vector-raw
@@ -364,7 +364,7 @@
             ((teq? x (raw 11)) #true)   ; leaf byte vector
             ((teq? x (alloc 11)) #true) ; wide leaf
             (else 
-               (case (type x)
+               (case (fxband 31 (type x)) ;; remove after types done
                   (type-vector-raw #true)
                   (type-vector-dispatch #true)
                   (else #false)))))
@@ -426,7 +426,7 @@
                      (iter-raw-leaf v (- s 1) tl))))
             ((alloc 11) (iter-leaf v (size v) tl))
             (else 
-               (case (type v)
+               (case (fxband (type v) 31) ;; remove after types done
                   (type-vector-dispatch (iter-leaf-of (ref v 1) tl))
                   (type-vector-raw
                      (let ((s (sizeb v)))
@@ -499,7 +499,7 @@
             ((raw 11) (iterr-raw-leaf v (sizeb v) tl))
             ((alloc 11) (iterr-leaf v (size v) tl))
             (else 
-               (case (type v)
+               (case (fxband 31 (type v)) ;; remove after types done
                   (type-vector-dispatch (iterr-any-leaf (ref v 1) tl))
                   (type-vector-raw (iterr-raw-leaf v (sizeb v) tl))
                   (else tl))))) ; size field in root is a number → skip
@@ -533,7 +533,7 @@
          (cond
             ((teq? vec (raw 11))
                (byte-vector->list vec))
-            ((eq? (type vec) type-vector-raw)
+            ((eq? (fxband 31 (type vec)) type-vector-raw) ;; remove after types done
                ;; convert raw vectors directly to allow this to be used also for large chunks
                ;; which are often seen near IO code
                (byte-vector->list vec))
@@ -546,7 +546,7 @@
          (cond
             ((teq? leaf (raw 11)) ;; a raw leaf with plain data
                leaf)
-            ((eq? (type leaf) type-vector-raw)
+            ((eq? (fxband 31 (type leaf)) type-vector-raw) ;; remove after types done
                leaf)
             (else
                (ref leaf 1))))

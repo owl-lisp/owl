@@ -359,10 +359,10 @@
          (cond
             ((eq? len output-buffer-size)
                (and 
-                  (write-really (raw (reverse out) 11 #false) fd)
+                  (write-really (raw (reverse out) type-vector-raw #false) fd)
                   (printer lst 0 null fd)))
             ((null? lst)
-               (write-really (raw (reverse out) 11 #false) fd))
+               (write-really (raw (reverse out) type-vector-raw #false) fd))
             (else
                ;; avoid dependency on generic math in IO
                (lets ((len _ (fx+ len 1)))
