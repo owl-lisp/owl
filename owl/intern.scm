@@ -62,7 +62,7 @@
       ; FIXME, add a typed ref instruction
 
       (define (string->uninterned-symbol str)
-         (mkt 4 str))
+         (mkt type-symbol str))
 
       (define (symbol->string ob)
          (ref ob 1))

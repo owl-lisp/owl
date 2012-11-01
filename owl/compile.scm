@@ -644,7 +644,7 @@
          (map (λ (lit) (rtl-literal rtl-procedure lit)) lits))
 
       (define (list->proc lst)
-         (listuple 32 (length lst) lst))
+         (listuple type-proc (length lst) lst))
 
       ;; rtl-procedure now passes the intended new form here - replace it later in the AST node also
       (define (rtl-plain-lambda rtl exp clos literals tail)

@@ -72,7 +72,6 @@
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
-      (define type-old    (func '(2 10 4 5 24 5)))
       (define type-byte   (func '(2 15 4 5 24 5))) ;; fetch just type information. old type will be removed later.
       (define type        type-byte)
       (define size        (func '(2 36 4 5 24 5)))
@@ -114,7 +113,6 @@
             (tuple 'fxband       55 2 1 fxband)
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
-            (tuple 'type-old     10 1 1 type-old)  ;;  get the header along with type info (deprecated)
             (tuple 'type-byte    15 1 1 type-byte) ;; get just the type bits (new)
             (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)

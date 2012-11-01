@@ -451,11 +451,6 @@ word *get_field(word *ptrs, int pos) {
       hp++;
       type = *hp++;
       val = make_immediate(get_nat(), type);
-      /* .-- these can be removed after fasl image update
-         |     
-         v   */
-      val = (val ==  18) ? IFALSE : val; // old false
-      val = (val == 274) ?  ITRUE : val; // old true
       *fp++ = val;
    } else {
       word diff = get_nat();
@@ -470,6 +465,8 @@ word *get_obj(word *ptrs, int me) {
    switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
       case 1: {
          type = *hp++;
+         type = (type == 32) ? TPROC : type; /* remove after fasl update */
+         type = (type == 64) ? TCLOS : type;
          size = get_nat();
          *fp++ = make_header(size+1, type); /* +1 to include header in size */
          while(size--) { fp = get_field(ptrs, me); }
@@ -1091,17 +1088,14 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
       NEXT(4); 
    op9: R[ip[1]] = R[*ip]; NEXT(2);
-   op10: { /* type-old o r */
-      word ob = R[*ip++];
-      if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F(ob&4091);
-      NEXT(0); }
    op11: { /* jit2 a t ol oh */
       word a = R[*ip];
       if (immediatep(a) && imm_type(a) == ip[1]) {
          ip += ip[2] + (ip[3] << 8);
       }
       NEXT(4); }
+   op10: /* old type */
+      error(10, IFALSE, IFALSE);
    op12: { /* jat2 a t ol oh */
       word a = R[*ip];
       if (allocp(a) && imm_type(V(a)) == ip[1]) { /* <- warning, matches raw now */

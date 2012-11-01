@@ -170,7 +170,7 @@
                   ((eq? op 'cook)
                      (if (and (pair? lst) (function? (car lst)))
                         (cl-rule (put node 'cook (car lst)) (cdr lst))
-                        (error "cl-rule: cook is not a function: " (car lst))))
+                        (error "cl-rule: cook is not a function: " (list (car lst) 'has 'type (type (car lst))))))
                   ((eq? op 'check)
                      (if (and (pair? lst) (function? (car lst)))
                         (cl-rule (put node op (car lst)) (cdr lst))

@@ -6,8 +6,7 @@ TODO QUEUE-ISH:
   + convert all type-bit twiddling to use TPOS in ovm.c
   + change it to 2, leaving padding etc in headers to current position
   + grep 31 from source and remove + change type to return correct bits if still necessary
-  + datum label parsing
-    - battle plan: parse them to distict AST nodes and rewire after parsing
+  + grep 'remove after' and remove them
   + move immediate payload offset from 12 to 8
   + switch fixnum size
   + fix bignum math to work with compile-time settable n-bit fixnums
@@ -23,6 +22,9 @@ TODO QUEUE-ISH:
             (else ...))
   + check http://trac.sacrideo.us/wg/wiki/ImplementationContrasts for unintentional behavior
   + remove teq and deprecated type jump instructions
+  + start moving R7RS functions to (scheme *)
+  + datum label parsing
+    - battle plan: parse them to distict AST nodes and rewire after parsing
   + change load_imms in vm to have IEMPTY + support it and others in immediate load and jump instructions
   + convert red-black trees (ff.scm) to left, leaning
    + since the red position is fixed, node size of 3 will likely be unambiguous removing the need for rightness-bit
@@ -57,5 +59,6 @@ TODO QUEUE-ISH:
   + better partial evaluation
   + reduce register set
   + use a signal other than break to start something like old MCP
+  + echo foo bar baz | ol --pipe 'force s/bar // reverse' -> zab oof?
   + (read-string (write-string random-renderable)) == random-renderable (+ sharing)
   + long argument lists and register spilling

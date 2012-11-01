@@ -483,7 +483,7 @@
       ;; ALLOCATED
       (define type-bytecode         16)
       (define type-proc             17)
-      (define type-clos             18) ;; going to 18
+      (define type-clos             18)
       (define type-pair              1)
       (define type-vector-dispatch  15)
       (define type-vector-leaf      11)
