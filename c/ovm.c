@@ -48,27 +48,27 @@ typedef uintptr_t word;
 
 /*** Macros ***/
 
-#define IPOS                        12 /* position of immediate payload, on the way to 8 */
-#define SPOS                        16 /* position of size bits in header immediate values */
-#define TPOS                        2  /* current position of type bits in header, on the way to 2 */
+#define IPOS                        10 /* offset of immediate payload */
+#define SPOS                        16 /* offset of size bits in header immediate values */
+#define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
 #define FBITS                       16           /* bits in fixnum (and immediate payload width) */
 #define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
-#define make_immediate(value, type) (((value) << IPOS)  | ((type) << TPOS) | 2)
+#define RAWBIT                      2048
+#define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
-#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | 2050 | ((p) << 8))
+#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | (RAWBIT|2) | ((p) << 8))
 #define F(val)                      (((val) << IPOS) | 2) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> IPOS)
-#define fixnump(desc)               (((desc)&4095) == 2)
+#define fixnump(desc)               (((desc)&255) == 2)
 #define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32*/
-#define RAWBIT                      2048
 #define header(x)                   *(word *x)
-#define imm_type(x)                 (((x) >> TPOS) & 0xff) /* todo, width changes to 6 bits soon */
+#define imm_type(x)                 (((x) >> TPOS) & 127) /* todo, changes to 63 soon */
 #define imm_val(x)                  ((x) >> IPOS)
 #define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               (((word)x)&2)
@@ -587,7 +587,8 @@ static word prim_cast(word *ob, int type) {
       allocate(size, new);
       res = new;
       /* (hdr & 0b...11111111111111111111100000000111) | tttttttt000 */
-      *new++ = (hdr&(~2040))|(type<<TPOS);
+      //*new++ = (hdr&(~2040))|(type<<TPOS);
+      *new++ = (hdr&(~252))|(type<<TPOS); /* <- hardcoded ...111100000011 */
       wordcopy(ob,new,size-1);
       return (word)res;
    }
@@ -733,7 +734,7 @@ static word prim_sys(int op, word a, word b, word c) {
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
             fp = res + read_nwords;
-            *res = make_raw_header(read_nwords, TBVEC, pads); /* <- doesn't accept new! */
+            *res = make_raw_header(read_nwords, TBVEC, pads);
             return (word)res;
          }
          fp = res;
