@@ -120,9 +120,7 @@
                bs (del regs ret))))
 
       (define (cify-type bs regs fail) 
-         (lets ((ob to bs (get2 (cdr bs))))
-            (values (list "R["to"]=(allocp(R["ob"]))?V(R["ob"]):R["ob"];R["to"]=F(R["to"]&4095);") bs 
-               (put (put regs ob 'alloc) to 'fixnum))))
+         (error "deprecated type instruction used" 10))
 
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-sizeb bs regs fail) 
@@ -137,7 +135,7 @@
             (cond
                (else 
                   (values 
-                     (list "R["to"]=(immediatep(R["ob"]))?IFALSE:prim_cast((word *)R["ob"],(V(R["ob"])>>3)^FFRED);")
+                     (list "R["to"]=(immediatep(R["ob"]))?IEMPTY:prim_cast((word *)R["ob"],(V(R["ob"])>>TPOS)^FFRED);")
                      bs (put regs to (get regs ob #false)))))))
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -167,7 +165,8 @@
             (cond
                (else 
                   (values
-                     (list "{word res=(((R["a"])+(R["b"]))&0x1ffff000)|2;R["r"]=res&0xffff002;R["o"]=(res&0x10000000)?ITRUE:IFALSE;}")
+                     (list "{word res=fixval(R["a"])+fixval(R["b"]);R["o"]=BOOL(res&(1<<FBITS));R["r"]=F(res&FMAX);}")
+                     ;(list "{word res=(((R["a"])+(R["b"]))&0x1ffff000)|2;R["r"]=res&0xffff002;R["o"]=(res&0x10000000)?ITRUE:IFALSE;}")
                      ;(list "{word res=fixval(R["a"])+fixval(R["b"]);R["r"]=F(res&0xffff);R["o"]=(res>>16)?ITRUE:IFALSE;}")
 
                      bs (put (put regs r 'fixnum) o 'bool))))))
@@ -194,7 +193,7 @@
       (define (cify-fxmul bs regs fail) 
          (lets ((a b l h bs (get4 (cdr bs))))
             (values
-               (list "{word res=fixval(R["a"])*fixval(R["b"]);R["l"]=F(res&0xffff);R["h"]=F(res>>16);}")
+               (list "{word res=fixval(R["a"])*fixval(R["b"]);R["l"]=F(res&FMAX);R["h"]=F(res>>FBITS);}")
                bs (put (put regs h 'fixnum) l 'fixnum))))
 
       ; fx- a b r u?
@@ -202,28 +201,29 @@
          (lets ((a b r u bs (get4 (cdr bs))))
             (values
                ;(list "{word a=fixval(R["a"]);word b=fixval(R["b"]);if(b>a){R["r"]=F((a|0x10000)-b);R["u"]=ITRUE;}else{R["r"]=F(a-b);R["u"]=IFALSE;}}")
-               (list "{word res=(R["a"]|0x10000000)-(R["b"]&0xffff000);R["r"]=res&0xffff002;;R["u"]=(res&0x10000000)?IFALSE:ITRUE;}")
+               ;(list "{word res=(R["a"]|0x10000000)-(R["b"]&0xffff000);R["r"]=res&0xffff002;;R["u"]=(res&0x10000000)?IFALSE:ITRUE;}")
+               (list "{word r=(fixval(R["a"])|(1<<FBITS))-fixval(R["b"]);R["u"]=(r&(1<<FBITS))?IFALSE:ITRUE;R["r"]=F(r&FMAX);}")
                bs (put (put regs r 'fixnum) u 'bool))))
 
       ; fx<< a b hi lo
       (define (cify-fxleft bs regs fail) 
          (lets ((a b hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word res=fixval(R["a"])<<fixval(R["b"]);R["hi"]=F(res>>16);R["lo"]=F(res&0xffff);}")
+               (list "{word res=fixval(R["a"])<<fixval(R["b"]);R["hi"]=F(res>>FBITS);R["lo"]=F(res&FMAX);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fx>> a b hi lo
       (define (cify-fxright bs regs fail)
          (lets ((a b hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word r=fixval(R["a"])<<(16-fixval(R["b"]));R["hi"]=F(r>>16);R["lo"]=F(r&0xffff);}")
+               (list "{word r=fixval(R["a"])<<(FBITS-fixval(R["b"]));R["hi"]=F(r>>FBITS);R["lo"]=F(r&FMAX);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
       (define (cify-fxqr bs regs fail)
          (lets ((ah al b qh ql rem bs (get6 (cdr bs))))
             (values
-               (list "{word a=fixval(R["ah"])<<16|fixval(R["al"]);word b=fixval(R["b"]);word q=a/b;R["qh"]=F(q>>16);R["ql"]=F(q&0xffff);R["rem"]=F(a-q*b);}")
+               (list "{word a=fixval(R["ah"])<<FBITS|fixval(R["al"]);word b=fixval(R["b"]);word q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q&FMAX);R["rem"]=F(a-q*b);}")
                bs (put (put (put regs qh 'fixnum) ql 'fixnum) rem 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
@@ -237,7 +237,7 @@
       (define (cify-red? bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
             (values 
-               (list "R["to"]=(allocp(R["ob"])&&(V(R["ob"])&(FFRED<<3)))?ITRUE:IFALSE;") bs 
+               (list "R["to"]=BOOL(allocp(R["ob"])&&(V(R["ob"])&(FFRED<<TPOS)));") bs 
                   (put regs to 'bool))))
 
       ; bind tuple n r0 .. rn 
@@ -258,7 +258,6 @@
                bs 
                (fold del regs targets))))
 
-         
       ; bind node left key val right, filling in #false when implicit
       (define (cify-bindff bs regs fail)
          ;; note, may overwrite n while binding
@@ -298,7 +297,6 @@
             (lets 
                ((size litp litoff bs (get3 (cdr bs)))
                 (nfields (- size 2)) ;; #[hdr <code> ...]
-                (_ (if (<= (length bs) nfields) (fail) 42)) ;; <-- broken bytecode in heap?
                 (fields (take bs nfields))
                 (bs (drop bs nfields))
                 (to bs bs))
@@ -337,7 +335,7 @@
                (else 
                   (values 'branch 
                      (tuple 
-                        (list "allocp(R["a"])&&(V(R["a"])&2296)=="(bor 2048 (<< type 3)))
+                        (list "exit(42); allocp(R["a"])&&(V(R["a"])&2296)=="(bor 2048 (<< type 3)))
                         (drop bs jump-len) (put regs a 'alloc)
                         bs regs)
                      regs)))))
@@ -398,7 +396,7 @@
                         (cond
                            (else (values 'branch 
                               (tuple 
-                                 (list "immediatep(R["a"])&&((((word)R["a"])>>3)&0xff)==" type)
+                                 (list "immediatep(R["a"])&&((((word)R["a"])>>TPOS)&0xff)==" type)
                                  (drop bs jump-len) (put regs a 'immediate)
                                  bs (put regs a 'alloc)) regs))))))
                (cons 12 ;; jump-if-allocated-type a type lo8 hi8
@@ -409,7 +407,7 @@
                         (cond
                            (else (values 'branch 
                               (tuple 
-                                 (list "allocp(R["a"])&&(((V(R["a"]))>>3)&0x1ff)==" type)
+                                 (list "allocp(R["a"])&&(((V(R["a"]))>>TPOS)&0x1ff)==" type)
                                  (drop bs jump-len) 
                                  (put regs a (get alloc-types type 'alloc))
                                  bs regs) regs)))))) ; <- raw or immediate

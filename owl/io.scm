@@ -98,7 +98,7 @@
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) type-vector-leaf #false))
+         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) type-vector-raw #false))
 
       (define (try-write-block fd bvec len)
          (cond

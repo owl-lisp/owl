@@ -50,7 +50,7 @@ typedef uintptr_t word;
 
 #define IPOS                        12 /* position of immediate payload, on the way to 8 */
 #define SPOS                        16 /* position of size bits in header immediate values */
-#define TPOS                        3  /* current position of type bits in header, on the way to 2 */
+#define TPOS                        2  /* current position of type bits in header, on the way to 2 */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
@@ -353,8 +353,8 @@ static word *gc(int size, word *regs) {
       }  
       genstart = regs; /* always start new generation */
    } else if (nfree < MINGEN || nfree < size*W*2) {
-         genstart = memstart; /* start full generation */
-         return gc(size, regs);
+      genstart = memstart; /* start full generation */
+      return gc(size, regs);
    } else {
       genstart = regs; /* start new generation */
    }
@@ -367,7 +367,7 @@ static word *gc(int size, word *regs) {
 void set_nonblock (int sock) {
 #ifdef WIN32
    unsigned long flags = 1;
-   if(sock>3) { /* stdin is handled differently, out&err block */
+   if(sock>3) { /* stdin is read differently, out&err block */
       ioctlsocket(sock, FIONBIO, &flags);
    }
 #else
@@ -387,7 +387,7 @@ void signal_handler(int signal) {
 #endif
 }
 
-/* small functions defined locally after some portability issues */
+/* small functions defined locally after hitting some portability issues */
 static void bytecopy(char *from, char *to, int n) { while(n--) *to++ = *from++; }
 static void wordcopy(word *from, word *to, int n) { while(n--) *to++ = *from++; }
 

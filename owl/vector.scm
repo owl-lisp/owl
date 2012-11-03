@@ -91,8 +91,9 @@
       ;; todo - change to type-vector-raw
       (define (byte-vector? x) 
          ;; currently vector? + raw?
-         (and (eq? (fxband 31 (type x)) type-vector-leaf) 
-              (sizeb x)))
+         ;(and (eq? (fxband 31 (type x)) type-vector-leaf) 
+         ;     (sizeb x))
+         (eq? (fxband 31 (type x)) type-vector-raw)) ;; remove after types done
 
       ;;;
       ;;; Vector search
@@ -200,17 +201,15 @@
       ;; others
 
       (define (vec-len vec)
-         (type-case vec
-            ((raw 11) (sizeb vec))
-            ((alloc 11) (size vec))
-            (else 
-               (case (fxband (type vec) 31) ;; remove after types done
-                  (type-vector-dispatch
-                     (ref vec 2))
-                  (type-vector-raw
-                     (sizeb vec))
-                  (else
-                     (error "vec-len: not a vector: " vec))))))
+         (case (fxband (type vec) 31) ;; remove after types done
+            (type-vector-raw
+               (sizeb vec))
+            (type-vector-dispatch
+               (ref vec 2))
+            (type-vector-leaf
+               (size vec))
+            (else
+               (error "vec-len: not a vector: " (list vec 'of 'type (type vec))))))
 
 
 
@@ -221,17 +220,17 @@
       ; note, a blank vector must use a raw one, since there are no such things as 0-tuples
 
       (define empty-vector 
-         (raw null type-vector-leaf #false))
+         (raw null type-vector-raw #false))
 
       (define (list->byte-vector bs)
-         (raw bs type-vector-leaf #false))
+         (raw bs type-vector-raw #false))
 
       (define (make-leaf rvals n raw?)
          (if raw?
             ;; the leaf contains only fixnums 0-255, so make a compact leaf
            (list->byte-vector (reverse rvals)) ;; make node and reverse
            ;; the leaf contains other values, so need full 4/8-byte descriptors
-           (listuple 11 n (reverse rvals))))
+           (listuple type-vector-leaf n (reverse rvals))))
 
       (define (byte? val) 
          (and (teq? val fix+) (eq? val (fxband val 255))))
@@ -354,10 +353,6 @@
             (lets ((chunks len (chunk-list l null null 0 #true 0)))
                ;; convert the list of leaf vectors to a tree
                (merge-chunks chunks len))))
-
-      ;; deprecated
-      ;(define bytes->vector list->vector)
-      ;   ;(raw bs 11 #false)
 
       (define (vector? x) ; == raw or a variant of major type 11?
          (cond
@@ -558,16 +553,6 @@
       ;; fixme: vec-map <- placeholder
       (define (vec-map fn vec)
           (list->vector (lmap fn (vec-iter vec))))
-
-      ;(define (vec-map vec fn)
-      ;   (type-case vec
-      ;      ((raw 11) 
-      ;         (lets
-      ;            ((bs (iterr-raw-leaf v (sizeb v) null))
-      ;             (bsp (map fn bs)))
-      ;            (vals->leaf (map fn bs)))) ; <- this should be able to do (list->vector (map fn bs))
-      ;      ((alloc 11) (iterr-leaf v (size v) tl))
-      ;      (else tl)))
 
       ;;;
       ;;; Vector ranges

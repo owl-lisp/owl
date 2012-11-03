@@ -2,6 +2,7 @@ TODO QUEUE-ISH:
   + fix compact byte-vector types (raw also at 11 according to vm)
   + convert old type-case to just switch over (type obj)
   + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
+  + fix case macro to allow multiple expressions at body
   + convert all type-bit twiddling to use TPOS in ovm.c
   + change it to 2, leaving padding etc in headers to current position
   + grep 31 from source and remove + change type to return correct bits if still necessary

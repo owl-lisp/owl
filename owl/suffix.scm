@@ -2,21 +2,12 @@
 ;;; Suffix array and tree construction
 ;;; 
 
-;; todo: string-sort is usually good, and doubling is always good but on average 3x slower -> use string-sort for first 2^n steps?
-;; todo: allow constructing also a suffix tree (or provide a convenient iterator)
-
 (define-library (owl suffix)
 
    (export 
       suffix-array      ;; iter -> suffix array (not here yet)
-      suffix-list         ;; iter -> suffix list
-      ;suffix-tree      ;; iter -> suffix tree (not here)
-
-      ;; construction
-      ssort-doubling      ;; functional qsufsort (default)
-      ssort-string       ;; mergesort using string comparison (bad)
-      ssort-ternary      ;; ternary partitioning radix sort (bad)
-      )
+      suffix-list       ;; iter -> suffix list
+   )
 
    (import
       (owl defmac)
@@ -34,8 +25,6 @@
 
       (define sentinel "telomerase") ; something unique as in eq?
 
-      ;;; misc utils
-
       (define (carless a b) 
          (let ((a (car a)) (b (car b)))
             (cond
@@ -47,95 +36,11 @@
       (define (car< a b) (< (car a) (car b)))
 
       ;;;
-      ;;; Comparison suffix sort
+      ;;; Functional qsufsort (see Larsson & Sadakane's "Faster Suffix Sorting" paper for the original imperative algorithm)
       ;;;
 
-      (define (lex-less? a b)
-         (cond
-            ((null? a) #true)
-            ((null? b) #false)
-            (else
-               (lets ((a as a) (b bs b))
-                  (cond
-                     ((lesser? a b) #true) ; was <
-                     ((eq? a b) (lex-less? as bs)) ; was =
-                     (else #false))))))
-
-      (define (indexed-suffixes lst)
-         (let loop ((lst lst) (pos 0) (out null))
-            (cond
-               ((pair? lst)
-                  (loop (cdr lst) (+ pos 1) (cons (cons pos lst) out)))
-               ((null? lst) out)
-               (else (loop (lst) pos out)))))
-
-      (define (ssort-string lst)
-         (map car
-            (sort 
-               (λ (a b) (lex-less? (cdr a) (cdr b))) 
-               (indexed-suffixes lst))))
-
-
-      ;;;
-      ;;; Ternary partitioning generic list ssort
-      ;;;
-
-      (define (middle a b c)
-         (cond
-            ((> a b) (middle b a c))
-            ((> b c) (middle a c b))
-            (else b)))
-
-      (define (len>? l n)
-         (cond
-            ((null? l) #false)
-            ((= n 0) #true)
-            (else (len>? (cdr l) (- n 1)))))
-
-      (define (head l) (if (null? (cdr l)) sentinel (cadr l)))
-
-      (define (choose-pivot il)
-         (if (len>? il 2)
-            (lets ((a (car il)) (il (cdr il)) (b (car il)) (il (cdr il)) (c (car il)))
-               (middle (head a) (head b) (head c)))
-            (head (car il))))
-         
-      (define (partition il pivot)
-         (let loop ((il il) (pre null) (same null) (post null))
-            (if (null? il)
-               (values pre same post)
-               (lets
-                  ((this (car il))
-                   (pos l this))
-                  (cond
-                     ((or (null? l) (lesser? (car l) pivot))
-                        (loop (cdr il) (cons this pre) same post))
-                     ((eq? (car l) pivot)
-                        (loop (cdr il) pre (cons (cons pos (cdr l)) same) post))
-                     (else
-                        (loop (cdr il) pre same (cons this post))))))))
-
-      (define (radix-step il tail)
-         (cond
-            ((null? il) tail)
-            ((null? (cdr il)) (cons (caar il) tail))
-            (else
-               (lets 
-                  ((pivot (choose-pivot il))
-                   (pre these post (partition il pivot)))
-                  (radix-step pre
-                     (radix-step these
-                        (radix-step post tail)))))))
-         
-      (define (ssort-ternary lst)
-         (radix-step (indexed-suffixes lst) null))
-
-
-      ;;;
-      ;;; Functional qsufsort (see larsson & sadakane's "faster suffix sorting" paper for the original imperative algorithm)
-      ;;;
-
-      (define (invert bs) (map car (sort cdr< (iff->list bs))))
+      (define (invert bs) 
+         (map car (sort cdr< (iff->list bs))))
 
       (define (get-run x vs out)
          (cond
@@ -191,10 +96,6 @@
              (ls bs (chunk sb #empty null -1)))
             (cdr (ssort-steps ls bs 1)))) ; drop the sentinel (is just length of list at car)
 
-      ;;;
-      ;;; Exported default versions
-      ;;;
-
       (define suffix-list ssort-doubling)
 
       (define (suffix-array thing)
@@ -203,7 +104,5 @@
                (cond
                   ((vector? thing) (vector->list thing))
                   ((string? thing) (string->list thing))
-                  (else thing)))))
-
-))
+                  (else thing)))))))
 
