@@ -56,13 +56,11 @@
       (define (zero? x) (eq? x 0))
 
       (define (fixnum? x) 
-         (if (size x) ;; <- FIXME - remove after new type no longer collides with functions
-            #false
-            (let ((t (type x)))
-               (or 
-                  (eq? t type-fix+)
-                  ;(eq? t type-fix-) ;; <- FIXME - breaks build, someone isn't expecting negative fixnums
-                  ))))
+         (let ((t (type x)))
+            (or 
+               (eq? t type-fix+)
+               ;(eq? t type-fix-) ;; <- FIXME - breaks build, someone isn't expecting negative fixnums
+               )))
 
       (define (exact? n) #true)    ;; RnRS compat
       (define (inexact? n) #false)
@@ -212,7 +210,7 @@
             (else 
                ;; major type 9, being all non-fixnum numbers
                ;(eq? 72 (fxband (type-old a) 248))
-               (eq? 9 (fxband 31 (type a)))
+               (eq? 9 (fxband 31 (type a))) ;; all have these low bits, which had special meaning earlier
                )))
 
       (define (integer? a)

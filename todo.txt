@@ -1,12 +1,8 @@
 TODO QUEUE-ISH:
-  + fix compact byte-vector types (raw also at 11 according to vm)
   + convert old type-case to just switch over (type obj)
-  + squeeze types to <31 so that the sixth bit becomes free (high bit currently hits padding info)
   + fix case macro to allow multiple expressions at body
-  + convert all type-bit twiddling to use TPOS in ovm.c
-  + change it to 2, leaving padding etc in headers to current position
-  + grep 31 from source and remove + change type to return correct bits if still necessary
-  + grep 'remove after' and remove them
+  + check that wide and raw leaf string types are indeed disjoint already and drop sizeb from raw-string?
+  + remove deprecated type test branch instructions and AST node handling
   + move immediate payload offset from 12 to 8
   + switch fixnum size
   + fix bignum math to work with compile-time settable n-bit fixnums

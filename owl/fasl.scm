@@ -184,7 +184,6 @@
                            (copy-bytes out val (- bs 1)))))
                   (lets
                      ((t (type-byte-of val))
-                      (t (if (= t 32) type-proc (if (= t 64) type-clos t))) ;; remove after fasl update
                       (s (size val)))
                      ; options for optimization
                      ;	t and s fit in 6 bits -> pack (seems to be only about 1/20 compression)

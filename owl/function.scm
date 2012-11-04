@@ -11,7 +11,7 @@
    (begin
 
       (define (bytecode? x) 
-         (eq? type-bytecode (fxband 31 (type x))))
+         (eq? type-bytecode (type x)))
 
       ;; raw bytecode vector, 1-level (proc) or 2-level (clos) function
       (define (function? x)

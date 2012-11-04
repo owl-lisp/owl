@@ -84,7 +84,7 @@
                ;; raw object of correct type, discarding padding bits
                ;(eq? (fxband (type-old x) #b100011111000) #b100000011000)
                ;; hack to get around current padding info and type clash
-               (and (sizeb x) (eq? type-string (fxband 31 (type x)))) ;; todo - change to type-string-raw
+               (and (sizeb x) (eq? type-string (type x))) ;; todo - change to type-string-raw
                )))
 
       (define (string? x) 

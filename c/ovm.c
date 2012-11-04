@@ -970,12 +970,12 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
 
    if (likely(allocp(ob))) {
       word hdr = *ob & 4095; /* cut size out, take just header info */
-      if (hdr == make_header(0,TPROC)) { /* proc, remove 32 later  */ 
+      if (hdr == make_header(0,TPROC)) { /* proc */
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if (hdr == make_header(0,TCLOS)) { /* clos, remove 64 later */
+      } else if (hdr == make_header(0,TCLOS)) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      } else if (((hdr>>TPOS)&60)== TFF) { /* low bits have special meaning */
+      } else if (((hdr>>TPOS)&60) == TFF) { /* low bits have special meaning */
          word *cont = (word *) R[3];
          if (acc == 3) {
             R[3] = prim_get(ob, R[4], R[5]); 
@@ -988,7 +988,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if (((hdr >> TPOS) & 31) != TBYTECODE) { /* not even code, extend bits later */
+      } else if (((hdr >> TPOS) & 63) != TBYTECODE) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
       if (unlikely(!ticker--)) goto switch_thread;
