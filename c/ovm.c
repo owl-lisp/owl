@@ -1108,7 +1108,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op15: { /* type-byte o r <- actually sixtet */
       word ob = R[*ip++];
       if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>TPOS)&63); /* hits padding bit until shifted */
+      R[*ip++] = F((ob>>TPOS)&63);
       NEXT(0); }
    op16: /* jv[which] a o1 a2*/
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */

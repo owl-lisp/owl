@@ -205,7 +205,7 @@
             (fix- #true)
             ;(int+ #true)
             ;(int- #true)
-            ;(rat  #true)
+            (rat  #true) ;; now distinct
             ;(comp #true)
             (else 
                ;; major type 9, being all non-fixnum numbers
@@ -430,7 +430,7 @@
                
       (define-syntax rational
          (syntax-rules ()
-            ((rational a b) (mkt 73 a b))))
+            ((rational a b) (mkt type-rational a b))))
       
       (define (negate num)   
          (type-case num

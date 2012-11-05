@@ -12,6 +12,10 @@
       case-lambda
       define-values
       not o i self
+      type-imaginary
+      type-rational
+      type-int+
+      type-int-
 
       immediate? allocated? raw?
 
@@ -142,7 +146,7 @@
             ((if (teq? q int+) . c) (if (teq? q (alloc  9)) . c))      ; num base type
             ((if (teq? q int-) . c) (if (teq? q (alloc 41)) . c))      ; num/1
             ((if (teq? q pair) . c) (if (teq? q (alloc  1)) . c))      
-            ((if (teq? q rat) . c)  (if (teq? q (alloc 73)) . c))      ; num/2
+            ((if (teq? q rat) . c)  (if (teq? q (alloc 42)) . c))     ; num/2 <- new type until teq? is removed
             ((if (teq? q comp) . c)  (if (teq? q (alloc 105)) . c))   ; num/3
             ((if (teq? (a . b) c) then else) 
                (let ((foo (a . b)))
@@ -508,6 +512,10 @@
       ;; IMMEDIATE
       (define type-fix+              0)
       (define type-fix-             32)
+      (define type-int+             40)
+      (define type-int-             41)
+      (define type-rational         42)
+      (define type-imaginary        43) ;; 3 free below
       (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
       (define type-port             12)
