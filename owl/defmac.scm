@@ -12,7 +12,7 @@
       case-lambda
       define-values
       not o i self
-      type-imaginary
+      type-complex
       type-rational
       type-int+
       type-int-
@@ -147,7 +147,7 @@
             ((if (teq? q int-) . c) (if (teq? q (alloc 41)) . c))      ; num/1
             ((if (teq? q pair) . c) (if (teq? q (alloc  1)) . c))      
             ((if (teq? q rat) . c)  (if (teq? q (alloc 42)) . c))     ; num/2 <- new type until teq? is removed
-            ((if (teq? q comp) . c)  (if (teq? q (alloc 105)) . c))   ; num/3
+            ((if (teq? q comp) . c)  (if (teq? q (alloc 43)) . c))   ; num/3
             ((if (teq? (a . b) c) then else) 
                (let ((foo (a . b)))
                   (if (teq? foo c) then else)))
@@ -515,7 +515,7 @@
       (define type-int+             40)
       (define type-int-             41)
       (define type-rational         42)
-      (define type-imaginary        43) ;; 3 free below
+      (define type-complex          43) ;; 3 free below
       (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
       (define type-port             12)

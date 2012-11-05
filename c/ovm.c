@@ -77,7 +77,7 @@ typedef uintptr_t word;
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
 #define PAIRHDR                     make_header(3,1)
-#define NUMHDR                      make_header(3,9)
+#define NUMHDR                      make_header(3,9) /* <- on the way to 40, see type-int+ in defmac.scm */
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       make_immediate(0,13)
 #define IFALSE                      make_immediate(1,13)
@@ -465,6 +465,7 @@ word *get_obj(word *ptrs, int me) {
    switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
       case 1: {
          type = *hp++;
+         // type = (type == 9) ? 40 : type;
          size = get_nat();
          *fp++ = make_header(size+1, type); /* +1 to include header in size */
          while(size--) { fp = get_field(ptrs, me); }

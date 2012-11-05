@@ -203,14 +203,13 @@
          (type-case a
             (fix+ #true)
             (fix- #true)
-            ;(int+ #true)
-            ;(int- #true)
-            (rat  #true) ;; now distinct
-            ;(comp #true)
+            (int+ #true) ;; not in use yet
+            (int- #true)
+            (rat  #true)
+            (comp #true)
             (else 
-               ;; major type 9, being all non-fixnum numbers
-               ;(eq? 72 (fxband (type-old a) 248))
                (eq? 9 (fxband 31 (type a))) ;; all have these low bits, which had special meaning earlier
+               ;; #false
                )))
 
       (define (integer? a)
@@ -358,7 +357,7 @@
             ; res is either fixnum or bignum
             (type-case res
                (fix+ (cast res 32))
-               (else (cast res 41)))))
+               (else (cast res type-int-)))))
 
 
       ; substract from a, which must be bigger
@@ -404,7 +403,7 @@
                   (cond
                      ((eq? neg 0) neg)
                      ((teq? neg fix+) (cast neg 32))
-                     (else (cast neg 41)))))
+                     (else (cast neg type-int-)))))
             (else
                (sub-digits a b #false #true))))
 
@@ -413,7 +412,7 @@
       (define (add-small->negative a b)
          (lets ((r overflow? (fx+ a b)))
             (if overflow?
-               (cast (ncons r big-one) 41)
+               (cast (ncons r big-one) type-int-)
                (cast r 32))))
 
 
@@ -426,7 +425,7 @@
             ((negative x)
                (if (teq? x fix+)
                   (cast x 32)
-                  (cast x 41)))))
+                  (cast x type-int-)))))
                
       (define-syntax rational
          (syntax-rules ()
@@ -440,7 +439,7 @@
                   (cast num 32)))   ;; a  -> -a
             (fix- (cast num 0))   ;; -a ->  a
             (int+                ;;  A -> -A
-               (mkt 41 (ncar num) (ncdr num)))
+               (mkt type-int- (ncar num) (ncdr num)))
             (int-             ;; -A -> A
                (ncons (ncar num) (ncdr num)))
             (rat
@@ -469,7 +468,7 @@
                   (fix+ (sub-small->pick-sign b a))         ;; -a + +b == +b + -a -> as above (no need to recurse)
                   (fix- (add-small->negative a b))         ;; -a + -b -> -c | -C
                   (int+ (sub-big-number b a #true))            ;; -a + +B == +B - +a -> sub-big-number 
-                  (int- (cast (add-number-big a b) 41))   ;; -a + -B == -C == -(a + B)   
+                  (int- (cast (add-number-big a b) type-int-))   ;; -a + -B == -C == -(a + B)   
                   (else (big-bad-args 'add a b))))
             (int+
                (type-case b
@@ -481,9 +480,9 @@
             (int-
                (type-case b
                   (fix+ (sub-number-big b a #true))            ;; -A + +b == +b + -A -> as above
-                  (fix- (cast (add-number-big b a) 41))      ;; -A + -b == -b + -A = -C -> as above
+                  (fix- (cast (add-number-big b a) type-int-))      ;; -A + -b == -b + -A = -C -> as above
                   (int+ (sub-big b a))                     ;; -A + +B == +B + -A -> as above
-                  (int- (cast (add-big a b #false) 41))      ;; -A + -B == -(A + B)
+                  (int- (cast (add-big a b #false) type-int-))      ;; -A + -B == -(A + B)
                   (else (big-bad-args 'add a b))))
             (else 
                (big-bad-args 'add a b))))
@@ -504,7 +503,7 @@
                (type-case b
                   (fix+ (add-small->negative a b))            ;; -a - +b -> as -a + -b
                   (fix- (sub-small->pick-sign b a))         ;; -a - -b -> as -a + +b
-                  (int+ (cast (add-number-big a b) 41))   ;; -a - +B -> as -a + -B
+                  (int+ (cast (add-number-big a b) type-int-))   ;; -a - +B -> as -a + -B
                   (int- (sub-big-number b a #true))         ;; -a - -B -> as -a + +B
                   (else (big-bad-args '- a b))))
             (int+
@@ -516,9 +515,9 @@
                   (else (big-bad-args '- a b))))
             (int-
                (type-case b
-                  (fix+ (cast (add-number-big b a) 41))      ;; -A - +b -> as -A + -b
+                  (fix+ (cast (add-number-big b a) type-int-))      ;; -A - +b -> as -A + -b
                   (fix- (sub-number-big b a #true))            ;; -A - -b -> as -A + +b
-                  (int+ (cast (add-big a b #false) 41))         ;; -A - +B -> as -A + -B
+                  (int+ (cast (add-big a b #false) type-int-))         ;; -A - +B -> as -A + -B
                   (int- (sub-big b a))                     ;; -A - -B -> as -A + +B
                   (else (big-bad-args '- a b))))
             (else 
@@ -648,15 +647,15 @@
                                     (cast lo 32)
                                     (cast 
                                        (extend-digits (ncons lo null) words) 
-                                       41))
+                                       type-int-))
                                  (cast 
                                     (extend-digits 
                                        (ncons lo (ncons hi null)) words) 
-                                    41))))
+                                    type-int-))))
                         (int+
                            (extend-digits (shift-left a bits 0) words))
                         (int-
-                           (cast (extend-digits (shift-left a bits 0) words) 41))
+                           (cast (extend-digits (shift-left a bits 0) words) type-int-))
                         (else
                            (big-bad-args '<< a b))))))
             ((teq? b int+)
@@ -964,21 +963,21 @@
                      (type-case b
                         (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
                         (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
-                        (int+ (cast (mult-num-big a b 0) 41))   ; -a * +B -> -C
+                        (int+ (cast (mult-num-big a b 0) type-int-))   ; -a * +B -> -C
                         (int- (mult-num-big a b 0))            ; -a * -B -> +C
                         (else (big-bad-args 'mul a b))))
                   (int+
                      (type-case b
                         (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
-                        (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
+                        (fix- (cast (mult-num-big b a 0) type-int-))    ; +A * -b -> -C
                         (int+ (mult-big a b))               ; +A * +B -> +C
-                        (int- (cast (mult-big a b) 41))      ; +A * -B -> -C
+                        (int- (cast (mult-big a b) type-int-))      ; +A * -B -> -C
                         (else (big-bad-args 'mul a b))))
                   (int-   
                      (type-case b
-                        (fix+ (cast (mult-num-big b a 0) 41))      ; -A * +b -> -C
+                        (fix+ (cast (mult-num-big b a 0) type-int-))      ; -A * +b -> -C
                         (fix- (mult-num-big b a 0))               ; -A * -b -> +C
-                        (int+ (cast (mult-big a b) 41))      ; -A * +B -> -C
+                        (int+ (cast (mult-big a b) type-int-))      ; -A * +B -> -C
                         (int- (mult-big a b))                  ; -A * -B -> +C
                         (else (big-bad-args 'mul a b))))
                   (rat
@@ -1372,7 +1371,7 @@
          (lets ((q r (qr-big-small a b)))
             (type-case q
                (fix+ (cast q 32))
-               (else (cast q 41)))))
+               (else (cast q type-int-)))))
 
       ; fixme, could just call quotrem -> q
       ; should output rationals later, inputs always within int
@@ -1592,7 +1591,7 @@
 
       (define-syntax complex
          (syntax-rules ()
-            ((complex a b) (mkt 105 a b))))
+            ((complex a b) (mkt type-complex a b))))
 
       ; normalize, fix sign and construct rational
       (define (rationalize a b)
@@ -1672,16 +1671,16 @@
                   (fix+ (sub-small->pick-sign b a))
                   (fix- (add-small->negative a b))
                   (int+ (sub-big-number b a #true))
-                  (int- (cast (add-number-big a b) 41))
+                  (int- (cast (add-number-big a b) type-int-))
                   (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
                   (comp (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
             (int-
                (type-case b
                   (fix+ (sub-number-big b a #true))
-                  (fix- (cast (add-number-big b a) 41))
+                  (fix- (cast (add-number-big b a) type-int-))
                   (int+ (sub-big b a))
-                  (int- (cast (add-big a b #false) 41))
+                  (int- (cast (add-big a b #false) type-int-))
                   (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
                   (comp (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
@@ -1733,7 +1732,7 @@
                (type-case b
                   (fix+ (add-small->negative a b))
                   (fix- (sub-small->pick-sign b a))
-                  (int+ (cast (add-number-big a b) 41))
+                  (int+ (cast (add-number-big a b) type-int-))
                   (int- (sub-big-number b a #true))
                   (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
                   (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
@@ -1749,9 +1748,9 @@
                   (else (big-bad-args '- a b))))
             (int-
                (type-case b
-                  (fix+ (cast (add-number-big b a) 41))
+                  (fix+ (cast (add-number-big b a) type-int-))
                   (fix- (sub-number-big b a #true))
-                  (int+ (cast (add-big a b #false) 41))
+                  (int+ (cast (add-big a b #false) type-int-))
                   (int- (sub-big b a))
                   (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
                   (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
@@ -1813,7 +1812,7 @@
                   (fix-
                      (type-case b
                         (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
-                        (int+ (cast (mult-num-big a b 0) 41))   ; -a * +B -> -C
+                        (int+ (cast (mult-num-big a b 0) type-int-))   ; -a * +B -> -C
                         (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
                         (int- (mult-num-big a b 0))            ; -a * -B -> +C
                         (rat  (divide (mul a (ncar b)) (ncdr b)))
@@ -1825,8 +1824,8 @@
                      (type-case b
                         (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
                         (int+ (mult-big a b))               ; +A * +B -> +C
-                        (fix- (cast (mult-num-big b a 0) 41))    ; +A * -b -> -C
-                        (int- (cast (mult-big a b) 41))      ; +A * -B -> -C
+                        (fix- (cast (mult-num-big b a 0) type-int-))    ; +A * -b -> -C
+                        (int- (cast (mult-big a b) type-int-))      ; +A * -B -> -C
                         (rat  (divide (mul a (ncar b)) (ncdr b)))
                         (comp 
                            (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
@@ -1834,8 +1833,8 @@
                         (else (big-bad-args 'mul a b))))
                   (int-   
                      (type-case b
-                        (fix+ (cast (mult-num-big b a 0) 41))      ; -A * +b -> -C
-                        (int+ (cast (mult-big a b) 41))      ; -A * +B -> -C
+                        (fix+ (cast (mult-num-big b a 0) type-int-))      ; -A * +b -> -C
+                        (int+ (cast (mult-big a b) type-int-))      ; -A * +B -> -C
                         (fix- (mult-num-big b a 0))               ; -A * -b -> +C
                         (int- (mult-big a b))                  ; -A * -B -> +C
                         (rat  (divide (mul a (ncar b)) (ncdr b)))

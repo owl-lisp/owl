@@ -1,4 +1,5 @@
 TODO QUEUE-ISH:
+  + move bigint node type from 9 to new 40 (non-fixnum number types follow it to get a bitwise numberness test)
   + convert old type-case to just switch over (type obj)
   + fix case macro to allow multiple expressions at body
   + check that wide and raw leaf string types are indeed disjoint already and drop sizeb from raw-string?
