@@ -335,7 +335,7 @@
                (else 
                   (values 'branch 
                      (tuple 
-                        (list "exit(42); allocp(R["a"])&&(V(R["a"])&2296)=="(bor 2048 (<< type 3)))
+                        (list "allocp(R["a"])&&(V(R["a"])&2296)=="(bor 2048 (<< type 3)))
                         (drop bs jump-len) (put regs a 'alloc)
                         bs regs)
                      regs)))))
