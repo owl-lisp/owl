@@ -143,11 +143,14 @@
             ((if (pair? test) then else) (if (teq? test (alloc 1)) then else))
             ((if (teq? q fix+) . c) (if (teq? q (imm    0)) . c))
             ((if (teq? q fix-) . c) (if (teq? q (imm   32)) . c))
-            ((if (teq? q int+) . c) (if (teq? q (alloc  9)) . c))      ; num base type
+            ((if (teq? q int+) c) (if (teq? q int+) c #false))
+            ;((if (teq? q int+) a b) (if (teq? q (alloc 9)) a (if (teq? q (alloc 40)) a b)))
+            ((if (teq? q int+) . c) (if (teq? q (alloc 40)) . c))
+            ;((if (teq? q int+) . c) (if (teq? q (alloc  9)) . c))      ; num base type
             ((if (teq? q int-) . c) (if (teq? q (alloc 41)) . c))      ; num/1
             ((if (teq? q pair) . c) (if (teq? q (alloc  1)) . c))      
-            ((if (teq? q rat) . c)  (if (teq? q (alloc 42)) . c))     ; num/2 <- new type until teq? is removed
-            ((if (teq? q comp) . c)  (if (teq? q (alloc 43)) . c))   ; num/3
+            ((if (teq? q rat) . c)  (if (teq? q (alloc 42)) . c))      ; num/2 <- new type until teq? is removed
+            ((if (teq? q comp) . c)  (if (teq? q (alloc 43)) . c))     ; num/3
             ((if (teq? (a . b) c) then else) 
                (let ((foo (a . b)))
                   (if (teq? foo c) then else)))

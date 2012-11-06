@@ -77,7 +77,7 @@ typedef uintptr_t word;
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
 #define PAIRHDR                     make_header(3,1)
-#define NUMHDR                      make_header(3,9) /* <- on the way to 40, see type-int+ in defmac.scm */
+#define NUMHDR                      make_header(3,40) /* <- on the way to 40, see type-int+ in defmac.scm */
 #define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
 #define INULL                       make_immediate(0,13)
 #define IFALSE                      make_immediate(1,13)

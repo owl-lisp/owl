@@ -208,8 +208,8 @@
             (rat  #true)
             (comp #true)
             (else 
-               (eq? 9 (fxband 31 (type a))) ;; all have these low bits, which had special meaning earlier
-               ;; #false
+               ;; (eq? 9 (fxband 31 (type a))) ;; all have these low bits, which had special meaning earlier
+               #false
                )))
 
       (define (integer? a)
@@ -328,7 +328,7 @@
                (lets ((r uf? (fx- a b)))
                   (if uf?
                      (lets ((r _ (fx- b a))) ;; could also fix here by adding or bitwise
-                        (cast r 32))
+                        (cast r type-fix-))
                      r)))))
 
       ; bignum - fixnum -> either
@@ -356,7 +356,7 @@
          (let ((res (sub-big-number b a #true)))
             ; res is either fixnum or bignum
             (type-case res
-               (fix+ (cast res 32))
+               (fix+ (cast res type-fix-))
                (else (cast res type-int-)))))
 
 
@@ -402,7 +402,7 @@
                (let ((neg (sub-digits b a #false #true)))
                   (cond
                      ((eq? neg 0) neg)
-                     ((teq? neg fix+) (cast neg 32))
+                     ((teq? neg fix+) (cast neg type-fix-))
                      (else (cast neg type-int-)))))
             (else
                (sub-digits a b #false #true))))
@@ -413,7 +413,7 @@
          (lets ((r overflow? (fx+ a b)))
             (if overflow?
                (cast (ncons r big-one) type-int-)
-               (cast r 32))))
+               (cast r type-fix-))))
 
 
       ; for changing the (default positive) sign of unsigned operations 
@@ -424,7 +424,7 @@
                   (negative foo)))
             ((negative x)
                (if (teq? x fix+)
-                  (cast x 32)
+                  (cast x type-fix-)
                   (cast x type-int-)))))
                
       (define-syntax rational
@@ -436,8 +436,8 @@
             (fix+ 
                (if (eq? num 0)
                   0
-                  (cast num 32)))   ;; a  -> -a
-            (fix- (cast num 0))   ;; -a ->  a
+                  (cast num type-fix-)))   ;; a  -> -a
+            (fix- (cast num type-fix+))   ;; -a ->  a
             (int+                ;;  A -> -A
                (mkt type-int- (ncar num) (ncdr num)))
             (int-             ;; -A -> A
@@ -644,7 +644,7 @@
                            (lets ((hi lo (fx<< a bits)))
                               (if (eq? hi 0)
                                  (if (eq? words 0)
-                                    (cast lo 32)
+                                    (cast lo type-fix-)
                                     (cast 
                                        (extend-digits (ncons lo null) words) 
                                        type-int-))
@@ -1365,12 +1365,12 @@
          (lets ((_ q r (fxqr 0 a b)))
             (if (eq? q 0)
                q
-               (cast q 32))))
+               (cast q type-fix-))))
 
       (define (div-big-num->negative a b)
          (lets ((q r (qr-big-small a b)))
             (type-case q
-               (fix+ (cast q 32))
+               (fix+ (cast q type-fix-))
                (else (cast q type-int-)))))
 
       ; fixme, could just call quotrem -> q
@@ -1916,7 +1916,7 @@
       (define (abs n)
          (type-case n
             (fix+ n)
-            (fix- (cast n 0))
+            (fix- (cast n type-fix+))
             (int+ n)
             (int- (ncons (ncar n) (ncdr n)))
             (rat (if (negative? n) (sub 0 n) n))
