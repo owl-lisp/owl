@@ -36,6 +36,7 @@
          (list->ff
             '((1 . pair))))
 
+      (define tpos 3) ;; see also TPOS in ovm.c
 
       ;; represent some immediate as a string in C
       (define (represent val fail)
@@ -335,7 +336,7 @@
                (else 
                   (values 'branch 
                      (tuple 
-                        (list "allocp(R["a"])&&(V(R["a"])&2296)=="(bor 2048 (<< type 3)))
+                        (list "allocp(R["a"])&&(V(R["a"])&2300)=="(bor 2048 (<< type tpos)))
                         (drop bs jump-len) (put regs a 'alloc)
                         bs regs)
                      regs)))))

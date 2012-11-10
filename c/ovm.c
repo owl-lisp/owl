@@ -48,9 +48,9 @@ typedef uintptr_t word;
 
 /*** Macros ***/
 
-#define IPOS                        10 /* offset of immediate payload */
+#define IPOS                        10 /* offset of immediate payload, on the way to 8 */
 #define SPOS                        16 /* offset of size bits in header immediate values */
-#define TPOS                        2  /* offset of type bits in header */
+#define TPOS                        2  /* offset of type bits in header, see also tpos in cgen.scm */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
@@ -1181,7 +1181,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       goto invoke; }
    op22: { /* cast o t r */
       word *ob = (word *) R[*ip];
-      word type = fixval(A1) & 0xff;
+      word type = fixval(A1) & 63;
       A2 = prim_cast(ob, type);
       NEXT(3); }
    op23: { /* mkt t s f1 .. fs r */
@@ -1277,7 +1277,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op33: { /* jrt a t o, jump by raw type (ignoring padding info) */
       word a = R[*ip];
-      if (allocp(a) && (*(word *)a & 2296) == (2048 | (ip[1]<<TPOS))) {
+      if (allocp(a) && (*(word *)a & 2300) == (2048 | (ip[1]<<TPOS))) {
          ip += ip[2];
       }
       NEXT(3); }

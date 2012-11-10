@@ -49,6 +49,7 @@
       write-byte-vector ;; port byte-vector → bool
       get-block         ;; fd n → bvec | eof | #false
       try-get-block     ;; fd n block? → bvec | eof | #false=error | #true=block
+      lines             ;; fd → null | ll of string, read error is just null, each [\r]\n removed
 
       system-print system-println system-stderr
       take-nap
@@ -490,6 +491,28 @@
                   (else
                      (stream-chunk buff (- (sizeb buff) 1)
                         (port->byte-stream fd)))))))
+
+      (define (lines fd)
+         (let loop ((ll (port->byte-stream fd)) (out null))
+            (cond
+               ((pair? ll)
+                  (lets ((byte ll ll))
+                     (if (eq? byte #\newline)
+                        (pair
+                           (list->string
+                              (reverse
+                                 (if (and (pair? out) (eq? #\return (car out)))
+                                    (cdr out)
+                                    out)))
+                           (loop ll null))
+                        (loop ll (cons byte out)))))
+               ((null? ll)
+                  (if (null? out)
+                     null
+                     (list
+                        (list->string (reverse out)))))
+               (else
+                  (loop (ll) out)))))
 
       (define (file->byte-stream path)
          (let ((fd (open-input-file path)))
