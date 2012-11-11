@@ -48,7 +48,7 @@ typedef uintptr_t word;
 
 /*** Macros ***/
 
-#define IPOS                        10 /* offset of immediate payload, on the way to 8 */
+#define IPOS                        9 /* offset of immediate payload, on the way to 8 */
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header, see also tpos in cgen.scm */
 #define V(ob)                       *((word *) (ob))
@@ -465,7 +465,6 @@ word *get_obj(word *ptrs, int me) {
    switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
       case 1: {
          type = *hp++;
-         // type = (type == 9) ? 40 : type;
          size = get_nat();
          *fp++ = make_header(size+1, type); /* +1 to include header in size */
          while(size--) { fp = get_field(ptrs, me); }

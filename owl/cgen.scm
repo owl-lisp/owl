@@ -127,7 +127,7 @@
       (define (cify-sizeb bs regs fail) 
          (lets ((ob to bs (get2 (cdr bs))))
             (values 
-               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=F((hdrsize(h)-1)*W-((h>>8)&7));}")
+               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=(rawp(h))?F((hdrsize(h)-1)*W-((h>>8)&7)):IFALSE;}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
       ;; fftoggle node to
@@ -266,7 +266,7 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at 
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049 
-                  (list " { word *ob=(word *)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=IEMPTY;R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default: R["l"]=ob[3];R["r"]=ob[4];}}"))
+                  (list "{word *ob=(word *)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=IEMPTY;R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default: R["l"]=ob[3];R["r"]=ob[4];}}"))
                bs
                (fold del regs (list l k v r)))))
 
@@ -397,7 +397,7 @@
                         (cond
                            (else (values 'branch 
                               (tuple 
-                                 (list "immediatep(R["a"])&&((((word)R["a"])>>TPOS)&0xff)==" type)
+                                 (list "immediatep(R["a"])&&imm_type((word)R["a"])==" type)
                                  (drop bs jump-len) (put regs a 'immediate)
                                  bs (put regs a 'alloc)) regs))))))
                (cons 12 ;; jump-if-allocated-type a type lo8 hi8
@@ -408,7 +408,7 @@
                         (cond
                            (else (values 'branch 
                               (tuple 
-                                 (list "allocp(R["a"])&&(((V(R["a"]))>>TPOS)&0x1ff)==" type)
+                                 (list "allocp(R["a"])&&imm_type(V(R["a"]))==" type)
                                  (drop bs jump-len) 
                                  (put regs a (get alloc-types type 'alloc))
                                  bs regs) regs)))))) ; <- raw or immediate
