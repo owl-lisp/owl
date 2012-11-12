@@ -1,6 +1,11 @@
 TODO QUEUE-ISH:
-  + fix bignum math to work with compile-time settable n-bit fixnums
-     - default to 24, try out 56 and maybe later support both
+  + upgrade fixnum range to 24-56 bits
+     - change FMAX and FBITS from ovm.c
+     - upgrade fx* and fxqr intermediate results to uint64_t?
+     - change *fixnum-bits* and *max-fixnum* in owl/math.scm
+     - grep 15, 16, #xffff, #x7fff, #x10, 3276 and 6553 + change accordingly
+       o preferably by defining relative to *fixnum-bits*
+     - take care of unexpected issues
   + convert old type-case to just switch over (type obj)
   + fix case macro to allow multiple expressions at body
   + check that wide and raw leaf string types are indeed disjoint already and drop sizeb from raw-string?

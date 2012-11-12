@@ -683,7 +683,12 @@
                         ((envp (toplevel-library-import env (cdr exp) repl)))
                         (if (pair? envp) ;; the error message
                            (fail envp)
-                           (ok (repl-message ";; imported") envp))))
+                           (ok 
+                              (repl-message 
+                                 (list->string
+                                    (foldr render null
+                                       (list ";; Imported " (cdr exp)))))
+                              envp))))
                   ((definition? exp)
                      (mail 'intern (tuple 'set-name (string-append "in:" (symbol->string (cadr exp)))))  ;; tell intern to assign this name to all codes to come
                      (tuple-case (evaluate (caddr exp) env)
@@ -694,7 +699,7 @@
                            (let ((env (env-set env (cadr exp) value)))
                               (ok 
                                  (repl-message 
-                                    (bytes->string (render ";; defined " (render (cadr exp) null))))
+                                    (bytes->string (render ";; Defined " (render (cadr exp) null))))
                                  (bind-toplevel env))))
                         ((fail reason)
                            (fail
@@ -705,7 +710,7 @@
                            (let ((names (cadr exp)))
                               (if (and (list? value) 
                                     (= (length value) (length names)))
-                                 (ok (repl-message ";; all defined")
+                                 (ok (repl-message ";; All defined")
                                     (fold 
                                        (λ (env pair) 
                                           (env-set env (car pair) (cdr pair)))
@@ -738,7 +743,10 @@
                         (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                            ((ok library lib-env)
                               (ok 
-                                 (repl-message ";; Library added" )
+                                 (repl-message 
+                                    (list->string
+                                       (foldr render null
+                                          (list ";; Library " name " added" ))))
                                  (env-set env library-key 
                                     (cons (cons name library)
                                        (keep  ;; drop the loading tag for this library
