@@ -50,7 +50,7 @@ typedef uintptr_t word;
 
 #define IPOS                        9 /* offset of immediate payload, on the way to 8 */
 #define SPOS                        16 /* offset of size bits in header immediate values */
-#define TPOS                        2  /* offset of type bits in header, see also tpos in cgen.scm */
+#define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */

@@ -36,8 +36,6 @@
          (list->ff
             '((1 . pair))))
 
-      (define tpos 3) ;; see also TPOS in ovm.c
-
       ;; represent some immediate as a string in C
       (define (represent val fail)
          (cond
@@ -273,7 +271,7 @@
       (define (cify-cast bs regs fail)
          (lets ((ob type to bs (get3 (cdr bs))))
             (values 
-               (list "R["to"]=prim_cast((word *)R["ob"],fixval(R["type"])&0xff);") bs 
+               (list "R["to"]=prim_cast((word *)R["ob"],fixval(R["type"])&63);") bs 
                (del regs to))))
 
       (define (cify-mkt bs regs fail)
@@ -336,7 +334,7 @@
                (else 
                   (values 'branch 
                      (tuple 
-                        (list "allocp(R["a"])&&(V(R["a"])&2300)=="(bor 2048 (<< type tpos)))
+                        (list "allocp(R["a"])&&(V(R["a"])&2300)==(2048|("type"<<TPOS))")
                         (drop bs jump-len) (put regs a 'alloc)
                         bs regs)
                      regs)))))

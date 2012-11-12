@@ -53,6 +53,8 @@
 
       system-print system-println system-stderr
       take-nap
+      fasl-save         ;; obj path → done?
+      fasl-load         ;; path default → done?
    )
 
    (import
@@ -65,6 +67,7 @@
       (owl render)
       (owl list)
       (owl math)
+      (owl fasl)
       (owl tuple)
       (owl primop)
       (owl port)
@@ -522,4 +525,15 @@
 
       (define (take-nap)
          (interact sid 5))
+
+      (define (fasl-save obj path) 
+         (vector->file 
+            (list->vector (fasl-encode obj))
+            path))
+
+      (define (fasl-load path fail-val)
+         (let ((bs (file->byte-stream path)))
+            (if bs 
+               (fasl-decode bs fail-val)
+               fail-val)))
 ))
