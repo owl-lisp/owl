@@ -1,17 +1,17 @@
 TODO QUEUE-ISH:
+  + fix bignum math to work with compile-time settable n-bit fixnums
+     - default to 24, try out 56 and maybe later support both
   + convert old type-case to just switch over (type obj)
   + fix case macro to allow multiple expressions at body
   + check that wide and raw leaf string types are indeed disjoint already and drop sizeb from raw-string?
   + remove deprecated type test branch instructions and AST node handling
-  + move immediate payload offset from 12 to 8
-  + switch fixnum size
+     - switch to plain type-based jumps everywhere now that they are disjoing
   + start integrating theorem checker
+  + show diffs in benchmark
   + decide where to store metadata (likely in modules) 
      - tests
      - comments
      - types
-  + fix bignum math to work with compile-time settable n-bit fixnums
-     - default to 24, try out 56 and maybe later support both
   + add user definable record type support 
      - would be nice to have some support for algebraic data types using them
      - switch the compiler to use them to make the intermediate language structure more explicit

@@ -48,7 +48,7 @@ typedef uintptr_t word;
 
 /*** Macros ***/
 
-#define IPOS                        9 /* offset of immediate payload, on the way to 8 */
+#define IPOS                        8 /* offset of immediate payload */
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       *((word *) (ob))
@@ -68,7 +68,7 @@ typedef uintptr_t word;
 #define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32*/
 #define header(x)                   *(word *x)
-#define imm_type(x)                 (((x) >> TPOS) & 127) /* todo, changes to 63 soon */
+#define imm_type(x)                 (((x) >> TPOS) & 63)
 #define imm_val(x)                  ((x) >> IPOS)
 #define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               (((word)x)&2)
