@@ -54,8 +54,8 @@ typedef uintptr_t word;
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
-#define FBITS                       16           /* bits in fixnum (and immediate payload width) */
-#define FMAX                        0xffff       /* max fixnum (2^FBITS-1) */
+#define FBITS                       16           /* bits in fixnum, on the way to 24 and beyond */
+#define FMAX                        0xffff       /* max fixnum (2^FBITS-1), on the way to 0xffffff */
 #define MAXOBJ                      0xffff       /* max words in tuple including header */
 #define RAWBIT                      2048
 #define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)

@@ -10,7 +10,7 @@ Owl Lisp is a simple purely functional Lisp.
 REQUIREMENTS
 ~~~~~~~~~~~~
 
-You should have make and gcc installed. 
+You should have make and gcc or clang installed. 
 
 
 INSTALLATION

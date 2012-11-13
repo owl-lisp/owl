@@ -687,7 +687,7 @@
                               (repl-message 
                                  (list->string
                                     (foldr render null
-                                       (list ";; Imported " (cdr exp)))))
+                                       (cons ";; Imported " (cdr exp)))))
                               envp))))
                   ((definition? exp)
                      (mail 'intern (tuple 'set-name (string-append "in:" (symbol->string (cadr exp)))))  ;; tell intern to assign this name to all codes to come
