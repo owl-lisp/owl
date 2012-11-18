@@ -30,6 +30,7 @@ TODO QUEUE-ISH:
   + check http://trac.sacrideo.us/wg/wiki/ImplementationContrasts for unintentional behavior
   + remove teq and deprecated type jump instructions
   + start moving R7RS functions to (scheme *)
+  + add smarts to signal-halt and rename it to handle-signal
   + add ,time (sexp) to toplevel 
      > ,time (fib 100000)
      ;; evaluation took 410ms

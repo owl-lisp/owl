@@ -26,6 +26,7 @@
       (owl equal)
       (owl list-extra)
       (owl math)
+		(owl io)
       (scheme misc)
       (owl primop))
 
@@ -39,6 +40,7 @@
       (define link-tag "mcp/links")
       (define signal-tag "mcp/break")
       (define (signal-halt threads state controller) 
+			(print-to stderr "stopping on signal") 
          (halt 42)) ;; exit owl with a specific return value
       (define thread-quantum 10000)
 

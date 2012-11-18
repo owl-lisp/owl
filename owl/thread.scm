@@ -107,7 +107,7 @@
       (define mcp-syscalls-during-profiling
          (tuple
 
-            ; 1, runnig and time slice exhausted (the usual suspect, could be on a shorter branch)
+            ; 1, runnig and time slice exhausted (the usual suspect, handled directly in scheduler)
             (λ (id a b c todo done state tc)
                ; (system-println "syscall 1 - switch thread")
                (tc tc todo (cons (tuple id a) done) state))
@@ -370,5 +370,5 @@
             ;; there is a thread evaling user input, linkely gone awry somehow
             (drop-thread 'repl-eval threads null state eval-break-message controller)
             ;; nothing evaling atm, exit owl
-            (halt 42)))
+            (signal-halt threads state controller)))
 ))
