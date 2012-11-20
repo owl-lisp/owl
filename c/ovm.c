@@ -267,42 +267,9 @@ int adjust_heap(int cells) {
       return delta;
    } else {
       /* fixme: might be common in seccomp, so would be better to put this to stderr? */
-      puts("realloc failed, out of memory?");
-      exit(3);
+      breaked |= 8; /* will be passed over to mcp at thread switch*/
+      return 0;
    }
-}
-
-/* memstart                                      end
-    v                                            v
-   [hdr f1 ... fn] [hdr ...] ... [hdr f1 .. fm]  
-   should work at any point in program operation when run for fp
- */
-void check_heap(word *fp) {
-	word *pos = memstart;
-	while (pos < fp) {
-		word h = *pos;
-		word s = hdrsize((uintptr_t)h); /* <- looking for potential sign issues in type promotion */
-		if (!immediatep(h))
-			fprintf(stderr, "DEBUG: object has a non-immediate first field\n");
-		if (s <= 0 || s > 0xffff)
-			fprintf(stderr, "DEBUG: object has a bad size: header %p has size %p\n", (word *)h, (word *)s);
-		if (rawp(h)) {
-			pos += s;
-		} else {
-			s--; pos++; /* skip header */
-			while(s--) {
-				word f = *pos++;
-				if (immediatep(f)) 
-					continue;
-				if ((word) f > (word) pos) 
-					fprintf(stderr, "DEBUG: up-pointer in heap\n");
-				if (!immediatep(V(f)))
-					fprintf(stderr, "DEBUG: pointer to non-immediate header\n");
-			}
-		}
-   }
-   if (pos != fp)
-      fprintf(stderr, "DEBUG: heap didn't end exactly where it should have\n");
 }
 
 /* input desired allocation size and root object, 
@@ -310,19 +277,16 @@ void check_heap(word *fp) {
 static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
-   int nfree, nused;
+   int nfree;
    fp = regs + hdrsize(*regs);
-	//check_heap(fp); /* pre GC heap integrity check */
    root = fp+1;
    *root = (word) regs;
    memend = fp;
    mark(root, fp);
    fp = compact();
    regs = (word *) *root;
-	//check_heap(regs + hdrsize(*regs)); /* post GC heap integrity check */
    memend = realend;
    nfree = (word)memend - (word)regs;
-   nused = (word)regs - (word)genstart; 
    if (genstart == memstart) {
       word heapsize = (word) memend - (word) memstart;
       word nused = heapsize - nfree;
@@ -336,9 +300,7 @@ static word *gc(int size, word *regs) {
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
          if (nfree <= size) {
-            /* todo, call a rip cord thunk set by MCP if applicable */
-            puts("ovm: could not allocate more space");
-            EXIT(1);
+            breaked |= 8; /* will be passed over to mcp at thread switch. may cause owl<->gc loop if handled poorly on lisp side! */
          }
       } else if (nfree > (heapsize/5)) {
          /* decrease heap size if more than 20% is free by 10% of the free space */
@@ -378,8 +340,9 @@ void set_nonblock (int sock) {
 void signal_handler(int signal) {
 #ifndef WIN32
    switch(signal) {
-      case SIGINT: breaked |= 2; break;
-      case SIGPIPE: break;
+      case SIGINT: 
+         breaked |= 2; break;
+      case SIGPIPE: break; /* can cause loop when reporting errors */
       default: 
          printf("vm: signal %d\n", signal);
          breaked |= 4;
@@ -1039,9 +1002,9 @@ switch_thread: /* enter mcp if present */
       ob = (word *) R[0]; 
       R[0] = IFALSE; /* remove mcp cont */
       /* R3 marks the syscall to perform */
-      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1);
+      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1); /* fixme - handle also differnet signals via one handler  */
       R[4] = (word) state;
-      R[5] = IFALSE;
+      R[5] = F(breaked);
       R[6] = IFALSE;
       acc = 4;
       breaked = 0;
