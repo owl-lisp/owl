@@ -211,6 +211,7 @@
       (define (repl-message? foo) (and (pair? foo) (eq? repl-message-tag (car foo))))
 
       ;; render the value if *interactive*, and print as such (or not at all) if it is a repl-message
+      ;; if interactive mode and output fails, the error is fatal
       (define (prompt env val)
          (let ((prompt (env-get env '*interactive* #false)))
             (if prompt
@@ -218,10 +219,12 @@
                   (begin
                      (if (cdr val)
                         (print (cdr val)))
-                     (display "> "))
+                     (if (not (display "> "))
+                        (halt 127)))
                   (begin
                      (write val)
-                     (display "\n> "))))))
+                     (if (not (display "\n> "))
+                        (halt 127)))))))
             
       (define syntax-error-mark (list 'syntax-error))
 

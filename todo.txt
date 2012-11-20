@@ -14,6 +14,7 @@ TODO QUEUE-ISH:
      - switch to plain type-based jumps everywhere now that they are disjoing
   + start integrating theorem checker
   + show diffs in benchmark
+  + compile a direct call to the correct function for simple known vararg function calls (+, -, ...)
   + decide where to store metadata (likely in modules) 
      - tests
      - comments

@@ -729,8 +729,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define (try-repl-string env str)
    (tuple-case (repl-string env str)
       ((ok val env)
-         (print val)
-         (exit-owl 0))
+         (exit-owl
+            (if (print val) 0 127)))
       ((error reason partial-env)
          (print-repl-error 
             (list "An error occurred when evaluating: " str ":" reason))
@@ -750,12 +750,15 @@ Check out http://code.google.com/p/owl-lisp for more information.")
       (else
          (exit-owl 127))))
 
+;; say hi if interactive mode and fail if cannot do so (the rest are done using 
+;; repl-prompt. this should too, actually)
 (define (greeting env seccomp?)
    (if (env-get env '*interactive* #f)
-      (begin
-         (print
-            (if seccomp? owl-ohai-seccomp owl-ohai))
-         (display "> "))))
+      (or
+         (and
+            (print (if seccomp? owl-ohai-seccomp owl-ohai))
+            (display "> "))
+         (halt 127))))
 
 ;; todo: this should probly be wrapped in a separate try to catch them all
 ; ... → program rval going to exit-owl
