@@ -206,9 +206,9 @@
                (if (memv thing (quote (a . b)))
                   (begin . body)
                   (case thing . clauses)))
-            ((case thing (atom exp) . clauses) ;; added for (case (type foo) (type-foo thenfoo) (type-bar thenbar) ...)
+            ((case thing (atom . then) . clauses) ;; added for (case (type foo) (type-foo thenfoo) (type-bar thenbar) ...)
                (if (eq? thing atom)
-                  exp
+                  (begin . then)
                   (case thing . clauses)))))
 
       (define-syntax define

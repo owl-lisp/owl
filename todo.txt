@@ -8,7 +8,6 @@ TODO QUEUE-ISH:
        o preferably by defining relative to *fixnum-bits*
      - take care of unexpected issues
   + convert old type-case to just switch over (type obj)
-  + fix case macro to allow multiple expressions at body
   + check that wide and raw leaf string types are indeed disjoint already and drop sizeb from raw-string?
   + remove deprecated type test branch instructions and AST node handling
      - switch to plain type-based jumps everywhere now that they are disjoing
