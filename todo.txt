@@ -1,4 +1,6 @@
 TODO QUEUE-ISH:
+  + decide where to store metadata and start moving tests, comments etc there
+     - related to theorem checking stuff, so bumped up priority
   + upgrade fixnum range to 24-56 bits
      - splice old (owl math) to (owl bignum|rational|imaginary) and (owl math) = imaginary
      - change FMAX and FBITS from ovm.c
@@ -14,10 +16,6 @@ TODO QUEUE-ISH:
   + start integrating theorem checker
   + show diffs in benchmark
   + compile a direct call to the correct function for simple known vararg function calls (+, -, ...)
-  + decide where to store metadata (likely in modules) 
-     - tests
-     - comments
-     - types
   + add user definable record type support 
      - would be nice to have some support for algebraic data types using them
      - switch the compiler to use them to make the intermediate language structure more explicit
@@ -50,7 +48,7 @@ TODO QUEUE-ISH:
      - heaps
      - queues
   + add support for recursion with variable arity (recursion transformer predates variable arity)
-  + rewrite rlist library, or swapt to the owl version
+  + rewrite rlist library, or swap to the owl version
   + split UTF-8 decoding out of sexp parser
   + rewrite macro expander
      - store free bindings in transformer

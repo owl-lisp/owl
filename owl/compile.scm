@@ -594,8 +594,9 @@
                            (if (opcode-arity-ok? op (length (cdr rands)))
                               (rtl-primitive regs op formals (cdr rands)
                                  (λ (regs) (rtl-any regs body)))
+                              ;; fixme: should be a way to show just parts of AST nodes, which may look odd
                               (error "Bad number of arguments for primitive: " 
-                                 (list 'op op 'got (length (cdr rands)) 'at rands))))
+                                 (list 'op (primop-name op) 'got (length (cdr rands)) 'arguments))))
                         (else
                            (error "bad primitive args: " rands)))
                      (tuple-case rator

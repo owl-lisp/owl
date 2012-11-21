@@ -5,7 +5,7 @@
       empty-env
       apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
-      poll-tag link-tag buffer-tag signal-tag signal-halt thread-quantum
+      poll-tag link-tag buffer-tag signal-tag signal-halt thread-quantum meta-tag
       env-set-macro *tabula-rasa* env-del 
       env-get ;; env key default → val | default
       env-del ;; env key → env'
@@ -39,6 +39,8 @@
       (define buffer-tag "mcp/buffs")
       (define link-tag "mcp/links")
       (define signal-tag "mcp/break")
+      (define meta-tag '*owl-metadata*) ; key for object metadata
+
       (define (signal-halt threads state controller) 
 			(print-to stderr "stopping on signal") 
          (halt 42)) ;; exit owl with a specific return value
@@ -198,14 +200,10 @@
       ;;; these cannot be in primop since they use lists and ffs
 
       (define (verbose-vm-error opcode a b)
-         (cond
-            ((eq? opcode 256)
-               ; fixme, add but got ...
-               (list 'function b 'expected a 'arguments))
-            ((eq? opcode 52) (list "car: bad pair: " a))
-            ((eq? opcode 53) (list "cdr: bad pair: " a))
-            (else
-               (list "error: " 'instruction opcode 'info (tuple a b)))))
+         (if (eq? opcode 256) ;; arity error, could be variable 
+            ; fixme, add but got ...
+            `(function ,b got wrong number of arguments)
+            `("error: instruction" ,(primop-name opcode) "reported error: " a " " b)))
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes

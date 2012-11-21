@@ -51,6 +51,7 @@
       (only (owl regex) string->regex))
 
    (begin
+
       (define (ok? x) (eq? (ref x 1) 'ok))
       (define (ok exp env) (tuple 'ok exp env))
       (define (fail reason) (tuple 'fail reason))
@@ -117,7 +118,6 @@
                             ;;           + convert-calls - lots of args -> enlist tail, convert lambdas accordingly
                             ;;           + register value analysis? (car&cdr after known type -> _ref, etc)
                             ;;           + allocate-registers - infinite -> fixed register set
-                            ;;           + 
             execute         ;; call the resulting code
             )) 
 
@@ -210,6 +210,16 @@
       (define (repl-message foo) (cons repl-message-tag foo))
       (define (repl-message? foo) (and (pair? foo) (eq? repl-message-tag (car foo))))
 
+      (define (maybe-show-metadata env val)
+         (lets
+            ((meta (env-get env meta-tag empty))
+             (info (getf meta val)))
+            (if info
+               (begin
+                  (display ";; ")
+                  (display info)
+                  (display "\n")))))
+
       ;; render the value if *interactive*, and print as such (or not at all) if it is a repl-message
       ;; if interactive mode and output fails, the error is fatal
       (define (prompt env val)
@@ -222,6 +232,7 @@
                      (if (not (display "> "))
                         (halt 127)))
                   (begin
+                     (maybe-show-metadata env val)
                      (write val)
                      (if (not (display "\n> "))
                         (halt 127)))))))

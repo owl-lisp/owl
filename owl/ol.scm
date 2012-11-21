@@ -733,7 +733,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
             (if (print val) 0 127)))
       ((error reason partial-env)
          (print-repl-error 
-            (list "An error occurred when evaluating: " str ":" reason))
+            (list "An error occurred while evaluating:" str reason))
          (exit-owl 1))
       (else
          (exit-owl 2))))
@@ -745,7 +745,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
          (exit-owl (if val 0 1)))
       ((error reason partial-env)
          (print-repl-error 
-            (list "An error occurred when evaluating: " str ":" reason))
+            (list "An error occurred while evaluating:" str reason))
          (exit-owl 127))
       (else
          (exit-owl 127))))

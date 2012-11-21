@@ -6,6 +6,7 @@
 (define-library (owl primop)
    (export 
       primops
+      primop-name ;; primop → symbol | primop
       multiple-return-variable-primops
       variable-input-arity?
       special-bind-primop?
@@ -194,5 +195,14 @@
             ((lets/cc var . body) 
                (call/cc (λ (var) (lets . body))))))
 
+      (define (primop-name pop)
+         (let ((pop (fxband pop 63))) ; ignore top bits which sometimes have further data
+            (let loop ((primops primops))
+               (cond
+                  ((null? primops) pop)
+                  ((eq? pop (ref (car primops) 2))
+                     (ref (car primops) 1))
+                  (else
+                     (loop (cdr primops)))))))
 
 ))
