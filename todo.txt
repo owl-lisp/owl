@@ -2,7 +2,7 @@ TODO QUEUE-ISH:
   + decide where to store metadata and start moving tests, comments etc there
      - related to theorem checking stuff, so bumped up priority
   + upgrade fixnum range to 24-56 bits
-     - splice old (owl math) to (owl bignum|rational|imaginary) and (owl math) = imaginary
+     - make sure owl/math.scm (and others) don't depend on bignum size via parser
      - change FMAX and FBITS from ovm.c
      - upgrade fx* and fxqr intermediate results to uint64_t?
      - change *fixnum-bits* and *max-fixnum* in owl/math.scm
