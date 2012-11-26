@@ -17,6 +17,7 @@
       totient phi divisor-sum divisor-count
       dlog dlog-simple
       fib
+      histogram
       ; inv-mod mod-solve 
       )
 
@@ -572,6 +573,30 @@
          (if (< n 2)
             n
             (lets ((n sn (fibs (- n 1)))) n)))
+
+      ;; (num ...) [n-bins] -> ((n-in-bin . bin-limit) ...)
+      (define (histogram data . bins)
+         (if (null? data)
+            null
+            (lets
+               ((l (length data))
+                (bins
+                  (if (null? bins)
+                     (min l (+ 1 (log2 l)))
+                     (car bins)))
+                (data (sort < data))
+                (low (car data))
+                (high (fold (λ (last next) next) low data))
+                (bin (/ (- high low) bins)))
+               (let loop ((data data) (count 0) (limit (+ low bin)))
+                  (cond
+                     ((null? data)
+                        (list (cons count limit)))
+                     ((> (car data) limit)
+                        (cons (cons count limit)
+                           (loop data 0 (+ limit bin))))
+                     (else
+                        (loop (cdr data) (+ count 1) limit)))))))
 
 ))
 
