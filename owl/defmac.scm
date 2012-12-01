@@ -39,6 +39,8 @@
       type-socket
       type-tcp-client
       type-string
+      type-string-wide
+      type-string-dispatch
 
       ;; sketching types
       type-ff               ;; k v, k v l, k v l r, black node with children in order
@@ -502,6 +504,8 @@
       (define type-rlist-node       14)
       (define type-rlist-spine      10)
       (define type-string            3)
+      (define type-string-wide      22)
+      (define type-string-dispatch  21)
 
       ;; transitional trees or future ffs
       (define type-ff               24)

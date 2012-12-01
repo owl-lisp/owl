@@ -78,16 +78,15 @@
 
    (begin
 
+      ; temp
       (define-syntax raw-string?
          (syntax-rules ()
             ((raw-string? x)
-               ;; raw object of correct type, discarding padding bits
-               ;(eq? (fxband (type-old x) #b100011111000) #b100000011000)
-               ;; hack to get around current padding info and type clash
+               ;; soon just (eq? type-string (type x))
                (and (sizeb x) (eq? type-string (type x))) ;; todo - change to type-string-raw
                )))
 
-      (define (string? x) 
+      (define (string? x)
          (cond
             ; leaf string
             ((raw-string? x) #true)
@@ -95,23 +94,24 @@
             ((teq? x (alloc 13)) #true)
             ; tree node
             ((teq? x (alloc 45)) #true)
-            (else #false)))
+            (else
+               ; new types
+               (case (type x)
+                  (type-string #true)
+                  (type-string-wide #true)
+                  (type-string-dispatch #true)
+                  (else #false)))))
 
       (define (string-length str)
-         (cond
-            ((raw-string? str)
-               ;(lets
-               ;   ((hi all (fx<< (size str) 2))
-               ;    (pads lo (fx>> (type-old str) 8))
-               ;    (pads (fxband pads #b111))
-               ;    (n-chars under (fx- all pads)))
-               ;   n-chars)
-               (sizeb str))
-            ((teq? str (alloc 13))
-               (size str))
-            ((teq? str (alloc 45))
-               (ref str 1))
-            (else (error "string-length: not a string: " str))))
+         (if (raw-string? str) ; <- temp
+            (sizeb str)
+            (case (type str)
+               (type-string          (sizeb str))
+               (type-string-wide     (size str))
+               (type-string-dispatch (ref str 1))
+               (45 (ref str 1))
+               (13 (size str))
+               (else (error "string-length: not a string: " str)))))
 
       ;;; enumerate code points forwards
 
@@ -145,7 +145,23 @@
                      (str-iter-any (ref str pos)
                         (lambda () (loop (+ pos 1)))))))
             (else
-               (error "str-iter: not a string: " str))))
+               ;; new version
+               (case (type str)
+                  (type-string
+                     (let ((len (string-length str)))
+                        (if (eq? len 0)
+                           tl
+                           (str-iter-leaf str tl 0 len))))
+                  (type-string-wide 
+                     (str-iter-wide-leaf str tl 1))
+                  (type-string-dispatch
+                     (let loop ((pos 2))
+                        (if (eq? pos (size str))
+                           (str-iter-any (ref str pos) tl)
+                           (str-iter-any (ref str pos)
+                              (lambda () (loop (+ pos 1)))))))
+                  (else
+                     (error "str-iter: not a string: " str))))))
 
       (define (str-iter str) (str-iter-any str null))
 
@@ -182,7 +198,24 @@
                         (lambda ()
                            (loop (- pos 1)))))))
             (else
-               (error "str-iterr: not a string: " str))))
+               ;; new version
+               (case (type str)
+                  (type-string
+                     (let ((len (string-length str)))
+                        (if (eq? len 0)
+                           tl
+                           (str-iterr-leaf str tl (- len 1)))))
+                  (type-string-wide
+                     (str-iterr-wide-leaf str tl (size str)))
+                  (type-string-dispatch
+                     (let loop ((pos (size str)))
+                        (if (eq? pos 2)
+                           (str-iterr-any (ref str 2) tl)
+                           (str-iterr-any (ref str pos)
+                              (lambda ()
+                                 (loop (- pos 1)))))))
+                  (else
+                     (error "str-iterr: not a string: " str))))))
 
       (define (str-iterr str) (str-iterr-any str null))
 
@@ -230,9 +263,9 @@
                       (c d (split null l q))
                       (subs (map finish-string (list a b c d)))
                       (len (fold + 0 (map string-length subs))))
-                     (listuple 45 5 (cons len subs))))
+                     (listuple type-string-dispatch 5 (cons len subs))))
                (else
-                  (listuple 45 (+ n 1)
+                  (listuple type-string-dispatch (+ n 1)
                      (cons (fold + 0 (map string-length chunks)) chunks))))))
 
       (define (make-chunk rcps len ascii?)
