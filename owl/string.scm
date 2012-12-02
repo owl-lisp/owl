@@ -2,22 +2,6 @@
 ;;; Strings
 ;;;
 
-; todo:
-;   - choose a tree format
-;   - iterate about 10 chars at a time to the lazy list 
-;      - benchmark usefulness
-;   - no combining characters yet (handle in lib-unicode)
-;   - what if string to append starts with a combining char?
-;   - string normalization 
-;   - string parsers (via iterators)
-;   - add a compact-strings (str str ...) -> (str' str" ...) where the strings remain equal?
-;    but take at most the same amount of memory (usually less). could use lib-madam from 
-;    radamsa, etc. the tree walk already makes a pda-like decompression which would work with 
-;    madam, but one could also add a packed string node which would be decompressed by the 
-;    iterators on the fly. both iterators only need to decompress each chunk once in a full 
-;    run.
-
-
 (define-library (owl string)
 
    (export
@@ -78,40 +62,19 @@
 
    (begin
 
-      ; temp
-      (define-syntax raw-string?
-         (syntax-rules ()
-            ((raw-string? x)
-               ;; soon just (eq? type-string (type x))
-               (and (sizeb x) (eq? type-string (type x))) ;; todo - change to type-string-raw
-               )))
-
       (define (string? x)
-         (cond
-            ; leaf string
-            ((raw-string? x) #true)
-            ; wide leaf string
-            ((teq? x (alloc 13)) #true)
-            ; tree node
-            ((teq? x (alloc 45)) #true)
-            (else
-               ; new types
-               (case (type x)
-                  (type-string #true)
-                  (type-string-wide #true)
-                  (type-string-dispatch #true)
-                  (else #false)))))
+         (case (type x)
+            (type-string #true)
+            (type-string-wide #true)
+            (type-string-dispatch #true)
+            (else #false)))
 
       (define (string-length str)
-         (if (raw-string? str) ; <- temp
-            (sizeb str)
-            (case (type str)
-               (type-string          (sizeb str))
-               (type-string-wide     (size str))
-               (type-string-dispatch (ref str 1))
-               (45 (ref str 1))
-               (13 (size str))
-               (else (error "string-length: not a string: " str)))))
+         (case (type str)
+            (type-string          (sizeb str))
+            (type-string-wide     (size str))
+            (type-string-dispatch (ref str 1))
+            (else (error "string-length: not a string: " str))))
 
       ;;; enumerate code points forwards
 
@@ -130,38 +93,22 @@
                   (str-iter-wide-leaf str tl pos)))))
 
       (define (str-iter-any str tl)
-         (cond
-            ((raw-string? str)
+         (case (type str)
+            (type-string
                (let ((len (string-length str)))
                   (if (eq? len 0)
                      tl
                      (str-iter-leaf str tl 0 len))))
-            ((teq? str (alloc 13))
+            (type-string-wide 
                (str-iter-wide-leaf str tl 1))
-            ((teq? str (alloc 45))
+            (type-string-dispatch
                (let loop ((pos 2))
                   (if (eq? pos (size str))
                      (str-iter-any (ref str pos) tl)
                      (str-iter-any (ref str pos)
                         (lambda () (loop (+ pos 1)))))))
             (else
-               ;; new version
-               (case (type str)
-                  (type-string
-                     (let ((len (string-length str)))
-                        (if (eq? len 0)
-                           tl
-                           (str-iter-leaf str tl 0 len))))
-                  (type-string-wide 
-                     (str-iter-wide-leaf str tl 1))
-                  (type-string-dispatch
-                     (let loop ((pos 2))
-                        (if (eq? pos (size str))
-                           (str-iter-any (ref str pos) tl)
-                           (str-iter-any (ref str pos)
-                              (lambda () (loop (+ pos 1)))))))
-                  (else
-                     (error "str-iter: not a string: " str))))))
+               (error "str-iter: not a string: " str))))
 
       (define (str-iter str) (str-iter-any str null))
 
@@ -182,15 +129,15 @@
                   (str-iterr-wide-leaf str tl pos)))))
 
       (define (str-iterr-any str tl)
-         (cond
-            ((raw-string? str)
+         (case (type str)
+            (type-string
                (let ((len (string-length str)))
                   (if (eq? len 0)
                      tl
                      (str-iterr-leaf str tl (- len 1)))))
-            ((teq? str (alloc 13))
+            (type-string-wide
                (str-iterr-wide-leaf str tl (size str)))
-            ((teq? str (alloc 45))
+            (type-string-dispatch
                (let loop ((pos (size str)))
                   (if (eq? pos 2)
                      (str-iterr-any (ref str 2) tl)
@@ -198,24 +145,7 @@
                         (lambda ()
                            (loop (- pos 1)))))))
             (else
-               ;; new version
-               (case (type str)
-                  (type-string
-                     (let ((len (string-length str)))
-                        (if (eq? len 0)
-                           tl
-                           (str-iterr-leaf str tl (- len 1)))))
-                  (type-string-wide
-                     (str-iterr-wide-leaf str tl (size str)))
-                  (type-string-dispatch
-                     (let loop ((pos (size str)))
-                        (if (eq? pos 2)
-                           (str-iterr-any (ref str 2) tl)
-                           (str-iterr-any (ref str pos)
-                              (lambda ()
-                                 (loop (- pos 1)))))))
-                  (else
-                     (error "str-iterr: not a string: " str))))))
+               (error "str-iterr: not a string: " str))))
 
       (define (str-iterr str) (str-iterr-any str null))
 
@@ -274,7 +204,7 @@
                (if str
                   str
                   (error "Failed to make string: " rcps)))
-            (listuple 13 len (reverse rcps))))
+            (listuple type-string-wide len (reverse rcps))))
 
       ;; ll|list out n ascii? chunk → string | #false
       (define (stringify runes out n ascii? chu)
@@ -353,7 +283,7 @@
                (list->string (list . things)))))
 
       (define (c-string str) ; -> bvec | #false
-         (if (raw-string? str)
+         (if (eq? (type str) type-string)
             ;; do not re-encode raw strings. these are normally ASCII strings 
             ;; which would not need encoding anyway, but explicitly bypass it 
             ;; to allow these strings to contain *invalid string data*. This 
@@ -496,7 +426,5 @@
       (define (string-ci>=? a b) (not (eq? 1 (str-compare upcase a b))))
 
       (define (make-string n char)
-         (list->string (repeat char n)))
-
-))
+         (list->string (repeat char n)))))
 

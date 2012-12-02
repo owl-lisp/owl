@@ -1,5 +1,5 @@
 TODO QUEUE-ISH:
-  + switch strings to use new type-string*
+  + is it (import <thing>) or (import <thing> ...)?
   + decide where to store metadata and start moving tests, comments etc there:
      - related to theorem checking stuff, so bumped up priority
   + upgrade fixnum range to 24-56 bits
