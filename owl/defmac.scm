@@ -7,7 +7,7 @@
       letrec* let*-values
       cond case define define*
       lets let* or and list
-      ilist tuple tuple-case type-case 
+      ilist tuple tuple-case 
       call-with-values do define-library
       case-lambda
       define-values
@@ -376,32 +376,6 @@
             ((tuple-case tuple case ...)
                (let ((type (ref tuple 1)))
                   (tuple-case 42 tuple type case ...)))))
-
-      ;; FIXME: now fetches type on each test. take it later just once after removing the (teq? ..) cases
-      ;; FIXME: remove the new keyword later. now needed to differentiate between old immediates and type ids
-      (define-syntax type-case
-         (syntax-rules 
-            (else -> teq? imm alloc new)
-            
-            ((type-case ob (else . more))
-               (begin . more))
-            ((type-case ob (else -> name . more))
-               (let ((name ob)) . more))
-            ((type-case (op . args) . rest)
-               (let ((foo (op . args)))
-                  (type-case foo . rest)))
-            ((type-case ob ((new id) . then) . else) ;; new types
-               (if (eq? id (type ob))
-                  (begin . then)
-                  (type-case ob . else)))
-            ((type-case ob (type -> name . then) . more) ;; old, remove later
-               (if (teq? ob type)
-                  (let ((name ob)) . then)
-                  (type-case ob . more)))
-            ((type-case ob (type . then) . more) ;; old, remove later
-               (if (teq? ob type)
-                  (begin . then)
-                  (type-case ob . more)))))
 
       (define-syntax call-with-values
          (syntax-rules ()

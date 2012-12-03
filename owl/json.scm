@@ -282,11 +282,11 @@
 	; so just grab a suitable exponent and some meaningful digits later
 
 	(define (compatible-number? n)
-		(type-case n
-			(fix+ #true)
-			(fix- #true)
-			(int+ #true)
-			(int- #true)
+		(case (type n)
+			(type-fix+ #true)
+			(type-fix- #true)
+			(type-int+ #true)
+			(type-int- #true)
 			(else #false))) ; namely rationals and later complex
 
 	(define (jsonify-number n tail)

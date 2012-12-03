@@ -1,5 +1,5 @@
 TODO QUEUE-ISH:
-  + get rid of deprecated type-case, teq?, and type-based jump instructions
+  + get rid of deprecated teq? and type-based jump instructions
   + is it (import <thing>) or (import <thing> ...)?
   + decide where to store metadata and start moving tests, comments etc there:
      - related to theorem checking stuff, so bumped up priority

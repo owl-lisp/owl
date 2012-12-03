@@ -89,15 +89,15 @@
       ;; sqrt n → m such that m^2 = n 
       ;; fixme: finish sqrt after adding complex numbers
       (define (sqrt n)
-         (type-case n
-            (fix+
+         (case (type n)
+            (type-fix+
                (lets ((s r (exact-integer-sqrt n)))
                   (if (eq? r 0) s (error "sqrt: no exact solution for " n))))
-            (int+
+            (type-int+
                (lets ((s r (exact-integer-sqrt n)))
                   (if (eq? r 0) s (error "sqrt: no exact solution for " n))))
-            (fix- (complex 0 (sqrt (abs n))))
-            (int- (complex 0 (sqrt (abs n))))
+            (type-fix- (complex 0 (sqrt (abs n))))
+            (type-int- (complex 0 (sqrt (abs n))))
             (else 
                (error "sqrt: math too high: " n))))
 

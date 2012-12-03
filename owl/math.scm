@@ -368,8 +368,8 @@
       (define (sub-number-big a b first?)
          (let ((res (sub-big-number b a #true)))
             ; res is either fixnum or bignum
-            (type-case res
-               (fix+ (cast res type-fix-))
+            (case (type res)
+               (type-fix+ (cast res type-fix-))
                (else (cast res type-int-)))))
 
 
@@ -445,17 +445,17 @@
             ((rational a b) (mkt type-rational a b))))
       
       (define (negate num)   
-         (type-case num
-            (fix+ 
+         (case (type num)
+            (type-fix+ 
                (if (eq? num 0)
                   0
                   (cast num type-fix-)))   ;; a  -> -a
-            (fix- (cast num type-fix+))   ;; -a ->  a
-            (int+                ;;  A -> -A
+            (type-fix- (cast num type-fix+))   ;; -a ->  a
+            (type-int+                ;;  A -> -A
                (mkt type-int- (ncar num) (ncdr num)))
-            (int-             ;; -A -> A
+            (type-int-             ;; -A -> A
                (ncons (ncar num) (ncdr num)))
-            (rat
+            (type-rational
                (lets ((a b num))
                   (rational (negate a) b)))
             (else
@@ -468,34 +468,34 @@
       ;;;
 
       (define (add a b)
-         (type-case a
-            (fix+ ; a signed fixnum
-               (type-case b
-                  (fix+ (add-small->positive a b))            ;; +a + +b -> c | C
-                  (fix- (sub-small->pick-sign a b))         ;; +a + -b -> +c | -c, underflow determines sign
-                  (int+ (add-number-big a b))               ;; +a + +B -> +C
-                  (int- (sub-number-big a b #true))         ;; +a + -B -> -c | -C
+         (case (type a)
+            (type-fix+ ; a signed fixnum
+               (case (type b)
+                  (type-fix+ (add-small->positive a b))            ;; +a + +b -> c | C
+                  (type-fix- (sub-small->pick-sign a b))         ;; +a + -b -> +c | -c, underflow determines sign
+                  (type-int+ (add-number-big a b))               ;; +a + +B -> +C
+                  (type-int- (sub-number-big a b #true))         ;; +a + -B -> -c | -C
                   (else (big-bad-args 'add a b))))
-            (fix-
-               (type-case b
-                  (fix+ (sub-small->pick-sign b a))         ;; -a + +b == +b + -a -> as above (no need to recurse)
-                  (fix- (add-small->negative a b))         ;; -a + -b -> -c | -C
-                  (int+ (sub-big-number b a #true))            ;; -a + +B == +B - +a -> sub-big-number 
-                  (int- (cast (add-number-big a b) type-int-))   ;; -a + -B == -C == -(a + B)   
+            (type-fix-
+               (case (type b)
+                  (type-fix+ (sub-small->pick-sign b a))         ;; -a + +b == +b + -a -> as above (no need to recurse)
+                  (type-fix- (add-small->negative a b))         ;; -a + -b -> -c | -C
+                  (type-int+ (sub-big-number b a #true))            ;; -a + +B == +B - +a -> sub-big-number 
+                  (type-int- (cast (add-number-big a b) type-int-))   ;; -a + -B == -C == -(a + B)   
                   (else (big-bad-args 'add a b))))
-            (int+
-               (type-case b
-                  (fix+ (add-number-big b a))               ;; +A + +b -> +C
-                  (fix- (sub-big-number a b #true))            ;; +A + -b == -b + +A -> as above
-                  (int+ (add-big a b #false))                  ;; +A + +B == +C
-                  (int- (sub-big a b))                     ;; +A + -B == +c | -c | +C | -C
+            (type-int+
+               (case (type b)
+                  (type-fix+ (add-number-big b a))               ;; +A + +b -> +C
+                  (type-fix- (sub-big-number a b #true))            ;; +A + -b == -b + +A -> as above
+                  (type-int+ (add-big a b #false))                  ;; +A + +B == +C
+                  (type-int- (sub-big a b))                     ;; +A + -B == +c | -c | +C | -C
                   (else (big-bad-args 'add a b))))
-            (int-
-               (type-case b
-                  (fix+ (sub-number-big b a #true))            ;; -A + +b == +b + -A -> as above
-                  (fix- (cast (add-number-big b a) type-int-))      ;; -A + -b == -b + -A = -C -> as above
-                  (int+ (sub-big b a))                     ;; -A + +B == +B + -A -> as above
-                  (int- (cast (add-big a b #false) type-int-))      ;; -A + -B == -(A + B)
+            (type-int-
+               (case (type b)
+                  (type-fix+ (sub-number-big b a #true))            ;; -A + +b == +b + -A -> as above
+                  (type-fix- (cast (add-number-big b a) type-int-))      ;; -A + -b == -b + -A = -C -> as above
+                  (type-int+ (sub-big b a))                     ;; -A + +B == +B + -A -> as above
+                  (type-int- (cast (add-big a b #false) type-int-))      ;; -A + -B == -(A + B)
                   (else (big-bad-args 'add a b))))
             (else 
                (big-bad-args 'add a b))))
@@ -504,34 +504,34 @@
 
       ;; substraction for at most bignum integers (needed for the more complex ones)
       (define (subi a b)
-         (type-case a
-            (fix+ ; a signed fixnum
-               (type-case b
-                  (fix+   (sub-small->pick-sign a b))         ;; +a - +b -> as +a + -b
-                  (fix- (add-small->positive a b))         ;; +a - -b -> as +a + +b
-                  (int+ (sub-number-big a b #true))            ;; +a - +B -> as +a + -B
-                  (int-   (add-number-big a b))            ;; +a - -B -> as +a + +B
+         (case (type a)
+            (type-fix+ ; a signed fixnum
+               (case (type b)
+                  (type-fix+   (sub-small->pick-sign a b))         ;; +a - +b -> as +a + -b
+                  (type-fix- (add-small->positive a b))         ;; +a - -b -> as +a + +b
+                  (type-int+ (sub-number-big a b #true))            ;; +a - +B -> as +a + -B
+                  (type-int-   (add-number-big a b))            ;; +a - -B -> as +a + +B
                   (else (big-bad-args '- a b))))
-            (fix-
-               (type-case b
-                  (fix+ (add-small->negative a b))            ;; -a - +b -> as -a + -b
-                  (fix- (sub-small->pick-sign b a))         ;; -a - -b -> as -a + +b
-                  (int+ (cast (add-number-big a b) type-int-))   ;; -a - +B -> as -a + -B
-                  (int- (sub-big-number b a #true))         ;; -a - -B -> as -a + +B
+            (type-fix-
+               (case (type b)
+                  (type-fix+ (add-small->negative a b))            ;; -a - +b -> as -a + -b
+                  (type-fix- (sub-small->pick-sign b a))         ;; -a - -b -> as -a + +b
+                  (type-int+ (cast (add-number-big a b) type-int-))   ;; -a - +B -> as -a + -B
+                  (type-int- (sub-big-number b a #true))         ;; -a - -B -> as -a + +B
                   (else (big-bad-args '- a b))))
-            (int+
-               (type-case b
-                  (fix+ (sub-big-number a b #true))            ;; +A - +b -> as +A + -b
-                  (fix- (add-number-big b a))               ;; +A - -b -> as +A + +b
-                  (int+ (sub-big a b))                     ;; +A - +B -> as +A + -B
-                  (int- (add-big a b #false))                  ;; +A - -B -> as +A + +B
+            (type-int+
+               (case (type b)
+                  (type-fix+ (sub-big-number a b #true))            ;; +A - +b -> as +A + -b
+                  (type-fix- (add-number-big b a))               ;; +A - -b -> as +A + +b
+                  (type-int+ (sub-big a b))                     ;; +A - +B -> as +A + -B
+                  (type-int- (add-big a b #false))                  ;; +A - -B -> as +A + +B
                   (else (big-bad-args '- a b))))
-            (int-
-               (type-case b
-                  (fix+ (cast (add-number-big b a) type-int-))      ;; -A - +b -> as -A + -b
-                  (fix- (sub-number-big b a #true))            ;; -A - -b -> as -A + +b
-                  (int+ (cast (add-big a b #false) type-int-))         ;; -A - +B -> as -A + -B
-                  (int- (sub-big b a))                     ;; -A - -B -> as -A + +B
+            (type-int-
+               (case (type b)
+                  (type-fix+ (cast (add-number-big b a) type-int-))      ;; -A - +b -> as -A + -b
+                  (type-fix- (sub-number-big b a #true))            ;; -A - -b -> as -A + +b
+                  (type-int+ (cast (add-big a b #false) type-int-))         ;; -A - +B -> as -A + -B
+                  (type-int- (sub-big b a))                     ;; -A - -B -> as -A + +B
                   (else (big-bad-args '- a b))))
             (else 
                (big-bad-args '- a b))))
@@ -589,26 +589,26 @@
       (define lo-4  #b0000000000001111)
 
       (define (>> a b)
-         (type-case b 
-            (fix+
+         (case (type b)
+            (type-fix+
                (let ((wor (fxband b hi-12)) (bits  (fxband b lo-4)))
                   (if (eq? wor 0) 
-                     (type-case a
-                        (fix+ (receive (fx>> a bits) (lambda (hi lo) hi)))
-                        (fix- (receive (fx>> a bits) (lambda (hi lo) (if (eq? hi 0) 0 (negate hi)))))
-                        (int+ (shift-right a bits))
-                        (int- (negative (shift-right a bits)))
+                     (case (type a)
+                        (type-fix+ (receive (fx>> a bits) (lambda (hi lo) hi)))
+                        (type-fix- (receive (fx>> a bits) (lambda (hi lo) (if (eq? hi 0) 0 (negate hi)))))
+                        (type-int+ (shift-right a bits))
+                        (type-int- (negative (shift-right a bits)))
                         (else (big-bad-args '>> a b)))
                      (lets ((wo lo (fx>> wor 4)))
-                        (type-case a
-                           (fix+   0)
-                           (fix- 0)
-                           (int+ (shift-right (drop-digits a wo) bits))
-                           (int- 
+                        (case (type a)
+                           (type-fix+   0)
+                           (type-fix- 0)
+                           (type-int+ (shift-right (drop-digits a wo) bits))
+                           (type-int- 
                               (negative 
                                  (shift-right (drop-digits a wo) bits)))
                            (else (big-bad-args '>> a b)))))))
-            (int+
+            (type-int+
                (if (eq? a 0)
                   0
                   (>> (>> a hi-12) (subi b hi-12))))
@@ -641,8 +641,8 @@
             ((teq? b fix+)
                (let ((wor (fxband b hi-12)) (bits  (fxband b lo-4)))
                   (lets ((words lo (fx>> wor 4)))
-                     (type-case a
-                        (fix+
+                     (case (type a)
+                        (type-fix+
                            (lets ((hi lo (fx<< a bits)))
                               (if (eq? hi 0)
                                  (if (eq? words 0)
@@ -653,7 +653,7 @@
                                     (extend-digits 
                                        (ncons lo (ncons hi null)) 
                                        words)))))
-                        (fix-
+                        (type-fix-
                            (lets ((hi lo (fx<< a bits)))
                               (if (eq? hi 0)
                                  (if (eq? words 0)
@@ -665,9 +665,9 @@
                                     (extend-digits 
                                        (ncons lo (ncons hi null)) words) 
                                     type-int-))))
-                        (int+
+                        (type-int+
                            (extend-digits (shift-left a bits 0) words))
-                        (int-
+                        (type-int-
                            (cast (extend-digits (shift-left a bits 0) words) type-int-))
                         (else
                            (big-bad-args '<< a b))))))
@@ -728,18 +728,18 @@
 
       ; not yet defined for negative
       (define (band a b)
-         (type-case a
-            (fix+
-               (type-case b
-                  (fix+ (fxband a b))
-                  (int+ (fxband a (ncar b)))
+         (case (type a)
+            (type-fix+
+               (case (type b)
+                  (type-fix+ (fxband a b))
+                  (type-int+ (fxband a (ncar b)))
                   (else
                      (big-bad-args 'band a b))))
-            (int+
-               (type-case b
-                  (fix+
+            (type-int+
+               (case (type b)
+                  (type-fix+
                      (fxband (ncar a) b))
-                  (int+
+                  (type-int+
                      (big-band a b))
                   (else
                      (big-bad-args 'band a b))))
@@ -750,21 +750,21 @@
       (define (odd?  n) (eq? 1 (band n 1)))
 
       (define (bor a b)
-         (type-case a
-            (fix+
-               (type-case b
-                  (fix+ (fxbor a b))
-                  (int+ 
+         (case (type a)
+            (type-fix+
+               (case (type b)
+                  (type-fix+ (fxbor a b))
+                  (type-int+ 
                      (ncons (fxbor a (ncar b))
                         (ncdr b)))
                   (else
                      (big-bad-args 'bor a b))))
-            (int+
-               (type-case b
-                  (fix+
+            (type-int+
+               (case (type b)
+                  (type-fix+
                      (ncons (fxbor b (ncar a))
                         (ncdr a)))
-                  (int+
+                  (type-int+
                      (big-bor a b))
                   (else
                      (big-bad-args 'bor a b))))
@@ -772,19 +772,19 @@
                (big-bad-args 'bor a b))))
 
       (define (bxor a b)
-         (type-case a
-            (fix+
-               (type-case b
-                  (fix+ (fxbxor a b))
-                  (int+ 
+         (case (type a)
+            (type-fix+
+               (case (type b)
+                  (type-fix+ (fxbxor a b))
+                  (type-int+ 
                      (ncons (fxbxor a (ncar b)) (ncdr b)))
                   (else
                      (big-bad-args 'bxor a b))))
-            (int+
-               (type-case b
-                  (fix+
+            (type-int+
+               (case (type b)
+                  (type-fix+
                      (ncons (fxbxor b (ncar a)) (ncdr a)))
-                  (int+
+                  (type-int+
                      (big-bxor a b))
                   (else
                      (big-bad-args 'bxor a b))))
@@ -964,38 +964,38 @@
             ((eq? b 0) 0)
             ;((eq? b 1) a)
             (else
-               (type-case a
-                  (fix+
-                     (type-case b
-                        (fix+ (mult-fixnums a b))                  ; +a * +b
-                        (fix- (negative (mult-fixnums a b)))      ; +a * -b
-                        (int+ (mult-num-big a b 0))               ; +a * +B
-                        (int- (negative (mult-num-big a b 0)))   ; +a * -b
+               (case (type a)
+                  (type-fix+
+                     (case (type b)
+                        (type-fix+ (mult-fixnums a b))                  ; +a * +b
+                        (type-fix- (negative (mult-fixnums a b)))      ; +a * -b
+                        (type-int+ (mult-num-big a b 0))               ; +a * +B
+                        (type-int- (negative (mult-num-big a b 0)))   ; +a * -b
                         (else (big-bad-args 'mul a b))))
-                  (fix-
-                     (type-case b
-                        (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
-                        (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
-                        (int+ (cast (mult-num-big a b 0) type-int-))   ; -a * +B -> -C
-                        (int- (mult-num-big a b 0))            ; -a * -B -> +C
+                  (type-fix-
+                     (case (type b)
+                        (type-fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
+                        (type-fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
+                        (type-int+ (cast (mult-num-big a b 0) type-int-))   ; -a * +B -> -C
+                        (type-int- (mult-num-big a b 0))            ; -a * -B -> +C
                         (else (big-bad-args 'mul a b))))
-                  (int+
-                     (type-case b
-                        (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
-                        (fix- (cast (mult-num-big b a 0) type-int-))    ; +A * -b -> -C
-                        (int+ (mult-big a b))               ; +A * +B -> +C
-                        (int- (cast (mult-big a b) type-int-))      ; +A * -B -> -C
+                  (type-int+
+                     (case (type b)
+                        (type-fix+ (mult-num-big b a 0))            ; +A * +b -> +C
+                        (type-fix- (cast (mult-num-big b a 0) type-int-))    ; +A * -b -> -C
+                        (type-int+ (mult-big a b))               ; +A * +B -> +C
+                        (type-int- (cast (mult-big a b) type-int-))      ; +A * -B -> -C
                         (else (big-bad-args 'mul a b))))
-                  (int-   
-                     (type-case b
-                        (fix+ (cast (mult-num-big b a 0) type-int-))      ; -A * +b -> -C
-                        (fix- (mult-num-big b a 0))               ; -A * -b -> +C
-                        (int+ (cast (mult-big a b) type-int-))      ; -A * +B -> -C
-                        (int- (mult-big a b))                  ; -A * -B -> +C
+                  (type-int-   
+                     (case (type b)
+                        (type-fix+ (cast (mult-num-big b a 0) type-int-))      ; -A * +b -> -C
+                        (type-fix- (mult-num-big b a 0))               ; -A * -b -> +C
+                        (type-int+ (cast (mult-big a b) type-int-))      ; -A * +B -> -C
+                        (type-int- (mult-big a b))                  ; -A * -B -> +C
                         (else (big-bad-args 'mul a b))))
-                  (rat
-                     (type-case b
-                        (rat  (big-bad-args 'mul a b))         ; handle this before mul for now
+                  (type-rational
+                     (case (type b)
+                        (type-rational  (big-bad-args 'mul a b))         ; handle this before mul for now
                         (else (muli b a))))                  ; otherwise use other branches
                   (else (big-bad-args 'mul a b))))))
 
@@ -1352,9 +1352,9 @@
 
       ; int nat -> int | #false
       (define (divide-exact a b)
-         (type-case a
-            (fix- (maybe-negate (divide-exact (negate a) b)))
-            (int- (maybe-negate (divide-exact (negate a) b)))
+         (case (type a)
+            (type-fix- (maybe-negate (divide-exact (negate a) b)))
+            (type-int- (maybe-negate (divide-exact (negate a) b)))
             (else (nat-divide-exact a b))))
 
       (define ediv divide-exact)
@@ -1382,8 +1382,8 @@
 
       (define (div-big-num->negative a b)
          (lets ((q r (qr-big-small a b)))
-            (type-case q
-               (fix+ (cast q type-fix-))
+            (case (type q)
+               (type-fix+ (cast q type-fix-))
                (else (cast q type-int-)))))
 
       ; fixme, could just call quotrem -> q
@@ -1392,34 +1392,34 @@
       (define (div a b)
          (if (eq? b 0)
             (big-bad-args 'div a b)
-            (type-case a
-               (fix+
-                  (type-case b
-                     (fix+ (lets ((_ q r (fxqr 0 a b))) q))   ; +a / +b -> +c
-                     (fix- (div-fixnum->negative a b))                  ; +a / -b -> -c | 0
-                     (int+ 0)                                             ; +a / +B -> 0
-                     (int- 0)                                             ; +a / -B -> 0
+            (case (type a)
+               (type-fix+
+                  (case (type b)
+                     (type-fix+ (lets ((_ q r (fxqr 0 a b))) q))   ; +a / +b -> +c
+                     (type-fix- (div-fixnum->negative a b))                  ; +a / -b -> -c | 0
+                     (type-int+ 0)                                             ; +a / +B -> 0
+                     (type-int- 0)                                             ; +a / -B -> 0
                      (else (big-bad-args 'div a b))))
-               (fix-
-                  (type-case b
-                     (fix+ (div-fixnum->negative a b))                  ; -a / +b -> -c | 0
-                     (fix- (lets ((_ q r (fxqr 0 a b))) q))             ; -a / -b -> +c
-                     (int+ 0)                                           ; -a / +B -> 0
-                     (int- 0)                                             ; -a / -B -> 0
+               (type-fix-
+                  (case (type b)
+                     (type-fix+ (div-fixnum->negative a b))                  ; -a / +b -> -c | 0
+                     (type-fix- (lets ((_ q r (fxqr 0 a b))) q))             ; -a / -b -> +c
+                     (type-int+ 0)                                           ; -a / +B -> 0
+                     (type-int- 0)                                             ; -a / -B -> 0
                      (else (big-bad-args 'div a b))))
-               (int+
-                  (type-case b
-                     (fix+ (lets ((q r (qr-big-small a b))) q))   ; +A / +b -> +c | +C
-                     (fix- (div-big-num->negative a b))            ; +A / -b -> -c | -C
-                     (int+ (div-big a b))                           ; +A / +B -> 0 | +c | +C
-                     (int- (div-big->negative a (negate b)))      ; +A / -B -> 0 | -c | -C
+               (type-int+
+                  (case (type b)
+                     (type-fix+ (lets ((q r (qr-big-small a b))) q))   ; +A / +b -> +c | +C
+                     (type-fix- (div-big-num->negative a b))            ; +A / -b -> -c | -C
+                     (type-int+ (div-big a b))                           ; +A / +B -> 0 | +c | +C
+                     (type-int- (div-big->negative a (negate b)))      ; +A / -B -> 0 | -c | -C
                      (else (big-bad-args 'div a b))))
-               (int-
-                  (type-case b
-                     (fix+ (div-big-num->negative a b))            ; -A / +b -> -c | -C
-                     (fix- (lets ((q r (qr-big-small a b))) q))    ; -A / -b -> +c | +C
-                     (int+ (div-big->negative (negate a) b))                     ; -A / +B -> 0 | -c | -C
-                     (int- (div-big (negate a) (negate b)))                              ; -A / -B -> 0 | +c | +C
+               (type-int-
+                  (case (type b)
+                     (type-fix+ (div-big-num->negative a b))            ; -A / +b -> -c | -C
+                     (type-fix- (lets ((q r (qr-big-small a b))) q))    ; -A / -b -> +c | +C
+                     (type-int+ (div-big->negative (negate a) b))                     ; -A / +B -> 0 | -c | -C
+                     (type-int- (div-big (negate a) (negate b)))                              ; -A / -B -> 0 | +c | +C
                      (else (big-bad-args 'div a b))))   
                (else (big-bad-args 'div a b)))))
 
@@ -1429,38 +1429,38 @@
                (lets ((q1 q2 r (fxqr 0 a b))) r))))
 
       (define (rem a b)
-         (type-case a
-            (fix+
-               (type-case b
-                  (fix+ (fx% a b))
-                  (fix- (fx% a b))
-                  (int+ a) 
-                  (int- a)
+         (case (type a)
+            (type-fix+
+               (case (type b)
+                  (type-fix+ (fx% a b))
+                  (type-fix- (fx% a b))
+                  (type-int+ a) 
+                  (type-int- a)
                   (else (big-bad-args 'mod a b))))
-            (fix-
-               (type-case b
-                  (fix+ (negate (fx% a b)))
-                  (fix- (negate (fx% a b)))
-                  (int+ a)
-                  (int- a)
+            (type-fix-
+               (case (type b)
+                  (type-fix+ (negate (fx% a b)))
+                  (type-fix- (negate (fx% a b)))
+                  (type-int+ a)
+                  (type-int- a)
                   (else (big-bad-args 'mod a b))))
-            (int+
-               (type-case b
-                  (fix+ (receive (qr-big-small a b) (lambda (q r) r)))
-                  (fix- (receive (qr-big-small a b) (lambda (q r) r)))
-                  (int+ (nat-rem a b))
-                  (int- (nat-rem a (negate b)))
+            (type-int+
+               (case (type b)
+                  (type-fix+ (receive (qr-big-small a b) (lambda (q r) r)))
+                  (type-fix- (receive (qr-big-small a b) (lambda (q r) r)))
+                  (type-int+ (nat-rem a b))
+                  (type-int- (nat-rem a (negate b)))
                   (else (big-bad-args 'mod a b))))
-            (int-
-               (type-case b
-                  (fix+ 
+            (type-int-
+               (case (type b)
+                  (type-fix+ 
                      (receive (qr-big-small a b) 
                         (lambda (q r) (negate r))))
-                  (fix-    
+                  (type-fix-    
                      (receive (qr-big-small a b) 
                         (lambda (q r) (negate r))))
-                  (int+ (negate (nat-rem (negate a) b)))
-                  (int- (negate (nat-rem (negate a) (negate b))))
+                  (type-int+ (negate (nat-rem (negate a) b)))
+                  (type-int- (negate (nat-rem (negate a) (negate b))))
                   (else (big-bad-args 'rem a b))))
             (else (big-bad-args 'rem a b))))
 
@@ -1482,39 +1482,39 @@
       (define (quotrem a b)
          (if (eq? b 0)
             (big-bad-args 'quotrem a b)
-            (type-case a
-               (fix+ 
-                  (type-case b
-                     (fix+ (receive (fxqr 0 a b) (lambda (_ q r) (values q r))))
-                     (int+ (values 0 a))
-                     (fix- (receive (fxqr 0 a b) (lambda (_ q r) (values (negate q) r))))
-                     (int- (values 0 a))
+            (case (type a)
+               (type-fix+ 
+                  (case (type b)
+                     (type-fix+ (receive (fxqr 0 a b) (lambda (_ q r) (values q r))))
+                     (type-int+ (values 0 a))
+                     (type-fix- (receive (fxqr 0 a b) (lambda (_ q r) (values (negate q) r))))
+                     (type-int- (values 0 a))
                      (else (big-bad-args 'quotrem a b))))
-               (int+
-                  (type-case b
-                     (fix+ (receive (qr-big-small a b) (lambda (q r) (values q r))))
-                     (int+ (nat-quotrem a b))
-                     (fix- (receive (qr-big-small a b) (lambda (q r) (values (negate q) r))))
-                     (int- (receive (nat-quotrem a (negate b)) 
+               (type-int+
+                  (case (type b)
+                     (type-fix+ (receive (qr-big-small a b) (lambda (q r) (values q r))))
+                     (type-int+ (nat-quotrem a b))
+                     (type-fix- (receive (qr-big-small a b) (lambda (q r) (values (negate q) r))))
+                     (type-int- (receive (nat-quotrem a (negate b)) 
                               (lambda (q r) (values (negate q) r))))
                      (else (big-bad-args 'quotrem a b))))
-               (fix- 
-                  (type-case b
-                     (fix+ 
+               (type-fix- 
+                  (case (type b)
+                     (type-fix+ 
                         (receive (fxqr 0 a b) (lambda (_ q r) (values (negate q) (negate r)))))
-                     (fix- (receive (fxqr 0 a b) (lambda (_ q r) (values q (negate r)))))
-                     (int+ (values 0 a))
-                     (int- (values 0 a))
+                     (type-fix- (receive (fxqr 0 a b) (lambda (_ q r) (values q (negate r)))))
+                     (type-int+ (values 0 a))
+                     (type-int- (values 0 a))
                      (else (big-bad-args 'quotrem a b))))   
-               (int-
-                  (type-case b
-                     (fix+
+               (type-int-
+                  (case (type b)
+                     (type-fix+
                         (lets ((q r (qr-big-small a b)))
                            (values (negate q) (negate r))))
-                     (fix- (receive (qr-big-small a b) (lambda (q r) (values q (negate r)))))
-                     (int+ (receive (nat-quotrem (negate a) b) 
+                     (type-fix- (receive (qr-big-small a b) (lambda (q r) (values q (negate r)))))
+                     (type-int+ (receive (nat-quotrem (negate a) b) 
                               (lambda (q r) (values (negate q) (negate r)))))
-                     (int- (receive (nat-quotrem (negate a) (negate b)) 
+                     (type-int- (receive (nat-quotrem (negate a) (negate b)) 
                               (lambda (q r) (values q (negate r)))))
                      (else (big-bad-args 'quotrem a b))))
                (else
@@ -1660,46 +1660,46 @@
 
       ;; rational case: a/b + c, gcd(a,b) = 1 => gcd(a+bc, b) = 1 -> no need to renormalize
       (define (add a b)
-         (type-case a
-            (fix+ 
-               (type-case b
-                  (fix+  (add-small->positive a b))
-                  (int+  (add-number-big a b))
-                  (fix-  (sub-small->pick-sign a b))
-                  (int-  (sub-number-big a b #true))
-                  (rat   (lets ((x z b)) (rational (add (muli a z) x) z)))
-                  (comp  (lets ((x y b)) (complex (add a x) y)))
+         (case (type a)
+            (type-fix+ 
+               (case (type b)
+                  (type-fix+  (add-small->positive a b))
+                  (type-int+  (add-number-big a b))
+                  (type-fix-  (sub-small->pick-sign a b))
+                  (type-int-  (sub-number-big a b #true))
+                  (type-rational   (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (type-complex  (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
-            (int+
-               (type-case b
-                  (fix+ (add-number-big b a))
-                  (int+ (add-big a b #false))
-                  (fix- (sub-big-number a b #true))
-                  (int- (sub-big a b))
-                  (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
-                  (comp (lets ((x y b)) (complex (add a x) y)))
+            (type-int+
+               (case (type b)
+                  (type-fix+ (add-number-big b a))
+                  (type-int+ (add-big a b #false))
+                  (type-fix- (sub-big-number a b #true))
+                  (type-int- (sub-big a b))
+                  (type-rational  (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (type-complex (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
-            (fix-
-               (type-case b
-                  (fix+ (sub-small->pick-sign b a))
-                  (fix- (add-small->negative a b))
-                  (int+ (sub-big-number b a #true))
-                  (int- (cast (add-number-big a b) type-int-))
-                  (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
-                  (comp (lets ((x y b)) (complex (add a x) y)))
+            (type-fix-
+               (case (type b)
+                  (type-fix+ (sub-small->pick-sign b a))
+                  (type-fix- (add-small->negative a b))
+                  (type-int+ (sub-big-number b a #true))
+                  (type-int- (cast (add-number-big a b) type-int-))
+                  (type-rational  (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (type-complex (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
-            (int-
-               (type-case b
-                  (fix+ (sub-number-big b a #true))
-                  (fix- (cast (add-number-big b a) type-int-))
-                  (int+ (sub-big b a))
-                  (int- (cast (add-big a b #false) type-int-))
-                  (rat  (lets ((x z b)) (rational (add (muli a z) x) z)))
-                  (comp (lets ((x y b)) (complex (add a x) y)))
+            (type-int-
+               (case (type b)
+                  (type-fix+ (sub-number-big b a #true))
+                  (type-fix- (cast (add-number-big b a) type-int-))
+                  (type-int+ (sub-big b a))
+                  (type-int- (cast (add-big a b #false) type-int-))
+                  (type-rational  (lets ((x z b)) (rational (add (muli a z) x) z)))
+                  (type-complex (lets ((x y b)) (complex (add a x) y)))
                   (else (big-bad-args '+ a b))))
-            (rat 
-               (type-case b
-                  (rat
+            (type-rational 
+               (case (type b)
+                  (type-rational
                      ; a'/a" + b'/b" = a'b" + b'a" / a"b"
                      (let ((ad (ncdr a)) (bd (ncdr b)))
                         (if (eq? ad bd)   
@@ -1709,13 +1709,13 @@
                               (divide 
                                  (add (muli an bd) (muli bn ad))
                                  (muli ad bd))))))
-                  (comp
+                  (type-complex
                      (lets ((br bi b))
                         (complex (add a br) bi)))
                   (else
                      ; a'/a" + b = (a'+ba")/a"
                      (rational (add (ncar a) (muli b (ncdr a))) (ncdr a)))))
-            (comp
+            (type-complex
                (if (teq? b comp)
                   ;; A+ai + B+bi = A+B + (a+b)i
                   (lets 
@@ -1731,46 +1731,46 @@
                (big-bad-args '+ a b))))
 
       (define (sub a b)
-         (type-case a
-            (fix+
-               (type-case b
-                  (fix+ (sub-small->pick-sign a b))
-                  (fix- (add-small->positive a b))
-                  (int+ (sub-number-big a b #true))
-                  (int- (add-number-big a b))
-                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
+         (case (type a)
+            (type-fix+
+               (case (type b)
+                  (type-fix+ (sub-small->pick-sign a b))
+                  (type-fix- (add-small->positive a b))
+                  (type-int+ (sub-number-big a b #true))
+                  (type-int- (add-number-big a b))
+                  (type-rational  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (type-complex (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
-            (fix-
-               (type-case b
-                  (fix+ (add-small->negative a b))
-                  (fix- (sub-small->pick-sign b a))
-                  (int+ (cast (add-number-big a b) type-int-))
-                  (int- (sub-big-number b a #true))
-                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
+            (type-fix-
+               (case (type b)
+                  (type-fix+ (add-small->negative a b))
+                  (type-fix- (sub-small->pick-sign b a))
+                  (type-int+ (cast (add-number-big a b) type-int-))
+                  (type-int- (sub-big-number b a #true))
+                  (type-rational  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (type-complex (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
-            (int+
-               (type-case b
-                  (fix+ (sub-big-number a b #true))
-                  (fix- (add-number-big b a))
-                  (int+ (sub-big a b))
-                  (int- (add-big a b #false))
-                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
+            (type-int+
+               (case (type b)
+                  (type-fix+ (sub-big-number a b #true))
+                  (type-fix- (add-number-big b a))
+                  (type-int+ (sub-big a b))
+                  (type-int- (add-big a b #false))
+                  (type-rational  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (type-complex (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
-            (int-
-               (type-case b
-                  (fix+ (cast (add-number-big b a) type-int-))
-                  (fix- (sub-number-big b a #true))
-                  (int+ (cast (add-big a b #false) type-int-))
-                  (int- (sub-big b a))
-                  (rat  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
-                  (comp (lets ((br bi b)) (complex (sub a br) (negate bi))))
+            (type-int-
+               (case (type b)
+                  (type-fix+ (cast (add-number-big b a) type-int-))
+                  (type-fix- (sub-number-big b a #true))
+                  (type-int+ (cast (add-big a b #false) type-int-))
+                  (type-int- (sub-big b a))
+                  (type-rational  (let ((bl (ncdr b))) (sub (rational (muli a bl) bl) b)))
+                  (type-complex (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else (big-bad-args '- a b))))
-            (rat
-               (type-case b
-                  (rat 
+            (type-rational
+               (case (type b)
+                  (type-rational 
                      ; a'/a" - b'/b" = a'b" - b'a" / a"b"
                      (let ((ad (ncdr a)) (bd (ncdr b)))
                         (if (eq? ad bd)   
@@ -1780,12 +1780,12 @@
                               (divide 
                                  (subi (muli an bd) (muli bn ad))
                                  (muli ad bd))))))
-                  (comp
+                  (type-complex
                      (lets ((br bi b)) (complex (sub a br) (negate bi))))
                   (else
                      ; a'/a" - b = (a'-ba")/a"
                      (rational (subi (ncar a) (muli b (ncdr a))) (ncdr a)))))
-            (comp
+            (type-complex
                (if (teq? b comp)
                   (lets 
                      ((ar ai a) 
@@ -1810,61 +1810,61 @@
             ((eq? a 0) 0)
             ((eq? b 0) 0)
             (else
-               (type-case a
-                  (fix+
-                     (type-case b
-                        (fix+ (mult-fixnums a b))                 ; +a * +b
-                        (int+ (mult-num-big a b 0))               ; +a * +B
-                        (fix- (negative (mult-fixnums a b)))      ; +a * -b
-                        (int- (negative (mult-num-big a b 0)))    ; +a * -b
-                        (rat  (divide (mul a (ncar b)) (ncdr b)))
-                        (comp 
+               (case (type a)
+                  (type-fix+
+                     (case (type b)
+                        (type-fix+ (mult-fixnums a b))                 ; +a * +b
+                        (type-int+ (mult-num-big a b 0))               ; +a * +B
+                        (type-fix- (negative (mult-fixnums a b)))      ; +a * -b
+                        (type-int- (negative (mult-num-big a b 0)))    ; +a * -b
+                        (type-rational  (divide (mul a (ncar b)) (ncdr b)))
+                        (type-complex 
                            (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
-                  (fix-
-                     (type-case b
-                        (fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
-                        (int+ (cast (mult-num-big a b 0) type-int-))   ; -a * +B -> -C
-                        (fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
-                        (int- (mult-num-big a b 0))            ; -a * -B -> +C
-                        (rat  (divide (mul a (ncar b)) (ncdr b)))
-                        (comp 
+                  (type-fix-
+                     (case (type b)
+                        (type-fix+ (negative (mult-fixnums a b)))      ; -a * +b -> -c | -C
+                        (type-int+ (cast (mult-num-big a b 0) type-int-))   ; -a * +B -> -C
+                        (type-fix- (mult-fixnums a b))                  ; -a * -b -> +c | +C
+                        (type-int- (mult-num-big a b 0))            ; -a * -B -> +C
+                        (type-rational  (divide (mul a (ncar b)) (ncdr b)))
+                        (type-complex 
                            (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
-                  (int+
-                     (type-case b
-                        (fix+ (mult-num-big b a 0))            ; +A * +b -> +C
-                        (int+ (mult-big a b))               ; +A * +B -> +C
-                        (fix- (cast (mult-num-big b a 0) type-int-))    ; +A * -b -> -C
-                        (int- (cast (mult-big a b) type-int-))      ; +A * -B -> -C
-                        (rat  (divide (mul a (ncar b)) (ncdr b)))
-                        (comp 
+                  (type-int+
+                     (case (type b)
+                        (type-fix+ (mult-num-big b a 0))            ; +A * +b -> +C
+                        (type-int+ (mult-big a b))               ; +A * +B -> +C
+                        (type-fix- (cast (mult-num-big b a 0) type-int-))    ; +A * -b -> -C
+                        (type-int- (cast (mult-big a b) type-int-))      ; +A * -B -> -C
+                        (type-rational  (divide (mul a (ncar b)) (ncdr b)))
+                        (type-complex 
                            (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
-                  (int-   
-                     (type-case b
-                        (fix+ (cast (mult-num-big b a 0) type-int-))      ; -A * +b -> -C
-                        (int+ (cast (mult-big a b) type-int-))      ; -A * +B -> -C
-                        (fix- (mult-num-big b a 0))               ; -A * -b -> +C
-                        (int- (mult-big a b))                  ; -A * -B -> +C
-                        (rat  (divide (mul a (ncar b)) (ncdr b)))
-                        (comp 
+                  (type-int-   
+                     (case (type b)
+                        (type-fix+ (cast (mult-num-big b a 0) type-int-))      ; -A * +b -> -C
+                        (type-int+ (cast (mult-big a b) type-int-))      ; -A * +B -> -C
+                        (type-fix- (mult-num-big b a 0))               ; -A * -b -> +C
+                        (type-int- (mult-big a b))                  ; -A * -B -> +C
+                        (type-rational  (divide (mul a (ncar b)) (ncdr b)))
+                        (type-complex 
                            (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else (big-bad-args 'mul a b))))
-                  (rat
-                     (type-case b
-                        (rat  
+                  (type-rational
+                     (case (type b)
+                        (type-rational  
                            (divide (mul (ncar a) (ncar b)) (mul (ncdr a) (ncdr b))))
-                        (comp 
+                        (type-complex 
                            (lets ((br bi b) (r (mul a br)) (i (mul a bi)))
                               (if (eq? i 0) r (complex r i))))
                         (else 
                            (divide (mul (ncar a) b) (ncdr a)))))
-                  (comp 
+                  (type-complex 
                      (if (teq? b comp)
                         (lets 
                            ((ar ai a)
@@ -1927,12 +1927,12 @@
       ;;;
 
       (define (abs n)
-         (type-case n
-            (fix+ n)
-            (fix- (cast n type-fix+))
-            (int+ n)
-            (int- (ncons (ncar n) (ncdr n)))
-            (rat (if (negative? n) (sub 0 n) n))
+         (case (type n)
+            (type-fix+ n)
+            (type-fix- (cast n type-fix+))
+            (type-int+ n)
+            (type-int- (ncons (ncar n) (ncdr n)))
+            (type-rational (if (negative? n) (sub 0 n) n))
             (else (error "bad math: " (list 'abs n)))))
 
       (define (floor n)
@@ -1983,13 +1983,13 @@
       ; for all numbers n == (/ (numerator n) (denumerator n))
 
       (define (numerator n)
-         (type-case n
-            (rat (ncar n))
+         (case (type n)
+            (type-rational (ncar n))
             (else n)))
 
       (define (denumerator n)
-         (type-case n
-            (rat (ncdr n))
+         (case (type n)
+            (type-rational (ncdr n))
             (else 1)))
 
 
