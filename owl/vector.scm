@@ -130,22 +130,18 @@
 
       ; vec x fixnum -> local value
       (define (vec-ref-digit v n)
-         (type-case v
-            ((raw 11)
+         (case (type v)
+            (type-vector-raw
                (refb v (fxband n 255)))
-            (else
-               (case (type v)
-                  (type-vector-raw
-                     (refb v (fxband n 255)))
-                  (type-vector-dispatch
-                      (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
-                  (type-vector-leaf 
-                      (if (eq? n 255)
-                         (ref v 256)
-                         (lets ((n _ (fx+ (fxband n 255) 1)))
-                           (ref v n))))
-                  (else 
-                     (error "bad vector node in vec-ref-digit: type " (type v)))))))
+            (type-vector-dispatch
+                (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
+            (type-vector-leaf 
+                (if (eq? n 255)
+                   (ref v 256)
+                   (lets ((n _ (fx+ (fxband n 255) 1)))
+                     (ref v n))))
+            (else 
+               (error "bad vector node in vec-ref-digit: type " (type v)))))
 
       ; find the node holding the last digit and read it
       (define (vec-ref-big v n)
@@ -157,18 +153,16 @@
 
       ; vec x n -> vec[n] or fail 
       (define (vec-ref v n)
-         (cond 
-            ((teq? n fix+)
+         (case (type n)
+            (type-fix+
                (cond
-                  ((teq? v (raw 11)) ; short path for raw byte vector access
-                     (refb v n))
                   ((eq? (type v) type-vector-raw)
                      (refb v n))
                   ((lesser? n 256)
                      (vec-ref-digit v n))
                   (else
                      (vec-ref-digit (vec-dispatch-2 v n) (fxband n 255)))))
-            ((teq? n int+)
+            (type-int+
                (vec-ref-big v n))
             (else 
                (error "vec-ref: bad index: " n))))
@@ -181,14 +175,13 @@
          (vec-dispatch-2 (vec-seek v (ncdr n)) (ncar n)))
 
       (define (vec-leaf-of v n)
-         (cond
-            ((teq? n fix+)
+         (case (type n)
+            (type-fix+
                (cond
-                  ((teq? v (raw 11)) v)
                   ((eq? (type v) type-vector-raw) v)
                   ((lesser? n 256) v)
                   (else (vec-dispatch-2 v n))))
-            ((teq? n int+)
+            (type-int+
                (vec-leaf-big v n))
             (else
                (error "vec-leaf-of: bad index: " n))))
@@ -229,7 +222,9 @@
            (listuple type-vector-leaf n (reverse rvals))))
 
       (define (byte? val) 
-         (and (teq? val fix+) (eq? val (fxband val 255))))
+         (and 
+            (eq? (type val) type-fix+) 
+            (eq? val (fxband val 255))))
 
       ;; list -> list of leaf nodes
       (define (chunk-list lst out leaves n raw? len)
@@ -351,14 +346,11 @@
                (merge-chunks chunks len))))
 
       (define (vector? x) ; == raw or a variant of major type 11?
-         (cond
-            ((teq? x (raw 11)) #true)   ; leaf byte vector
-            ((teq? x (alloc 11)) #true) ; wide leaf
-            (else 
-               (case (type x)
-                  (type-vector-raw #true)
-                  (type-vector-dispatch #true)
-                  (else #false)))))
+         (case (type x)
+            (type-vector-raw #true)
+            (type-vector-leaf #true)
+            (type-vector-dispatch #true)
+            (else #false)))
 
       ;; a separate function for listifying byte vectors, which may not be valid vectos (can be > leaf node size)
 
@@ -408,23 +400,14 @@
                (iter-leaf v n (cons (ref v p) tl)))))
 
       (define (iter-leaf-of v tl)
-         (type-case v
-            ((raw 11) 
-               ;; only this ne can be empty
+         (case (type v)
+            (type-vector-dispatch (iter-leaf-of (ref v 1) tl))
+            (type-vector-raw
                (let ((s (sizeb v)))
                   (if (eq? s 0)
                      tl
                      (iter-raw-leaf v (- s 1) tl))))
-            ((alloc 11) (iter-leaf v (size v) tl))
-            (else 
-               (case (type v)
-                  (type-vector-dispatch (iter-leaf-of (ref v 1) tl))
-                  (type-vector-raw
-                     (let ((s (sizeb v)))
-                        (if (eq? s 0)
-                           tl
-                           (iter-raw-leaf v (- s 1) tl))))
-                  (else tl))))) ; size field -> number
+            (else tl))) ; size field -> number
 
       (define (vec-iter v)
          (let loop ((end (vec-len v)) (pos 0))
@@ -486,17 +469,14 @@
             (cons (ref v p) (λ () (iterr-leaf v (- p 1) tl)))))
 
       (define (iterr-any-leaf v tl)
-         (type-case v
-            ((raw 11) (iterr-raw-leaf v (sizeb v) tl))
-            ((alloc 11) (iterr-leaf v (size v) tl))
-            (else 
-               (case (type v)
-                  (type-vector-dispatch (iterr-any-leaf (ref v 1) tl))
-                  (type-vector-raw (iterr-raw-leaf v (sizeb v) tl))
-                  (else tl))))) ; size field in root is a number → skip
+         (case (type v)
+            (type-vector-dispatch (iterr-any-leaf (ref v 1) tl))
+            (type-vector-raw (iterr-raw-leaf v (sizeb v) tl))
+            (type-vector-leaf (iterr-leaf v (size v) tl))
+            (else tl))) ; size field in root is a number → skip
       
       (define (vec-iterr-loop v p)
-         (if (teq? p fix-) ; done
+         (if (eq? type-fix- (type p))
             null
             (iterr-any-leaf (vec-leaf-of v p)
                (λ () (vec-iterr-loop v (- p 256))))))
@@ -522,8 +502,6 @@
 
       (define (vec->list vec) 
          (cond
-            ((teq? vec (raw 11))
-               (byte-vector->list vec))
             ((eq? (type vec) type-vector-raw)
                ;; convert raw vectors directly to allow this to be used also for large chunks
                ;; which are often seen near IO code
@@ -534,13 +512,9 @@
       (define vector->list vec->list)
 
       (define (leaf-data leaf)
-         (cond
-            ((teq? leaf (raw 11)) ;; a raw leaf with plain data
-               leaf)
-            ((eq? (type leaf) type-vector-raw)
-               leaf)
-            (else
-               (ref leaf 1))))
+         (if (eq? (type leaf) type-vector-raw)
+            leaf
+            (ref leaf 1)))
 
       ;;;
       ;;; vector map

@@ -1,4 +1,5 @@
 TODO QUEUE-ISH:
+  + get rid of deprecated type-case, teq?, and type-based jump instructions
   + is it (import <thing>) or (import <thing> ...)?
   + decide where to store metadata and start moving tests, comments etc there:
      - related to theorem checking stuff, so bumped up priority
@@ -10,7 +11,8 @@ TODO QUEUE-ISH:
      - grep 15, 16, #xffff, #x7fff, #x10, 3276, #b and 6553 + change accordingly
        o preferably by defining relative to *fixnum-bits*
      - take care of unexpected issues
-  + convert old type-case to just switch over (type obj)
+       o have a distinct encoding for integers, or postprocess while rebalancing and -interning?
+  + use type bits directly in fasl encoding?
   + remove deprecated type test branch instructions and AST node handling
      - switch to plain type-based jumps everywhere now that they are disjoing
   + start integrating theorem checker
