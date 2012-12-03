@@ -149,31 +149,29 @@
                         (big-less (ncdr a) (ncdr b) #false)))))))
 
       (define (int< a b)
-         (type-case a
-            (fix+
-               (type-case b
-                  (fix+   (lesser? a b))
-                  (int+ #true)
+         (case (type a)
+            (type-fix+
+               (case (type b)
+                  (type-fix+   (lesser? a b))
+                  (type-int+ #true)
                   (else #false)))
-            (fix-
-               (type-case b
-                  (fix+ #true)
-                  (fix-
+            (type-fix-
+               (case (type b)
+                  (type-fix+ #true)
+                  (type-fix-
                      (if (eq? a b)
                         #false
                         (lesser? b a)))
-                  (int+ #true)
+                  (type-int+ #true)
                   (else #false)))
-            (int+
-               (type-case b
-                  (int+ (big-less a b #false))
+            (type-int+
+               (case (type b)
+                  (type-int+ (big-less a b #false))
                   (else #false)))
-            (int-   
-               (type-case b
-                  (int-
-                     (if (big-less a b #false)
-                        #false
-                        #true))
+            (type-int-   
+               (case (type b)
+                  (type-int-
+                     (if (big-less a b #false) #false #true))
                   (else #true)))
             (else
                (big-bad-args 'int< a b))))
@@ -189,27 +187,27 @@
       ; a slightly optimized = 
 
       (define (= a b)
-         (type-case a
-            (fix+ (eq? a b))
-            (fix- (eq? a b))
-            (int+
-               (type-case b
-                  (int+ (big-digits-equal? a b))
+         (case (type a)
+            (type-fix+ (eq? a b))
+            (type-fix- (eq? a b))
+            (type-int+
+               (case (type b)
+                  (type-int+ (big-digits-equal? a b))
                   (else #false)))
-            (int-
-               (type-case b
-                  (int- (big-digits-equal? a b))
+            (type-int-
+               (case (type b)
+                  (type-int- (big-digits-equal? a b))
                   (else #false)))
-            (rat    
-               (type-case b
-                  (rat
+            (type-rational
+               (case (type b)
+                  (type-rational
                      ;; todo: add eq-simple to avoid this becoming recursive
                      (if (= (ncar a) (ncar b))
                         (= (ncdr a) (ncdr b))
                         #false))
                   (else #false)))
-            (comp
-               (if (teq? b comp)
+            (type-complex
+               (if (eq? (type b) type-complex)
                   (and (= (ref a 1) (ref b 1)) 
                        (= (ref a 2) (ref b 2)))
                   #false))
@@ -219,43 +217,40 @@
       ; later just, is major type X
 
       (define (number? a)
-         (type-case a
-            (fix+ #true)
-            (fix- #true)
-            (int+ #true) ;; not in use yet
-            (int- #true)
-            (rat  #true)
-            (comp #true)
-            (else 
-               ;; (eq? 9 (fxband 31 (type a))) ;; all have these low bits, which had special meaning earlier
-               #false
-               )))
+         (case (type a)
+            (type-fix+ #true)
+            (type-fix- #true)
+            (type-int+ #true)
+            (type-int- #true)
+            (type-rational #true)
+            (type-complex #true)
+            (else #false)))
 
       (define (integer? a)
-         (type-case a
-            (fix+ #true)
-            (fix- #true)
-            (int+ #true)
-            (int- #true)
+         (case (type a)
+            (type-fix+ #true)
+            (type-fix- #true)
+            (type-int+ #true)
+            (type-int- #true)
             (else #false)))
 
       (define (negative? a)
-         (type-case a
-            (fix+ #false)
-            (fix- #true)
-            (int+ #false)
-            (int- #true)
-            (rat  
-               (type-case (ncar a)
-                  (fix+ #false)
-                  (fix- #true)
-                  (int+ #false)
-                  (int- #true)
+         (case (type a)
+            (type-fix+ #false)
+            (type-fix- #true)
+            (type-int+ #false)
+            (type-int- #true)
+            (type-rational
+               (case (type (ncar a))
+                  (type-fix+ #false)
+                  (type-fix- #true)
+                  (type-int+ #false)
+                  (type-int- #true)
                   (else (error "Bad number: " a))))
             (else (error 'negative? a))))
 
-      (define (positive? a) 
-         (if (negative? a) #false #true))
+      (define positive? 
+         (o not negative?))
 
       ;; RnRS compat
       (define real? number?)
@@ -271,21 +266,22 @@
       (define big-one (ncons 1 null))
 
       (define (nat-inc n)
-         (cond
-            ((teq? n fix+)
-               (if (eq? n *max-fixnum*)
-                  (ncons 0 big-one)
-                  (lets ((n x (fx+ n 1))) n)))
-            ((teq? n int+)
-               (let ((lo (ncar n)))
-                  (if (eq? lo *max-fixnum*)
-                     (ncons 0 (nat-inc (ncdr n)))
-                     (lets ((lo x (fx+ lo 1)))
-                        (ncons lo (ncdr n))))))
-            ((eq? n null)
-               big-one)
-            (else
-               (big-bad-args 'inc n n))))
+         (let ((t (type n)))
+            (cond
+               ((eq? t type-fix+)
+                  (if (eq? n *max-fixnum*)
+                     (ncons 0 big-one)
+                     (lets ((n x (fx+ n 1))) n)))
+               ((eq? t type-int+)
+                  (let ((lo (ncar n)))
+                     (if (eq? lo *max-fixnum*)
+                        (ncons 0 (nat-inc (ncdr n)))
+                        (lets ((lo x (fx+ lo 1)))
+                           (ncons lo (ncdr n))))))
+               ((eq? n null)
+                  big-one)
+               (else
+                  (big-bad-args 'inc n n)))))
 
       (define (nlen n)
          (cond

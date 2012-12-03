@@ -89,7 +89,7 @@
             (error "inst->op: unknown instruction " name)))
 
       (define (reg a)
-         (if (teq? a fix+)
+         (if (eq? (type a) type-fix+)
             (if (< a n-registers)
                a
                (error "register too high: " a))

@@ -131,10 +131,9 @@
             (lnums-other a)))
       
       (define (lnums n)
-         (type-case n
-            (fix+ (lnums-fix n))
-            (else
-               (lnums-other n))))
+         (case (type n)
+            (type-fix+ (lnums-fix n))
+            (else (lnums-other n))))
 
       ;;; lazy iota, with some fixnum hacks to make it run at decent speed
 

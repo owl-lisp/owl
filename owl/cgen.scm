@@ -42,7 +42,7 @@
             ((eq? val null) "INULL")
             ((eq? val #true) "ITRUE")
             ((eq? val #false) "IFALSE")
-            ((and (teq? val fix+) (< val 256))
+            ((and (eq? (type val) type-fix+) (< val 256))
                (bytes->string
                   (foldr render null
                      (list "F(" val ")"))))

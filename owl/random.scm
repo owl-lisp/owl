@@ -264,9 +264,9 @@
       (define (rand rs max)
          (if (eq? max 0)
             (values rs 0) ;; don't use any rands here
-            (type-case max
-               (fix+ (rand-fixnum rs max))
-               (int+ (rand-bignum rs max))
+            (case (type max)
+               (type-fix+ (rand-fixnum rs max))
+               (type-int+ (rand-bignum rs max))
                (else (error "bad rand limit: " max)))))
 
       ;; a quick skew check. the modulo issue caused a >10% skew in some cases earlier
@@ -475,16 +475,16 @@
 
 
       (define (rand-occurs? rs prob)
-         (type-case prob
-            (rat 
+         (case (type prob)
+            (type-rational
                (lets ((nom denom prob))
                   (if (eq? nom 1) ;; 1/n -> rand n and check for 0
                      (lets ((rs n (rand rs denom)))
                         (values rs (eq? n 0)))
                      (lets ((rs n (rand rs denom)))
                         (values rs (< n nom))))))
-            (fix- (values rs #false))
-            (int- (values rs #false))
+            (type-fix- (values rs #false))
+            (type-int- (values rs #false))
             (else
                (if (eq? prob 0)
                   (values rs #false)
