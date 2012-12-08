@@ -184,7 +184,7 @@
          (cond
             ((not (eq? (type port) type-fix+))
                #false)
-            ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
+            ((and (eq? (type ip) 11) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
                      (fd->tcp fd)

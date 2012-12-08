@@ -431,7 +431,7 @@
 
       ; for changing the (default positive) sign of unsigned operations 
       (define-syntax negative 
-         (syntax-rules (teq? imm cast if fix+)
+         (syntax-rules (imm cast if fix+)
             ((negative (op . args))
                (let ((foo (op . args)))
                   (negative foo)))
