@@ -167,8 +167,8 @@
 
       (define (liota pos step end)
          (if (eq? step 1)
-            (if (teq? pos fix+) 
-               (if (teq? end fix+)
+            (if (eq? (type pos) type-fix+) 
+               (if (eq? (type end) type-fix+)
                   (liota-fix pos end)         ; positive fixnum range interval
                   (liota-walk-one pos end))    ; increment iota
                (liota-walk-one pos end))

@@ -26,7 +26,7 @@
                   (iputl these (ncdr num) val)))))
 
       (define (iput ff num val)
-         (if (teq? num fix+)
+         (if (eq? (type num) type-fix+)
             (let ((small (get ff tag empty)))
                (put ff tag
                   (put small num val)))
@@ -40,7 +40,7 @@
             def))
 
       (define (iget ff num def)
-         (if (teq? num fix+)
+         (if (eq? (type num) type-fix+)
             (get (get ff tag empty) num def)
             (igetl ff num def)))
 

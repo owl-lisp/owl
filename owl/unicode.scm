@@ -78,8 +78,8 @@
 
       (define (valid-code-point? val)
          (cond
-            ((teq? val fix+) #true) ; 0 <= n < 65536
-            ((teq? val int+) ;; 0 <= n <= last-code-point
+            ((eq? (type val) type-fix+) #true) ; 0 <= n < 65536
+            ((eq? (type val) type-int+) ;; 0 <= n <= last-code-point
                (<= val last-code-point))
             (else #false)))
 

@@ -71,7 +71,7 @@
 
       (define (lcg-rands seed)
          (let ((seed (band (+ (* seed 1664525) 1013904223) #xffffffff)))
-            (if (teq? seed fix+)
+            (if (eq? (type seed) type-fix+)
                (pair seed (lcg-rands seed))
                (pair (ncar seed) (lcg-rands seed)))))
 
@@ -107,7 +107,7 @@
              (y z)
              (z w)
              (w (bxor w (bxor (>> w 19) (bxor t (>> t 8))))))
-            (if (teq? w fix+)
+            (if (eq? (type w) type-fix+)
                (cons w (cons 0 
                   (λ () (xorshift-128 x y z w))))
                (cons (ncar w) (cons (ncar (ncdr w)) 
@@ -131,10 +131,10 @@
       (define (rand-succ seed)
          (cond
             ; promote natural seeds to random states
-            ((teq? seed fix+)
+            ((eq? (type seed) type-fix+)
                (let ((seed (ncons 1 (ncons seed null))))
                   (tuple #true (rand-walk rand-modulus seed null) seed)))
-            ((teq? seed int+)
+            ((eq? (type seed) type-int+)
                (tuple #true (rand-walk rand-modulus seed null) seed))
             (else
                (lets ((st a b seed))

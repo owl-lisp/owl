@@ -17,7 +17,7 @@
 
       (define (list->tuple lst)
          (let ((l (length lst)))
-            (if (teq? l fix+)
+            (if (eq? (type l) type-fix+)
                (listuple 2 l lst)
                (error "list does not fit a tuple: length " l))))
 

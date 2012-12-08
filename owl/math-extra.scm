@@ -45,7 +45,7 @@
       (define (nbits n f)
          (cond
             ((eq? n 0) f)
-            ((teq? n fix+)
+            ((eq? (type n) type-fix+)
                (lets ((hi lo (fx>> n 1)))
                   (nbits hi (nat-inc f))))
             (else
@@ -74,8 +74,8 @@
       ; largest m where m^2 <= n
       (define (isqrt n)
          (cond
-            ((teq? n fix-) (sub 0 (isqrt (sub 0 n))))
-            ((teq? n int-) (sub 0 (isqrt (sub 0 n))))
+            ((eq? (type n) type-fix-) (sub 0 (isqrt (sub 0 n))))
+            ((eq? (type n) type-int-) (sub 0 (isqrt (sub 0 n))))
             ((eq? n 0) 0)
             ((eq? n 1) 1)
             (else
@@ -118,10 +118,10 @@
             ((eq? b 0) 1)
             ((eq? b 1) a)
             ((eq? b 2) (* a a))
-            ((teq? b fix+) (expt-loop a (sub b 1) a))
-            ((teq? b int+) (expt-loop a (sub b 1) a))
-            ((teq? b fix-) (/ 1 (expt a (negate b))))
-            ((teq? b int-) (/ 1 (expt a (negate b))))
+            ((eq? (type b) type-fix+) (expt-loop a (sub b 1) a))
+            ((eq? (type b) type-int+) (expt-loop a (sub b 1) a))
+            ((eq? (type b) type-fix-) (/ 1 (expt a (negate b))))
+            ((eq? (type b) type-int-) (/ 1 (expt a (negate b))))
             (else (big-bad-args 'expt a b))))
 
       ; (mod (expt a b) m) = (expt-mod a b m)

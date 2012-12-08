@@ -182,7 +182,7 @@
 
       (define (open-connection ip port)
          (cond
-            ((not (teq? port fix+))
+            ((not (eq? (type port) type-fix+))
                #false)
             ((and (teq? ip (raw 11)) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
@@ -219,7 +219,7 @@
 
       (define (add-sleeper ls env)
          (lets ((from n env))
-            (if (teq? n fix+)
+            (if (eq? (type n) type-fix+)
                (find-bed ls from n)
                (find-bed ls from 10))))   ;; silent fix
 

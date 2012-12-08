@@ -69,7 +69,7 @@
    (define (string->integer str)
       (let ((n (string->number str 10)))
          (cond
-            ((teq? n fix+) n)
+            ((eq? (type n) type-fix+) n)
             ((teq? n fix-) n)
             ((teq? n int+) n)
             ((teq? n int-) n)

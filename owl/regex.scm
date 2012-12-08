@@ -83,7 +83,7 @@
                      #false))
                (else 
                   (accept (ls) buff ms cont))))
-         (if (teq? cp fix+)
+         (if (eq? (type cp) type-fix+)
             accept
             (error "match string cannot yet contain a " cp)))
       
@@ -141,7 +141,7 @@
             (λ (ret)
                (for empty cs
                   (λ (ff n) 
-                     (if (teq? n fix+)
+                     (if (eq? (type n) type-fix+)
                         (put ff n #true)
                         (ret #false))))))) ;; code point outside of fixnum range
 
@@ -359,7 +359,7 @@
                   (cond
                      ((eq? next (car ls)) ;; this elem matched
                         (match-list (cdr ls) val (cons next buff)))
-                     ((teq? next int+) ;; try = for high code points
+                     ((eq? (type next) type-int+) ;; try = for high code points
                         (if (= next (car ls))
                            (match-list (cdr ls) val (cons next buff))
                            (values #false #false)))
