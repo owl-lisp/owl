@@ -136,33 +136,14 @@
 
       (define-syntax if
          (syntax-rules 
-            (not eq? and null? pair? teq? empty? imm alloc raw
+            (not eq? and null? pair? empty? imm alloc raw
                fix+ fix- int+ int- pair rat comp)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
             ((if (empty? test) then else) (if (eq? test #empty) then else)) ;; FIXME - handle with partial eval later
-            ((if (pair? test) then else) (if (teq? test (alloc 1)) then else))
-            ((if (teq? q fix+) . c) (if (teq? q (imm    0)) . c))
-            ((if (teq? q fix-) . c) (if (teq? q (imm   32)) . c))
-            ((if (teq? q int+) c) (if (teq? q int+) c #false))
-            ;((if (teq? q int+) a b) (if (teq? q (alloc 9)) a (if (teq? q (alloc 40)) a b)))
-            ((if (teq? q int+) . c) (if (teq? q (alloc 40)) . c))
-            ;((if (teq? q int+) . c) (if (teq? q (alloc  9)) . c))      ; num base type
-            ((if (teq? q int-) . c) (if (teq? q (alloc 41)) . c))      ; num/1
-            ((if (teq? q pair) . c) (if (teq? q (alloc  1)) . c))      
-            ((if (teq? q rat) . c)  (if (teq? q (alloc 42)) . c))      ; num/2 <- new type until teq? is removed
-            ((if (teq? q comp) . c)  (if (teq? q (alloc 43)) . c))     ; num/3
-            ((if (teq? (a . b) c) then else) 
-               (let ((foo (a . b)))
-                  (if (teq? foo c) then else)))
-            ((if (teq? a (imm b)) then else) (_branch 1 a b then else))   
-            ((if (teq? a (alloc b)) then else) (_branch 2 a b then else))
-            ((if (teq? a (raw b)) then else) (_branch 3 a b then else))
             ((if (eq? a b) then else) (_branch 0 a b then else))            
             ((if (a . b) then else) (let ((x (a . b))) (if x then else)))
-            ((if (teq? a b) then else) (teq? a b then else))
-            ;((if (eq? a a) then else) then) ; <- could be functions calls and become non-eq?
             ((if #false then else) else)
             ((if #true then else) then)
             ((if test then else) (_branch 0 test #false else then))))

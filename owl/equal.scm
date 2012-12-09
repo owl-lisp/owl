@@ -4,6 +4,7 @@
       (owl defmac)
       (owl string)
       (owl symbol)
+      (owl list)
       (owl math))
 
    (export

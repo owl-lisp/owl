@@ -70,9 +70,9 @@
       (let ((n (string->number str 10)))
          (cond
             ((eq? (type n) type-fix+) n)
-            ((teq? n fix-) n)
-            ((teq? n int+) n)
-            ((teq? n int-) n)
+            ((eq? (type n) type-fix-) n)
+            ((eq? (type n) type-int+) n)
+            ((eq? (type n) type-int-) n)
             (else #false))))
 
    ))

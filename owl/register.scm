@@ -92,13 +92,7 @@
                            (rtl-rename more op target fail)
                            (tuple 'move a b (rtl-rename more op target fail)))))))
             ((prim opcode args to more)
-               ; (if (and (teq? to fix+) (not (eq? (type to) type-fix+)))
-               ;   (print-to stderr "FAIL 1 " to))
-               ;(if (and (not (teq? to fix+)) (eq? (type to) type-fix+))
-               ;   (print-to stderr "FAIL 2 " to))
-               (if 
-                  (teq? to fix+)
-                  ; (eq? (type to) type-fix+)
+               (if (fixnum? to)
                   (if (bad? to target op) 
                      (fail)
                      (tuple 'prim opcode
