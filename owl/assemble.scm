@@ -50,15 +50,11 @@
               (clos1 . 6)
               (cloc1 . 7)
               ; 8 = jlq 
-              (jit   . 9)       ; jit r type jmp 
-              (jit2 . 11)       ; jit r type jmp1 jmp2 -> 
-              (jat2 . 12)       ; jat r type jmp1 jmp2
               (movh . 13)       ; 
               (goto-code . 18)
               (goto-proc . 19)
               (goto-clos . 21)
               (igoto . 26)   ; indirect goto
-              (jrt  . 33)       ; jrt r type jmp 
               (cons . 51)     ; cons a, b, t:   Rt = mkpair(a, b)
               (car  . 52)     ; car a, t:       Rt = car(a);
               (cdr  . 53)     ; cdr a, t:       Rt = cdr(a);
@@ -262,40 +258,6 @@
                   (cond
                      ((< len #xffff) (ilist (inst->op 'jn) (reg a) (band len #xff) (>> len 8) (append else then)))
                      (else (fail (list "need a bigger jump instruction: length is " len))))))
-            ;; todo: jit, jat and jrt should have a shared RTL node
-            ((jit a type then else)
-               (lets
-                  ((then (assemble then fail))
-                   (else (assemble else fail))
-                   (len (length else)))
-                  (cond
-                     ((< len #xffff)
-                        (ilist (inst->op 'jit2) (reg a) type (band len #xff) 
-                           (>> len 8) (append else then)))
-                     (else
-                        (fail (list "need a bigger jit instruction: length is " len))))))
-            ((jat a type then else)
-               (lets
-                  ((then (assemble then fail))
-                   (else (assemble else fail))
-                   (len (length else)))
-                  (cond
-                     ((< len #xffff)
-                        (ilist (inst->op 'jat2) (reg a) type (band len #xff) 
-                           (>> len 8) (append else then)))
-                     ;; if (jat a type2 ...), make (jatq a type jmp jatq  ...)
-                     (else
-                        (fail (list "need a bigger jat instruction: length is " len))))))
-            ((jrt a type then else)
-               (lets
-                  ((then (assemble then fail))
-                   (else (assemble else fail))
-                   (len (length else)))
-                  (cond
-                     ((< len #xff) ;; todo: jrt has only a short branch option
-                        (ilist (inst->op 'jrt) (reg a) type len (append else then)))
-                     (else
-                        (fail (list "need a bigger jrt instruction: length is " len))))))
             (else
                ;(print "assemble: what is " code)
                (fail (list "Unknown opcode " code)))))

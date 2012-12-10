@@ -328,17 +328,6 @@
                         (zip cons (iota 2 1 (+ size 1)) fields)))
                   bs (put regs to 'alloc)))))
 
-      (define (cify-jrt8 bs regs fail)
-         (lets ((a type jump-len bs (get3 (cdr bs))))
-            (cond
-               (else 
-                  (values 'branch 
-                     (tuple 
-                        (list "allocp(R["a"])&&(V(R["a"])&2300)==(2048|("type"<<TPOS))")
-                        (drop bs jump-len) (put regs a 'alloc)
-                        bs regs)
-                     regs)))))
-
       (define (cify-jump-imm val)
          (λ (bs regs fail)
             (lets 
@@ -502,7 +491,6 @@
                         (cond
                            (else (values (list "R[" to "]=G(R[" from "],2);") bs (del regs to)))))))
                (cons 32 cify-bind)
-               (cons 33 cify-jrt8)
                (cons 36 cify-size)
                (cons 38 cify-fxadd)
                (cons 39 cify-fxmul)

@@ -467,7 +467,6 @@
 
       ;; compile any AST node node to RTL
       (define (rtl-any regs exp)
-         ;(print " - " exp)
          (tuple-case exp
             ((branch kind a b then else)
                (cond
@@ -476,8 +475,7 @@
                         ;;; move simple to a, if any
                         (λ (a b)
                            (cond
-   ;; todo: convert jump-if-<val> rtl nodes to a single shared rtl node to avoid having to deal with them as separate instructions
-         
+                              ;; todo: convert jump-if-<val> rtl nodes to a single shared rtl node to avoid having to deal with them as separate instructions
                               ((null-value? a) ; jump-if-null (optimization)
                                  (rtl-simple regs b (λ (regs bp)
                                     (let 
@@ -490,13 +488,6 @@
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jf bp then else)))))
-                              ;; jz not yet understood everywhere
-                              ;((zero-value? a) ; jump-if-zero 
-                              ;   (rtl-simple regs b (λ (regs bp)
-                              ;      (let 
-                              ;         ((then (rtl-any regs then))
-                              ;          (else (rtl-any regs else)))
-                              ;         (tuple 'jz bp then else)))))
                               (else
                                  (rtl-simple regs a (λ (regs ap)
                                     (rtl-simple regs b (λ (regs bp)
@@ -504,37 +495,7 @@
                                           ((then (rtl-any regs then))
                                            (else (rtl-any regs else)))
                                           (tuple 'jeq ap bp then else)))))))))))
-                  ((eq? kind 1)      ; branch on type of immediate object
-                     (let ((b (extract-value b)))
-                        (if (and (fixnum? b) (>= b 0) (< b 256))
-                           (rtl-simple regs a 
-                              (λ (regs ap)
-                                 (let 
-                                    ((then (rtl-any regs then))
-                                     (else (rtl-any regs else)))
-                                    (tuple 'jit ap b then else))))
-                           (error "rtl-any: bad immediate branch type: " b))))
-                  ((eq? kind 2)      ; branch on type of allocated object
-                     (let ((b (extract-value b)))
-                        (if (and (fixnum? b) (>= b 0) (< b 256))
-                           (rtl-simple regs a 
-                              (λ (regs ap)
-                                 (let 
-                                    ((then (rtl-any regs then))
-                                     (else (rtl-any regs else)))
-                                    ; peephole optimize (jat <x> <type-a> <then> (jat <x> <type-b> .. ..))
-                                    (tuple 'jat ap b then else))))
-                           (error "rtl-any: bad alloc branch type: " b))))
-                  ((eq? kind 3) ; branch on type of raw object
-                     (let ((b (extract-value b)))
-                        (if (and (fixnum? b) (>= b 0) (< b 256))
-                           (rtl-simple regs a 
-                              (λ (regs ap)
-                                 (let 
-                                    ((then (rtl-any regs then))
-                                     (else (rtl-any regs else)))
-                                    (tuple 'jrt ap b then else))))
-                           (error "rtl-any: bad raw branch type: " b))))
+                  ;; NOT IN USE YET -- typed binding
                   ((eq? kind 4)   ; (branch-4 name type (λ (f0 .. fn) B) Else)
                      ; FIXME check object size here (via meta)
                      (let ((b (extract-value b)))
@@ -554,35 +515,6 @@
                                     (else
                                        (error "rtl-any: bad jab then branch: " then)))))
                            (error "rtl-any: bad alloc binding branch type: " b))))
-                  ((eq? kind 3)
-                     ; a verbose type-directed binding dispatch instruction, probable base for a real 
-                     ; algebraic data types. (branch 3 obj type then else)
-                     (tuple-case (extract-value b)
-                        ((immediate type)
-                           ; same as kind 1 above
-                           (if (and (fixnum? type) (>= type 0) (< type 257))
-                              (rtl-simple regs a 
-                                 (λ (regs ap)
-                                    (let 
-                                       ((then (rtl-any regs then))
-                                        (else (rtl-any regs else)))
-                                       (tuple 'jit ap type then else))))
-                              (error "rtl-any: bad immediate branch type: " type)))
-                        ((alloc type size)
-                           ; same as kind 2 above
-                           (if (and (fixnum? type) (>= type 0) (< type 257))
-                              (rtl-simple regs a 
-                                 (λ (regs ap)
-                                    (let 
-                                       ((then (rtl-any regs then))
-                                        (else (rtl-any regs else)))
-                                       (tuple 'jat ap type then else))))
-                              (error "rtl-any: bad immediate branch type: " b)))
-                        ((literal val)
-                           ; same as (branch 0 val a then else)
-                           (rtl-any regs (tuple 'branch 0 a (mkval val) then else)))
-                        (else is type
-                           (error "rtl-any: type branch: bad type: " type))))
                   (else
                      (error "rtl-any: unknown branch type: " kind))))
             ((call rator rands)

@@ -66,7 +66,7 @@ typedef uintptr_t word;
 #define fixval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc)&255) == 2)
 #define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
-#define NR                          190 /* fixme, should be ~32*/
+#define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
 #define header(x)                   *(word *x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
 #define imm_val(x)                  ((x) >> IPOS)
@@ -1050,20 +1050,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
       NEXT(4); 
    op9: R[ip[1]] = R[*ip]; NEXT(2);
-   op11: { /* jit2 a t ol oh */
-      word a = R[*ip];
-      if (immediatep(a) && imm_type(a) == ip[1]) {
-         ip += ip[2] + (ip[3] << 8);
-      }
-      NEXT(4); }
-   op10: /* old type */
+   op11: /* unused */
+      error(11, IFALSE, IFALSE);
+   op10: /* unused */
       error(10, IFALSE, IFALSE);
-   op12: { /* jat2 a t ol oh */
-      word a = R[*ip];
-      if (allocp(a) && imm_type(V(a)) == ip[1]) { /* <- warning, matches raw now */
-         ip += ip[2] + (ip[3] << 8);
-      }
-      NEXT(4); }
+   op12: /* unused */
+      error(12, IFALSE, IFALSE);
    op13: /* ldi{2bit what} [to] */
       R[*ip++] = load_imms[op>>6];
       NEXT(0);
@@ -1237,12 +1229,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       assert_not((rawp(hdr) || hdrsize(hdr)-1 != n), tuple, 32);
       while(n--) { R[*ip++] = tuple[pos++]; }
       NEXT(0); }
-   op33: { /* jrt a t o, jump by raw type (ignoring padding info) */
-      word a = R[*ip];
-      if (allocp(a) && (*(word *)a & 2300) == (2048 | (ip[1]<<TPOS))) {
-         ip += ip[2];
-      }
-      NEXT(3); }
+   op33:
+      error(33, IFALSE, IFALSE);
    op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
       A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
       NEXT(3); }

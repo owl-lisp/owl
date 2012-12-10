@@ -27,7 +27,7 @@
 
    (begin
       ;; fixme: temp register limit
-      (define highest-register 95)
+      (define highest-register 95) ;; atm lower than NR in ovm.c
       (define n-registers (+ highest-register 1)) 
 
       ; reg-touch U r -> mark as live -> make sure it has a value 
@@ -133,12 +133,6 @@
                (tuple 'jz (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
             ((jf a then else)
                (tuple 'jf (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jit a type then else)
-               (tuple 'jit (op a) type (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jat a type then else)
-               (tuple 'jat (op a) type (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jrt a type then else)
-               (tuple 'jrt (op a) type (rtl-rename then op target fail) (rtl-rename else op target fail)))
             (else
                (error "rtl-rename: what is this: " code))))
 
@@ -172,8 +166,6 @@
             (case op
                ((jeq)
                   (values (tuple op a b then else) (reg-touch uses b)))
-               ((jit jat jrt)
-                  (values (tuple op a b then else) uses))
                (else
                   (values (tuple op a then else) uses)))))
 
@@ -306,12 +298,6 @@
                (rtl-retard-jump rtl-retard 'jf a empty  then else)) ; fp
             ((jz a then else)
                (rtl-retard-jump rtl-retard 'jz a empty  then else)) ; fp
-            ((jit a type then else)
-               (rtl-retard-jump rtl-retard 'jit a type then else))
-            ((jat a type then else)
-               (rtl-retard-jump rtl-retard 'jat a type then else))
-            ((jrt a type then else)
-               (rtl-retard-jump rtl-retard 'jrt a type then else))
             ((jab a type then else)
                (rtl-retard-jump rtl-retard 'jab a type then else))
             (else
