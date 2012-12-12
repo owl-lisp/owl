@@ -1,7 +1,11 @@
 TODO QUEUE-ISH:
   + convert j[nzf] to jump-const
   + decide where to store metadata and start moving tests, comments etc there:
-     - related to theorem checking stuff, so bumped up priority
+     - (theorem-style?) tests
+     - object names (should be used also for rendering)
+     - comments (automatically arguments, possibly returns, source)
+     - partial eval info
+  + decide where to store (user defined) type info. directly in constructor metadata? 
   + upgrade fixnum range to 24-56 bits
      - make sure owl/math.scm (and others) don't depend on bignum size via parser
      - change FMAX and FBITS from ovm.c

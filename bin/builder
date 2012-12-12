@@ -10,10 +10,10 @@ EMAIL="aohelin@gmail.com"
 case "$(hostname)" in 
  haltp) 
    SMTP=mail.utanet.fi;
-   DELAY=30 ;; # don't want to spin up fans here
+   DELAY=40 ;; # don't want to spin up fans here
  *)     
    SMTP=mail.panoulu.net ;
-   DELAY=0 ;; # please do run
+   DELAY=10 ;; # please do run
 esac
 
 notify() {

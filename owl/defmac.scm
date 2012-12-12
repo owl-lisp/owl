@@ -136,8 +136,7 @@
 
       (define-syntax if
          (syntax-rules 
-            (not eq? and null? pair? empty? imm alloc raw
-               fix+ fix- int+ int- pair rat comp)
+            (not eq? and null? pair? empty? type =)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
