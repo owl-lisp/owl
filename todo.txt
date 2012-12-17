@@ -1,10 +1,14 @@
 TODO QUEUE-ISH:
-  + convert j[nzf] to jump-const
+  + handle object naming without an intern thread
+     - have a toplevel *[true-]names* which is updated by eval
+     - serialize -> (serializer names) → serialize
+     - write-to -> (writer names) → write-to + use it in eval.scm to render outputs
+     - serialize ->  merge with render, carry a write-flag to be used with strings etc
   + decide where to store metadata and start moving tests, comments etc there:
      - (theorem-style?) tests
-     - object names (should be used also for rendering)
      - comments (automatically arguments, possibly returns, source)
      - partial eval info
+  + remove the intern thread
   + decide where to store (user defined) type info. directly in constructor metadata? 
   + upgrade fixnum range to 24-56 bits
      - make sure owl/math.scm (and others) don't depend on bignum size via parser
@@ -21,6 +25,7 @@ TODO QUEUE-ISH:
   + start integrating theorem checker
   + add RnRS-style records
   + show diffs in benchmark
+  + switch from flat round-robin to more tree-shaped threading
   + compile a direct call to the correct function for simple known vararg function calls (+, -, ...)
   + use type bits directly in fasl encoding?
   + add user definable record type support 

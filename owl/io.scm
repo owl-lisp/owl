@@ -63,6 +63,7 @@
       (owl queue)
       (owl string)
       (owl list-extra)
+      (owl ff)
       (owl vector)
       (owl render)
       (owl list)
@@ -381,8 +382,14 @@
       (define (print-to to . stuff)
          (printer (foldr render '(10) stuff) 0 null to))
 
-      (define (write-to to obj)
-         (printer (serialize obj '()) 0 null to))
+      (define (writer-to names)
+         (let ((serialize (make-serializer names)))
+            (λ (to obj)
+               (printer (serialize obj '()) 0 null to))))
+
+      (define write-to 
+         (writer-to 
+            (put #empty map "map")))
 
       (define (display-to to obj)
          (printer (render obj '()) 0 null to))

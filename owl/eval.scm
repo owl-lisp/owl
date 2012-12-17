@@ -704,12 +704,8 @@
                                        (cons ";; Imported " (cdr exp)))))
                               envp))))
                   ((definition? exp)
-                     (mail 'intern (tuple 'set-name (string-append "in:" (symbol->string (cadr exp)))))  ;; tell intern to assign this name to all codes to come
                      (tuple-case (evaluate (caddr exp) env)
                         ((ok value env2)
-                           (mail 'intern (tuple 'set-name #false)) ;; we stopped evaluating the value
-                           (if (function? value)
-                              (mail 'intern (tuple 'name-object value (cadr exp)))) ;; name function object explicitly
                            (let ((env (env-set env (cadr exp) value)))
                               (ok 
                                  (repl-message 

@@ -233,16 +233,6 @@
                ((tuple? msg)
                   ;(debug "interner: tuple command " (ref (ref msg 1) 1)) ; avoid symbol->string
                   (tuple-case msg
-                     ((set-name name) ;; use this name for all functions
-                        (interner root codes (put names 'name name)))
-                     ((get-name func)
-                        (mail sender 
-                           (or (get names func #false)  ;; in case it is named as such
-                               (get names (bytecode-of func) #false))) ;; in case we know what this belongs to
-                        (interner root codes names))
-                     ((name-object obj name) ;; name any object, overriding anything, for user definitions
-                        (interner root codes 
-                           (put names obj name)))
                      ((flush) ;; clear names before boot
                         (interner root codes empty))
                      (else
@@ -258,6 +248,7 @@
                   (interner root codes names)))))
 
       ;; a placeholder interner for programs which don't need the other services
+      ;; soon to be removed
       (define (dummy-interner)
          (lets ((env (wait-mail))
                 (sender msg env))
