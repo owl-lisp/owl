@@ -44,6 +44,7 @@
       print*
       print*-to         ;; port val → bool
       write 
+      writer-to         ;; names → (port val → bool + io)
       write-to          ;; port val → bool
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool

@@ -33,6 +33,7 @@
       (owl ast)
       (owl env)
       (owl syscall)
+      (owl time) ;; for testing metadata
       (owl symbol)
       (owl io)
       (owl math)
@@ -217,7 +218,9 @@
             (if info
                (begin
                   (display ";; ")
-                  (display info)
+                  (if (list? info)
+                     (for-each (λ (x) (display x) (display " ")) info)
+                     info)
                   (display "\n")))))
 
       ;; render the value if *interactive*, and print as such (or not at all) if it is a repl-message
@@ -233,7 +236,8 @@
                         (halt 127)))
                   (begin
                      (maybe-show-metadata env val)
-                     (write val)
+                     ((writer-to (env-get env name-tag empty)) 
+                        stdout val)
                      (if (not (display "\n> "))
                         (halt 127)))))))
             
@@ -686,6 +690,19 @@
             includes-key    ;; where to load libraries from
             features-key))  ;; implementation features
 
+      ;; update *owl-names* (used by renderer of repl prompt) if the defined value is a function
+      (define (maybe-name-function env name value)
+         (if (function? value)
+            (env-set env name-tag
+               (put (env-get env name-tag empty) value name))
+            env))
+
+      ;; update *owl-meta* to have some data about this
+      (define (maybe-store-metadata env name value)
+         (env-set env meta-tag
+            (put (env-get env meta-tag empty) value 
+               `(defined in ,(env-get env current-library-key 'repl)))))
+
       (define (eval-repl exp env repl)
          (debug env "Evaling " exp)
          (tuple-case (macro-expand exp env)
@@ -706,7 +723,10 @@
                   ((definition? exp)
                      (tuple-case (evaluate (caddr exp) env)
                         ((ok value env2)
-                           (let ((env (env-set env (cadr exp) value)))
+                           (lets
+                              ((env (env-set env (cadr exp) value))
+                               (env (maybe-name-function env (cadr exp) value))
+                               (env (maybe-store-metadata env (cadr exp) value)))
                               (ok 
                                  (repl-message 
                                     (bytes->string (render ";; Defined " (render (cadr exp) null))))
@@ -749,19 +769,26 @@
                          (lib-env
                            (fold 
                               (λ (lib-env key) (env-set lib-env key (env-get env key null)))
-                              *owl-core* library-exports)))
+                              *owl-core* library-exports))
+                         (lib-env (env-set lib-env current-library-key name)))
                         (tuple-case (repl-library exps lib-env repl fail) ;; anything else must be incuded explicitly
                            ((ok library lib-env)
-                              (ok 
-                                 (repl-message 
-                                    (list->string
-                                       (foldr render null
-                                          (list ";; Library " name " added" ))))
-                                 (env-set env library-key 
-                                    (cons (cons name library)
-                                       (keep  ;; drop the loading tag for this library
-                                          (λ (x) (not (equal? (car x) name)))
-                                          (env-get lib-env library-key null)))))) ; <- lib-env may also have just loaded dependency libs
+                              ;; get new function names and metadata from lib-env (later to be handled differently)
+                              (lets
+                                 ((names (env-get lib-env name-tag empty))
+                                  (env (env-set env name-tag (ff-union (env-get env name-tag empty) names (λ (old new) new))))
+                                  (meta (env-get lib-env meta-tag empty))
+                                  (env (env-set env meta-tag (ff-union (env-get env meta-tag empty) meta (λ (old new) new)))))
+                                 (ok 
+                                    (repl-message 
+                                       (list->string
+                                          (foldr render null
+                                             (list ";; Library " name " added" ))))
+                                    (env-set env library-key 
+                                       (cons (cons name library)
+                                          (keep  ;; drop the loading tag for this library
+                                             (λ (x) (not (equal? (car x) name)))
+                                             (env-get lib-env library-key null))))))) ; <- lib-env may also have just loaded dependency libs
                            ((error reason not-env)
                               (fail 
                                  (list "Library" name "failed to load because" reason))))))
