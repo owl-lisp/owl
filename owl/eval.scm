@@ -698,7 +698,7 @@
             env))
 
       ;; update *owl-meta* to have some data about this
-      (define (maybe-store-metadata env name value)
+      (define (maybe-save-metadata env name value)
          (env-set env meta-tag
             (put (env-get env meta-tag empty) value 
                `(defined in ,(env-get env current-library-key 'repl)))))
@@ -726,7 +726,8 @@
                            (lets
                               ((env (env-set env (cadr exp) value))
                                (env (maybe-name-function env (cadr exp) value))
-                               (env (maybe-store-metadata env (cadr exp) value)))
+                               ;(env (maybe-save-metadata env (cadr exp) value))
+                               )
                               (ok 
                                  (repl-message 
                                     (bytes->string (render ";; Defined " (render (cadr exp) null))))

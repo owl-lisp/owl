@@ -55,6 +55,8 @@
 
 (define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 
+(define *owl-names* #empty)
+
 (import (owl syscall))
 
 (import (owl primop))
@@ -883,7 +885,7 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                                 (cons '*args* vm-args)
                                                 (cons 'dump compiler)
                                                 (cons '*owl-version* *owl-version*)
-                                                (cons '*owl-metadata* *owl-metadata*)
+                                                ;(cons '*owl-metadata* *owl-metadata*)
                                                 (cons '*owl-names* initial-names)
                                                 (cons 'eval exported-eval)
                                                 (cons 'render render) ;; can be removed when all rendering is done via libraries
