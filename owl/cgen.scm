@@ -28,6 +28,7 @@
       (owl string)
       (owl primop)
       (owl render)
+      (owl io)
       (only (owl syscall) error)
       (only (owl assemble) inst->op))
 
@@ -65,7 +66,7 @@
             #false))
 
       (define (unknown bs regs fail)
-         ;(print " - cgen does not grok opcode " (car bs))
+         ;(print " - cgen does not grok opcode " (car bs) " " (if (> (car bs) 63) (list 'low (band (car bs) 63)) ""))
          (fail))
 
       (define (get2 l) ; (a b . tl)
@@ -405,6 +406,14 @@
                      (lets ((n to bs (get2 (cdr bs))))
                         (cond
                            (else (values (list "R["to"]=F(" n ");") bs (put regs to 'fixnum)))))))
+               ;; 15=type-byte o r
+               (cons 15
+                  (λ (bs regs fail)
+                     (lets ((o r bs (get2 (cdr bs))))
+                        (values
+                           (list "{word ob=R["o"];if(allocp(ob))ob=V(ob);R["r"]=F((ob>>TPOS)&63);}")
+                           bs 
+                           (put regs r 'fixnum)))))
                (cons 17 ;; arity <n>
                   (λ (bs regs fail)
                      (let ((n (cadr bs)))
@@ -451,7 +460,7 @@
                               (values 
                                  (list "ob=(word *)R[3];R[3]=R[" res "];acc=1;") ; the goto apply is automatic
                                  null regs)))))) ;; <- always end compiling (another branch may continue here)
-               (cons 25 ;; jump-arity n hi8 lo8 
+               (cons 25 ;; fixed jump-arity n hi8 lo8 
                   (λ (bs regs fail)
                      (lets 
                         ((arity hi8 lo8 bs (get3 (cdr bs)))
@@ -605,7 +614,8 @@
          ;(print "emit-c: " (list 'ops ops 'types regs))
          (if (null? ops)
             tail
-            (lets ((res tl regs ((get translators (car ops) unknown) ops regs fail)))
+            (lets 
+               ((res tl regs ((get translators (car ops) unknown) ops regs fail)))
                (cond
                   ;((eq? res #true) ;; introduce missing local register for writing
                   ;   (let ((reg tl)) ;; needed register

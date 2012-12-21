@@ -108,9 +108,6 @@
                (let ((new (string->uninterned-symbol str)))
                   (values (put-symbol root new) new)))))
 
-      ; interner is started before the repl at vm boot
-
-
       (define (string->symbol str)
          (interact 'intern str))
 
@@ -206,7 +203,7 @@
       ;   42)
 
       ;; thread with string → symbol, ...
-      (define (interner root codes names)
+      (define (interner root codes)
          ;(debug "interner: wait")
          (lets
             ((env (wait-mail))
@@ -216,36 +213,29 @@
                   ;(debug "interner: interning " msg)
                   (lets ((root sym (string->interned-symbol root msg)))
                      (mail sender sym)
-                     (interner root codes names)))
+                     (interner root codes)))
                ((bytecode? msg) ;; find an old equal bytecode sequence, extended wrapper, or add a new code fragment
                   ;(debug "interner: interning bytecode")
                   (lets 
-                     ((codes code 
-                           (intern-code codes msg) ;; sharing enabled
-                           ; (values codes msg) ;; sharing disabled
-                           )
-                      (name (get names 'name #false)))
+                     ((codes code (intern-code codes msg)))
                      (mail sender code)
-                     (interner root codes 
-                        (if (get names code #false)
-                           names
-                           (put names code name)))))    ;; name after first finding
+                     (interner root codes)))    ;; name after first finding
                ((tuple? msg)
                   ;(debug "interner: tuple command " (ref (ref msg 1) 1)) ; avoid symbol->string
                   (tuple-case msg
-                     ((flush) ;; clear names before boot
-                        (interner root codes empty))
+                     ((flush) ;; clear names before boot (deprecated)
+                        (interner root codes))
                      (else
                         ;(print "unknown interner op: " msg)
-                        (interner root codes names))))
+                        (interner root codes))))
                ((null? msg) ;; get current info
                   ;(debug "interner: info")
-                  (mail sender (tuple 'interner-state root codes names))
-                  (interner root codes names))
+                  (mail sender (tuple 'interner-state root codes))
+                  (interner root codes))
                (else
                   ;(debug "interner: bad")
                   (mail sender 'bad-kitty)
-                  (interner root codes names)))))
+                  (interner root codes)))))
 
       ;; a placeholder interner for programs which don't need the other services
       ;; soon to be removed
@@ -270,14 +260,11 @@
          (fork-server 'intern dummy-interner))
 
       ;; make a thunk to be forked as the thread
-      ;; (sym ...)  ((bcode . value) ...) old-interner-names → thunk
-      (define (initialize-interner symbol-list codes names)
+      ;; (sym ...)  ((bcode . value) ...) → thunk
+      (define (initialize-interner symbol-list codes)
          (let 
             ((sym-root (fold put-symbol #false symbol-list))
              (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
-            (λ () (interner sym-root code-root 
-                    ;; names - forget old names temporarily
-                    empty
-                  ))))
+            (λ () (interner sym-root code-root))))
 
 ))

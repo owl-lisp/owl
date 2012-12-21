@@ -848,8 +848,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
       (lets
-         ((initial-names (ref (interact 'intern null) 4)) ;; names from current interner
-          (interner-thunk (initialize-interner symbol-list codes initial-names)))
+         ((initial-names *owl-names*)
+          (interner-thunk (initialize-interner symbol-list codes)))
          (λ (vm-special-ops)
             (let ((compiler (make-compiler vm-special-ops)))
                ;; still running in the boostrapping system
@@ -881,8 +881,10 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                                              (list
                                                 (cons '*owl* (directory-of (car vm-args)))
                                                 (cons '*args* vm-args)
-                                                (cons 'dump compiler)                                 ; <- merge here and rename
+                                                (cons 'dump compiler)
                                                 (cons '*owl-version* *owl-version*)
+                                                (cons '*owl-metadata* *owl-metadata*)
+                                                (cons '*owl-names* initial-names)
                                                 (cons 'eval exported-eval)
                                                 (cons 'render render) ;; can be removed when all rendering is done via libraries
                                                 (cons '*vm-special-ops* vm-special-ops)
