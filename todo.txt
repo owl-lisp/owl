@@ -1,4 +1,5 @@
 TODO QUEUE-ISH:
+  + real 'delay' will most likely be needed soon for a new project
   + keep an *owl-library* (can have 'toplevel) and store source of definition to metadata
   + handle object naming without an intern thread
      - have a toplevel *[true-]names* which is updated by eval

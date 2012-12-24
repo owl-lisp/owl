@@ -65,6 +65,7 @@
       (owl string)
       (owl list-extra)
       (owl ff)
+      (owl equal)
       (owl vector)
       (owl render)
       (owl list)
@@ -156,9 +157,36 @@
                   res)
                res))) ;; is #false, eof or bvec
 
+      ;; get a block of size up to block size
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
 
+      (define (bvec-append a b)
+         (list->byte-vector
+            (append
+               (vector->list a)
+               (vector->list b))))
+
+      ;; get a block of size block-size, wait more if less is available and not eof
+      ;; fd n → eof | #false | bvec
+      (define (get-whole-block fd block-size)
+         (let ((this (get-block fd block-size)))
+            (cond
+               ((eof? this) this)
+               ((not this) this)
+               (else
+                  (let ((n (sizeb this)))
+                     (if (eq? n block-size)
+                        this
+                        (let ((tail (get-whole-block fd (- block-size n))))
+                           (cond
+                              ((eof? tail) this)
+                              ((not tail) this) ;; next read will also fail, return last ok data
+                              (else 
+                                 ;; unnecessarily many conversions if there are many partial
+                                 ;; reads, but block size is tiny in file->vector making this
+                                 ;; irrelevant
+                                 (bvec-append this tail))))))))))
 
       ;;; TCP sockets
 
@@ -433,7 +461,7 @@
       ;;;
 
       (define (read-blocks port buff last-full?)
-         (let ((val (get-block port input-block-size))) ;; fixme: check for off by one
+         (let ((val (get-whole-block port input-block-size)))
             (cond
                ((eof? val)
                   (merge-chunks
@@ -446,14 +474,23 @@
                      (cons val buff)
                      (eq? (sizeb val) input-block-size)))
                (else
-                  ;(print "read-blocks: partial chunk received before " val)
                   #false))))
 
+      (define (maybe-open-file path)
+         (if (equal? path "-")
+            stdin
+            (open-input-file path)))
+
+      (define (maybe-close-port port)
+         (if (eq? port stdin)
+            #true
+            (close-port port)))
+
       (define (file->vector path) ; path -> vec | #false
-         (let ((port (open-input-file path)))
+         (let ((port (maybe-open-file path)))
             (if port
                (let ((data (read-blocks port null #true)))
-                  (close-port port)
+                  (maybe-close-port port)
                   data)
                (begin
                   ;(print "file->vector: cannot open " path)
