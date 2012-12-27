@@ -168,25 +168,26 @@
                (vector->list b))))
 
       ;; get a block of size block-size, wait more if less is available and not eof
-      ;; fd n → eof | #false | bvec
+      ;; fd n → eof-seen? eof|#false|bvec
       (define (get-whole-block fd block-size)
          (let ((this (get-block fd block-size)))
             (cond
-               ((eof? this) this)
-               ((not this) this)
+               ((eof? this) (values #true this))
+               ((not this) (values #false this))
                (else
                   (let ((n (sizeb this)))
                      (if (eq? n block-size)
-                        this
-                        (let ((tail (get-whole-block fd (- block-size n))))
+                        (values #false this)
+                        (lets ((eof-seen? tail (get-whole-block fd (- block-size n))))
                            (cond
-                              ((eof? tail) this)
-                              ((not tail) this) ;; next read will also fail, return last ok data
+                              ((eof? tail) (values #true this))
+                              ((not tail) (values #false this)) ;; next read will also fail, return last ok data
                               (else 
                                  ;; unnecessarily many conversions if there are many partial
                                  ;; reads, but block size is tiny in file->vector making this
                                  ;; irrelevant
-                                 (bvec-append this tail))))))))))
+                                 (values eof-seen?
+                                    (bvec-append this tail)))))))))))
 
       ;;; TCP sockets
 
@@ -460,21 +461,20 @@
       ;;; Files <-> vectors
       ;;;
 
-      (define (read-blocks port buff last-full?)
-         (let ((val (get-whole-block port input-block-size)))
+      ;; read all blocks for a port, all but possibly last one having input-block-size bytes
+      (define (read-blocks port buff)
+         (lets ((eof-seen? val (get-whole-block port input-block-size)))
             (cond
-               ((eof? val)
-                  (merge-chunks
-                     (reverse buff)
-                     (fold + 0 (map sizeb buff))))
+               (eof-seen?
+                  (let ((buff (if (eof? val) buff (cons val buff))))
+                     (merge-chunks
+                        (reverse buff)
+                        (fold + 0 (map sizeb buff)))))
                ((not val)
                   #false)
-               (last-full?
-                  (read-blocks port
-                     (cons val buff)
-                     (eq? (sizeb val) input-block-size)))
                (else
-                  #false))))
+                  (read-blocks port 
+                     (cons val buff))))))
 
       (define (maybe-open-file path)
          (if (equal? path "-")
@@ -489,7 +489,7 @@
       (define (file->vector path) ; path -> vec | #false
          (let ((port (maybe-open-file path)))
             (if port
-               (let ((data (read-blocks port null #true)))
+               (let ((data (read-blocks port null)))
                   (maybe-close-port port)
                   data)
                (begin
