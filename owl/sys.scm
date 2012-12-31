@@ -10,6 +10,7 @@
    (export
       dir-fold
       dir->list
+      exec
       getenv)
 
    (import
@@ -41,6 +42,15 @@
       (define (close-dir obj)
          (sys-prim 13 obj #false #false))
 
+      ;; path (arg0 ...), arg0 customarily being path
+      ;; returns only if exec fails
+      (define (exec path args)
+         (lets
+            ((path (c-string path))
+             (args (map c-string args)))
+            (if (and path (all (λ (x) x) args))
+               (sys-prim 17 path args #false)
+               (cons path args))))
 
       ;;; 
       ;;; Safe derived operations

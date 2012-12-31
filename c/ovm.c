@@ -154,6 +154,7 @@ void free(void *ptr);
 char *getenv(const char *name);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
+int execv(const char *path, char *const argv[]);
 
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
@@ -344,7 +345,7 @@ void signal_handler(int signal) {
          breaked |= 2; break;
       case SIGPIPE: break; /* can cause loop when reporting errors */
       default: 
-         printf("vm: signal %d\n", signal);
+         // printf("vm: signal %d\n", signal);
          breaked |= 4;
    }
 #endif
@@ -358,6 +359,16 @@ unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was miss
    unsigned int p = 0;
    while(p < max && *pos++) p++;
    return p;
+}
+
+/* list length, no overflow or valid termination checks */
+int llen(word *ptr) {
+   int len = 0;
+   while(allocp(ptr) && *ptr == PAIRHDR) {
+      len++;
+      ptr = (word *) ptr[2];
+   }
+   return len;
 }
 
 void set_signal_handler() {
@@ -767,6 +778,20 @@ static word prim_sys(int op, word a, word b, word c) {
          char *name = (char *)a;
          if (!allocp(name)) return IFALSE;
          return strp2owl(getenv(name + W)); }
+      case 17: { /* exec[v] path argl ret */
+         char *path = ((char *) a) + W;
+         int nargs = llen((word *)b);
+         char **args = malloc((nargs+1) * sizeof(char *));
+         char **argp = args;
+         if (args == NULL) 
+            return IFALSE;
+         while(nargs--) {
+            *argp++ = ((char *) ((word *) b)[1]) + W;
+            b = ((word *) b)[2];
+         }
+         *argp = NULL;
+         execv(path, args); /* may return -1 and set errno */
+         return IFALSE; }
       default: 
          return IFALSE;
    }
@@ -920,7 +945,6 @@ word vm(word *ob, word *args) {
    static word R[NR];
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
    usegc = 1; /* enble gc (later have if always evabled) */
-   //fprintf(stderr, "VM STARTED\n");
 
    /* clear blank regs */
    while(acc < NR) { R[acc++] = INULL; }
@@ -1028,7 +1052,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
 
    if (op) {
       main_dispatch:
-      //fprintf(stderr, "vm: %d\n", op);
       EXEC;
    } else {
       op = *ip<<8 | ip[1];
