@@ -150,12 +150,12 @@ int slice;
 word vm();
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
+void *malloc(size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 int execv(const char *path, char *const argv[]);
-
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
