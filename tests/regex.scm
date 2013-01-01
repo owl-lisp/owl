@@ -3,7 +3,7 @@
 ;;;
 
 ;,r "owl/regex.l" 
-(import (owl regex)) ;; when testing without a heap rebuild
+; (import (owl regex)) ;; when testing without a heap rebuild
 
 ;; regex str → did-match-ok?
 (define (test regex input should?)

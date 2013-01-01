@@ -7,6 +7,7 @@
  | 'm/./' + '' = '#false'
  | 'm/./' + 'ax' = '#true'
  | 'm/aa/' + 'aaxx' = '#true'
+ | 'm/\t/' + '	' = '#true'
  | 'm/(a)\1/' + 'aax' = '#true'
  | 'm/a*/' + 'aaaaaaaaaaaaxx' = '#true'
  | 'm/a*b*/' + 'aaaaaaaaaaaabbbbbbxx' = '#true'
@@ -153,4 +154,7 @@
  | 'm/^a{3,}/' + 'aab' = '#false'
  | 'm/^a{3,}/' + 'aaab' = '#true'
  | 'm/^a{3,}/' + 'aaaab' = '#true'
+ | 'm/\t\t/' + '		' = '#true'
+ | 'c/\t/' + 'a	b	c' = '(a b c)'
+ | 'c/[ \t\n\r]+/' + 'a  	b	c		d' = '(a b c d)'
  '--> ~~\o\ ALL TESTS PASSED /o/~~ 
