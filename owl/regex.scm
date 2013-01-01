@@ -612,14 +612,17 @@
             ((skip (get-imm 92)) ; \
              (val
                (get-any-of
-                  (imm-val 100 accept-digit)       ;; \d = [0-9]
-                  (imm-val  68 accept-nondigit)    ;; \D = [^0-9]
-                  (imm-val  46 accept-dot)         ;; \. = .
-                  (imm-val 119 accept-word)        ;; \w = [_0-9a-zA-Z]
-                  (imm-val  87 accept-nonword)     ;; \W = [^_0-9a-zA-Z]
-                  (imm-val 115 accept-space)       ;; \s = [ \t\r\n\v\f]
-                  (imm-val  83 accept-nonspace)    ;; \S = [ \t\r\n\v\f]
-                  (imm-val  47 (imm 47)))))        ;; \/ = /
+                  (imm-val #\d accept-digit)       ;; \d = [0-9]
+                  (imm-val #\D accept-nondigit)    ;; \D = [^0-9]
+                  (imm-val #\. accept-dot)         ;; \. = .
+                  (imm-val #\w accept-word)        ;; \w = [_0-9a-zA-Z]
+                  (imm-val #\n (imm #\newline))    ;; \n = newline
+                  (imm-val #\r (imm 13))           ;; \r = carriage return
+                  (imm-val #\t (imm 9))            ;; \t = tab
+                  (imm-val #\W accept-nonword)     ;; \W = [^_0-9a-zA-Z]
+                  (imm-val #\s accept-space)       ;; \s = [ \t\r\n\v\f]
+                  (imm-val #\S accept-nonspace)    ;; \S = [ \t\r\n\v\f]
+                  (imm-val #\/ (imm #\/)))))       ;; \/ = /
             val))
 
       ;; strings are already sequences of unicode code points, so no need to decode here
@@ -638,7 +641,7 @@
 
       (define get-reference ;; \0-\9
          (let-parses
-            ((skip (get-imm 92))
+            ((skip (get-imm #\\))
              (d get-byte)
              (verify (and (<= 48 d) (< d 58)) "bad digit"))
             (matched (- d 48))))
@@ -853,7 +856,7 @@
       (define (get-regex)
          (let-parses
             ((hd (get-catn get-regex))
-             (tl (get-greedy* (let-parses ((skip (get-imm 124)) (rex (get-catn get-regex))) rex))))
+             (tl (get-kleene* (let-parses ((skip (get-imm 124)) (rex (get-catn get-regex))) rex))))
             (fold rex-or hd tl)))
     
       (define get-matcher-regex

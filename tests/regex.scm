@@ -3,7 +3,7 @@
 ;;;
 
 ;,r "owl/regex.l" 
-;(import lib-regex) ;; when testing without a heap rebuild
+(import (owl regex)) ;; when testing without a heap rebuild
 
 ;; regex str → did-match-ok?
 (define (test regex input should?)
@@ -32,7 +32,7 @@
       ("m/./" "ax" #true)
       ("m/aa/" "aaxx" #true)
       ;; fixme: character classes and strings do handle \t and pals at all. also check if it is ok to support \xff and \uffff in both.
-      ;("m/\\t/" "	" #true) ;; todo: not entirely sure if this kind of quotations are allowed
+      ("m/\\t/" "	" #true) ;; todo: not entirely sure if this kind of quotations are allowed
       ("m/(a)\\1/" "aax" #true)
       ("m/a*/" "aaaaaaaaaaaaxx" #true)
       ("m/a*b*/" "aaaaaaaaaaaabbbbbbxx" #true)
@@ -186,6 +186,9 @@
       ("m/^a{3,}/" "aab" #false)
       ("m/^a{3,}/" "aaab" #true)
       ("m/^a{3,}/" "aaaab" #true)
+      ("m/\\t\\t/" "\t\t" #true)
+      ("c/\\t/" "a\tb\tc" ("a" "b" "c"))
+      ("c/[ \\t\\n\\r]+/" "a  \tb\tc\t\r\td" ("a" "b" "c" "d"))
       ))
 
 ;; run a small battery of tests during load to check for issues
