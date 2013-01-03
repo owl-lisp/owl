@@ -158,6 +158,8 @@ DIR *fdopendir(int fd);
 int execv(const char *path, char *const argv[]);
 pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
+int chdir(const char *path);
+
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -828,8 +830,12 @@ static word prim_sys(int op, word a, word b, word c) {
             fprintf(stderr, "vm: unexpected process exit status: %d\n", status);
             r = (word *)IFALSE;
          }
-         return (word)r;
-      }
+         return (word)r; }
+      case 20: { /* chdir path res */
+         char *path = ((char *)a) + W;
+         if (chdir(path) < 0)
+            return IFALSE;
+         return ITRUE; }
       default: 
          return IFALSE;
    }

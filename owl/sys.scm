@@ -13,6 +13,7 @@
       exec
       fork
       wait
+      chdir
       getenv)
 
    (import
@@ -69,6 +70,10 @@
       (define (dir->list path)
          (dir-fold (λ (seen this) (cons this seen)) null path))
 
+      (define (chdir path)
+         (let ((path (c-string path)))
+            (and path
+               (sys-prim 20 path #false #false))))
 
       ;;; 
       ;;; Processes
