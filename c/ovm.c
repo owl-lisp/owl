@@ -156,6 +156,8 @@ char *getenv(const char *name);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 int execv(const char *path, char *const argv[]);
+pid_t fork(void);
+pid_t waitpid(pid_t pid, int *status, int options);
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -792,6 +794,42 @@ static word prim_sys(int op, word a, word b, word c) {
          *argp = NULL;
          execv(path, args); /* may return -1 and set errno */
          return IFALSE; }
+      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
+         pid_t pid = fork();
+         if (pid == -1) /* fork failed */
+            return IFALSE;
+         if (pid == 0) /* we're in child, return true */
+            return ITRUE;
+         if ((int)pid > FMAX)
+            fprintf(stderr, "vm: child pid larger than max fixnum: %d\n", pid);
+         return F(pid&FMAX); }
+      case 19: { /* wait <pid> <respair> _ */
+         pid_t pid = (a == IFALSE) ? -1 : fixval(a);
+         int status;
+         word *r = (word *) b;
+         pid = waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED);
+         if (pid == -1) 
+            return IFALSE; /* error */
+         if (pid == 0)
+            return ITRUE; /* no changes, would block */
+         if (WIFEXITED(status)) {
+            r[1] = F(1);
+            r[2] = F(WEXITSTATUS(status));
+         } else if (WIFSIGNALED(status)) {
+            r[1] = F(2);
+            r[2] = F(WTERMSIG(status));
+         } else if (WIFSTOPPED(status)) {
+            r[1] = F(3);
+            r[2] = F(WSTOPSIG(status));
+         } else if (WIFCONTINUED(status)) {
+            r[1] = F(4);
+            r[2] = F(1);
+         } else {
+            fprintf(stderr, "vm: unexpected process exit status: %d\n", status);
+            r = (word *)IFALSE;
+         }
+         return (word)r;
+      }
       default: 
          return IFALSE;
    }

@@ -11,6 +11,8 @@
       dir-fold
       dir->list
       exec
+      fork
+      wait
       getenv)
 
    (import
@@ -18,11 +20,14 @@
       (owl string)
       (owl math)
       (owl equal)
+      (owl io)
+      (owl syscall)
       (owl eof)
       (owl list)
       (owl vector))
 
    (begin
+
       ;;;
       ;;; Unsafe operations not to be exported
       ;;;
@@ -41,16 +46,6 @@
       ;; _ → #true
       (define (close-dir obj)
          (sys-prim 13 obj #false #false))
-
-      ;; path (arg0 ...), arg0 customarily being path
-      ;; returns only if exec fails
-      (define (exec path args)
-         (lets
-            ((path (c-string path))
-             (args (map c-string args)))
-            (if (and path (all (λ (x) x) args))
-               (sys-prim 17 path args #false)
-               (cons path args))))
 
       ;;; 
       ;;; Safe derived operations
@@ -74,6 +69,36 @@
       (define (dir->list path)
          (dir-fold (λ (seen this) (cons this seen)) null path))
 
+
+      ;;; 
+      ;;; Processes
+      ;;; 
+
+      ;; path (arg0 ...), arg0 customarily being path
+      ;; returns only if exec fails
+
+      (define (exec path args)
+         (lets
+            ((path (c-string path))
+             (args (map c-string args)))
+            (if (and path (all (λ (x) x) args))
+               (sys-prim 17 path args #false)
+               (cons path args))))
+
+      ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
+      (define (fork)
+         (sys-prim 18 #false #false #false))
+
+      (define (wait pid)
+         (let ((res (sys-prim 19 pid (cons #false #false) #false)))
+            (cond
+               ((not res) res)
+               ((eq? res #true)
+                  (interact sleeper-id 6) ;; sleep using the associated IO thread
+                  (wait pid))
+               (else 
+                  ;; pair of (<exittype> . <result>)
+                  res))))
 
       ;;;
       ;;; Environment variables
