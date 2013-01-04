@@ -230,7 +230,10 @@
 
       ;; run thread scheduler for n rounds between possibly calling vm sleep()
       (define sleep-check-rounds 10)
-      (define ms-per-round 2)
+
+      ;; number of milliseconds to sleep for real at a time when no threads are running but
+      ;; they want to sleep, typically waiting for input or output
+      (define ms-per-round 10)
 
       ;; IO is closely tied to sleeping in owl now, because instead of the poll there are 
       ;; several threads doing their own IO with their own fds. the ability to sleep well 
