@@ -10,6 +10,15 @@ CFLAGS=-Wall -O2
 # owl needs just a single binary
 owl: bin/ol 
 
+# make a bytecode image instead of a binary to avoid having to call C-compiler, 
+# which make take minutes on a reallyk slow machine
+bytecode-owl: fasl/ol.fasl
+	# note that tests are omitted because they have already been run against fasl/ol.fasl, 
+   # and /usr/bin/owl-vm may be too old
+	echo '#!/usr/bin/owl-vm' > bin/ol
+	cat fasl/ol.fasl >> bin/ol
+	chmod +x bin/ol
+
 ## fasl (plain bytecode) image boostrap
 
 fasl/boot.fasl: fasl/init.fasl
