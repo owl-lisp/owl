@@ -331,14 +331,14 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-void set_nonblock (int sock) {
+void set_blocking(int sock, int blockp) {
 #ifdef WIN32
    unsigned long flags = 1;
    if(sock>3) { /* stdin is read differently, out&err block */
       ioctlsocket(sock, FIONBIO, &flags);
    }
 #else
-   fcntl(sock, F_SETFL, O_NONBLOCK);
+   fcntl(sock, F_SETFL, (blockp?:O_NONBLOCK));
 #endif
 }
 
@@ -521,7 +521,7 @@ static word prim_connect(word *host, word port) {
       close(sock);
       return IFALSE;
    }
-   set_nonblock(sock);
+   set_blocking(sock,0);
    return F(sock);
 }
 
@@ -646,7 +646,7 @@ static word prim_sys(int op, word a, word b, word c) {
             close(val);
             return IFALSE;
          }
-         set_nonblock(val);
+         set_blocking(val,0);
          return F(val); }
       case 2: 
          return close(fixval(a)) ? IFALSE : ITRUE;
@@ -666,7 +666,7 @@ static word prim_sys(int op, word a, word b, word c) {
             close(s);
             return IFALSE;
          }
-         set_nonblock(s);
+         set_blocking(s,0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = fixval(a);
@@ -677,7 +677,7 @@ static word prim_sys(int op, word a, word b, word c) {
          char *ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
-         set_nonblock(fd);
+         set_blocking(fd,0);
          ipa = (char *) &addr.sin_addr;
          *fp = make_raw_header(2, TBVEC, 4%W);
          bytecopy(ipa, ((char *) fp) + W, 4);
@@ -794,7 +794,13 @@ static word prim_sys(int op, word a, word b, word c) {
             b = ((word *) b)[2];
          }
          *argp = NULL;
+         set_blocking(0,1); /* try to return stdio to blocking mode */
+         set_blocking(1,1); /* warning, other file descriptors will stay in nonblocking mode */
+         set_blocking(2,1);
          execv(path, args); /* may return -1 and set errno */
+         set_blocking(0,0); /* exec failed, back to nonblocking io for owl */
+         set_blocking(1,0);
+         set_blocking(2,0);
          return IFALSE; }
       case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
          pid_t pid = fork();
@@ -972,10 +978,9 @@ word boot(int nargs, char **argv) {
    setvbuf(stderr, NULL, _IONBF, 0);
    /* set up signal handler */
    set_signal_handler();
-   /* can i has nonblocking stdio */
-   set_nonblock(0);
-   set_nonblock(1);
-   set_nonblock(2);
+   set_blocking(0,0); /* change to nonblocking stdio */
+   set_blocking(1,0);
+   set_blocking(2,0);
    /* clear the pointers */
    /* fixme, wrong when heap has > 65534 objects */
    ptrs[0] = make_raw_header(nobjs+1,0,0);
