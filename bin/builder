@@ -69,7 +69,7 @@ do
 	cd owl-lisp
 	git pull
    NEWME=$(md5sum < bin/builder)
-   test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/bulder; }
+   test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/builder; }
 	make clean
 	VERSION=$(thisgit)
 	echo building owl
