@@ -32,7 +32,7 @@ notify_irc() {
 renice +20 $$
 
 date | notify "Builder.sh started on $(hostname)"
-date | notify_irc "builder started on $(hostname) ($(uname -m))"
+date | notify_irc "builder started on $(hostname) ($(uname -m), $(echo $ME | dd bs=1 count=5))"
 
 test -d $WORK || {
    echo "work directory '$WORK' doesn't exist";
@@ -53,7 +53,7 @@ do
    test -d $project || git clone http://haltp.org/git/$project.git
 done
 
-TESTMINS=10     # minutes of random unit tests 
+TESTMINS=15     # minutes of random unit tests 
 THEOREMS=5000   # iterations of theorem test
 TIMELIMIT=3000  # max build seconds
 
