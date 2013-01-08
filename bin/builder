@@ -10,7 +10,7 @@ MYDIR=$(pwd)
 
 WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
-SIDEPROJECTS="radamsa blab dwim spektro"
+RELATEDPROJECTS="radamsa blab dwim spektro"
 
 case "$(hostname)" in 
  haltp) 
@@ -47,7 +47,7 @@ thisgit() {
 cd $WORK
 
 echo "*** GETTING SOURCES ***"
-for project in owl-lisp $SIDEPROJECTS
+for project in owl-lisp $RELATEDPROJECTS
 do
    echo " - $project"
    test -d $project || git clone http://haltp.org/git/$project.git
@@ -88,10 +88,10 @@ do
 	echo $VERSION > .lastbuild
 
 
-   ## BUILD SIDEPROJECTS 
+   ## BUILD RELATEDPROJECTS 
 
    echo "*** BUILDING SIDE PROJECTS ***"
-   for project in $SIDEPROJECTS
+   for project in $RELATEDPROJECTS
    do
       cd $HOME/ram
       echo " - fresh $project build"
