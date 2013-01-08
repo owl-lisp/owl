@@ -4,8 +4,9 @@
 # you probably don't want to run this.
 # TODO: integrate benchmark reporting after they have been updated
 
-WORK=$HOME/ram # normally a ramdisk, don't want to ssds too much
+WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
+SIDEPROJECTS="radamsa blab spektro"
 
 case "$(hostname)" in 
  haltp) 
@@ -13,7 +14,7 @@ case "$(hostname)" in
    DELAY=40 ;; # don't want to spin up fans here
  *)     
    SMTP=mail.panoulu.net ;
-   DELAY=10 ;; # please do run
+   DELAY=0 ;; # please do run
 esac
 
 notify() {
@@ -34,17 +35,21 @@ test -d $WORK || {
    exit 2;
 }
 
+# get part of current git version hash for identification
 thisgit() {
    git log | head -n 1 | sed -e 's/.* \(......\).*/\1.../'
 }
 
 cd $WORK
 
-test -d owl-lisp || git clone http://haltp.org/git/owl-lisp.git
-test -d radamsa  || git clone http://haltp.org/git/radamsa.git
-test -d blab     || git clone http://haltp.org/git/blab.git
+echo "*** GETTING SOURCES ***"
+for project in owl-lisp $SIDEPROJECTS
+do
+   echo " - $project"
+   test -d $project || git clone http://haltp.org/git/$project.git
+done
 
-TESTMINS=15     # minutes of random unit tests 
+TESTMINS=20     # minutes of random unit tests 
 THEOREMS=5000   # iterations of theorem test
 TIMELIMIT=3000  # max build seconds
 
@@ -77,53 +82,34 @@ do
 	echo $VERSION > .lastbuild
 
 
-   ## BUILD RADAMSA 
+   ## BUILD SIDEPROJECTS 
 
-   cd $HOME/ram
-	echo " - fresh radamsa build"
-	cd radamsa
-	git pull
-	make clean
-	rm -rf owl-lisp
-	cp -a ../owl-lisp .
-	VERSION="radamsa $(thisgit), owl $(cd owl-lisp && thisgit)"
-	(ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || {
-		test "$(cat .lastbuild)" = "$VERSION" \
-			|| notify_irc "aoh, radamsa build FAILED for $VERSION: $(cat build.log | grep ERROR | head -n 1)"
-		echo "$VERSION" > .lastbuild
-		notify "Radamsa build failed on $(hostname)" < build.log;
-		echo "FAIL";
-	}
-	test "$(cat .lastbuild)" = "$VERSION" \
-		|| notify_irc "build success for $VERSION"
-	echo "updated version to $VERSION"
-	echo $VERSION > .lastbuild
-
-
-   ## BUILD BLAB 
-
-	cd $HOME/ram
-	echo " - fresh blab build"
-	cd blab
-	git pull
-	make clean
-	rm -rf owl-lisp
-	cp -a ../owl-lisp .
-	VERSION="blab $(thisgit), owl $(cd owl-lisp && thisgit)"
-	(ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || {
-		test "$(cat .lastbuild)" = "$VERSION" \
-			|| notify_irc "aoh, blab build FAILED for $VERSION: $(cat build.log | grep ERROR | head -n 1)"
-		notify "Blab build failed on $(hostname)" < build.log;
-		echo "$VERSION" > .lastbuild
-		echo "FAIL";
-	}
-	test "$(cat .lastbuild)" = "$VERSION" \
-		|| notify_irc "build success for $VERSION"
-	echo "updated version to $VERSION"
-	echo $VERSION > .lastbuild
+   echo "*** BUILDING SIDE PROJECTS ***"
+   for project in $SIDEPROJECTS
+   do
+      cd $HOME/ram
+      echo " - fresh $project build"
+      cd $project
+      git pull
+      make clean
+      rm -rf owl-lisp
+      cp -a ../owl-lisp .
+      VERSION="$project $(thisgit), owl $(cd owl-lisp && thisgit)"
+      (ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || {
+         test "$(cat .lastbuild)" = "$VERSION" \
+            || notify_irc "aoh, $project build FAILED for $VERSION: $(cat build.log | grep ERROR | head -n 1)"
+         echo "$VERSION" > .lastbuild
+         notify "$project build failed on $(hostname)" < build.log;
+         echo "FAIL";
+      }
+      test "$(cat .lastbuild)" = "$VERSION" \
+         || notify_irc "build success for $VERSION"
+      echo "updated version to $VERSION"
+      echo $VERSION > .lastbuild
+   done
 
 
-   ## RANDOMIZED UNIT TESTS
+   ## RANDOMIZED OWL UNIT TESTS
 
 	cd $WORK/owl-lisp
 	VERSION=$(thisgit)
