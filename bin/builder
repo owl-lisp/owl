@@ -6,7 +6,7 @@
 
 WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
-SIDEPROJECTS="radamsa blab spektro"
+SIDEPROJECTS="radamsa blab dwim spektro"
 
 case "$(hostname)" in 
  haltp) 
