@@ -1,8 +1,13 @@
 #!/bin/bash
 
-# a script to build owl and some related tools periodically from scratch.
+# a script to build owl and some related tools periodically from scratch
+# and run randomized tests in the meantime.
 # you probably don't want to run this.
-# TODO: integrate benchmark reporting after they have been updated
+
+# restart run if i get updated
+echo "I'm $0"
+ME=$(md5sum < $0)
+MYDIR=$(pwd)
 
 WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
@@ -49,7 +54,7 @@ do
    test -d $project || git clone http://haltp.org/git/$project.git
 done
 
-TESTMINS=20     # minutes of random unit tests 
+TESTMINS=10     # minutes of random unit tests 
 THEOREMS=5000   # iterations of theorem test
 TIMELIMIT=3000  # max build seconds
 
@@ -64,6 +69,8 @@ do
 	echo " - fresh owl build"
 	cd owl-lisp
 	git pull
+   NEWME=$(md5sum < bin/builder)
+   test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/bulder; }
 	make clean
 	VERSION=$(thisgit)
 	echo building owl
