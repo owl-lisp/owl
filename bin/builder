@@ -5,7 +5,6 @@
 # you probably don't want to run this.
 
 # restart run if i get updated
-echo "I'm $0"
 ME=$(md5sum < $0)
 MYDIR=$(pwd)
 
