@@ -1,4 +1,9 @@
 TODO QUEUE-ISH:
+  + busy-loopish polling is stupid (and it was known to be but added in name of portability). drop it and add poll back
+     - add a poll-primop
+     - io operations try to do direct action as before
+     - if it would block, interact with sleeper as currently, but let it know the fd
+     - sleeper does a real poll with sleep instead of just sleep
   + real 'delay' will most likely be needed soon for a new project
   + keep an *owl-library* (can have 'toplevel) and store source of definition to metadata
   + handle object naming without an intern thread
