@@ -203,9 +203,12 @@
       ;;; these cannot be in primop since they use lists and ffs
 
       (define (verbose-vm-error opcode a b)
-         (if (eq? opcode 256) ;; arity error, could be variable 
-            ; fixme, add but got ...
-            `(function ,b got wrong number of arguments)
+         (if (eq? opcode 17) ;; arity error, could be variable 
+            ; this is either a call, in which case it has an implicit continuation, 
+            ; or a return from a function which doesn't have it. it's usually a call, 
+            ; so -1 to not count continuation. there is no way to differentiate the 
+            ; two, since there are no calls and returns, just jumps.
+            `(function ,a got did not want ,(- b 1) arguments) 
             `("error: instruction" ,(primop-name opcode) "reported error: " a " " b)))
 
       ;; ff of wrapper-fn → opcode

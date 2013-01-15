@@ -1144,11 +1144,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
       if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
       NEXT(3); 
-   op17: /* narg n, todo: add argument listing also here or drop */
-      if (unlikely(acc != *ip)) {
-         error(256, F(*ip), ob);
-      }
-      NEXT(1);
+   op17: /* arity error */
+      error(17, ob, F(acc));
    op18: /* goto-code p */
       ob = (word *) R[*ip]; /* needed in opof gc */
       acc = ip[1];

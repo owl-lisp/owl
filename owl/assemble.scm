@@ -290,14 +290,14 @@
                                  (band 255 len)           ;; low jump
                                  (append bytes
                                     (if (null? tail)
-                                       (list 17 0)
+                                       (list 17)
                                        tail)))
                               (ilist 89 (if fixed? arity (- arity 1))       ;; last is the optional one
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
                                  (append bytes 
                                     (if (null? tail)
-                                       (list 17 0)        ;; force error
+                                       (list 17)        ;; force error
                                        tail)))))))))
             (else
                (error "assemble-code: unknown AST node " obj))))

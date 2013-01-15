@@ -33,9 +33,27 @@
 
    (begin
 
+      (define (app a b)
+         (if (eq? a '())
+            b
+            (cons (car a) (app (cdr a) b))))
+
+      (define (len lst)
+         (let loop ((lst lst) (n 0))
+            (if (eq? lst '())
+               n
+               (lets ((n _ (fx+ n 1)))
+                  (loop (cdr lst) n)))))
+
       (define (func lst) 
-         (raw (cons 17 lst)        ;; (nargs n op1...) 
-            type-bytecode #false))
+         (lets 
+            ((arity (car lst))
+             (lst (cdr lst))
+             (len (len lst)))
+            (raw
+               (cons 25 (cons arity (cons 0 (cons len 
+                  (app lst (list 17)))))) ;; fail if arity mismatch
+               type-bytecode #false)))
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 

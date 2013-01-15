@@ -1,4 +1,6 @@
 TODO QUEUE-ISH:
+  + check jump instruction offsets and possibly switch to aligned 1-byte offsets
+  + split jmp-nargs and jmp-nargs+ instructions
   + real 'delay' will most likely be needed soon for a new project
   + keep an *owl-library* (can have 'toplevel) and store source of definition to metadata
   + handle object naming without an intern thread
@@ -21,24 +23,12 @@ TODO QUEUE-ISH:
        o preferably by defining relative to *fixnum-bits*
      - take care of unexpected issues
        o have a distinct encoding for integers, or postprocess while rebalancing and -interning?
-  + is it (import <thing>) or (import <thing> ...)?
   + typed bind, with size check (compile.scm has part of it)
   + case-lambda and/or something case-like should support typed deconstruction fairly natively
   + start integrating theorem checker
   + add RnRS-style records
-  + show diffs in benchmark
-  + switch from flat round-robin to more tree-shaped threading
   + compile a direct call to the correct function for simple known vararg function calls (+, -, ...)
   + use type bits directly in fasl encoding?
-  + add user definable record type support 
-     - would be nice to have some support for algebraic data types using them
-     - switch the compiler to use them to make the intermediate language structure more explicit
-     - would be nice to have something like:
-         (match foo
-            ((cons a b) ..) ; <- primitive type
-            (null ...)      ; <- immediate value from env? or require '() or #null?
-            ((slartibartfast fjordname length dimension) ...) ; <- record type
-            (else ...))
   + check http://trac.sacrideo.us/wg/wiki/ImplementationContrasts for unintentional behavior
   + start moving R7RS functions to (scheme *)
   + add smarts to signal-halt and rename it to handle-signal

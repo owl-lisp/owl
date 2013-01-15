@@ -414,12 +414,11 @@
                            (list "{word ob=R["o"];if(allocp(ob))ob=V(ob);R["r"]=F((ob>>TPOS)&63);}")
                            bs 
                            (put regs r 'fixnum)))))
-               (cons 17 ;; arity <n>
+               (cons 17 ;; arity-fail
                   (λ (bs regs fail)
-                     (let ((n (cadr bs)))
-                        (values
-                           (list "if(acc!=" n "){error(256,F(" n "),ob)};")
-                           (cddr bs) regs))))
+                     (values
+                        (list "{error(17,ob,F(acc));}")
+                        null regs)))
                (cons 18 ;; goto-code <p>
                   (λ (bs regs fail)
                      (lets
