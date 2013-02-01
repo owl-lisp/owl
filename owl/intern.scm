@@ -14,6 +14,8 @@
       symbol->string
       initialize-interner
       string->uninterned-symbol
+      string->interned-symbol       ;; tree string → tree' symbol
+      empty-symbol-tree 
       intern-symbols
       start-dummy-interner)
 
@@ -33,6 +35,8 @@
    (begin
       ; hack warning, could use normal = and < here, but 
       ; using primitives speeds up parsing a bit
+
+      (define empty-symbol-tree #false)
 
       ; #false = s1 is less, 0 = equal, 1 = s1 is more
       (define (walk s1 s2)
@@ -263,7 +267,7 @@
       ;; (sym ...)  ((bcode . value) ...) → thunk
       (define (initialize-interner symbol-list codes)
          (let 
-            ((sym-root (fold put-symbol #false symbol-list))
+            ((sym-root (fold put-symbol empty-symbol-tree symbol-list))
              (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
             (λ () (interner sym-root code-root))))
 
