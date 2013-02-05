@@ -15,6 +15,7 @@
       initialize-interner
       string->uninterned-symbol
       string->interned-symbol       ;; tree string → tree' symbol
+      put-symbol                    ;; tree sym → tree'
       empty-symbol-tree 
       intern-symbols
       start-dummy-interner)
