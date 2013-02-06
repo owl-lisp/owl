@@ -62,16 +62,20 @@
 
       (define eval-break-message (tuple 'repl-eval (tuple 'breaked)))
 
+      (define (subscribers-of state id)
+         (get (get state link-tag empty) id null))
+
       ; remove the thread and report to any interested parties about the event 
       (define (drop-delivering todo done state id msg tc)
-         (lets
-            ((links (get state link-tag empty))
-             (subscribers (get links id null)))
-            (if (null? subscribers)
-               (tc tc todo done (del state id))
+         (let ((subs (subscribers-of state id)))
+            (if (null? subs)
+               (begin
+                  ;; no threads were waiting for something that is being removed, so tell stderr about it
+                  ;(print*-to stderr "VM: thread " id " exited due to " msg)
+                  (tc tc todo done (del state id)))
                (deliver-messages todo done 
-                  (del (fupd state link-tag (del links id)) id)
-                  subscribers msg tc))))
+                  (del (fupd state link-tag (del (get state link-tag empty) id)) id)
+                  subs msg tc))))
 
       ;; thread dropping, O(n)
       (define (drop-from-list lst tid) ; -> lst'
@@ -120,9 +124,11 @@
 
             ; 3, vm thrown error
             (λ (id a b c todo done state tc)
-               ; (system-println "mcp: syscall 3 -- vm error")
-               (drop-delivering todo done state id 
-                  (tuple id (tuple 'crashed a b c)) tc))
+               ;(system-println "mcp: syscall 3 -- vm error")
+               ;; set crashed exit value proposal 
+               (let ((state (put state return-value-tag 127)))
+                  (drop-delivering todo done state id 
+                     (tuple id (tuple 'crashed a b c)) tc)))
             
             ; 4, fork
             (λ (id cont opts thunk todo done state tc)
