@@ -407,7 +407,7 @@
                (lets ((exp in (uncons in #false)))
                   (tuple-case (macro-expand exp env)
                      ((ok exp env)
-                        (print exp))
+                        (write exp))
                      ((fail reason)
                         (print "Macro expansion failed: " reason)))
                   (repl env in)))
