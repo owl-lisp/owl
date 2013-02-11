@@ -326,6 +326,7 @@
       (define repl-ops-help "Commands:
    ,help             - show this
    ,words            - list all current definitions
+   ,expand <expr>    - expand macros in the expression
    ,find [regex|sym] - list all defined words matching regex or m/<sym>/
    ,libraries        - show all currently loaded libraries
    ,l                - || -
@@ -402,6 +403,14 @@
                (for-each print (map car (env-get env library-key null)))
                (prompt env (repl-message #false))
                (repl env in))
+            ((expand)
+               (lets ((exp in (uncons in #false)))
+                  (tuple-case (macro-expand exp env)
+                     ((ok exp env)
+                        (print exp))
+                     ((fail reason)
+                        (print "Macro expansion failed: " reason)))
+                  (repl env in)))
             ((quit)
                ; this goes to repl-trampoline
                (tuple 'ok 'quitter env))
