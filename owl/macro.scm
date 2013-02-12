@@ -13,7 +13,9 @@
       (owl equal)
       (owl list-extra)
       (owl primop)
+      (owl math)
       (owl io)
+      (owl sort)
       (owl gensym)
       (owl symbol)
       (owl env))
@@ -162,28 +164,28 @@
                (match-pattern pattern literals form 
                   (lambda (argh) (ret #false))))))
 
-      (define (rewrite-ellipsis rewrite form vars)
-         (call/cc
-            (lambda (return)
-               (let
-                  ((currents
-                     (map
-                        (lambda (node)
-                           (if (null? (cdr node))
-                              (return null)
-                              (cons (car node) (list (cadr node)))))
-                        vars))
-                   (rests
-                     (map
-                        (lambda (node)
-                           (cons (car node)
-                              (if (null? (cdr node))
-                                 null
-                                 (cddr node))))
-                        vars)))
-                  (cons
-                     (rewrite currents form)
-                     (rewrite-ellipsis rewrite form rests))))))
+      ;; given dictionary resulting from pattern matching, decide how many times an ellipsis
+      ;; rewrite should be done. owl uses minimum repetition of length more than one, so that 
+      ;; single matches can be used along with ellipsis matches.
+
+      (define (repetition-length dict)
+         (let loop ((opts (sort < (map (o length cdr) dict))) (best 0))
+            (cond
+               ((null? opts)
+                  ;; 0 if ellipsis with empty match, or 1 due to ellipsis of lenght 1 or just normal valid bindings
+                  best)
+               ((eq? 1 (car opts))
+                  ;; longer repetitions may follow
+                  (loop (cdr opts) 1))
+               (else
+                  ;; repetition of length 0 or n>1
+                  (car opts)))))
+     
+      ;; pop all bindings of length > 1 
+      (define (pop-ellipsis dict)
+         (map 
+            (λ (p) (let ((vals (cdr p))) (if (null? (cdr vals)) p (cons (car p) (cdr vals)))))
+            dict))
 
       (define (rewrite dictionary form)
          (let loop ((form form))
@@ -195,13 +197,16 @@
                         form)))
                ((pair? form)
                   (if (and (pair? (cdr form)) (eq? (cadr form) '...))
-                     (append
-                        (rewrite-ellipsis rewrite (car form)
-                           (let ((symbols (symbols-of (car form))))
-                              (keep 
-                                 (lambda (node) (has? symbols (car node)))
-                                 dictionary)))
-                        (loop (cddr form)))
+                     (lets
+                        ((syms (symbols-of (car form)))
+                         (dict (keep (λ (node) (has? syms (car node))) dictionary))
+                         (len (repetition-length dict)))
+                        (let rep-loop ((dict dict) (n len))
+                           (if (= n 0)
+                              (loop (cddr form))
+                              (cons
+                                 (rewrite dict (car form))
+                                 (rep-loop (pop-ellipsis dict) (- n 1))))))
                      (cons
                         (loop (car form))
                         (loop (cdr form)))))

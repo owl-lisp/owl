@@ -21,3 +21,20 @@
 
 (print (xwaldo frank eunice armstrong luke trurl watson ben agatha waldo eunice kip jane))
 
+
+;; check for issue #164-ish error
+
+;; note: as per spec (foo a b ...) → ((a b) ...) isn't ok, since b can occur in a pattern with 
+;; ellipsis, but a has only one match
+
+(define-syntax foo
+   (syntax-rules ()
+      ((foo term ...)
+         (print
+            (lets ((freshbinding (print term)) ...) 42)))))
+
+;; evaluation order can vary, but there must be three of them
+(foo "betelgeuse" "betelgeuse" "betelgeuse")
+
+
+
