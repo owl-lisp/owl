@@ -215,7 +215,7 @@
       ;; fixme, should use a print-limited variant for debugging
 
       (define-syntax define*
-         (syntax-rules (show list)
+         (syntax-rules (print list)
             ((define* (op . args) . body)
                (define (op . args) 
                   (print " * " (list (quote op) . args))
