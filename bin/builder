@@ -35,8 +35,9 @@ notify() {
 
 notify_irc() {
    NC="nc -i 5 -q 10"
+   HOST=$(echo $(hostname | grep "\." || hostname --long)) # different in BSD and Linux
    uname | grep BSD && NC="nc -i 10 -w 5"
-	/bin/echo -e "NICK $(hostname -s)-$$\nUSER builder 8 x $(hostname -s) $(hostname -f)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT\n" | $NC irc.freenode.net 6667
+	/bin/echo -e "NICK $(hostname -s)-$$\nUSER builder 8 x $(hostname -s) $HOST\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT\n" | $NC irc.freenode.net 6667
 }
 
 renice +20 $$
