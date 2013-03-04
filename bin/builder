@@ -1,11 +1,19 @@
-#!/bin/bash
+#!/bin/sh
 
 # a script to build owl and some related tools periodically from scratch
 # and run randomized tests in the meantime.
 # you probably don't want to run this.
 
+MD5=md5sum
+# it's md5 on more BSD machines
+echo "" | $MD5 | grep 68b329da9893e34099c7d8ad5cb9c940 || MD5="md5"
+
+test -f bin/builder || exit 1
+
 # restart run if i get updated
-ME=$(md5sum < $0)
+ME=$($MD5 < bin/builder)
+echo "I AM $ME"
+
 MYDIR=$(pwd)
 
 WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
@@ -26,13 +34,15 @@ notify() {
 }
 
 notify_irc() {
-	echo -e "NICK $(hostname)-$$\nUSER builder 8 x $(hostname -s) $(hostname -d)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT" | nc -i 5 -q 10 irc.freenode.net 6667
+   NC="nc -i 10 -q 10"
+   uname | grep BSD && NC="nc -i 10 -w 5"
+	echo -e "NICK $(hostname -s)-$$\nUSER builder 8 x $(hostname -s) $(hostname -d)\nJOIN #owl-lisp\nPRIVMSG #owl-lisp :$1\nQUIT" | $NC irc.freenode.net 6667
 }
 
 renice +20 $$
 
 date | notify "Builder.sh started on $(hostname)"
-date | notify_irc "builder started on $(hostname) ($(uname -m), $(echo $ME | dd bs=1 count=5))"
+date | notify_irc "builder started on $(hostname) ($(uname), $(uname -m), $(echo $ME | dd bs=1 count=5))"
 
 test -d $WORK || {
    echo "work directory '$WORK' doesn't exist";
@@ -68,8 +78,9 @@ do
 	echo " - fresh owl build"
 	cd owl-lisp
 	git pull
-   NEWME=$(md5sum < bin/builder)
-   test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/builder; }
+	NEWME=$($MD5 < bin/builder)
+	echo "old me $ME, new me $NEWME"
+	test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/builder; }
 	make clean
 	VERSION=$(thisgit)
 	echo building owl
