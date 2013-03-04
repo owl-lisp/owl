@@ -110,7 +110,7 @@ do
       git pull
       make clean
       rm -rf owl-lisp
-      cp -a ../owl-lisp .
+      cp -R ../owl-lisp .
       VERSION="$project $(thisgit), owl $(cd owl-lisp && thisgit)"
       (ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || {
          test "$(cat .lastbuild)" = "$VERSION" \
