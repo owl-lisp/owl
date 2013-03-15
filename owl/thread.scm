@@ -172,8 +172,18 @@
                   (cons (tuple id (λ () (cont (and (null? todo) (null? done))))) todo)
                   done state))
                
-            ; 8, fork a server (fork + add a queue to state)
-            bad-syscall
+            ; 8, get running thread ids (sans self)
+            (λ (id cont b c todo done state tc)
+               (let 
+                  ((ids
+                     (append
+                        (map (λ (x) (ref x 1)) todo)
+                        (map (λ (x) (ref x 1)) done))))
+                  (tc tc 
+                     (cons 
+                        (tuple id (λ () (cont ids)))
+                        todo)
+                     done state)))
 
             ; 9, send mail
             (λ (id cont to msg todo done state tc)

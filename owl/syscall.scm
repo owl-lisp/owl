@@ -1,7 +1,7 @@
 (define-library (owl syscall)
 
    (export 
-      syscall error interact fork accept-mail wait-mail check-mail exit-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling)
+      syscall error interact fork accept-mail wait-mail check-mail exit-owl release-thread catch-thread set-signal-action single-thread? kill mail fork-linked-server fork-server return-mails fork-server fork-linked fork-named exit-thread exit-owl poll-mail-from start-profiling stop-profiling running-threads)
 
    (import 
       (owl defmac)
@@ -15,6 +15,7 @@
       (define (exit-thread value)
          (syscall 2 value value))
 
+      ;; 3 = vm thrown error
       (define (fork-named name thunk)
          (syscall 4 (list name) thunk))
 
@@ -24,11 +25,17 @@
       (define (fork-server name handler)
          (syscall 4 (list name 'mailbox) handler))
 
+      (define (error reason info)
+         (syscall 5 reason info))
+
       (define (return-mails rmails)
          (syscall 6 rmails rmails))
 
       (define (fork-linked-server name handler)
          (syscall 4 (list name 'mailbox 'link) handler))
+
+      (define (running-threads)
+         (syscall 8 #false #false))
 
       (define (mail id msg)
          (syscall 9 id msg))
@@ -108,9 +115,6 @@
       (define (interact whom message)
          (mail whom message)
          (ref (accept-mail (λ (env) (eq? (ref env 1) whom))) 2))
-
-      (define (error reason info)
-         (syscall 5 reason info))
 
       (define (start-profiling)
          (syscall 20 #true #true))
