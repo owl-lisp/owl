@@ -228,7 +228,7 @@
             (λ (id cont target c todo done state tc)
                (drop-thread target
                   (cons (tuple id (λ () (cont (tuple 'killing target)))) todo)
-                  done state (tuple 'killed-by id) tc))
+                  done state (tuple target (tuple 'killed-by id)) tc))
 
             ; 16, wrap the whole world to a thunk
             (λ (id cont path c todo done state tc)
