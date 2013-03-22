@@ -45,6 +45,8 @@
                   (values (fupd state to (qsnoc envelope st)) #false))
                ((not st) ;; no such thread, or just no inbox
                   (system-stderr "ol: dropping envelope to missing thread\n")
+                  (system-stderr "ol: envelope ")
+                  (system-stderr (bytes->string (bytes->string (render envelope '(10)))))
                   (values state #false))
                (else ;; activate the state function
                   (values 
