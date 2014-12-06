@@ -22,6 +22,3 @@
 
 (define-syntax receive (syntax-rules () ((receive op cont) (call-with-values (lambda () op) cont))))
 
-(define True #t)
-(define False #f)
-

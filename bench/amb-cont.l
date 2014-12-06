@@ -17,7 +17,7 @@
 (define (amb back opts)
    (if (null? opts)
       (back)
-      (call/cc2
+      (call/cc
          (lambda (ret)
             (let 
                ((retry 

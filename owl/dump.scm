@@ -62,6 +62,7 @@
             (walk (put empty tag null) node)
             tag null))
 
+      ;; FIXME - fails with variable fixnum size and usual vectors
       (define (file->string path)
          (bytes->string
             (vec-iter

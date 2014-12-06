@@ -76,7 +76,7 @@
       vec-leaves
       vec-cat             ;  vec x vec → vec
       vec-rev
-      )
+      *vec-leaf-size*)     ; needed for vector IO
 
    (import 
       (owl defmac)
@@ -87,6 +87,13 @@
       (owl math))
 
    (begin
+
+      ;; number of bits each vector tree node dispatches from index
+      (define *vec-bits* (>> *fixnum-bits* 1))
+      ; (define *vec-bits* 8) ;; legacy
+
+      (define *vec-leaf-size* (<< 1 *vec-bits*))
+      (define *vec-leaf-max* (- *vec-leaf-size* 1))
 
       (define (byte-vector? x) 
          (eq? (type x) type-vector-raw))
@@ -99,17 +106,17 @@
       (define (vec-dispatch-1 v n)
          (case (type v)
             (type-vector-dispatch ; vector dispatch node with #[Leaf D0 ... D255]
-               (lets ((n _ (fx+ (fxband n 255) 2))) ;; jump over header and leaf
+               (lets ((n _ (fx+ (fxband n *vec-leaf-max*) 2))) ;; jump over header and leaf
                   (ref v n)))
             (else
                (error "Bad vector node in dispatch-1: type " (type v)))))
 
-      ; dispatch the high 8 bits of a fixnum, returning the subnode
+      ; dispatch the high half bits of a fixnum, returning the subnode
       (define (vec-dispatch-2 v d) ; -> v'
          (case (type v)
             (type-vector-dispatch
                (lets 
-                  ((p _ (fx>> d 8))
+                  ((p _ (fx>> d *vec-bits*))
                    (p _ (fx+ p 2)))
                   (ref v p)))
             (type-vector-leaf
@@ -123,7 +130,7 @@
       (define (vec-seek v ds)
          (lets ((d ds ds))
             (if (null? ds)
-               (if (lesser? d #x100) ; just one byte at top digit?
+               (if (lesser? d *vec-leaf-size*) ; just one byte at top digit?
                   (vec-dispatch-1 v d)
                   (vec-dispatch-1 (vec-dispatch-2 v d) d))
                (vec-dispatch-1 (vec-seek v ds) d))))
@@ -132,13 +139,13 @@
       (define (vec-ref-digit v n)
          (case (type v)
             (type-vector-raw
-               (refb v (fxband n 255)))
+               (refb v (fxband n *vec-leaf-max*)))
             (type-vector-dispatch
                 (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
             (type-vector-leaf 
-                (if (eq? n 255)
-                   (ref v 256)
-                   (lets ((n _ (fx+ (fxband n 255) 1)))
+                (if (eq? n *vec-leaf-max*)
+                   (ref v *vec-leaf-size*)
+                   (lets ((n _ (fx+ (fxband n *vec-leaf-max*) 1)))
                      (ref v n))))
             (else 
                (error "bad vector node in vec-ref-digit: type " (type v)))))
@@ -158,10 +165,10 @@
                (cond
                   ((eq? (type v) type-vector-raw)
                      (refb v n))
-                  ((lesser? n 256)
+                  ((lesser? n *vec-leaf-size*)
                      (vec-ref-digit v n))
                   (else
-                     (vec-ref-digit (vec-dispatch-2 v n) (fxband n 255)))))
+                     (vec-ref-digit (vec-dispatch-2 v n) (fxband n *vec-leaf-max*)))))
             (type-int+
                (vec-ref-big v n))
             (else 
@@ -179,7 +186,7 @@
             (type-fix+
                (cond
                   ((eq? (type v) type-vector-raw) v)
-                  ((lesser? n 256) v)
+                  ((lesser? n *vec-leaf-size*) v)
                   (else (vec-dispatch-2 v n))))
             (type-int+
                (vec-leaf-big v n))
@@ -229,7 +236,7 @@
       ;; list -> list of leaf nodes
       (define (chunk-list lst out leaves n raw? len)
          (cond
-            ((eq? n 256) ; flush out to leaves
+            ((eq? n *vec-leaf-size*) ; flush out to leaves
                (let ((leaf (make-leaf out n raw?)))
                   (chunk-list lst null (cons (make-leaf out n raw?) leaves) 0 #true (+ len n))))
             ((null? lst) ; partial (last) leaf
@@ -258,7 +265,7 @@
                (cons (car l)
                   (merge-each (cdr l) s)))
             (else
-               (lets ((these s (grab s 256)))
+               (lets ((these s (grab s *vec-leaf-size*)))
                   (cons
                      (listuple type-vector-dispatch (+ 1 (length these)) (cons (car l) these))
                      (merge-each (cdr l) s))))))
@@ -293,7 +300,7 @@
          (lets ((here below (cut-at lst width null)))
             (if (null? below)
                (list here)
-               (cons here (levels below (* width 256)))))) ; everything below the first level branches 256-ways
+               (cons here (levels below (* width *vec-leaf-size*)))))) ; everything below the first level branches 256-ways
 
       (define (merge-levels lst)
          (foldr 
@@ -310,12 +317,12 @@
                      ;((number? (car this)) ;; skip size field at roo
                      ;   (cons (car this) (loop below (cdr this))))
                      (else
-                        (lets ((here below (cut-at below 256 null)))
+                        (lets ((here below (cut-at below *vec-leaf-size* null)))
                            ;; attach up to 256 subtrees to this leaf
                            (cons
                               (listuple type-vector-dispatch (+ 1 (length here)) (cons (car this) here))
                               (loop below (cdr this))))))))
-            null (levels lst 255)))
+            null (levels lst *vec-leaf-max*)))
 
       ; handle root here, since it is special in having 255 subtrees only (0-slot is empty and has size)
       (define (merge-chunks ll len)
@@ -337,13 +344,15 @@
 
       
       (define (list->vector l)
-         (if (null? l)
-            empty-vector
-            ;; leaves are chunked specially, so do that in a separate pass. also 
-            ;; compute length to avoid possibly forcing a computation twice.
-            (lets ((chunks len (chunk-list l null null 0 #true 0)))
-               ;; convert the list of leaf vectors to a tree
-               (merge-chunks chunks len))))
+         (cond
+            ((null? l)
+               empty-vector)
+            (else
+               ;; leaves are chunked specially, so do that in a separate pass. also 
+               ;; compute length to avoid possibly forcing a computation twice.
+               (lets ((chunks len (chunk-list l null null 0 #true 0)))
+                  ;; convert the list of leaf vectors to a tree
+                  (merge-chunks chunks len)))))
 
       (define (vector? x) ; == raw or a variant of major type 11?
          (case (type x)
@@ -374,24 +383,11 @@
 
       ;; iter - iterate forwards (leaves from left to right, tree breadth first left to right)
 
-      ;(define (iter-raw-leaf v p e tl)
-      ;   (if (eq? p e)
-      ;      tl
-      ;      (lets ((n _ (fx+ p 1)))
-      ;         (cons (refb v p)
-      ;            (iter-raw-leaf v n e tl)))))
-
       (define (iter-raw-leaf v p tl)
          (if (eq? p 0)
             (cons (refb v p) tl)
             (lets ((n _ (fx- p 1)))
                (iter-raw-leaf v n (cons (refb v p) tl)))))
-
-      ;(define (iter-leaf v p e tl)
-      ;   (if (eq? p e)
-      ;      (cons (ref v p) tl)
-      ;      (lets ((n _ (fx+ p 1)))
-      ;         (cons (ref v p) (iter-leaf v n e tl)))))
 
       (define (iter-leaf v p tl)
          (if (eq? p 0)
@@ -413,7 +409,7 @@
          (let loop ((end (vec-len v)) (pos 0))
             (let ((this (vec-leaf-of v pos)))
                (iter-leaf-of this
-                  (λ () (let ((pos (+ pos 256))) (if (< pos end) (loop end pos) null)))))))
+                  (λ () (let ((pos (+ pos *vec-leaf-size*))) (if (< pos end) (loop end pos) null)))))))
 
       (define (iter-leaf-range v p n t)
          (if (eq? n 0)
@@ -422,24 +418,24 @@
                (iter-leaf-range v (+ p 1) (- n 1) t))))
 
       (define (iter-range-really v p n)
-         (let ((start (band p #xff)))
+         (let ((start (band p *vec-leaf-max*)))
             (cond
                ((eq? start 0)
                   ;; read leaf from beginning
-                  (if (> n 255)
+                  (if (> n *vec-leaf-max*)
                      ;; iter a full leaf (usual suspect)
                      (iter-leaf-of (vec-leaf-of v p)
-                        (λ () (iter-range-really v (+ p 256) (- n 256))))
+                        (λ () (iter-range-really v (+ p *vec-leaf-size*) (- n *vec-leaf-size*))))
                      ;; last leaf reached, iter prefix and stop
                      (iter-leaf-range (vec-leaf-of v p) 0 n null)))
                ((eq? n 0) null)
-               ((lesser? n (- 256 start))
+               ((lesser? n (- *vec-leaf-size* start))
                   ;; the whole range is in a part of this leaf
                   (iter-leaf-range (vec-leaf-of v p) start n null))
                (else
                   ;; this is the first leaf. iter a suffix of it.
                   (lets
-                     ((n-here (- 256 start))
+                     ((n-here (- *vec-leaf-size* start))
                       (n-left (- n n-here)))
                      (iter-leaf-range (vec-leaf-of v p) start n-here
                         (λ () (iter-range-really v (+ p n-here) n-left))))))))
@@ -473,18 +469,19 @@
             (type-vector-dispatch (iterr-any-leaf (ref v 1) tl))
             (type-vector-raw (iterr-raw-leaf v (sizeb v) tl))
             (type-vector-leaf (iterr-leaf v (size v) tl))
-            (else tl))) ; size field in root is a number → skip
+            (else 
+               tl))) ; size field in root is a number → skip
       
       (define (vec-iterr-loop v p)
          (if (eq? type-fix- (type p))
             null
             (iterr-any-leaf (vec-leaf-of v p)
-               (λ () (vec-iterr-loop v (- p 256))))))
+               (λ () (vec-iterr-loop v (- p *vec-leaf-size*))))))
 
       (define (vec-iterr v)
          (lets 
             ((end (vec-len v))
-             (last (band end #xff)))
+             (last (band end *vec-leaf-max*)))
             (cond
                ((eq? last 0) ; vec is empty or ends to a full leaf
                   (if (eq? end 0) ; blank vector
@@ -546,7 +543,7 @@
             (let loop ((pos 0))
                (if (< pos end)
                   (let ((data (leaf-data (vec-leaf-of vec pos))))
-                     (pair data (loop (+ pos 256))))
+                     (pair data (loop (+ pos *vec-leaf-size*))))
                   null))))
 
       ;; fixme: temporary vector append!
@@ -576,6 +573,5 @@
 
       (define vector-length vec-len)
       (define vector-ref vec-ref)
-
 ))
 

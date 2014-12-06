@@ -1,5 +1,5 @@
 Owl Lisp -- yet another pet lisp 
-Copyright (c) 2012 Aki Helin
+Copyright (c) 2014 Aki Helin
 
 OVERVIEW
 ~~~~~~~~
@@ -37,6 +37,7 @@ FILES
    bench/*.scm - some benchmarks
    fasl/*.fasl - bytecode images for bin/vm used during boot
    bin/vm      - plain VM used during boot
+   c/ol.c      - combined VM and REPL heap image
 
 
 USAGE

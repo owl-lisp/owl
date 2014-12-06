@@ -33,6 +33,7 @@
       (only (owl assemble) inst->op))
 
    (begin
+
       (define alloc-types
          (list->ff
             '((1 . pair))))
@@ -165,10 +166,8 @@
             (cond
                (else 
                   (values
+                     ;; res is shifted down, so there is room for high bit 
                      (list "{word res=fixval(R["a"])+fixval(R["b"]);R["o"]=BOOL(res&(1<<FBITS));R["r"]=F(res&FMAX);}")
-                     ;(list "{word res=(((R["a"])+(R["b"]))&0x1ffff000)|2;R["r"]=res&0xffff002;R["o"]=(res&0x10000000)?ITRUE:IFALSE;}")
-                     ;(list "{word res=fixval(R["a"])+fixval(R["b"]);R["r"]=F(res&0xffff);R["o"]=(res>>16)?ITRUE:IFALSE;}")
-
                      bs (put (put regs r 'fixnum) o 'bool))))))
 
       ; fxband a b r
@@ -193,7 +192,7 @@
       (define (cify-fxmul bs regs fail) 
          (lets ((a b l h bs (get4 (cdr bs))))
             (values
-               (list "{word res=fixval(R["a"])*fixval(R["b"]);R["l"]=F(res&FMAX);R["h"]=F(res>>FBITS);}")
+               (list "{uint64_t res=(uint64_t) (((uint64_t) fixval(R["a"]))*((uint64_t)fixval(R["b"])));R["l"]=F((word)(res&FMAX));R["h"]=F((word)(res>>FBITS));}")
                bs (put (put regs h 'fixnum) l 'fixnum))))
 
       ; fx- a b r u?
@@ -209,21 +208,21 @@
       (define (cify-fxleft bs regs fail) 
          (lets ((a b hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word res=fixval(R["a"])<<fixval(R["b"]);R["hi"]=F(res>>FBITS);R["lo"]=F(res&FMAX);}")
+               (list "{uint64_t res=(uint64_t)fixval(R["a"])<<fixval(R["b"]);R["hi"]=F(res>>FBITS);R["lo"]=F(res&FMAX);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fx>> a b hi lo
       (define (cify-fxright bs regs fail)
          (lets ((a b hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word r=fixval(R["a"])<<(FBITS-fixval(R["b"]));R["hi"]=F(r>>FBITS);R["lo"]=F(r&FMAX);}")
+               (list "{uint64_t r=(uint64_t)fixval(R["a"])<<(FBITS-fixval(R["b"]));R["hi"]=F(r>>FBITS);R["lo"]=F(r&FMAX);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
       (define (cify-fxqr bs regs fail)
          (lets ((ah al b qh ql rem bs (get6 (cdr bs))))
             (values
-               (list "{word a=fixval(R["ah"])<<FBITS|fixval(R["al"]);word b=fixval(R["b"]);word q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q&FMAX);R["rem"]=F(a-q*b);}")
+               (list "{uint64_t a=((uint64_t)fixval(R["ah"]))<<FBITS|fixval(R["al"]);word b=fixval(R["b"]);uint64_t q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q&FMAX);R["rem"]=F(a-q*b);}")
                bs (put (put (put regs qh 'fixnum) ql 'fixnum) rem 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem

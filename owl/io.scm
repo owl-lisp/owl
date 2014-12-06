@@ -29,6 +29,7 @@
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
    
       file->vector            ;; vector io, may be moved elsewhere later
+      file->list              ;; list io, may be moved elsewhere later
       vector->file
       write-vector            ;; vec port
       port->byte-stream       ;; fd → (byte ...) | thunk 
@@ -145,7 +146,8 @@
 
       ;;; Reading
 
-      (define input-block-size 256) ;; changing from 256 breaks vector leaf things
+      (define input-block-size 
+         *vec-leaf-size*) ;; changing from 256 breaks vector leaf things
 
       (define (try-get-block fd block-size block?)
          (let ((res (sys-prim 5 fd block-size 0)))
@@ -215,7 +217,7 @@
          (cond
             ((not (eq? (type port) type-fix+))
                #false)
-            ((and (eq? (type ip) 11) (eq? 4 (sizeb ip))) ;; silly old formats
+            ((and (eq? (type ip) type-vector-raw) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
                      (fd->tcp fd)
@@ -479,6 +481,26 @@
                   (read-blocks port 
                      (cons val buff))))))
 
+      (define (explode-block block tail)
+         (let ((end (sizeb block)))
+            (if (eq? end 0)
+               tail
+               (let loop ((pos (- end 1)) (tail tail))
+                  (if (eq? pos -1)
+                     tail
+                     (loop (- pos 1) (cons (refb block pos) tail)))))))
+
+      (define (read-blocks->list port buff)
+         (let ((block (get-block port 4096)))
+            (cond
+               ((eof? block)
+                  (foldr explode-block null (reverse buff)))
+               ((not block)
+                  ;; read error
+                  (foldr explode-block null (reverse buff)))
+               (else
+                  (read-blocks->list port (cons block buff))))))
+
       (define (maybe-open-file path)
          (if (equal? path "-")
             stdin
@@ -493,6 +515,26 @@
          (let ((port (maybe-open-file path)))
             (if port
                (let ((data (read-blocks port null)))
+                  (maybe-close-port port)
+                  data)
+               (begin
+                  ;(print "file->vector: cannot open " path)
+                  #false))))
+      
+      (define (file->list path) ; path -> vec | #false
+         (let ((port (maybe-open-file path)))
+            (if port
+               (let ((data (read-blocks->list port null)))
+                  (maybe-close-port port)
+                  data)
+               (begin
+                  ;(print "file->vector: cannot open " path)
+                  #false))))
+
+      (define (file->list path) ; path -> vec | #false
+         (let ((port (maybe-open-file path)))
+            (if port
+               (let ((data (read-blocks->list port null)))
                   (maybe-close-port port)
                   data)
                (begin

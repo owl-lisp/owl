@@ -495,8 +495,19 @@
                e ∊ l
                (< e 256)
 
-      ;; testing failures
-      ; theorem all-even ∀ a ∊ Nat 0 = (band a 1)
+      theorem bor-band-self
+         ∀ a ∊ Nat (bor a a) = (band a a)
+
+      theorem bxor-self
+         ∀ a ∊ Nat (bxor a a) = 0
+
+      theorem borband
+         ∀ a b c ∊ Nat
+            (band (bor a b) c) = (bor (band a c) (band b c))
+
+      theorem bxor-inv
+         ∀ a b ∊ Nat
+            a = (bxor (bxor a b) b)
 
 ))
 

@@ -28,7 +28,9 @@ typedef unsigned long in_addr_t;
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/wait.h>
+#ifndef O_BINARY
 #define O_BINARY 0
+#endif
 #endif
 
 #ifdef __gnu_linux__
@@ -46,6 +48,13 @@ typedef unsigned long in_addr_t;
 
 typedef uintptr_t word;
 
+#ifdef _LP64
+typedef int64_t   wdiff;
+#else
+typedef int32_t   wdiff;
+#endif
+
+
 /*** Macros ***/
 
 #define IPOS                        8 /* offset of immediate payload */
@@ -53,10 +62,10 @@ typedef uintptr_t word;
 #define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       *((word *) (ob))
 #define W                           sizeof(word)
-#define NWORDS                      1024*1024*8  /* static malloc'd heap size if used as a library */
-#define FBITS                       16           /* bits in fixnum, on the way to 24 and beyond */
-#define FMAX                        0xffff       /* max fixnum (2^FBITS-1), on the way to 0xffffff */
-#define MAXOBJ                      0xffff       /* max words in tuple including header */
+#define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
+#define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
+#define FMAX                        ((1<<FBITS)-1) /* maximum fixnum (and most negative fixnum) */
+#define MAXOBJ                      0xffff         /* max words in tuple including header */
 #define RAWBIT                      2048
 #define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
@@ -86,6 +95,7 @@ typedef uintptr_t word;
 #define IEOF                        make_immediate(4,13)
 #define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
 #define TTUPLE                      2
+#define TTHREAD                     31
 #define TFF                         24
 #define FFRIGHT                     1
 #define FFRED                       2
@@ -155,11 +165,12 @@ void free(void *ptr);
 char *getenv(const char *name);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
-int execv(const char *path, char *const argv[]);
 pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 int chdir(const char *path);
-
+#ifndef WIN32 
+int execv(const char *path, char *const argv[]);
+#endif
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -230,7 +241,7 @@ static word *compact() {
    return new; 
 }
 
-void fix_pointers(word *pos, int delta, word *end) {
+void fix_pointers(word *pos, wdiff delta, word *end) {
    while(1) {
       word hdr = *pos;
       int n = hdrsize(hdr);
@@ -251,34 +262,35 @@ void fix_pointers(word *pos, int delta, word *end) {
 }
 
 /* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend  */
-int adjust_heap(int cells) {
+wdiff adjust_heap(int cells) {
    /* add new realloc + heap fixer here later */
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
-   word new_words = nwords + cells;
+   word new_words = nwords + ((cells > 0xffffff) ? 0xffffff : cells); /* limit heap growth speed  */
    if (!usegc) { /* only run when the vm is running (temp) */
       return 0;
    }
    if (seccompp) /* realloc is not allowed within seccomp */
       return 0;
+   if (((cells > 0) && (new_words*W < nwords*W)) || ((cells < 0) && (new_words*W > nwords*W)))
+       return 0; /* don't try to adjust heap if the size_t would overflow in realloc */
    memstart = realloc(memstart, new_words*W);
    if (memstart == old) { /* whee, no heap slide \o/ */
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
       return 0;
    } else if (memstart) { /* d'oh! we need to O(n) all the pointers... */
-      int delta = (word)memstart - (word)old;
+      wdiff delta = (word)memstart - (word)old;
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
-      fix_pointers(memstart, delta, memend); /* todo: measure time spent here */
+      fix_pointers(memstart, delta, memend);
       return delta;
    } else {
-      /* fixme: might be common in seccomp, so would be better to put this to stderr? */
       breaked |= 8; /* will be passed over to mcp at thread switch*/
       return 0;
    }
 }
 
-/* input desired allocation size and root object, 
-   return a pointer to the same object after compaction, resizing, possible heap relocation etc */
+/* input desired allocation size and (the only) pointer to root object
+   return a pointer to the same object after heap compaction, possible heap size change and relocation */
 static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
@@ -659,7 +671,11 @@ static word prim_sys(int op, word a, word b, word c) {
          myaddr.sin_port = htons(port);
          myaddr.sin_addr.s_addr = INADDR_ANY;
          s = socket(AF_INET, SOCK_STREAM, 0);
+#ifndef WIN32
          if (s < 0) return IFALSE;
+#else
+	 if (s == INVALID_SOCKET) return IFALSE;
+#endif
          if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
              || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
              || listen(s, 5) != 0) {
@@ -787,6 +803,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int nargs = llen((word *)b);
          char **args = malloc((nargs+1) * sizeof(char *));
          char **argp = args;
+#ifndef WIN32 
          if (args == NULL) 
             return IFALSE;
          while(nargs--) {
@@ -801,16 +818,14 @@ static word prim_sys(int op, word a, word b, word c) {
          set_blocking(0,0); /* exec failed, back to nonblocking io for owl */
          set_blocking(1,0);
          set_blocking(2,0);
+#endif
          return IFALSE; }
-      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
-         pid_t pid = fork();
-         if (pid == -1) /* fork failed */
+      case 20: { /* chdir path res */
+         char *path = ((char *)a) + W;
+         if (chdir(path) < 0)
             return IFALSE;
-         if (pid == 0) /* we're in child, return true */
-            return ITRUE;
-         if ((int)pid > FMAX)
-            fprintf(stderr, "vm: child pid larger than max fixnum: %d\n", pid);
-         return F(pid&FMAX); }
+         return ITRUE; }
+#ifndef WIN32
       case 19: { /* wait <pid> <respair> _ */
          pid_t pid = (a == IFALSE) ? -1 : fixval(a);
          int status;
@@ -837,11 +852,18 @@ static word prim_sys(int op, word a, word b, word c) {
             r = (word *)IFALSE;
          }
          return (word)r; }
-      case 20: { /* chdir path res */
-         char *path = ((char *)a) + W;
-         if (chdir(path) < 0)
+      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
+         pid_t pid = fork();
+         if (pid == -1) /* fork failed */
             return IFALSE;
-         return ITRUE; }
+         if (pid == 0) /* we're in child, return true */
+            return ITRUE;
+         if ((int)pid > FMAX)
+            fprintf(stderr, "vm: child pid larger than max fixnum: %d\n", pid);
+         return F(pid&FMAX); }
+      case 21: /* kill pid signal → fixnum */
+         return (kill(fixval(a), fixval(b)) < 0) ? IFALSE : ITRUE;
+#endif
       default: 
          return IFALSE;
    }
@@ -924,7 +946,10 @@ word boot(int nargs, char **argv) {
    }
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
    memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
-   if (!memstart) exit(3);
+   if (!memstart) {
+      fprintf(stderr, "Failed to allocate initial memory\n");
+      exit(4);
+   }
    memend = memstart + FMAX + INITCELLS - MEMPAD;
    this = nargs-1;
    usegc = 1;
@@ -1069,7 +1094,7 @@ switch_thread: /* enter mcp if present */
       acc = acc + 4;
       R[acc] = (word) ob;
       allocate(acc, state);
-      *state = make_header(acc, TTUPLE);
+      *state = make_header(acc, TTHREAD);
       state[acc-1] = R[acc];
       while(pos < acc-1) {
          state[pos] = R[pos];
@@ -1248,13 +1273,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(3); }
    op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-      word a = (fixval(A0)<<FBITS) | fixval(A1); 
+      uint64_t a = (((uint64_t) fixval(A0))<<FBITS) | fixval(A1); 
       word b = fixval(A2);
-      word q;
-      /* FIXME: b=0 should be explicitly checked for at lisp side */
-      if (unlikely(b == 0)) {
-         error(26, F(a), F(b));
-      }
+      uint64_t q;
       q = a / b;
       A3 = F(q>>FBITS);
       A4 = F(q&FMAX);
@@ -1333,25 +1354,16 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
 #endif
       A1 = BOOL(errno == EINTR);
       NEXT(2); }
-   op38: { /* fx+ a b r o, types prechecked, signs ignored */
-      /* values are (n<<IPOS)|2*/
-      /* word res = ((A0 + A1) & 0x1ffff000) | 2; <- no hacks during immediate and range transition
-      if (res & 0x10000000) {
-         A2 = res & 0xffff002;
-         A3 = ITRUE;
-      } else {
-         A2 = res;
-         A3 = IFALSE;
-      } */
+   op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
       word res = fixval(A0) + fixval(A1);
       word low = res & FMAX;
       A3 = (res & (1 << FBITS)) ? ITRUE : IFALSE;
       A2 = F(low);
       NEXT(4); }
    op39: { /* fx* a b l h */
-      word res = fixval(R[*ip]) * fixval(A1); /* <- danger! won't fit word soon */
-      A2 = F(res&FMAX);
-      A3 = F((res>>FBITS)&FMAX);
+      uint64_t res = ((uint64_t) ((uint64_t) fixval(R[*ip])) * ((uint64_t) fixval(A1)));
+      A2 = F(((word)(res&FMAX)));
+      A3 = F(((word)(res>>FBITS)&FMAX));
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
       word r = (fixval(A0)|(1<<FBITS)) - fixval(A1);
@@ -1422,7 +1434,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       bank = 0;
       assert(allocp(ob),ob,50);
       hdr = *ob;
-      if (imm_type(hdr) == TTUPLE) {
+      if (imm_type(hdr) == TTHREAD) {
          int pos = hdrsize(hdr) - 1;
          word code = ob[pos];
          acc = pos - 3;
@@ -1471,12 +1483,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = a ^ (b & (FMAX << IPOS)); /* inherit a's type info */
       NEXT(3); }
    op58: { /* fx>> a b hi lo */
-      word r = fixval(A0) << (FBITS - fixval(A1));
+      uint64_t r = ((uint64_t) fixval(A0)) << (FBITS - fixval(A1));
       A2 = F(r>>FBITS);
       A3 = F(r&FMAX);
       NEXT(4); }
    op59: { /* fx<< a b hi lo */
-      word res = fixval(R[*ip]) << fixval(A1);
+      uint64_t res = (uint64_t) fixval(R[*ip]) << fixval(A1);
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
@@ -1496,7 +1508,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = F(seccomp_time - (secs * 1000));
          ob[1] = F(secs >> FBITS);
          ob[4] = F(secs & FMAX);
-         seccomp_time += (secs == 0xffffffff) ? 0 : 10; /* virtual 10ms passes on each call */
+         seccomp_time += ((seccomp_time + 10) > seccomp_time) ? 10 : 0; /* virtual 10ms passes */
       } else {
          gettimeofday(&tp, NULL);
          A1 = F(tp.tv_usec / 1000);
@@ -1532,6 +1544,20 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
 }
 
 int main(int nargs, char **argv) {
+#ifndef WIN32
    return boot(nargs, argv);
+#else
+   WSADATA wsaData;
+
+   // Initialize Winsock
+   int sock_init = WSAStartup(MAKEWORD(2,2), &wsaData);
+   if (sock_init  != 0) {
+       printf("WSAStartup failed with error: %d\n", sock_init);
+       return 1;
+   }
+   word boot_result = boot(nargs, argv);
+   WSACleanup();
+   return boot_result;
+#endif
 }
 

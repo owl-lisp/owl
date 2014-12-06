@@ -565,10 +565,10 @@
             ((include-dirs (env-get env includes-key null))
              (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
              (paths (map conv include-dirs))
-             (contentss (map file->vector paths))
+             (contentss (map file->list paths))
              (data (first (λ (x) x) contentss #false)))
             (if data
-               (let ((exps (vector->sexps data "library fail" path)))
+               (let ((exps (list->sexps data "library fail" path)))
                   (if exps ;; all of the file parsed to a list of sexps
                      (cons 'begin exps)
                      (fail (list "Failed to parse contents of " path))))

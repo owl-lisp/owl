@@ -33,6 +33,9 @@
 
    (begin
 
+      (define lp #\()
+      (define rp #\))
+
       ;; this could be removed?
       (define (make-renderer meta)
          (define (render obj tl)
@@ -82,11 +85,19 @@
                )
 
                ((tuple? obj)
-                  (ilist 40 84 117 112 108 101 32
+                  (ilist #\# #\[
                      (render (ref obj 1)
                         (fold
                            (λ (tl pos) (cons 32 (render (ref obj pos) tl)))
-                           (cons 41 tl)
+                           (cons #\] tl)
+                           (iota (size obj) -1 1)))))
+               
+               ((record? obj)
+                  (ilist #\# #\{
+                     (render (ref obj 1) ;; type tag object
+                        (fold
+                           (λ (tl pos) (cons 32 (render (ref obj pos) tl)))
+                           (cons #\} tl)
                            (iota (size obj) -1 1)))))
 
                ((rlist? obj) ;; fixme: rlist not parsed yet
@@ -97,7 +108,10 @@
 
                ((ff? obj) ;; fixme: ff not parsed yet this way
                   (cons #\# (render (ff->list obj) tl)))
-              
+             
+               ((tuple? obj)
+                  (ilist #\# #\[ (render (tuple->list obj) (cons #\] tl))))
+
                ;; port = socket | tcp | fd
                ((socket? obj) (ilist #\# #\[ #\s #\o #\c #\k #\e #\t #\space (render (port->fd obj) (cons #\] tl))))
                ((tcp? obj) (ilist #\# #\[ #\t #\c #\p #\space (render (port->fd obj) (cons #\] tl))))
@@ -220,6 +234,11 @@
 
                ((ff? obj) ;; fixme: ff not parsed yet this way
                   (cons #\# (ser sh (ff->list obj) k)))
+
+               ((tuple? obj)
+                  (ilist #\# #\[
+                     (ser sh (tuple->list obj)
+                        (λ (sh) (pair #\] (k sh))))))
 
                ((socket? obj) (render obj (λ () (k sh))))
                ((tcp? obj)    (render obj (λ () (k sh))))

@@ -11,13 +11,16 @@
       call-with-values do define-library
       case-lambda
       define-values
+      define-record-type
+      _record-values
       not o i self
       type-complex
       type-rational
       type-int+
       type-int-
+      type-record
 
-      immediate? allocated? raw?
+      immediate? allocated? raw? record?
 
       type-bytecode
       type-proc
@@ -41,6 +44,7 @@
       type-string
       type-string-wide
       type-string-dispatch
+      type-thread-state
 
       ;; sketching types
       type-ff               ;; k v, k v l, k v l r, black node with children in order
@@ -417,7 +421,7 @@
 
 
       ;;;
-      ;;; TYPE TAGS
+      ;;; DESCRIPTOR FORMAT
       ;;;
       ;
       ;                            .------------> 24-bit payload if immediate
@@ -430,12 +434,14 @@
       ;
       ; object headers are further
       ;
-      ;                         RPPP
-      ;  [ssssssss ssssssss ________ tttttt10]
-      ;   '---------------| '------| '----|
-      ;                   |        |      '-----> object type
-      ;                   |        '------------> tags notifying about special freeing needs for gc (fds), rawness, padding bytes, etc non-type info
-      ;                   '--------------------->
+      ;                                    .----> immediate
+      ;  [ssssssss ssssssss ????rppp tttttt10]
+      ;   '---------------| '--||'-| '----|
+      ;                   |    ||  |      '-----> object type
+      ;                   |    ||  '------------> number of padding (unused) bytes at end of object if raw (0-(wordsize-1))
+      ;                   |    |'---------------> rawness bit (raw objects have no decriptors in them)
+      ;                   |    '----------------> your tags here! e.g. tag for closing file descriptors in gc
+      ;                   '---------------------> object size in words
       ;  
       ;; note - there are 6 type bits, but one is currently wasted in old header position
       ;; to the right of them, so all types must be <32 until they can be slid to right 
@@ -450,7 +456,7 @@
       (define type-pair              1)
       (define type-vector-dispatch  15)
       (define type-vector-leaf      11)
-      (define type-vector-raw       19) ;; going 171 -> 19, see also TBVEC in c/ovm.c
+      (define type-vector-raw       19) ;; see also TBVEC in c/ovm.c
       (define type-ff-black-leaf     8)
       (define type-symbol            4)
       (define type-tuple             2)
@@ -460,6 +466,8 @@
       (define type-string            3)
       (define type-string-wide      22)
       (define type-string-dispatch  21)
+      (define type-thread-state     31)
+      (define type-record            5)
 
       ;; transitional trees or future ffs
       (define type-ff               24)
@@ -491,4 +499,34 @@
       (define (immediate? obj) (eq? #false (size obj)))
       (define allocated? size)
       (define raw?       sizeb)
+      (define (record? x) (eq? type-record (type x)))
+
+      (define-syntax _record-values 
+         (syntax-rules (emit find)
+            ((_record-values emit tag mk pred () fields tail)
+               (values tag mk pred . tail))
+            ((_record-values emit tag mk pred (x ... (field accessor)) fields tail)
+               ;; next must cons accessor of field to tail, so need to lookup its position
+               (_record-values find tag mk pred (x ...) fields tail field fields (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)))
+            ((_record-values find tag mk pred left fields tail key (key . rest) (pos . poss))
+               (_record-values emit tag mk pred left fields ((λ (x) (ref x pos)) . tail))) 
+            ((_record-values find tag mk pred left fields tail key (x . rest) (pos . poss))
+               (_record-values find tag mk pred left fields tail key rest poss))
+            ((_record-values find tag mk pred left fields tail key () (pos . poss))
+               (syntax-error "Not found in record: " key)) 
+            ((_record-values find tag mk pred left fields tail key (x . rest) ())
+               (syntax-error "Implementation restriction: add more offsets to define-record-type macro" tag)))) 
+
+      (define-syntax define-record-type
+         (syntax-rules (emit)
+            ((define-record-type name (constructor fieldname ...) pred (field accessor) ...)
+               (define-values
+                  (name constructor pred accessor ...)
+                  (let ((tag (quote name))) ; ← note, not unique after redefinition, but atm seems useful to get pattern matching
+                     (_record-values emit 
+                        tag     
+                        (λ (fieldname ...) (mkt type-record tag fieldname ...))
+                        (λ (ob) (eq? tag (ref ob 1))) 
+                        ((field accessor) ...) (fieldname ...) ()))))))
+
 ))

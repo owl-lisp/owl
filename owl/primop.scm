@@ -213,14 +213,23 @@
             ((lets/cc var . body) 
                (call/cc (λ (var) (lets . body))))))
 
+      ;; non-primop instructions that can report errors
+      (define (instruction-name op)
+         (cond
+            ((eq? op 17) 'arity-error)
+            ((eq? op 32) 'bind)
+            ((eq? op 50) 'run)
+            (else #false)))
+         
       (define (primop-name pop)
          (let ((pop (fxband pop 63))) ; ignore top bits which sometimes have further data
-            (let loop ((primops primops))
-               (cond
-                  ((null? primops) pop)
-                  ((eq? pop (ref (car primops) 2))
-                     (ref (car primops) 1))
-                  (else
-                     (loop (cdr primops)))))))
+            (or (instruction-name pop)
+               (let loop ((primops primops))
+                  (cond
+                     ((null? primops) pop)
+                     ((eq? pop (ref (car primops) 2))
+                        (ref (car primops) 1))
+                     (else
+                        (loop (cdr primops))))))))
 
 ))

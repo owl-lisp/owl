@@ -1,0 +1,9 @@
+doc/ol.1.gz
+c/ol.c
+c/vm.c
+fasl/boot.fasl
+fasl/bootp.fasl
+fasl/ol.fasl
+tmp
+bin/ol
+bin/vm

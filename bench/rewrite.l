@@ -12,17 +12,17 @@
 
 (define (error* messages)
 	(for-each display messages)
-	False)
+	#f)
 
 (define (memqx sym lst)
 	(cond
-		((null? lst) False)
+		((null? lst) #f)
 		((eq? (car lst) sym) lst)
 		(else (memqx sym (cdr lst)))))
 
 (define (assqx key lst)
 	(if (null? lst) 
-		False
+		#f
 		(let ((this (car lst)))
 			(if (eq? (car this) key)
 				this
@@ -45,26 +45,26 @@
 (define (unify literals pattern form)
 	(let loop ((pattern pattern) (form form) (dictionary '()))
 		(cond
-			((not dictionary) False)
+			((not dictionary) #f)
 			((null? pattern)
 				(if (null? form)
 					dictionary
-					False))
+					#f))
 			((pair? pattern)
 				(if (pair? form)
 					(loop (cdr pattern) (cdr form)
 						(loop (car pattern) (car form) dictionary))
-					False))
+					#f))
 			((symbol? pattern)
 				(if (memqx pattern literals)
-					(if (eq? pattern form) dictionary False)
+					(if (eq? pattern form) dictionary #f)
 					(let ((binding (assqx pattern dictionary)))
 						(if binding
-							(if (_equal? (cdr binding) form) dictionary False)
+							(if (_equal? (cdr binding) form) dictionary #f)
 							(cons
 								(cons pattern form)
 								dictionary)))))
-			(else False))))
+			(else #f))))
 
 (define (rewrite template literals dictionary)
 	(let loop ((template template))
@@ -119,7 +119,7 @@
 
 (define (test args)
 	(display "running: ")
-	(let loop ((last False) (i 0))
+	(let loop ((last #f) (i 0))
 		(display "* ")
 		(if (= i 7)
          (list (if (_equal? last result) 42 0))

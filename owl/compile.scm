@@ -488,6 +488,12 @@
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jf bp then else)))))
+                              ((zero-value? a) ; jump-if-false 
+                                 (rtl-simple regs b (λ (regs bp)
+                                    (let 
+                                       ((then (rtl-any regs then))
+                                        (else (rtl-any regs else)))
+                                       (tuple 'jz bp then else)))))
                               (else
                                  (rtl-simple regs a (λ (regs ap)
                                     (rtl-simple regs b (λ (regs bp)

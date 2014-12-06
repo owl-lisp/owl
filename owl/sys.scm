@@ -14,7 +14,19 @@
       fork
       wait
       chdir
-      getenv)
+      kill
+      getenv
+      sighup
+      signint
+      sigquit
+      sigill
+      sigabrt
+      sigfpe
+      sigkill
+      sigsegv
+      sigpipe
+      sigalrm
+      sigterm)
 
    (import
       (owl defmac)
@@ -104,6 +116,23 @@
                (else 
                   ;; pair of (<exittype> . <result>)
                   res))))
+
+      (define sighup   1)      ; hangup from controlling terminal or proces
+      (define signint  2)      ; interrupt (keyboard)
+      (define sigquit  3)      ; quit (keyboard)
+      (define sigill   4)      ; illegal instruction
+      (define sigabrt  6)      ; abort(3)
+      (define sigfpe   8)      ; floating point exception
+      (define sigkill  9)      ; kill signal
+      (define sigsegv 11)      ; bad memory access
+      (define sigpipe 13)      ; broken pipe
+      (define sigalrm 14)      ; alarm(2)
+      (define sigterm 15)      ; termination signal
+
+      ;; pid signal → success?
+      (define (kill pid signal)
+         (sys-prim 21 pid signal #false))
+
 
       ;;;
       ;;; Environment variables

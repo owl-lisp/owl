@@ -24,7 +24,7 @@
       rand-log
       rand-elem            ;; rs obj → rs' elem (for lists and vectors)
       rand-subset
-      rand-range
+      rand-range           ;; rs lo hi → rs' n, where lo <= n < hi
 
       random-numbers      ;; rs x max x i -> rs' (n_1 .. n_i), as in rand
       reservoir-sample    ;; rs x ll x n -> lst', |lst'| <= n
@@ -51,9 +51,15 @@
       (owl defmac))
 
    (begin
+
       ;;;
       ;;; Pseudorandom data generators
       ;;;
+
+      ;; code assumes this fixnum size
+      (lets ((a b (fx+ #xffffff 1)))
+         (if (not (and (eq? a 0) (eq? b #true)))
+            (error "unexpected fixnum size" a)))
 
       ; random data generators implement an infinite stream of positive fixnums, 
       ; which are used by the various functions which need a random data source.
@@ -115,40 +121,43 @@
 
       (define xors (xorshift-128 123456789 362436069 521288629 88675123))
 
-      ;;; Ad-hoc old random generator. 
+      ;;; Ad-hoc old random generator - multiple cross-breeding linear generators
 
-      (define rand-modulus 15991) ; no longer a modulus
-      (define rand-multiplier 31337)
+      (define rand-acc  8388617) ; 15991 with old fixnums
+      (define rand-mult 3133337) ; was 31337
 
       (define (rand-walk acc seed out)
          (if (null? seed)
             out
             (lets
-               ((lo hi (fx* (ncar seed) rand-multiplier))
+               ((lo hi (fx* (ncar seed) rand-mult))
                 (this over (fx+ lo acc)))
                (rand-walk hi (ncdr seed) (ncons this out)))))
 
       (define (rand-succ seed)
          (cond
-            ; promote natural seeds to random states
             ((eq? (type seed) type-fix+)
-               (let ((seed (ncons 1 (ncons seed null))))
-                  (tuple #true (rand-walk rand-modulus seed null) seed)))
+               ;; promote to bignum and random state
+               (lets ((seed (* (+ seed 1) 11111111111111111111111)))
+                  (tuple #true (rand-walk rand-acc seed null) seed)))
             ((eq? (type seed) type-int+)
-               (tuple #true (rand-walk rand-modulus seed null) seed))
+               ;; promote to random state
+               (tuple #true (rand-walk rand-acc seed null) seed))
             (else
                (lets ((st a b seed))
                   (cond
                      ((= a b)
-                        (let ((ap (ncons 1 a)))
-                           ;(print "rand loop at " a)
-                           (tuple #true (rand-walk rand-modulus ap null) ap)))
+                        ;; friends meet, we're going to need a bigger track
+                        (let ((ap (ncons (if st rand-acc rand-mult)  a)))
+                           (tuple #true (rand-walk rand-acc ap null) ap)))
                      (st
+                        ;; hare and tortoise
                         (tuple #false
-                           (rand-walk rand-modulus a null)
-                           (rand-walk rand-modulus b null)))
+                           (rand-walk rand-acc a null)
+                           (rand-walk rand-acc b null)))
                      (else
-                        (tuple #true (rand-walk rand-modulus a null) b)))))))
+                        ;; just hare
+                        (tuple #true (rand-walk rand-acc a null) b)))))))
 
       ;;; Mersenne Twister (missing)
 
@@ -170,14 +179,18 @@
                   tl
                   (cons (bit d p) (loop (>> p 1)))))))
 
+      ;; assumes 24-bit fixnums
       (define (rands->bytes rs)
-         (lets ((digit rs (uncons rs 0)))
-            (ilist
-               (fxband digit 255)
-               (fxband (>> digit 8) 255)
+         (lets 
+            ((digit rs (uncons rs 0))
+             (lo (fxband digit #xff))
+             (digit _ (fx>> digit 8))
+             (mid (fxband digit #xff))
+             (hi _ (fx>> digit 8)))
+            (ilist lo mid hi 
                (λ () (rands->bytes rs)))))
 
-      ;; eww, don't try this at home. to be fixed pretty soon. passed dieharder tests pretty well though.
+      ;; passed dieharder tests surprisingly well
       (define seed->rands adhoc-seed->rands)
 
       (define seed->bits 
@@ -188,6 +201,8 @@
 
       ;; note, a custom uncons could also promote random seeds to streams, but probably better to force 
       ;; being explicit about the choice of prng and require all functions to receive just digit streams.
+
+      ;; -- non prng-specific code ---------------------------------------------------------------
 
       ;;;
       ;;; Plain 0-(n-1) rand
@@ -208,55 +223,40 @@
                      (values rs (if (null? head) null (ncons 0 head)) #false)
                      (values rs (ncons this head) #false))))))
 
-      ; rs n → rs m, 0 <= m < n
-
-      ;; plan: take as many random bits as necessary, check that the value is below limit and pick or recurse
-
-      ;; compute the nearest m = (2^x)-1 with m >= num
-      ;; fixme: later by tree comparison
-      (define (bitmask num)
-         (if (eq? num 0)
-            1
-            (let loop ((n #xffff))
-               (lets ((np _ (fx>> n 1)))
-                  (if (lesser? np num) ;; we lost the high bit
-                     n
-                     (loop np))))))
-
       (define (rand-fixnum rs n)
-         (let loop ((rs rs) (mask (bitmask n)))
-            (lets
-               ((digit rs (uncons rs #false))
-                (m (fxband digit mask)))
-               (if (lesser? m n)
-                  (values rs m)
-                  (loop rs mask)))))
+         ;; could e.g. grab just enough bits of each rand and stop when 
+         ;; the bitwise and <= n, but that isn't robust against more 
+         ;; or less intentionally poor random streams. this slightly more 
+         ;; expensive approach makes sure we terminate for all random streams.
+         (lets
+            ((r rs (uncons rs rs))
+             (m *max-fixnum*))
+            (if (eq? r m)
+               (values rs 0)
+               (lets ((q r (quotrem (* n r) m)))
+                  (values rs q)))))
 
       ;; like rand-fixnum, but <= limit instead of < 
       (define (rand-bignum-topdigit rs n)
-         (let loop ((rs rs) (mask (bitmask n)))
-            (lets
-               ((digit rs (uncons rs #false))
-                (m (fxband digit mask)))
-               (cond
-                  ((lesser? m n) (values rs m))
-                  ((eq? m n) (values rs m))
-                  (else (loop rs mask))))))
+         (if (eq? n *max-fixnum*)
+            ;; no, no, there's no limit
+            (lets ((d rs (uncons rs rs)))
+               (values rs d))
+            (rand-fixnum rs (+ n 1))))
          
       (define (rand-bignum rs n)
-         (let loop ((rs rs) (left n) (out null))
+         (let loop ((rs rs) (left n) (out null) (lower? #false))
             (lets ((digit left left))
                (if (null? left)
-                  ;; last bignum digit (most significant bits) -> grab a suitable fixnum and compare
-                  (lets 
-                     ((rs top (rand-bignum-topdigit rs digit))
-                      (try (nrev-fix (cons top out))))
-                     (if (< try n)
-                        ;; we made 0 <= try < n
-                        (values rs try)
-                        (rand-bignum rs n)))
-                  (lets ((digit rs (uncons rs #false)))
-                     (loop rs left (cons digit out)))))))
+                  (if lower?
+                     ;; less significant bits are lower -> can pick the same top digit
+                     (lets ((rs top (rand-bignum-topdigit rs digit)))
+                        (values rs (nrev-fix (cons top out))))
+                     ;; lower bits are equal or higher → top needs to be lower
+                     (lets ((rs top (rand-fixnum rs digit)))
+                        (values rs (nrev-fix (cons top out)))))
+                  (lets ((this rs (uncons rs #false)))
+                     (loop rs left (cons this out) (lesser? this digit)))))))
 
       ;; todo: add (n-bits fixnum), use it to construct fixnum and bignum top digits, and compare&reject instead of modulo to avoid bias
       ;; + compare speed to the old one!
@@ -269,16 +269,23 @@
                (type-int+ (rand-bignum rs max))
                (else (error "bad rand limit: " max)))))
 
-      ;; a quick skew check. the modulo issue caused a >10% skew in some cases earlier
-      ;(let loop ((rs (seed->rands (time-ms))) (n 0) (sum 0) (lim 10000000000))
-      ;   (if (eq? 0 (band 1023 n))
-      ;      (let ((avg (div sum (max n 1))))
-      ;         (print
-      ;            (list "at " n " sum " sum " avg " avg " delta percent " 
-      ;               (let ((perc (div (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
-      ;                  perc)))))
-      ;   (lets ((rs val (rand rs lim)))
-      ;      (loop rs (+ n 1) (+ sum val) lim)))
+      ;; a quick skew check. definite doom if delta percent > 0, but please do dieharder later.
+      '(let 
+         ((lim #b11111111111111111111111111))
+         ;((lim #b10000000000000000000000000))
+         ;((lim #b1000000000000000000000000))
+         ;((lim #b1111111111111111111111111))
+         ;((lim #b100000000000000000000000))
+         ;((lim #b111111111111111111111111))
+         (let loop ((rs (seed->rands (time-ms))) (n 0) (sum 0))
+            (if (eq? 0 (band 1023 n))
+               (let ((avg (div sum (max n 1))))
+                  (print
+                     (list "at " n " sum " sum " avg " avg " delta percent " 
+                        (let ((perc (div (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
+                           perc)))))
+            (lets ((rs val (rand rs lim)))
+               (loop rs (+ n 1) (+ sum val)))))
 
       ;;;
       ;;; Random selection
@@ -535,3 +542,22 @@
 
 ))
 
+;; test program for dieharder stdout test 
+;;   $ bin/ol -O2 -o rand.c owl/random.scm && gcc -O2 -o rand rand.c && ./rand | dieharder -a -g 200 | tee report.txt)
+
+(import (owl random))
+
+(define blocksize 4096)
+
+(λ (args)
+   (let loop ((rs (rands->bytes (seed->rands (time-ms)))) (out null) (n 0))
+      (cond
+         ((eq? n blocksize)
+            (if (write-byte-vector stdout (list->byte-vector (reverse out))) ;; keep order
+               (loop rs null 0)))
+         (else
+            (lets 
+               ((byte rs (uncons rs 0))
+                (n _ (fx+ n 1)))
+               (loop rs (cons byte out) n))))))
+      

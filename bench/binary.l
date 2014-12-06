@@ -1,6 +1,6 @@
 ; tags: 
-(define x True)
-(define o False)
+(define x #t)
+(define o #f)
 
 (define zero '())
 
@@ -49,10 +49,10 @@
 		((car a)
 			(if (car b) 
 				(same? (cdr a) (cdr b))
-				False))
+				#f))
 		(else
 			(if (car b)
-				False
+				#f
 				(same? (cdr a) (cdr b))))))
 
 (define big (list o o o o o o x x))
@@ -77,14 +77,14 @@
 	;(display " -> ") (show-number n)
 	(cond
 		((same? n big) (cons 42 null))
-		((not (same? (pred (succ n)) n)) False)
-		((not (same? (add big n) (add n big))) False)
-		((not (same? (add (mult n n) n) (mult n (succ n)))) False)
-		((not (same? (sub n n) zero)) False)
-		((not (same? (sub (succ n) n) one)) False)
-		((not (same? (mult n (succ one)) (add n n))) False)
-		((not (same? (add n (add n n)) (add (add n n) n))) False)
-		((not (same? (add n (mult one n)) (add (mult n one) n))) False)
+		((not (same? (pred (succ n)) n)) #f)
+		((not (same? (add big n) (add n big))) #f)
+		((not (same? (add (mult n n) n) (mult n (succ n)))) #f)
+		((not (same? (sub n n) zero)) #f)
+		((not (same? (sub (succ n) n) one)) #f)
+		((not (same? (mult n (succ one)) (add n n))) #f)
+		((not (same? (add n (add n n)) (add (add n n) n))) #f)
+		((not (same? (add n (mult one n)) (add (mult n one) n))) #f)
 		(else (test (succ n)))))
 
 test

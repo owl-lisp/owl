@@ -16,7 +16,7 @@
 ;; amb value = (fail-cont . opts)
 (define (amb opts cont)
    (if (null? opts)
-      False
+      #f
       (let ((outcome (cont (car opts))))
          (if outcome
             outcome
@@ -28,8 +28,8 @@
          (amb data
             (lambda (y)
                (cond
-                  ((not (eq? x y)) False)
-                  ((not (eq? x 1)) False)
+                  ((not (eq? x y)) #f)
+                  ((not (eq? x 1)) #f)
                   (else (ok (list x y)))))))))
 
 (define (test args)

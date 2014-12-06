@@ -8,7 +8,7 @@
 
 (define (seek env val)
 	(cond
-		((null? env) #false)
+		((null? env) #f)
 		((eq? (caar env) val) (cdar env))
 		(else (seek (cdr env) val))))
 
@@ -36,7 +36,7 @@
 		((and (pair? x) (pair? y))
 			(unify (cdr x) (cdr y)
 				(unify (car x) (car y) env)))
-		(else #false)))
+		(else #f)))
 
 
 (define (apply-env exp env)
@@ -117,7 +117,7 @@
 
 	(define (end-cont)
 		(print "}")
-		#false)
+		#f)
 
 	(define (forcer fk count)
 		(cond

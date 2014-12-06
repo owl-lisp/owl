@@ -25,6 +25,8 @@
 
 ;; check that (owl defmac) is indeed from last generation
 
+(define build-start (time-ms))
+
 ; (import (owl defmac))
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
@@ -40,7 +42,7 @@
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run)
+,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run build-start)
 
 
 ;;;
@@ -52,6 +54,8 @@
 (import (owl core))     ;; get special forms, primops and define-syntax
 
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
+
+(define *interactive* #true) ;; be verbose 
 
 (define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 
@@ -66,7 +70,7 @@
 
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.7f")
+(define *owl-version* "0.1.7")
 (define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
 (define max-object-size #xffff)
 
@@ -587,15 +591,16 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((finished result not used)
             result)
          ((crashed opcode a b)
-            (print-to (verbose-vm-error opcode a b) stderr)
+            (print-to stderr (verbose-vm-error opcode a b))
             fail-val)
          ((error cont reason info)
             ; note, these could easily be made resumable by storing cont
-            (write-bytes stderr
-               (foldr render '(10) (list "error: " reason info)))
+            (print-to stderr
+               (list->string
+                  (foldr render '(10) (list "error: " reason info))))
             fail-val)
          (else is bad ;; should not happen
-            (print-to (list "que? " bad) stderr)
+            (print-to stderr (list "que? " bad))
             fail-val))))
 
 (define (owl-run outcome args path profile?)
@@ -922,6 +927,8 @@ Check out http://code.google.com/p/owl-lisp for more information.")
 ;;; Step 3 - profit
 ;;;
 
+(print "Code loaded at " (- (time-ms) build-start) "ms.")
+
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"
       (λ (opts extra)
@@ -939,4 +946,6 @@ Check out http://code.google.com/p/owl-lisp for more information.")
                   (choose-natives 
                      (get opts 'specialize "none")
                      heap-entry))
+               (print "Output written at " (- (time-ms) build-start) "ms.")
                0)))))
+

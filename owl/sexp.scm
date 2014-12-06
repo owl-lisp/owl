@@ -8,7 +8,8 @@
       list->number
       get-sexps       ;; greedy* get-sexp
 		string->sexp
-      vector->sexps) ;; for string->number
+      vector->sexps
+      list->sexps)
 
    (import
       (owl parse)
@@ -393,7 +394,6 @@
                (utf8-decoder data 
                   (λ (self line data) 
                      (ret (fail (list "Bad UTF-8 data on line " line ": " (ltake line 10))))))))
-            (print data)
             (sexp-parser data
                (λ (data drop val pos)
                   (cond
@@ -418,6 +418,10 @@
 
       (define (vector->sexps vec fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
-         (try-parse get-sexps (vector->list vec) #false errmsg #false))
+         (let ((lst (vector->list vec)))
+            (try-parse get-sexps lst #false errmsg #false)))
 
+      (define (list->sexps lst fail errmsg)
+         ; try-parse parser data maybe-path maybe-error-msg fail-val
+         (try-parse get-sexps lst #false errmsg #false))
 ))

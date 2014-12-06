@@ -209,7 +209,7 @@
             ; so -1 to not count continuation. there is no way to differentiate the 
             ; two, since there are no calls and returns, just jumps.
             `(function ,a got did not want ,(- b 1) arguments) 
-            `("error: instruction" ,(primop-name opcode) "reported error: " a " " b)))
+            `("error: instruction" ,(primop-name opcode) "reported error: " ,a " " ,b)))
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes

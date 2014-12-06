@@ -55,7 +55,7 @@
 					(let ((vec (list->vector data)))
 						(time (λ () (fold (λ (x pos) (vec-ref vec pos)) 0 data)))))
 				((eq? what 'iff)
-					(let ((iff (fold (λ (iff p) (iput iff p p)) False data)))
+					(let ((iff (fold (λ (iff p) (iput iff p p)) #f data)))
 						(time (λ () (fold (λ (x pos) (iget iff pos pos)) 0 data)))))
 				(else
 					(error "seq-read: what is " what)))
@@ -75,7 +75,7 @@
 				((eq? what 'vector)
 					999999)
 				((eq? what 'iff)
-					(let ((iff (fold (λ (iff p) (iput iff p p)) False data)))
+					(let ((iff (fold (λ (iff p) (iput iff p p)) #f data)))
 						(time (λ () (fold (λ (x pos) (iput iff pos pos)) 0 data)))))
 				(else
 					(error "seq-read: what is " what)))
@@ -115,13 +115,13 @@ over " cutoff-time "ms."))
 	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
-		(battle 1 '(list rlist vector iff) True read-each))
+		(battle 1 '(list rlist vector iff) #t read-each))
 	(print "")
 	(display " - random access (")
 	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
-		(battle 1 '(list rlist vector iff) False read-each))
+		(battle 1 '(list rlist vector iff) #f read-each))
 	(print "")
 	(print "--- WRITE BENCHMARK ----------------------------")
 	(print "vectors have no write yet..")
@@ -129,12 +129,12 @@ over " cutoff-time "ms."))
 	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
-		(battle 1 '(list rlist iff) True write-each))
+		(battle 1 '(list rlist iff) #t write-each))
 	(display " - random order write (")
 	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
-		(battle 1 '(list rlist iff) False write-each))
+		(battle 1 '(list rlist iff) #f write-each))
 	(print ""))
 
 

@@ -71,7 +71,7 @@
       ((thunk)
 			(iterate thunk (sub times 1)))
       (else
-         False)))
+         #f)))
 
 (define (test args)
 	(iterate test-run 20))

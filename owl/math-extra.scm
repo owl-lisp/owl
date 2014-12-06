@@ -28,6 +28,7 @@
       (owl list-extra)
       (owl sort)
       (owl primop)
+      (only (owl syscall) por por*)
       (owl defmac)
       (owl ff)
       (only (owl syscall) error))
@@ -36,7 +37,6 @@
       ;;;
       ;;; SQUARE ROOTS (stub)
       ;;;
-
       ; fixme, did not find a good integer sqrt algorithm which would
       ; work with these numerals, so i rolled my own as a quick substitute
       ; bench later
@@ -47,12 +47,12 @@
             ((eq? n 0) f)
             ((eq? (type n) type-fix+)
                (lets ((hi lo (fx>> n 1)))
-                  (nbits hi (nat-inc f))))
+                  (nbits hi (nat-succ f))))
             (else
                (let ((tl (ncdr n)))
                   (if (null? tl)
                      (nbits (ncar n) f)
-                     (nbits tl (add f 16)))))))
+                     (nbits tl (add f *fixnum-bits*)))))))
 
       (define (isqrt-init n)
          (lets
@@ -367,13 +367,18 @@
 
       (define (factor n)   
          (if (> n 1)
-            (let 
-               ((pows
-                  (fold atkin-try (list n)   
-                     '(2 3 5 7 11 13 17 19 23 29 31))))
-               (if (eq? (car pows) 1)
-                  (cdr pows)
-                  (atkin-factor-driver pows 32)))
+            (por
+               ;; prime check is relatively fast (for deterministic range) so try it first
+               (if (prime? n)
+                  (list (cons n 1))
+                  #false)
+               (let 
+                  ((pows
+                     (fold atkin-try (list n)   
+                        '(2 3 5 7 11 13 17 19 23 29 31))))
+                  (if (eq? (car pows) 1)
+                     (cdr pows)
+                     (atkin-factor-driver pows 32))))
             null))
       
                

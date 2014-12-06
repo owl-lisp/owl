@@ -2,7 +2,6 @@ DESTDIR=
 PREFIX=/usr
 BINDIR=/bin
 INSTALL=install
-TIME=/usr/bin/time -p
 
 CFLAGS=-Wall -O2
 #CC=gcc
@@ -14,8 +13,8 @@ owl: bin/ol
 # which make take minutes on a reallyk slow machine
 bytecode-owl: fasl/ol.fasl
 	# note that tests are omitted because they have already been run against fasl/ol.fasl, 
-   # and /usr/bin/owl-vm may be too old
-	echo '#!/usr/bin/owl-vm' > bin/ol
+   # and /usr/bin/ovm may be too old
+	echo '#!/usr/bin/ovm' > bin/ol
 	cat fasl/ol.fasl >> bin/ol
 	chmod +x bin/ol
 
@@ -27,7 +26,7 @@ fasl/boot.fasl: fasl/init.fasl
 
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
 	# selfcompile boot.fasl until a fixed point is reached
-	time bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
+	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
 	ls -la fasl/bootp.fasl
 	# check that the new image passes tests
 	tests/run all bin/vm fasl/bootp.fasl
@@ -103,12 +102,12 @@ install: bin/ol bin/vm doc/ol.1.gz
 	-mkdir -p $(DESTDIR)$(PREFIX)/bin
 	-mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
 	$(INSTALL) -m 755 bin/ol $(DESTDIR)$(PREFIX)/bin/ol
-	$(INSTALL) -m 755 bin/vm $(DESTDIR)$(PREFIX)/bin/owl-vm
+	$(INSTALL) -m 755 bin/vm $(DESTDIR)$(PREFIX)/bin/ovm
 	$(INSTALL) -m 644 doc/ol.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
 uninstall:
 	-rm $(DESTDIR)$(PREFIX)/bin/ol
-	-rm $(DESTDIR)$(PREFIX)/bin/owl-vm
+	-rm $(DESTDIR)$(PREFIX)/bin/ovm
 	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
 
 clean:

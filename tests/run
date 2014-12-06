@@ -28,16 +28,14 @@ echo -n "Running tests/ against $@:"
 
 touch $LOG
 
-MAXMEM=1048576 # 1GB
-MAXTIME=60
 for file in tests/*$SUFFIX.scm
 do
-   (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; $@ -q $file 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   ($@ -q $file 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done
 
 for file in tests/*$SUFFIX.sh
 do
-   (ulimit -S -t $MAXTIME; ulimit -S -m $MAXMEM; sh $file $@ 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   (sh $file $@ 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
 done
 
 wait 
