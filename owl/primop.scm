@@ -26,6 +26,9 @@
       apply apply-cont ;; apply post- and pre-cps
       call/cc call-with-current-continuation 
       lets/cc
+
+      ;; vm interface
+      vm bytes->bytecode bytecode-function
       )
 
    (import
@@ -37,6 +40,14 @@
          (if (eq? a '())
             b
             (cons (car a) (app (cdr a) b))))
+
+      ;; l -> fixnum | #false if too long
+      (define (fx-length l)
+         (let loop ((l l) (n 0))
+            (if (eq? l '())
+               n
+               (lets ((n o (fx+ n 1)))
+                  (if o #false (loop (cdr l) n))))))
 
       (define (len lst)
          (let loop ((lst lst) (n 0))
@@ -232,4 +243,36 @@
                      (else
                         (loop (cdr primops))))))))
 
+      ;; TODO: these → (owl vm), and  convert assble to use it
+      ;; make bytecode and intern it (to improve sharing, not mandatory)
+      (define (bytes->bytecode bytes)
+         (raw bytes type-bytecode #false))
+      
+      (define (app a b)
+         (if (eq? a '())
+            b
+            (cons (car a)
+               (app (cdr a) b))))
+
+      ;; construct the arity check, just return #false on errors, since we don't have any IO or error throwing yet
+      (define (bytecode-function fixed? arity bytes)
+         (let ((l (fx-length bytes)))
+            (if l
+               (lets 
+                  ((hi lo (fx>> (fx-length bytes) 8)))
+                  (if (eq? hi (fxband hi 255))
+                     (bytes->bytecode
+                        (ilist ;; arity check
+                           (if fixed? 25 89) 
+                           arity hi lo
+                           ;; given bytecode
+                           (app bytes (list 17))))
+                     #false))
+               #false)))
+
+      (define (vm . bytes)
+         ((bytes->bytecode bytes)))
+
+      
+   
 ))

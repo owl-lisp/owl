@@ -1154,8 +1154,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       error(11, IFALSE, IFALSE);
    op10: /* unused */
       error(10, IFALSE, IFALSE);
-   op12: /* unused */
-      error(12, IFALSE, IFALSE);
+   op12: /* jump-back-whale <n>  */
+      ip -= ip[1];
+      NEXT(0);
    op13: /* ldi{2bit what} [to] */
       R[*ip++] = load_imms[op>>6];
       NEXT(0);
