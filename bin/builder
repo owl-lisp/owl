@@ -15,7 +15,7 @@ WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
 RELATEDPROJECTS="radamsa blab lines err spektro"
 MD5=md5sum
-echo "" | $MD5 | grep 68b329da9893e34099c7d8ad5cb9c940 || MD5="md5"
+echo "" | $MD5 | grep -q 68b329da9893e34099c7d8ad5cb9c940 || MD5="md5"
 ME=$($MD5 < bin/builder)
 
 echo "My version is $ME"
@@ -95,7 +95,7 @@ do
 	NEWME=$($MD5 < bin/builder)
 	echo "old me $ME, new me $NEWME"
 	test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/builder; }
-	make clean
+	make clean >/dev/null 2>&1
 	VERSION=$(thisgit)
 	echo building owl
 	(ulimit -S -t $TIMELIMIT; make > build.log 2>&1) || { 
@@ -122,7 +122,7 @@ do
       echo " - fresh $project build"
       cd $project
       git pull
-      make clean
+      make clean >/dev/null 2>&1
       rm -rf owl-lisp
       cp -R ../owl-lisp .
       VERSION="$project $(thisgit), owl $(cd owl-lisp && thisgit)"
