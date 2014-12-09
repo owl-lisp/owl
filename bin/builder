@@ -4,58 +4,73 @@
 # and run randomized tests in the meantime.
 # you probably don't want to run this.
 
-MD5=md5sum
-# it's md5 on more BSD machines
-echo "" | $MD5 | grep 68b329da9893e34099c7d8ad5cb9c940 || MD5="md5"
+renice +20 $$
 
-test -f bin/builder || exit 1
-
-# restart run if i get updated
-ME=$($MD5 < bin/builder)
-echo "I AM $ME"
-
+DELAY=60        # sleep n seconds between test runs
+TESTMINS=15     # minutes of random unit tests 
+THEOREMS=5000   # iterations of theorem test
+TIMELIMIT=3000  # max build seconds
 MYDIR=$(pwd)
-
 WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
 RELATEDPROJECTS="radamsa blab lines err spektro"
+MD5=md5sum
+echo "" | $MD5 | grep 68b329da9893e34099c7d8ad5cb9c940 || MD5="md5"
+ME=$($MD5 < bin/builder)
 
-case "$(hostname)" in 
- haltp) 
-   SMTP=mail.utanet.fi;
-   DELAY=40 ;; # don't want to spin up fans here
- *)     
-   SMTP=mail.panoulu.net ;
-   DELAY=0 ;; # please do run
-esac
+echo "My version is $ME"
+
+fail() {
+   echo "error: $@"
+   exit 1
+}
+
+check_exe() {
+   echo " - $1"
+   test -n $(which $1) || fail "no $1"
+}
 
 notify() {
+   echo "MAIL: $@"
 	mailx -S "from=Note <$(whoami)@$(hostname --long)>" -S smtp=$SMTP -s "$(echo $@)" $EMAIL
 }
 
 notify_irc() {
-   NC="nc -i 5 -q 10"
+   NC="nc -i 4 -q 8"
    HOST=$(echo $(hostname | grep "\." || hostname --long)) # different in BSD and Linux
    uname | grep BSD && NC="nc -i 10 -w 5"
+   echo "IRC: $1"
    (echo "NICK $(hostname -s)-$$\nUSER builder 8 x $(hostname -s) $HOST";
     echo "JOIN #owl-lisp";
-    echo "PRIVMSG #owl-lisp :$1\nQUIT\n";) | $NC irc.freenode.net 6667
+    echo "PRIVMSG #owl-lisp :$1\nQUIT\n";) | $NC irc.freenode.net 6667 > /dev/null
 }
 
-renice +20 $$
+thisgit() {
+   git log | head -n 1 | sed -e 's/.* \(......\).*/\1.../'
+}
+
+echo "Checking deps:"
+for DEP in nc $MD5 mailx
+do
+   check_exe $DEP
+done
+
+
+test -f bin/builder || fail "run me at owl-lisp root"
+
+
+case "$(hostname)" in 
+ #haltp) 
+ #  SMTP=mail.utanet.fi;
+ #  DELAY=40 ;; # don't want to spin up fans here
+ *)     
+   SMTP=mail.panoulu.net ;
+esac
 
 date | notify "Builder.sh started on $(hostname)"
 date | notify_irc "builder started on $(hostname) ($(uname), $(uname -m), $(echo $ME | dd bs=1 count=5))"
 
-test -d $WORK || {
-   echo "work directory '$WORK' doesn't exist";
-   exit 2;
-}
-
-# get part of current git version hash for identification
-thisgit() {
-   git log | head -n 1 | sed -e 's/.* \(......\).*/\1.../'
-}
+test -d $WORK || fail "work directory '$WORK' doesn't exist"
 
 cd $WORK
 
@@ -65,10 +80,6 @@ do
    echo " - $project"
    test -d $project || git clone https://github.com/aoh/$project.git
 done
-
-TESTMINS=15     # minutes of random unit tests 
-THEOREMS=5000   # iterations of theorem test
-TIMELIMIT=3000  # max build seconds
 
 while true
 do
