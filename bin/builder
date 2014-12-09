@@ -18,7 +18,7 @@ MYDIR=$(pwd)
 
 WORK=$HOME/ram # normally a ramdisk, don't want to wear ssds too much
 EMAIL="aohelin@gmail.com"
-RELATEDPROJECTS="radamsa blab dwim spektro err"
+RELATEDPROJECTS="radamsa blab lines err spektro"
 
 case "$(hostname)" in 
  haltp) 
@@ -63,7 +63,7 @@ echo "*** GETTING SOURCES ***"
 for project in owl-lisp $RELATEDPROJECTS
 do
    echo " - $project"
-   test -d $project || git clone http://haltp.org/git/$project.git
+   test -d $project || git clone https://github.com/aoh/$project.git
 done
 
 TESTMINS=15     # minutes of random unit tests 
