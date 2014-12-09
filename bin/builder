@@ -68,7 +68,7 @@ case "$(hostname)" in
 esac
 
 date | notify "Builder.sh started on $(hostname)"
-date | notify_irc "builder started on $(hostname) ($(uname), $(uname -m), $(echo $ME | dd bs=1 count=5))"
+date | notify_irc "builder started on $(hostname) ($(uname), $(uname -m), $(echo $ME | dd bs=1 count=5 2>/dev/null))"
 
 test -d $WORK || fail "work directory '$WORK' doesn't exist"
 
