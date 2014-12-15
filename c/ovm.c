@@ -1154,8 +1154,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       error(11, IFALSE, IFALSE);
    op10: /* unused */
       error(10, IFALSE, IFALSE);
-   op12: /* jump-back-whale <n>  */
-      ip -= ip[1];
+   op12: /* jb n */
+      ip -= ip[0];
+      if (ticker) /* consume thread time */
+         ticker--;
       NEXT(0);
    op13: /* ldi{2bit what} [to] */
       R[*ip++] = load_imms[op>>6];
@@ -1184,7 +1186,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       ob = (word *) this[1];
       ip = ((unsigned char *) ob) + W;
       goto invoke; }
-   op20: { 
+   op20: { /* apply */
       int reg, arity;
       word *lst;
       if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5, */ 
@@ -1248,7 +1250,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       R[ip[p]] = (word) ob;
       NEXT(s+1); }
-   op24: /* ret val */
+   op24: /* ret val == implicit call r3 with 1 arg */
       ob = (word *) R[3];
       R[3] = R[*ip];
       acc = 1;
