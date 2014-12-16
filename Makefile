@@ -13,7 +13,7 @@ owl: bin/ol
 # which make take minutes on a reallyk slow machine
 bytecode-owl: fasl/ol.fasl
 	# note that tests are omitted because they have already been run against fasl/ol.fasl, 
-   # and /usr/bin/ovm may be too old
+	# and /usr/bin/ovm may be too old
 	echo '#!/usr/bin/ovm' > bin/ol
 	cat fasl/ol.fasl >> bin/ol
 	chmod +x bin/ol
@@ -98,21 +98,27 @@ owl/unicode-char-folds.scm:
 doc/ol.1.gz: doc/ol.1
 	cat doc/ol.1 | gzip -9 > doc/ol.1.gz
 
-install: bin/ol bin/vm doc/ol.1.gz
+doc/ovm.1.gz: doc/ovm.1
+	cat doc/ovm.1 | gzip -9 > doc/ovm.1.gz
+
+install: bin/ol bin/vm doc/ol.1.gz doc/ovm.1.gz
 	-mkdir -p $(DESTDIR)$(PREFIX)/bin
 	-mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
 	$(INSTALL) -m 755 bin/ol $(DESTDIR)$(PREFIX)/bin/ol
 	$(INSTALL) -m 755 bin/vm $(DESTDIR)$(PREFIX)/bin/ovm
 	$(INSTALL) -m 644 doc/ol.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
+	$(INSTALL) -m 644 doc/ovm.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ovm.1.gz
 
 uninstall:
 	-rm $(DESTDIR)$(PREFIX)/bin/ol
 	-rm $(DESTDIR)$(PREFIX)/bin/ovm
 	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
+	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ovm.1.gz
 
 clean:
 	-rm fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
 	-rm c/vm.c c/ol.c
+	-rm doc/*.gz
 	-rm bin/ol bin/vm
 
 # make a standalone binary against dietlibc for relase

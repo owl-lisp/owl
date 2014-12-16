@@ -1,0 +1,29 @@
+.TH ol 1 "December 14, 2011"
+.SH NAME
+ovm \- Owl Lisp virtual machine
+.SH SYNOPSIS
+.B ovm 
+.I heapimage
+.I [arg]...
+.SH DESCRIPTION
+Owl Lisp is a purely functional Lisp based on a subset of R7RS Scheme. Ovm
+can be used to run precompiled bytecode images of programs. 
+.PP
+.SH OPTIONS
+Ovm needs only one argument, which is the heap image, and the rest of the 
+arguments are passed over to the program.
+.PP
+.SH EXAMPLES
+ $ echo '(lambda (args) (print args) 0)' | ol -o demo.fasl
+ $ ovm demo.fasl 11 22 33
+ (demo.fasl 11 22 33)
+ $ (echo '#!/usr/bin/ovm'; cat demo.fasl) >  demo
+ $ chmod +x demo
+ $ ./demo 11 22 33
+ (./demo 11 22 33)
+ $ echo $?
+ 0
+.SH SEE ALSO
+.BR ol (1), gcc (1)
+.SH AUTHOR
+Owl Lisp and this manual page were written by Aki Helin <aki.helin@iki.fi>.
