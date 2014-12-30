@@ -1,10 +1,9 @@
-DESTDIR=
-PREFIX=/usr
-BINDIR=/bin
-INSTALL=install
-
-CFLAGS=-Wall -O2
-#CC=gcc
+DESTDIR?=
+PREFIX?=/usr
+BINDIR?=/bin
+INSTALL?=install
+CFLAGS?=-Wall -O2
+CC?=gcc
 
 # owl needs just a single binary
 owl: bin/ol 
