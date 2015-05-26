@@ -619,9 +619,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       1))
 
 (define about-owl 
-"Owl Lisp -- It's a lisp thing.
-Copyright (c) 2008-2011 Aki Helin
-Check out http://code.google.com/p/owl-lisp for more information.")
+"Owl Lisp -- a functional scheme for world domination
+Copyright (c) 2015 Aki Helin
+Check out https://github.com/aoh/owl-lisp for more information.")
 
 
 
