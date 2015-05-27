@@ -1,19 +1,20 @@
 DESTDIR?=
 PREFIX?=/usr
 BINDIR?=/bin
+MANDIR?=/share/man
 INSTALL?=install
 CFLAGS?=-Wall -O2
 CC?=gcc
 
 # owl needs just a single binary
-owl: bin/ol 
+all owl: bin/ol
 
 # make a bytecode image instead of a binary to avoid having to call C-compiler, 
-# which make take minutes on a reallyk slow machine
+# which make take minutes on a really slow machine
 bytecode-owl: fasl/ol.fasl
 	# note that tests are omitted because they have already been run against fasl/ol.fasl, 
 	# and /usr/bin/ovm may be too old
-	echo '#!/usr/bin/ovm' > bin/ol
+	echo '#!$(DISTFILES)$(PREFIX)$(BINDIR)/ovm' > bin/ol
 	cat fasl/ol.fasl >> bin/ol
 	chmod +x bin/ol
 
@@ -28,7 +29,7 @@ fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
 	ls -la fasl/bootp.fasl
 	# check that the new image passes tests
-	tests/run all bin/vm fasl/bootp.fasl
+	CC=$(CC) tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
 	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
 	
@@ -53,7 +54,7 @@ c/ol.c: fasl/ol.fasl
 bin/ol: c/ol.c
 	# compile the real owl repl binary
 	$(CC) $(CFLAGS) -o bin/olp c/ol.c
-	tests/run all bin/olp
+	CC=$(CC) tests/run all bin/olp
 	test -f bin/ol && mv bin/ol bin/ol-old || true
 	mv bin/olp bin/ol
 
@@ -61,14 +62,14 @@ bin/ol: c/ol.c
 ## running unit tests manually
 
 fasltest: bin/vm fasl/ol.fasl
-	tests/run all bin/vm fasl/ol.fasl
+	CC=$(CC) tests/run all bin/vm fasl/ol.fasl
 
 test: bin/ol
-	tests/run all bin/ol
+	CC=$(CC) tests/run all bin/ol
 
 random-test: bin/vm bin/ol fasl/ol.fasl
-	tests/run random bin/vm fasl/ol.fasl
-	tests/run random bin/ol
+	CC=$(CC) tests/run random bin/vm fasl/ol.fasl
+	CC=$(CC) tests/run random bin/ol
 
 
 ## MinGW builds for win32 
@@ -82,7 +83,7 @@ bin/vm.exe: c/vm.c
 bin/ol.exe: c/ol.c
 	test -x `which i586-mingw32msvc-gcc`
 	i586-mingw32msvc-gcc $(CFLAGS) -o bin/ol.exe c/ol.c -lwsock32
-	# tests/run.sh wine bin/ol.exe <- stdio does not work in wine :(
+	# CC=$(CC) tests/run.sh wine bin/ol.exe <- stdio does not work in wine :(
 
 
 ## data 
@@ -101,28 +102,28 @@ doc/ovm.1.gz: doc/ovm.1
 	cat doc/ovm.1 | gzip -9 > doc/ovm.1.gz
 
 install: bin/ol bin/vm doc/ol.1.gz doc/ovm.1.gz
-	-mkdir -p $(DESTDIR)$(PREFIX)/bin
-	-mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	$(INSTALL) -m 755 bin/ol $(DESTDIR)$(PREFIX)/bin/ol
-	$(INSTALL) -m 755 bin/vm $(DESTDIR)$(PREFIX)/bin/ovm
-	$(INSTALL) -m 644 doc/ol.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
-	$(INSTALL) -m 644 doc/ovm.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/ovm.1.gz
+	-mkdir -p $(DESTDIR)$(PREFIX)$(BINDIR)
+	-mkdir -p $(DESTDIR)$(PREFIX)$(MANDIR)/man1
+	$(INSTALL) -m 755 bin/ol $(DESTDIR)$(PREFIX)$(BINDIR)/ol
+	$(INSTALL) -m 755 bin/vm $(DESTDIR)$(PREFIX)$(BINDIR)/ovm
+	$(INSTALL) -m 644 doc/ol.1.gz $(DESTDIR)$(PREFIX)$(MANDIR)/man1/ol.1.gz
+	$(INSTALL) -m 644 doc/ovm.1.gz $(DESTDIR)$(PREFIX)$(MANDIR)/man1/ovm.1.gz
 
 uninstall:
-	-rm $(DESTDIR)$(PREFIX)/bin/ol
-	-rm $(DESTDIR)$(PREFIX)/bin/ovm
-	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ol.1.gz
-	-rm $(DESTDIR)$(PREFIX)/share/man/man1/ovm.1.gz
+	-rm -f $(DESTDIR)$(PREFIX)$(BINDIR)/ol
+	-rm -f $(DESTDIR)$(PREFIX)$(BINDIR)/ovm
+	-rm -f $(DESTDIR)$(PREFIX)$(MANDIR)/man1/ol.1.gz
+	-rm -f $(DESTDIR)$(PREFIX)$(MANDIR)/man1/ovm.1.gz
 
 clean:
-	-rm fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
-	-rm c/vm.c c/ol.c
-	-rm doc/*.gz
-	-rm bin/ol bin/vm
+	-rm -f fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
+	-rm -f c/vm.c c/ol.c
+	-rm -f doc/*.gz
+	-rm -f bin/ol bin/vm
 
 # make a standalone binary against dietlibc for relase
 standalone:
-	-rm bin/ol
+	-rm -f bin/ol
 	make CFLAGS="-O2 -DNO_SECCOMP" CC="diet gcc" bin/ol
 
 fasl-update: fasl/ol.fasl
