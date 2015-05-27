@@ -1,5 +1,7 @@
 #!/bin/sh
 
+: ${CC:="gcc"}
+
 LISP="tmp/bare-$$.scm"
 FASL="tmp/bare-$$.fasl"
 C="tmp/bare-$$.c"
@@ -18,7 +20,7 @@ RFASL=$?
 echo "fasl: $RFASL"
 
 $@ --no-threads -o $C $LISP
-gcc -o $OBJ $C
+$CC -o $OBJ $C
 $OBJ
 RBIN=$?
 echo "binary: $RBIN"
