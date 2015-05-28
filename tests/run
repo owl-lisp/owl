@@ -1,6 +1,16 @@
 #!/bin/sh
 
 SUFFIX=""
+MAXJOBS=16
+
+waitnjobs() {
+   while true
+   do
+      test $(jobs | grep Running | wc -l) -lt $1 && break
+      sleep 0.2
+   done
+}
+
 
 case $1 in 
 	random) SUFFIX=-rand;;
@@ -31,11 +41,13 @@ touch $LOG
 for file in tests/*$SUFFIX.scm
 do
    ($@ -q $file 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   waitnjobs $MAXJOBS
 done
 
 for file in tests/*$SUFFIX.sh
 do
    (sh $file $@ 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   waitnjobs $MAXJOBS
 done
 
 wait 
