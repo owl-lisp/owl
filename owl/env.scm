@@ -28,7 +28,7 @@
       (owl list-extra)
       (owl math)
 		(owl io)
-      (scheme misc)
+      (scheme base)
       (owl primop))
 
    (begin

@@ -23,7 +23,7 @@
       (owl equal)
       (only (owl syscall) error)
       (owl list)
-      (scheme misc))
+      (scheme base))
 
    (begin
       ;; fixme: temp register limit

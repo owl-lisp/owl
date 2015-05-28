@@ -100,22 +100,6 @@
       (define (string-set! str pos val) (unsupported "string-set!"))))
 
 
-;; move these simple ones to a separate library later (owl immediate?)
-(define-library (owl boolean)
-
-   (export boolean?)
-
-   (import  
-      (owl defmac)
-      (owl unsupported))
-
-   (begin
-      (define (boolean? x) 
-         (cond
-            ((eq? x #true) #true)
-            ((eq? x #false) #true)
-            (else #false)))))
-
 (import (owl boolean))
 
 (import (owl list))
@@ -140,8 +124,8 @@
 
 
 ;; move these elsewhere
-(define (number->string n base)
-   (list->string (render-number n null base)))
+;(define (number->string n base)
+;   (list->string (render-number n null base)))
 
 (define (fopen path mode)
    (syscall 7 (c-string path) mode))
@@ -191,7 +175,7 @@
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
 
-(import (scheme misc))
+(import (scheme base))
 
 (import (owl env))
 
@@ -533,10 +517,10 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
        (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup or exit if it failed")
-       (seccomp-heap     "-H" "--heap"     cook ,string->integer default "5"
+       (seccomp-heap     "-H" "--heap"     cook ,string->number default "5"
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
-       (optimize "-O" "--optimize" cook ,string->integer comment "optimization level in C-compiltion (0-2)")
+       (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compiltion (0-2)")
        ;(profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")

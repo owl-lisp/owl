@@ -44,7 +44,7 @@
       (owl parse)
       (owl function)
       (owl equal)
-      (scheme misc)
+      (scheme base)
       (owl lazy)
       (owl macro)
       (owl intern)
