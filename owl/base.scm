@@ -31,6 +31,7 @@
       (exports (owl math))
       (exports (owl tuple))
       (exports (scheme cxr))
+      (exports (scheme time))
       wait
       call/cc
       lets/cc)
@@ -64,4 +65,5 @@
       (owl render)
       (owl syscall)
       (owl math)
-      (scheme cxr)))
+      (scheme cxr)
+      (scheme time)))
