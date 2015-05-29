@@ -1,4 +1,4 @@
-;; currently a union library of some existing ones 
+;; Owl default toplevel
 
 (define-library (owl base)
 
@@ -30,6 +30,7 @@
       (exports (owl math-extra))
       (exports (owl math))
       (exports (owl tuple))
+      (exports (scheme cxr))
       wait
       call/cc
       lets/cc)
@@ -62,4 +63,5 @@
       (owl suffix)
       (owl render)
       (owl syscall)
-      (owl math)))
+      (owl math)
+      (scheme cxr)))

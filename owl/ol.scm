@@ -77,29 +77,6 @@
 (define owl-ohai "You see a prompt.")
 (define owl-ohai-seccomp "You see a prompt. You feel restricted.")
 
-;; throw an error if some familiar but unsupported Scheme functions are called
-(define-library (owl unsupported)
-
-   (export set! set-car! set-cdr! string-set! vector-set!)
-
-   (import 
-      (owl defmac)
-      (owl syscall))
-
-   (begin
-      (define-syntax set!
-         (syntax-rules () 
-            ((set! var val) (error "set! is not supported: " '(set! var val)))))
-  
-      (define (unsupported name)
-         (error "Mutator not supported: " name))
-
-      (define (set-car! pair val) (unsupported "set-car!"))
-      (define (set-cdr! pair val) (unsupported "set-cdr!"))
-      (define (vector-set! vec pos val) (unsupported "vector-set!"))
-      (define (string-set! str pos val) (unsupported "string-set!"))))
-
-
 (import (owl boolean))
 
 (import (owl list))
@@ -175,7 +152,11 @@
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
 
+(import (scheme cxr))
+
 (import (scheme base))
+
+(import (scheme case-lambda))
 
 (import (owl env))
 
@@ -494,7 +475,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 ;; owl core needed before eval
 
 ;; toplevel can be defined later
-
 
 (define initial-environment
    (bind-toplevel

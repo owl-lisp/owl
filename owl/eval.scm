@@ -49,7 +49,8 @@
       (owl macro)
       (owl intern)
       (owl eof)
-      (only (owl regex) string->regex))
+      (only (owl regex) string->regex)
+      (scheme cxr))
 
    (begin
 

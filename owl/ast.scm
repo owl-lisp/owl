@@ -15,7 +15,8 @@
       (owl symbol)
       (owl defmac)
       (owl equal)
-      (owl env))
+      (owl env)
+      (scheme cxr))
 
    (begin
       (define (ok exp env) (tuple 'ok exp env))

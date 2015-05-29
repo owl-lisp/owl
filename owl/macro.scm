@@ -18,7 +18,8 @@
       (owl sort)
       (owl gensym)
       (owl symbol)
-      (owl env))
+      (owl env)
+      (scheme cxr))
 
    (begin
       ;;; Misc

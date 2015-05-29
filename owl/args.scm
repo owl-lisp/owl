@@ -23,7 +23,8 @@
       (owl list)
       (owl string)
       (owl equal)
-      (owl ff)) ;; MODULE OUTPUT DOWNGRADED
+      (owl ff)
+      (scheme cxr))
 
    (begin
       ;; cl-rules is a ff of 

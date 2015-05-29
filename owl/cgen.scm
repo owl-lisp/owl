@@ -30,7 +30,8 @@
       (owl render)
       (owl io)
       (only (owl syscall) error)
-      (only (owl assemble) inst->op))
+      (only (owl assemble) inst->op)
+      (scheme cxr))
 
    (begin
 

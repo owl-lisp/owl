@@ -3,8 +3,7 @@
    (export boolean?)
 
    (import
-      (owl defmac)
-      (owl unsupported))
+      (owl defmac))
 
    (begin
       (define (boolean? x)
