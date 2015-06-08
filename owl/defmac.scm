@@ -22,6 +22,8 @@
 
       immediate? allocated? raw? record?
 
+		-> ->>
+
       type-bytecode
       type-proc
       type-clos
@@ -528,5 +530,18 @@
                         (λ (fieldname ...) (mkt type-record tag fieldname ...))
                         (λ (ob) (eq? tag (ref ob 1))) 
                         ((field accessor) ...) (fieldname ...) ()))))))
+
+		(define-syntax ->
+			(syntax-rules ()
+				((-> a) a)
+				((-> a ... (op arg ...))
+					(op (-> a ...) arg ...))))
+				
+		(define-syntax ->>
+			(syntax-rules ()
+				((->> a) a)
+				((->> a ... (op arg ...))
+					(op arg ... (->> a ...)))))
+
 
 ))
