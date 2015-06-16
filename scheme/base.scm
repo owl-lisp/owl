@@ -260,9 +260,13 @@
 
    (begin
 
-      (define ... '...)
+      (define-syntax define-symbols
+        (syntax-rules ()
+          ((define-symbols x ...)
+            (define-values (x ...) 
+              (values (quote x) ...)))))
 
-      (define => '=>)
+      (define-symbols ... => unquote unquote-splicing)
 
       (define-syntax define-missing-bad 
          (syntax-rules ()
@@ -344,6 +348,11 @@
       (define (number->string/base n base)
          (list->string (render-number n null base)))
 
+      (define-syntax when
+        (syntax-rules ()
+          ((when test exp ...)
+            (if test (begin exp ...)))))
+
       (define number->string
          (case-lambda
             ((n) (number->string/base n 10))
@@ -356,7 +365,6 @@
       (define-missing-bad write-char)
       (define-missing-bad write-bytevector)
       (define-missing-bad with-exception-handler)
-      (define-missing-bad when)
       (define-missing-bad vector-set!)
       (define-missing-bad vector-map)
       (define-missing-bad vector-for-each)
@@ -366,8 +374,6 @@
       (define-missing-bad vector-append)
       (define-missing-bad vector->string)
       (define-missing-bad utf8->string)
-      (define-missing-bad unquote-splicing)
-      (define-missing-bad unquote)
       (define-missing-bad unless)
       (define-missing-bad u8-ready?)
       (define-missing-bad truncate/)

@@ -371,15 +371,20 @@
                (receive (thunk) (lambda (arg ...) body)))))
 
       (define-syntax do
-        (syntax-rules ()
-          ((do 
-            ((var init step) ...)
-            (test expr ...)
-            command ...)
-           (let loop ((var init) ...)
-            (if test 
-               (begin expr ...)
-               (loop step ...))))))
+        (syntax-rules (__init)
+          ((do __init () ((var init step) ...) (test then ...) command ...)
+            (let loop ((var init) ...)
+              (if test 
+                (begin then ...)
+                (begin
+                  command ...
+                  (loop step ...)))))
+          ((do __init ((var init step) . rest) done . tail)
+            (do __init rest ((var init step) . done) . tail))
+          ((do __init ((var init) . rest) done . tail)
+            (do __init rest ((var init var) . done) . tail))
+          ((do (vari ...) (test exp ...) command ...)
+            (do __init (vari ...) () (test exp ...) command ...))))
 
       (define-syntax define-library
          (syntax-rules (export import begin _define-library define-library)

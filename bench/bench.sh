@@ -50,8 +50,7 @@ echo "   - `../bin/ol --version`"
 echo "   - `gosh -V`"
 echo "   - `scm --version | head -n 1`"
 echo "   - Chibi Scheme 0.5.3"
-echo "   - `/home/aki/opt/guile/bin/guile --version | head -n1`"
-echo "   - `guile --version | head -n1` (legacy)"
+echo "   - `guile --version | head -n1`"
 echo "   - `racket --version | sed -e 's/Welcome to //'`"
 echo "   - `echo "" | larceny | grep "Larceny v" | head -n 1`"
 echo "   - Sigacheme 0.6.1"
@@ -133,11 +132,8 @@ do
    compute $file "scm" "scm"
 
 	cat r5rs.defs $file start.txt > $PROG
-   compute $file "Guile" "/home/aki/opt/guile/bin/guile"
+   compute $file "Guile" "guile"
 
-	echo "(use-syntax (ice-9 syncase))" | cat - r5rs.defs $file start.txt > $PROG
-   compute $file "Guile (legacy)" "guile"
-   
 #	#echo -n " * femtolisp: " # no call/cc, values, bignums or r5rs macros
 #	#(grep -q "tags.*bignum" $file && echo nobig) || \
 #	#(grep -q "tags.*cont" $file && echo nocont) || \
