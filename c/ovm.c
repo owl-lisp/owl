@@ -934,7 +934,7 @@ word boot(int nargs, char **argv) {
    word nwords;
    usegc = seccompp = 0;
    slice = TICKS; /* default thread slice (n calls per slice) */
-   if (heap == NULL) { /* if no preloaded heap, try to load it from first arg */
+   if ((word)heap == (word)NULL) { /* if no preloaded heap, try to load it from first arg */
       if (nargs < 2) exit(1);
       file_heap = load_heap(argv[1]);
       if(*hp == 35) { /* skip hashbang */
