@@ -2,7 +2,7 @@
 ;;; ol.scm: an Owl read-eval-print loop.
 ;;;
 
-#| Copyright (c) 2012 Aki Helin
+#| Copyright (c) 2012-2015 Aki Helin
  |
  | Permission is hereby granted, free of charge, to any person obtaining a 
  | copy of this software and associated documentation files (the "Software"),
@@ -163,42 +163,6 @@
 (import (owl gensym))
 
 (import (owl bisect))
-
-
-;; does not belong here, but needed in macros for now 
-
-(define (verbose-vm-error opcode a b)
-   (cond
-      ((eq? opcode 256)
-         ; fixme, add but got ...
-         (list 'function b 'expected a 'arguments))
-      ((eq? opcode 52) (list "car: bad pair: " a))
-      ((eq? opcode 53) (list "cdr: bad pair: " a))
-      (else
-         (list "error: " 'instruction opcode 'info (tuple a b)))))
-
-      ;; ff of wrapper-fn → opcode
-      (define prim-opcodes
-         (for empty primops
-            (λ (ff node)
-               (put ff (ref node 5) (ref node 2)))))
-
-      ;; ff of opcode → wrapper
-      (define opcode->wrapper
-         (for empty primops
-            (λ (ff node)
-               (put ff (ref node 2) (ref node 5)))))
-
-      ;; later check type, get first opcode and compare to primop wrapper
-      (define (primop-of val)
-         (cond
-            ((get prim-opcodes val #false) => (lambda (op) op))
-            ((equal? val mkt) 23)
-            ((equal? val bind) 32)  
-            ((equal? val ff-bind) 49)
-            (else #false)))
-
-      (define primitive? primop-of)
 
 (import (owl macro))
 
@@ -555,7 +519,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          ((finished result not used)
             result)
          ((crashed opcode a b)
-            (print-to stderr (verbose-vm-error opcode a b))
+            (print-to stderr (verbose-vm-error empty opcode a b))
             fail-val)
          ((error cont reason info)
             ; note, these could easily be made resumable by storing cont

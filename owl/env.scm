@@ -20,6 +20,7 @@
    (import
       (owl defmac)
       (owl ff)
+      (owl function)
       (owl list)
       (owl symbol)
       (owl string)
@@ -202,16 +203,36 @@
 
       (define env-del del)
 
-      ;;; these cannot be in primop since they use lists and ffs
+      (define (tuple->list t)
+        (let loop ((pos 1))
+          (if (eq? pos (size t))
+            (list (ref t pos))
+            (cons (ref t pos) (loop (+ pos 1))))))
 
-      (define (verbose-vm-error opcode a b)
-         (if (eq? opcode 17) ;; arity error, could be variable 
+      (define (env-serializer env thing)
+        ((make-serializer (env-get env name-tag empty))
+          thing null))
+
+      (define (verbose-vm-error env opcode a b)
+        (cond
+          ((eq? opcode 17) ;; arity error, could be variable 
             ; this is either a call, in which case it has an implicit continuation, 
             ; or a return from a function which doesn't have it. it's usually a call, 
             ; so -1 to not count continuation. there is no way to differentiate the 
             ; two, since there are no calls and returns, just jumps.
-            `(function ,a got did not want ,(- b 1) arguments) 
-            `("error: instruction" ,(primop-name opcode) "reported error: " ,a " " ,b)))
+            (let ((func (list->string (env-serializer env a))))
+              ;; use the updated renderer from toplevel to possible get a name for the function
+              (if (function? (ref b 1))
+                `(arity error ,func arguments 
+                  ,(cdr (tuple->list b))
+                  or return arity error where first is function)
+                `(wrong number of returned values ,(tuple->list b)))))
+          ((eq? opcode 52)
+            `(trying to get car of a non-pair ,a))
+          ((eq? opcode 53)
+            `(trying to get cdr of a non-pair ,a))
+          (else
+            `("error: instruction" ,(primop-name opcode) "reported error: " ,a " " ,b))))
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes

@@ -144,7 +144,8 @@
             ((finished result not used)
                result) ; <- is already ok/fail
             ((crashed opcode a b)
-               (fail (verbose-vm-error opcode a b)))
+               (let ((render (env-get env 'render render)))
+                 (fail (verbose-vm-error env opcode a b))))
             ((error cont reason info)
                ; note, these could easily be made resumable by storing cont
                (fail (list reason info)))

@@ -1172,8 +1172,15 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
       if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
       NEXT(3); 
-   op17: /* arity error */
-      error(17, ob, F(acc));
+   op17: { /* arity error */ 
+      word *t;
+      int p;
+      allocate(acc+1, t);
+      *t = make_header(acc+1, TTUPLE);
+      for(p = 0; p <= acc; p++) {
+        t[p+1] = R[p+3];
+      }
+      error(17, ob, t); }
    op18: /* goto-code p */
       ob = (word *) R[*ip]; /* needed in opof gc */
       acc = ip[1];
@@ -1464,7 +1471,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op53: { /* cdr a r */
       word *ob = (word *) R[*ip++];
-      assert(pairp(ob), ob, 52);
+      assert(pairp(ob), ob, 53);
       R[*ip++] = ob[2];
       NEXT(0); }
    op54: /* eq a b r */
