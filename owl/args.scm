@@ -68,7 +68,7 @@
          (fold
             (λ (ok? rule)
                (if (getf rule 'mandatory) ;; this is mandatory
-                  (if (undefined? dict (getf rule 'id))
+                  (if (defined? dict (getf rule 'id))
                      ok?
                      (begin
                         (write-bytes stderr 
