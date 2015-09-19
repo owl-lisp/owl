@@ -880,7 +880,7 @@
                (fd->exp-stream fd "> " sexp-parser syntax-fail #false))))
          
       (define (repl-file env path)
-         (let ((fd (open-input-file path)))
+         (let ((fd (if (equal? path "-") stdin (open-input-file path))))
             (if fd
                (repl-port env fd)
                (tuple 'error "cannot open file" env))))
