@@ -1,12 +1,12 @@
 /* Owl Lisp runtime */
 
+#include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
 #include <inttypes.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -830,7 +830,8 @@ static word prim_sys(int op, word a, word b, word c) {
          pid_t pid = (a == IFALSE) ? -1 : fixval(a);
          int status;
          word *r = (word *) b;
-         pid = waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED);
+         //pid = waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED);
+         pid = waitpid(pid, &status, WNOHANG|WUNTRACED);
          if (pid == -1) 
             return IFALSE; /* error */
          if (pid == 0)
@@ -844,11 +845,11 @@ static word prim_sys(int op, word a, word b, word c) {
          } else if (WIFSTOPPED(status)) {
             r[1] = F(3);
             r[2] = F(WSTOPSIG(status));
-         } else if (WIFCONTINUED(status)) {
+         /*} else if (WIFCONTINUED(status)) {
             r[1] = F(4);
-            r[2] = F(1);
+            r[2] = F(1); */
          } else {
-            fprintf(stderr, "vm: unexpected process exit status: %d\n", status);
+            //fprintf(stderr, "vm: unexpected process exit status: %d\n", status);
             r = (word *)IFALSE;
          }
          return (word)r; }
@@ -859,7 +860,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (pid == 0) /* we're in child, return true */
             return ITRUE;
          if ((int)pid > FMAX)
-            fprintf(stderr, "vm: child pid larger than max fixnum: %d\n", pid);
+            exit(5);
          return F(pid&FMAX); }
       case 21: /* kill pid signal → fixnum */
          return (kill(fixval(a), fixval(b)) < 0) ? IFALSE : ITRUE;
@@ -947,7 +948,7 @@ word boot(int nargs, char **argv) {
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
    memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
    if (!memstart) {
-      fprintf(stderr, "Failed to allocate initial memory\n");
+      puts("Failed to allocate initial memory\n");
       exit(4);
    }
    memend = memstart + FMAX + INITCELLS - MEMPAD;
@@ -997,10 +998,6 @@ word boot(int nargs, char **argv) {
       pos++;
    }
    entry = (word *) ptrs[pos-1]; 
-   /* disable buffering */
-   setvbuf(stdin, NULL, _IONBF, 0);
-   setvbuf(stdout, NULL, _IONBF, 0);
-   setvbuf(stderr, NULL, _IONBF, 0);
    /* set up signal handler */
    set_signal_handler();
    set_blocking(0,0); /* change to nonblocking stdio */
@@ -1222,7 +1219,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
          /* FIXME: unwind only up to last register and add limited rewinding to arity check */
          if (reg > 128) { /* dummy handling for now */
-            fprintf(stderr, "TOO LARGE APPLY\n");
             exit(3);
          }
          R[reg++] = lst[1];
@@ -1562,7 +1558,7 @@ int main(int nargs, char **argv) {
    // Initialize Winsock
    int sock_init = WSAStartup(MAKEWORD(2,2), &wsaData);
    if (sock_init  != 0) {
-       printf("WSAStartup failed with error: %d\n", sock_init);
+       puts("WSAStartup failed");
        return 1;
    }
    word boot_result = boot(nargs, argv);

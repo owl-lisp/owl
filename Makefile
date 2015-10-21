@@ -39,6 +39,13 @@ fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
 bin/vm: c/vm.c
 	$(CC) $(CFLAGS) -o bin/vm c/vm.c
 
+bin/diet-vm: c/vm.c
+	diet $(CC) -DNO_SECCOMP -Os -o bin/diet-vm c/vm.c
+	strip bin/diet-vm 
+
+bin/diet-ol: c/diet-ol.c
+	diet $(CC) -DNO_SECCOMP -O2 -o bin/diet-ol c/diet-ol.c
+
 c/vm.c: c/ovm.c
 	# make a vm without a bundled heap
 	echo "unsigned char *heap = 0;" > c/vm.c
@@ -50,6 +57,9 @@ c/vm.c: c/ovm.c
 c/ol.c: fasl/ol.fasl
 	# compile the repl using the fixed point image 
 	bin/vm fasl/ol.fasl --run owl/ol.scm -s some -o c/ol.c
+
+c/diet-ol.c: fasl/ol.fasl
+	bin/vm fasl/ol.fasl --run owl/ol.scm -s none -o c/diet-ol.c
 
 bin/ol: c/ol.c
 	# compile the real owl repl binary
