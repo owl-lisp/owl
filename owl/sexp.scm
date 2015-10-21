@@ -35,7 +35,7 @@
       (define (between? lo x hi)
          (and (<= lo x) (<= x hi)))
 
-      (define special-symbol-chars (string->bytes "+-=<>!*%?_/"))
+      (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:@"))
 
       (define (symbol-lead-char? n) 
          (or 
@@ -46,7 +46,8 @@
 
       (define (symbol-char? n) 
          (or (symbol-lead-char? n) 
-            (or
+             (eq? n #\.)
+             (or
                (between? #\0 n #\9)
                (> n 127))))         ;; allow high code points in symbols
 
