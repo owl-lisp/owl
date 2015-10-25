@@ -11,6 +11,7 @@
       lfold lfoldr lmap lappend    ; main usage patterns
       lfor liota liter lnums
       lzip ltake llast llen
+      lkeep lremove
       ldrop llref
       pair tail uncons
       force-ll                ; ll -> list
@@ -177,16 +178,6 @@
       (define (liter op st)
          (pair st (liter op (op st))))
 
-      (define (ltaker l n o)
-         (cond
-            ((null? l) (reverse o))
-            ((pair? l)
-               (if (eq? n 0)
-                  (reverse o)
-                  (ltaker (cdr l) (- n 1) (cons (car l) o))))
-            (else
-               (ltaker (l) n o))))
-
       ;; l n → l | Null (if out of list)
       (define (ldrop l n)
          (cond
@@ -205,7 +196,29 @@
                (error "llref: out of list: " p)
                val)))
 
-      (define (ltake l n) (ltaker l n null))
+      (define (ltake l n) 
+         (cond
+            ((eq? n 0) null)
+            ((null? l) l)
+            ((pair? l)
+               (cons (car l)
+                  (ltake (cdr l) (- n 1))))
+            (else
+               (λ () (ltake (l) n)))))
+
+      (define (lkeep p l) 
+         (cond
+            ((null? l) l)
+            ((pair? l)
+               (if (p (car l))
+                  (cons (car l)
+                     (lkeep p (cdr l)))
+                  (lkeep p (cdr l))))
+            (else
+               (λ () (lkeep p (l))))))
+
+      (define (lremove p l)
+         (lkeep (λ (x) (not (p x))) l))
 
       ;; zip, preserves laziness of first argument
       (define (lzip op a b)
