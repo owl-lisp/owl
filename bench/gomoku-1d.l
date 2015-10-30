@@ -66,7 +66,7 @@
 
 
 (define (report-winnable lst player move)
-	(show "Winnable: " 
+	(print "Winnable: " 
 		(list 'board (see lst) 'player player 'to move)))
 		
 
@@ -80,7 +80,7 @@
 		((take-winner lst) =>
 			(lambda (who) (cons who 'no-board)))
 		(else
-			(let loop ((options (empty-places lst)) (tied? #f) (lost? False))
+			(let loop ((options (empty-places lst)) (tied? #f) (lost? #false))
 				(if (null? options)
 					(cond
 						(tied? #f)

@@ -55,7 +55,7 @@
 				#f
 				(same? (cdr a) (cdr b))))))
 
-(define big (list o o o o o o x x))
+(define big (list o o o o o x x))
 
 (define (show-digits n)
 	(if (pair? n)

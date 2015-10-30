@@ -6,12 +6,12 @@
 
 test -f "bench.sh" || { echo "please run me in the bench/ directory"; exit 1; }
 
-NRUNS=10        # adjust to compensate for level of supercomputerness
+NRUNS=10       # adjust to compensate for level of supercomputerness
 PAT="(42)"     # pattern all runs should have in output if executed correctly 
 LOG=output     # stdout/err
 PROG=input.l # file to run
 TIME="/usr/bin/time -f %UX%M" # memory size reported by %M is 4x the correct (counts pages by accident?)
-MAXTIME=200    # most of the tests are scaled to take 1-5 seconds per run for owl
+MAXTIME=500    # most of the tests are scaled to take 1-5 seconds per run for owl
 MAXMEM=4194304 # 4GB 
 
 function compute {
@@ -81,19 +81,19 @@ do
 
    # owl using the tiny vm and running just about everything as bytecode 
    cat $file start.txt > $PROG
-   compute $file "Owl (vm + ol.fasl)" "../bin/vm ../fasl/ol.fasl" 
+   compute $file "Owl interpreted (vm + ol.fasl)" "../bin/vm ../fasl/ol.fasl" 
    
 	# compiled with light vm specialization. to be the default mode later on.
    cat $file start.txt > $PROG
-   compute $file "Owl (ol)" "../bin/ol"
+   compute $file "Owl interpreted (ol)" "../bin/ol"
 
 	# compare against old owls
-   cat $file start.txt > $PROG
-   compute $file "Owl (ol-0.1.5)" "ol-0.1.5"
-   compute $file "Owl (ol-0.1.4)" "ol-0.1.4"
-   compute $file "Owl (ol-0.1.3)" "ol-0.1.3"
-   compute $file "Owl (ol-0.1.2)" "ol-0.1.2"
-   compute $file "Owl (ol-0.1.1)" "ol-0.1.1"
+   #cat $file start.txt > $PROG
+   #compute $file "Owl (ol-0.1.5)" "ol-0.1.5"
+   #compute $file "Owl (ol-0.1.4)" "ol-0.1.4"
+   #compute $file "Owl (ol-0.1.3)" "ol-0.1.3"
+   #compute $file "Owl (ol-0.1.2)" "ol-0.1.2"
+   #compute $file "Owl (ol-0.1.1)" "ol-0.1.1"
 
    # only native as in via C
 	# owl's bytecode2c compiler (making standalone binaries with custom vm instructions)
@@ -104,9 +104,11 @@ do
    cp $PROG /tmp/owl.l
 	../bin/ol -O2 -o input.c $PROG
 	gcc -O2 -o test input.c || echo "COMPILE FAILED"
+	gcc -m32 -O2 -o test-32 input.c || echo "COMPILE FAILED"
    cp input.c /tmp
    cp test /tmp
    compute $file "Owl (ol -O2 -o foo.c + gcc -O2)" "./test" 
+   compute $file "Owl 32 (ol -O2 -o foo.c + gcc -O2)" "./test-32" 
 
 	##
 	## VM based schemes
@@ -121,9 +123,8 @@ do
 	echo ",bench on"   | cat - r5rs.defs $file start.txt /tmp/s48-exit > $PROG
    compute $file "Scheme48" "scheme48"
 
-	#echo -n " *       elk: " 
-	#(grep -q "tags.*macro" $file && echo nomacro) || \
-	#	cat r5rs.defs $file start.txt | $TIME elk > /dev/null 
+	(grep -q "tags.*macro" $file && echo nomacro) || \
+		cat r5rs.defs $file start.txt | $TIME elk > /dev/null 
 
 	#echo -n " *      vscm: " 
 	#cat r5rs.defs $file | sed -e "s/^,r.*//" | time vscm 2>&1 | grep user
@@ -162,12 +163,12 @@ do
 	cat r5rs.defs $file start.txt | grep -v NOIKARUS > $PROG
    compute $file "Ikarus" ikarus
 
-	cat r5rs.defs $file start.txt > $PROG
-   compute $file "Larceny" larceny
+	#cat r5rs.defs $file start.txt > $PROG
+   #compute $file "Larceny" larceny
 
 	cat r5rs.defs $file start.txt > $PROG
    rm foo &>/dev/null
-	csc -O5 -R numbers -o foo $PROG 2>/dev/null
+	csc -O5 -o foo $PROG 2>/dev/null
    cp $PROG /tmp/chicken.l
    compute $file "Chicken Scheme (csc -O5)" ./foo
 
@@ -179,6 +180,6 @@ do
    #echo "" > $PROG
    #compute $file "MIT Scheme" "mit-scheme --load test.com"
 
-   ) | sort -n 
+   )
 done | tee benchmark-output.txt
 
