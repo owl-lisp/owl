@@ -1174,8 +1174,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       int p;
       allocate(acc+1, t);
       *t = make_header(acc+1, TTUPLE);
-      for(p = 0; p <= acc; p++) {
-        t[p+1] = R[p+3];
+      for(p = 0; p < acc; p++) {
+         t[p+1] = R[p+3];
       }
       error(17, ob, t); }
    op18: /* goto-code p */

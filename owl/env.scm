@@ -215,18 +215,22 @@
 
       (define (verbose-vm-error env opcode a b)
         (cond
-          ((eq? opcode 17) ;; arity error, could be variable 
+          ((eq? opcode 17) ;; arity error 
+            ;; arity error, could be variable 
             ; this is either a call, in which case it has an implicit continuation, 
             ; or a return from a function which doesn't have it. it's usually a call, 
             ; so -1 to not count continuation. there is no way to differentiate the 
             ; two, since there are no calls and returns, just jumps.
             (let ((func (list->string (env-serializer env a))))
               ;; use the updated renderer from toplevel to possible get a name for the function
-              (if (function? (ref b 1))
-                `(arity error ,func arguments 
-                  ,(cdr (tuple->list b))
-                  or return arity error where first is function)
-                `(wrong number of returned values ,(tuple->list b)))))
+              (cond
+                ((fixnum? b)
+                   `(arity error ,func got ,b arguments))
+                ((function? (ref b 1))
+                   `(arity error ,func arguments ,(cdr (tuple->list b))
+                     or return arity error where first is function))
+                (else
+                   `(wrong number of returned values ,(tuple->list b))))))
           ((eq? opcode 52)
             `(trying to get car of a non-pair ,a))
           ((eq? opcode 53)
