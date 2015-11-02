@@ -11,6 +11,7 @@
       lfold lfoldr lmap lappend    ; main usage patterns
       lfor liota liter lnums
       lzip ltake llast llen
+      lcar lcdr
       lkeep lremove
       ldrop llref
       pair tail uncons
@@ -309,6 +310,10 @@
                   (loop (cdr ll) (+ sum (car ll)) (+ len 1)))
                (else
                   (loop (ll) sum len)))))
+
+      (define (lcar ll) (if (pair? ll) (car ll) (lcar (ll))))
+
+      (define (lcdr ll) (if (pair? ll) (cdr ll) (lcdr (ll))))
 
 ))
 

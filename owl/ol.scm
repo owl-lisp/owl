@@ -419,6 +419,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       checksum
       string->sexp
       profile
+      read read-ll
       *features*
       *include-dirs*
       *libraries*      ;; all currently loaded libraries

@@ -9,7 +9,8 @@
       get-sexps       ;; greedy* get-sexp
 		string->sexp
       vector->sexps
-      list->sexps)
+      list->sexps
+      read read-ll)
 
    (import
       (owl parse)
@@ -425,4 +426,23 @@
       (define (list->sexps lst fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
          (try-parse get-sexps lst #false errmsg #false))
+     
+      (define (read-port port)
+         (fd->exp-stream port #false sexp-parser #false #false))
+         
+      (define read-ll
+         (case-lambda
+            (()     (read-port stdin))
+            ((thing) 
+               (cond
+                  ((port? thing)
+                     (read-port thing))
+                  ((string? thing)
+                     (try-parse get-sexps (str-iter thing) #false #false #false))
+                  (else
+                     (error "read needs a port or a string, but got " thing))))))
+
+      (define (read thing)
+         (lcar (read-ll thing)))
+
 ))
