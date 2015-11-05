@@ -171,7 +171,7 @@
       (define (encode-allocated clos cook)
          (λ (out val-orig pos)
             (lets
-               ( ; (val-orig (if (eq? val-orig <tochange>) (raw '(<new bytecode>) 0 #false) val-orig))  ; <- for changing special primops
+               (;(val-orig (if (eq? val-orig <OLD>) <NEW> val-orig))  ; <- for heap search/replace
                 (val (cook val-orig)))
                (if (raw? val)
                   (lets

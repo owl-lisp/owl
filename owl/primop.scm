@@ -22,6 +22,7 @@
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit start-seccomp
+      eq?
 
       apply apply-cont ;; apply post- and pre-cps
       call/cc call-with-current-continuation 
@@ -35,6 +36,10 @@
       (owl defmac))
 
    (begin
+
+      (define eq? 
+         (cast #(25 3 0 6 54 4 5 6 24 6 17)
+            (type (lambda (x) x))))
 
       (define (app a b)
          (if (eq? a '())
@@ -102,7 +107,7 @@
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
-      (define type-byte   (func '(2 15 4 5 24 5))) ;; fetch just type information. old type will be removed later.
+
       (define type        type-byte)
       (define size        (func '(2 36 4 5 24 5)))
       (define cast        (func '(3 22 4 5 6 24 6)))
