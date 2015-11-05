@@ -18,7 +18,9 @@
       put-symbol                    ;; tree sym → tree'
       empty-symbol-tree 
       intern-symbols
-      start-dummy-interner)
+      start-dummy-interner
+      start-symbol-interner
+      )
 
    (import
       (owl defmac)
@@ -271,5 +273,9 @@
             ((sym-root (fold put-symbol empty-symbol-tree symbol-list))
              (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
             (λ () (interner sym-root code-root))))
+
+      (define (start-symbol-interner initial-symbols)
+         (fork-server 'intern
+            (initialize-interner initial-symbols null)))
 
 ))
