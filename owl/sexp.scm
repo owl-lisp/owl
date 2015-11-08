@@ -442,7 +442,11 @@
                   (else
                      (error "read needs a port or a string, but got " thing))))))
 
-      (define (read thing)
-         (lcar (read-ll thing)))
+      (define (read thing . rest)
+         (let ((ll (read-ll thing)))
+            (cond
+               (ll (lcar ll))
+               ((null? rest) (error "read: bad data in " thing))
+               (else (car rest)))))
 
 ))

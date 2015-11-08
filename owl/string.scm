@@ -179,6 +179,8 @@
          (cond
             ((eq? p #\")
                (ilist #\\ p tl))
+            ((eq? p #\\)
+               (ilist #\\ p tl))
             ((eq? p #\newline)
                (ilist #\\ #\n tl))
             ((eq? p #\return)
