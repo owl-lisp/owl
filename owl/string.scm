@@ -1,4 +1,4 @@
-;;;
+/;;
 ;;; Strings
 ;;;
 
@@ -156,11 +156,39 @@
 
       ;; list conversions
 
+      (define (hexencode cp tl)
+         (ilist #\\ #\x
+            (append (render-number cp null 16) 
+               (cons #\; tl))))
+            
+     ;; move these elsewhere
+     ;(define (number->string n base)
+     ;   (list->string (render-number n null base)))
+
+      (define (maybe-hexencode char tl)
+         (cond
+            ((< char #\space)
+               (hexencode char tl))
+            ((eq? char 128)
+               (hexencode char tl))
+            (else 
+               #false)))
+     
       ;; quote just ":s for now
       (define (encode-quoted-point p tl)
-         (if (eq? p #\")
-            (ilist #\\ p tl)
-            (encode-point p tl)))
+         (cond
+            ((eq? p #\")
+               (ilist #\\ p tl))
+            ((eq? p #\newline)
+               (ilist #\\ #\n tl))
+            ((eq? p #\return)
+               (ilist #\\ #\r tl))
+            ((eq? p #\tab)
+               (ilist #\\ #\t tl))
+            ((maybe-hexencode p tl) => 
+               (lambda (tl) tl))
+            (else
+               (encode-point p tl))))
 
       ; note: it is assumed string construction has checked that all code points are valid and thus encodable
       (define (string->bytes str)    (str-foldr encode-point null str))
