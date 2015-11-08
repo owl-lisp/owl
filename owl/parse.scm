@@ -22,6 +22,7 @@
       get-kleene+
       get-greedy*
       get-greedy+
+      get-greedy-repeat
       try-parse         ; parser x ll x path|#false x errmsg|#false x fail-val
       peek
       fd->exp-stream
@@ -188,6 +189,16 @@
 
       (define (get-greedy* parser) (get-greedy parser #true))
       (define (get-greedy+ parser) (get-greedy parser #false))
+
+      (define (get-greedy-repeat n parser)
+         (λ (lst ok fail pos)
+            (let loop ((lst lst) (rvals null) (pos pos) (n n))
+               (if (eq? n 0)
+                  (ok lst fail (reverse rvals) pos)
+                  (parser lst
+                     (λ (lst fail val pos)
+                        (loop lst (cons val rvals) pos (- n 1)))
+                     fail pos)))))
 
       (define (get-kleene+ what)
          (let-parses
