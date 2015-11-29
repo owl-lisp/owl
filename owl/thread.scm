@@ -44,11 +44,10 @@
             (cond
                ((pair? st) ;; currently working, leave a mail to inbox queue
                   (values (fupd state to (qsnoc envelope st)) #false))
-               ((not st) ;; no such thread, or just no inbox
-                  (system-stderr "ol: dropping envelope to missing thread\n")
-                  (system-stderr "ol: envelope ")
-                  (system-stderr (bytes->string (bytes->string (render envelope '(10)))))
-                  (values state #false))
+               ((not st) ;; no current state, start the server + leave first mail
+                  (values
+                     (put state to (qcons envelope qnull))
+                     (tuple to to)))
                (else ;; activate the state function
                   (values 
                      (fupd state to qnull) ;; leave an inbox
