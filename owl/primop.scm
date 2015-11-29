@@ -27,7 +27,8 @@
       apply apply-cont ;; apply post- and pre-cps
       call/cc call-with-current-continuation 
       lets/cc
-
+      
+      _poll
       ;; vm interface
       vm bytes->bytecode bytecode-function
       )
@@ -102,8 +103,9 @@
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
       (define raw         (func '(4 60 4 5 6 7 24 7)))
-      (define _connect    (func '(3 34 4 5 6 24 6))) ;; <- remove and add to sys
-      (define _sleep      (func '(2 37 4 5 24 5)))   ;; <- move to sys
+      (define _connect    (func '(3 34 4 5 6 24 6)))
+      (define _poll       (func '(4 9 3 11 10 4 5 6 7 24 7)))
+      (define _sleep      (func '(2 37 4 5 24 5)))
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
@@ -148,6 +150,7 @@
             (tuple 'fxband       55 2 1 fxband)
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
+            (tuple '_poll        10 3 1 _poll) ;; poll rfdlist wfdlist timeout/false → fd/false/null
             (tuple 'type-byte    15 1 1 type-byte) ;; get just the type bits (new)
             (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)

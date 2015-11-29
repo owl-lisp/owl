@@ -13,7 +13,6 @@
 #include <dirent.h>
 #include <string.h>
 
-
 /*** Portability Issues ***/
 
 #ifdef WIN32 
@@ -121,7 +120,6 @@ typedef int32_t   wdiff;
 #define unlikely(x)                 __builtin_expect((x),0)
 #define assert(exp,val,code)        if(unlikely(!(exp))) {error(code, val, ITRUE);}
 #define assert_not(exp,val,code)    if(unlikely(exp)) {error(code, val, ITRUE);}
-#define OGOTO(f,n); ob = (word *)   R[f]; acc = n; goto apply
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
 #define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
@@ -168,6 +166,8 @@ DIR *fdopendir(int fd);
 pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 int chdir(const char *path);
+int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+
 #ifndef WIN32 
 int execv(const char *path, char *const argv[]);
 #endif
@@ -1017,6 +1017,7 @@ word vm(word *ob, word *args) {
    unsigned short acc = 0; /* no support for >255arg functions */
    int op; /* opcode to execute */
    static word R[NR];
+
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
    usegc = 1; /* enble gc (later have if always evabled) */
 
@@ -1134,7 +1135,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
   
    op0: op = (*ip << 8) | ip[1]; goto super_dispatch;
    op1: {word *ob = (word *)R[*ip]; R[ip[2]] = ob[ip[1]]; NEXT(3);}
-   op2: OGOTO(*ip,ip[1]); /* fixme, these macros are not used in cgen output anymore*/
+   op2: ob = (word*) R[*ip]; acc = ip[1]; goto apply;
    op3: OCLOSE(TCLOS); NEXT(0);
    op4: OCLOSE(TPROC); NEXT(0);
    op5: /* mov2 from1 to1 from2 to2 */
@@ -1147,10 +1148,55 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
       NEXT(4); 
    op9: R[ip[1]] = R[*ip]; NEXT(2);
+   op10: { /* poll (rfd ...) (wfd ...) timeout-ms → fd/false 1=readable, 2=writeable, 3=exceptional */
+      fd_set rs, ws, es;
+      word *cur;
+      int nfds = 1;
+      struct timeval tv;
+      int ms = fixval(A2);
+      int res;
+      FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
+      cur = (word *)A0;
+      while((word)cur != INULL) {
+         int fd = fixval(cur[1]);
+         FD_SET(fd, &rs);
+         if (!FD_ISSET(fd, &es)) { 
+            FD_SET(fd, &es); 
+            nfds++;
+         }
+         cur = (word *) cur[2];
+      }
+      cur = (word *)A1;
+      while((word)cur != INULL) {
+         int fd = fixval(cur[1]);
+         FD_SET(fd, &ws);
+         if (!FD_ISSET(fd, &es)) {
+            FD_SET(fd, &es);
+            nfds++;
+         }
+         cur = (word *) cur[2];
+      }
+      if(A2 == IFALSE) {
+         res = select(nfds, &rs, &ws, &es, NULL);
+      } else {
+         tv.tv_sec = ms/1000;
+         tv.tv_usec = (ms%1000)*1000;
+         res = select(nfds, &rs, &ws, &es, &tv);
+      }
+      if (res < 1) {
+         A3 = IFALSE; /* error or signal, wake all */
+      } else if (res == 0) {
+         A3 = INULL; /* timeout, wake none */
+      } else {
+         int fd = 0; /* something active, wake the first thing */
+         while (!FD_ISSET(fd, &rs) && !FD_ISSET(fd, &ws) && !FD_ISSET(fd, &es)) {
+            fd++;
+         }
+         A3 = F(fd);
+      }
+      NEXT(4); }
    op11: /* unused */
       error(11, IFALSE, IFALSE);
-   op10: /* unused */
-      error(10, IFALSE, IFALSE);
    op12: /* jb n */
       ip -= ip[0];
       if (ticker) /* consume thread time */
