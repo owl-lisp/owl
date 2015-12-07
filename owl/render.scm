@@ -16,7 +16,6 @@
       (owl rlist)
       (owl syscall)
       (owl lazy)
-      (owl eof)
       (owl math)
       (owl port)
       (only (owl fasl) sub-objects)

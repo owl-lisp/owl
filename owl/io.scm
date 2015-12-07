@@ -50,6 +50,7 @@
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool
       get-block         ;; fd n → bvec | eof | #false
+      write-really      ;; 
       try-get-block     ;; fd n block? → bvec | eof | #false=error | #true=block
       lines             ;; fd → null | ll of string, read error is just null, each [\r]\n removed
 
@@ -57,6 +58,8 @@
       take-nap
       fasl-save         ;; obj path → done?
       fasl-load         ;; path default → done?
+      
+      nap               ;; temprarily in io
    )
 
    (import
@@ -75,7 +78,6 @@
       (owl tuple)
       (owl primop)
       (owl port)
-      (owl eof)
       (owl lazy)
       (only (owl vector) merge-chunks vec-leaves))
 
@@ -101,6 +103,9 @@
       (define sid (fd->port 65535))
 
       (define sleeper-id sid)
+
+      (define (nap)
+         (interact sid 5))
 
       ;;; Writing
 
@@ -273,7 +278,7 @@
                   (set-ticker 0)))
             (else
                (lets
-                  ((a (wait 1))
+                  ((a (wait 3))
                    (rounds _ (fx- rounds 1)))
                   (sleep-for rounds)))))
 

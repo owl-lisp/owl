@@ -20,7 +20,6 @@
       (owl list)
       (owl math-extra)
       (owl vector)
-      (owl eof)
       (owl list-extra)
       (owl ff)
       (owl lazy)

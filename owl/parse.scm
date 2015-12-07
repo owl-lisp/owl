@@ -37,7 +37,6 @@
       (owl string)
       (owl list-extra)
       (owl unicode)
-      (owl eof)
       (owl io)
       (owl vector)
       (owl render)

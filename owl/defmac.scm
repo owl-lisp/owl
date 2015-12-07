@@ -20,7 +20,7 @@
       type-int-
       type-record
 
-      immediate? allocated? raw? record?
+      immediate? allocated? raw? record? eof?
 
 		-> ->>
 
@@ -418,6 +418,11 @@
       (define o (λ (f g) (λ (x) (f (g x)))))
 
       (define i (λ (x) x))
+
+      (define eof?
+         (let ((eof (cast 4 13)))
+            (lambda (x)
+               (eq? x eof))))
 
       (define self i)
 

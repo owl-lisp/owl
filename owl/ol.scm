@@ -119,26 +119,11 @@
 
 (import (owl rlist))
 
-(define-library (owl eof)
-
-   (export eof?)
-
-   (import (owl defmac))
-
-   (begin
-      (define eof-value
-         (cast 4 13))
-      (define (eof? x) 
-         ;(eq? type-eof (type x))
-         (eq? x eof-value))))
-
 (import (owl render))
  
 (import (only (owl queue))) ; just load it
 
 (import (owl intern))
-
-(import (owl eof))
 
 (import (owl io))
 
