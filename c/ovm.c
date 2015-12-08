@@ -1153,32 +1153,30 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word *cur;
       int nfds = 1;
       struct timeval tv;
-      int ms = fixval(A2);
       int res;
       FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
       cur = (word *)A0;
       while((word)cur != INULL) {
          int fd = fixval(cur[1]);
          FD_SET(fd, &rs);
-         if (!FD_ISSET(fd, &es)) { 
-            FD_SET(fd, &es); 
-            nfds++;
-         }
+         FD_SET(fd, &es); 
+         if (!(nfds > fd)) 
+            nfds = fd + 1;
          cur = (word *) cur[2];
       }
       cur = (word *)A1;
       while((word)cur != INULL) {
          int fd = fixval(cur[1]);
          FD_SET(fd, &ws);
-         if (!FD_ISSET(fd, &es)) {
-            FD_SET(fd, &es);
-            nfds++;
-         }
+         FD_SET(fd, &es);
+         if (!(nfds > fd)) 
+            nfds = fd + 1;
          cur = (word *) cur[2];
       }
       if(A2 == IFALSE) {
          res = select(nfds, &rs, &ws, &es, NULL);
       } else {
+         int ms = fixval(A2);
          tv.tv_sec = ms/1000;
          tv.tv_usec = (ms%1000)*1000;
          res = select(nfds, &rs, &ws, &es, &tv);
@@ -1192,7 +1190,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          while (!FD_ISSET(fd, &rs) && !FD_ISSET(fd, &ws) && !FD_ISSET(fd, &es)) {
             fd++;
          }
-         A3 = F(fd);
+         A3 = make_immediate(fd,12);
       }
       NEXT(4); }
    op11: /* unused */

@@ -213,7 +213,7 @@
       (define (open-socket port)
          (let ((sock (sys-prim 3 port #false #false)))
             (if sock 
-               (list 'sock (fd->port sock))
+               (fd->port sock)
                #false)))
 
       ;;; TCP connections
