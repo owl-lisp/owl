@@ -678,7 +678,7 @@ static word prim_sys(int op, word a, word b, word c) {
 #endif
          if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
              || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
-             || listen(s, 5) != 0) {
+             || listen(s, SOMAXCONN) != 0) {
             close(s);
             return IFALSE;
          }
