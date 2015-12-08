@@ -275,7 +275,8 @@
                ((not chunk) ;; read error in port
                   (values rchunks #true))
                ((eq? chunk #true) ;; would block
-                  (take-nap) ;; interact with sleeper thread to let cpu sleep
+                  (interact 'iomux (tuple 'read fd))
+                  ;(take-nap) ;; interact with sleeper thread to let cpu sleep
                   (values rchunks #false))
                ((eof? chunk) ;; normal end if input, no need to call me again
                   (values rchunks #true))

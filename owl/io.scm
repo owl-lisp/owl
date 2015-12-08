@@ -59,7 +59,7 @@
       fasl-save         ;; obj path → done?
       fasl-load         ;; path default → done?
       
-      nap               ;; temprarily in io
+      start-muxer       ;; new io muxer
    )
 
    (import
@@ -104,9 +104,6 @@
 
       (define sleeper-id sid)
 
-      (define (nap)
-         (interact sid 5))
-
       ;;; Writing
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
@@ -132,7 +129,8 @@
                      (cond
                         ((eq? wrote end) #true) ;; ok, wrote the whole chunk
                         ((eq? wrote 0) ;; 0 = EWOULDBLOCK
-                           (interact sid 2) ;; fixme: adjustable delay rounds 
+                           (interact 'iomux (tuple 'write fd))
+                           ;(interact sid 2)
                            (loop))
                         (wrote ;; partial write
                            (write-really (bvec-tail bvec wrote) fd))
@@ -159,7 +157,8 @@
             (if (eq? res #true) ;; would block
                (if block?
                   (begin
-                     (interact sid 5)
+                     ;(interact sid 5)
+                     (interact 'iomux (tuple 'read fd))
                      (try-get-block fd block-size #true))
                   res)
                res))) ;; is #false, eof or bvec
@@ -207,7 +206,8 @@
                      (mail thread fd)
                      #true)
                   (begin
-                     (interact sid 5) ;; delay rounds
+                     ;(interact sid 5) ;; delay rounds
+                     (interact 'iomux (tuple 'read fd))
                      (loop rounds))))))
                      
       (define (open-socket port)
@@ -307,11 +307,6 @@
          (fork-server sid
             (λ () (sleeper null))))
 
-      ;; start normally mandatory threads (apart form meta which will be removed later)
-      (define (start-base-threads)
-         (start-sleeper) ;; <- could also be removed later
-         (wait 1)
-         )
 
       ;; deprecated
       (define (flush-port fd)
@@ -363,7 +358,8 @@
                (lets ((ip fd res))
                   (values ip (fd->tcp fd)))
                (begin
-                  (interact sid socket-read-delay)
+                  ;(interact sid socket-read-delay)
+                  (interact 'iomux (tuple 'read sock))
                   (tcp-client sock)))))
 
       ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
@@ -631,4 +627,60 @@
             (if bs 
                (fasl-decode bs fail-val)
                fail-val)))
+
+      ;;; new io muxer thread
+
+      (define (delelt lst x) ;; lst x →  lst' | #false if not there
+         (let loop ((lst lst) (out null))
+            (if (null? lst) #false
+               (lets ((a lst lst))
+                  (if (eq? a x)
+                     (append lst out)
+                     (loop lst (cons a out)))))))
+
+      (define (wakeup rs ws clients fd)
+         (mail (getf clients fd) fd)
+         (let ((rsp (delelt rs fd)))
+            (if rsp
+               (values rsp ws (del clients fd))
+               (values rs (delelt ws fd) (del clients fd)))))
+
+      (define (muxer-add rs ws clients mail)
+         (tuple-case (ref mail 2)
+            ((read fd)
+               (values (cons fd rs) ws (put clients fd (ref mail 1))))
+            ((write fd)
+               (values rs (cons fd ws) (put clients fd (ref mail 1))))
+            (else
+               (print-to stderr "bad muxer message from " (ref mail 1)))))
+
+      (define (muxer rs ws clients)
+         (let ((envelope ((if (empty? clients) wait-mail check-mail))))
+            (if envelope
+               (lets ((rs ws clients (muxer-add rs ws clients envelope)))
+                  (muxer rs ws clients))
+               (lets
+                  ((timeout (if (single-thread?) #false 0))
+                   (waked (_poll rs ws timeout)))
+                  (if waked
+                     (lets ((rs ws clients (wakeup rs ws clients waked)))
+                        (muxer rs ws clients))
+                     (begin
+                        (set-ticker 0)
+                        (muxer rs ws clients)))))))
+            
+      (define (start-muxer)
+         (fork-server 'iomux
+            (λ () (muxer null null #empty))))
+
+
+      ;; start normally mandatory threads (apart form meta which will be removed later)
+      (define (start-base-threads)
+         (start-sleeper) ;; <- remove later
+         (start-muxer)
+         (wait 1))
+
 ))
+
+
+
