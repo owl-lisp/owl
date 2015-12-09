@@ -1193,8 +1193,56 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A3 = make_immediate(fd,12);
       }
       NEXT(4); }
-   op11: /* unused */
-      error(11, IFALSE, IFALSE);
+   op11: { /* poll (rfd ...) (wfd ...) timeout-ms → fd/false 1=readable, 2=writeable, 3=exceptional */
+      fd_set rs, ws, es;
+      word *cur;
+      int nfds = 1;
+      struct timeval tv;
+      int res;
+      FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
+      cur = (word *)A0;
+      while((word)cur != INULL) {
+         int fd = fixval(cur[1]);
+         FD_SET(fd, &rs);
+         FD_SET(fd, &es); 
+         if (!(nfds > fd)) 
+            nfds = fd + 1;
+         cur = (word *) cur[2];
+      }
+      cur = (word *)A1;
+      while((word)cur != INULL) {
+         int fd = fixval(cur[1]);
+         FD_SET(fd, &ws);
+         FD_SET(fd, &es);
+         if (!(nfds > fd)) 
+            nfds = fd + 1;
+         cur = (word *) cur[2];
+      }
+      if(A2 == IFALSE) {
+         res = select(nfds, &rs, &ws, &es, NULL);
+      } else {
+         int ms = fixval(A2);
+         tv.tv_sec = ms/1000;
+         tv.tv_usec = (ms%1000)*1000;
+         res = select(nfds, &rs, &ws, &es, &tv);
+      }
+      if (res < 1) {
+         A3 = IFALSE; A4 = IFALSE;/* error or signal, wake all */
+      } else if (res == 0) {
+         A3 = INULL; A4 = IFALSE; /* timeout, wake none */
+      } else {
+         int fd; /* something active, wake the first thing */
+         for(fd=0;;fd++) {
+            if (FD_ISSET(fd, &rs)) {
+               A3 = make_immediate(fd, 12); A4 = F(1); break;
+            } else if (FD_ISSET(fd, &ws)) {
+               A3 = make_immediate(fd, 12); A4 = F(2); break;
+            } else if (FD_ISSET(fd, &es)) {
+               A3 = make_immediate(fd, 12); A4 = F(3); break;
+            }
+         }
+      }
+      NEXT(5); }
    op12: /* jb n */
       ip -= ip[0];
       if (ticker) /* consume thread time */

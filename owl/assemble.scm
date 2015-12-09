@@ -61,7 +61,7 @@
               (eq   . 54)     ; eq a, b, t:     Rt = (Ra == Rb) ? true : false;
               (jlq  . 8)      ; jlq a b o1 o2
               (mk   . 9)      ; mk n, a0, ..., an, t, size up to 256
-              (mki  . 11)     ; mki size, type, v1, ..., vn, to
+              ;(mki  . 11)     ; mki size, type, v1, ..., vn, to
               (ref  . 12)     ; ref a, p, t     Rt = Ra[p] + checks, unsigned
               (ld   . 14)     ; ld a, t:        Rt = a, signed byte
               ;; ldi = 13
