@@ -654,10 +654,6 @@
             (else
                (print-to stderr "bad muxer message from " (ref mail 1)))))
 
-      (define (do-poll rs ws timeout)
-         (lets ((a (_poll rs ws timeout)))
-            (values a #false)))
-
       (define (muxer rs ws clients)
          (let ((envelope ((if (empty? clients) wait-mail check-mail))))
             (if envelope
@@ -665,7 +661,7 @@
                   (muxer rs ws clients))
                (lets
                   ((timeout (if (single-thread?) #false 0))
-                   (waked x (do-poll rs ws timeout)))
+                   (waked x (values (_poll rs ws timeout) 1)))
                   (if waked
                      (lets ((rs ws clients (wakeup rs ws clients waked)))
                         (muxer rs ws clients))

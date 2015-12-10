@@ -1227,9 +1227,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          res = select(nfds, &rs, &ws, &es, &tv);
       }
       if (res < 1) {
-         A3 = IFALSE; A4 = IFALSE;/* error or signal, wake all */
-      } else if (res == 0) {
-         A3 = INULL; A4 = IFALSE; /* timeout, wake none */
+         A3 = IFALSE; A4 = IFALSE;/* error, sgnal or timeout */
       } else {
          int fd; /* something active, wake the first thing */
          for(fd=0;;fd++) {
