@@ -632,7 +632,8 @@
 
       (define (delelt lst x) ;; lst x →  lst' | #false if not there
          (let loop ((lst lst) (out null))
-            (if (null? lst) #false
+            (if (null? lst) 
+               out
                (lets ((a lst lst))
                   (if (eq? a x)
                      (append lst out)
@@ -661,7 +662,7 @@
                   (muxer rs ws clients))
                (lets
                   ((timeout (if (single-thread?) #false 0))
-                   (waked x (values (_poll rs ws timeout) 1)))
+                   (waked x (_poll2 rs ws timeout)))
                   (if waked
                      (lets ((rs ws clients (wakeup rs ws clients waked)))
                         (muxer rs ws clients))
@@ -681,6 +682,4 @@
          (wait 1))
 
 ))
-
-
 

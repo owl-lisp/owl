@@ -1148,51 +1148,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
       NEXT(4); 
    op9: R[ip[1]] = R[*ip]; NEXT(2);
-   op10: { /* poll (rfd ...) (wfd ...) timeout-ms → fd/false 1=readable, 2=writeable, 3=exceptional */
-      fd_set rs, ws, es;
-      word *cur;
-      int nfds = 1;
-      struct timeval tv;
-      int res;
-      FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
-      cur = (word *)A0;
-      while((word)cur != INULL) {
-         int fd = fixval(cur[1]);
-         FD_SET(fd, &rs);
-         FD_SET(fd, &es); 
-         if (!(nfds > fd)) 
-            nfds = fd + 1;
-         cur = (word *) cur[2];
-      }
-      cur = (word *)A1;
-      while((word)cur != INULL) {
-         int fd = fixval(cur[1]);
-         FD_SET(fd, &ws);
-         FD_SET(fd, &es);
-         if (!(nfds > fd)) 
-            nfds = fd + 1;
-         cur = (word *) cur[2];
-      }
-      if(A2 == IFALSE) {
-         res = select(nfds, &rs, &ws, &es, NULL);
-      } else {
-         int ms = fixval(A2);
-         tv.tv_sec = ms/1000;
-         tv.tv_usec = (ms%1000)*1000;
-         res = select(nfds, &rs, &ws, &es, &tv);
-      }
-      if (res < 1) {
-         A3 = IFALSE; /* error or signal, wake all */
-      } else if (res == 0) {
-         A3 = INULL; /* timeout, wake none */
-      } else {
-         int fd = 0; /* something active, wake the first thing */
-         while (!FD_ISSET(fd, &rs) && !FD_ISSET(fd, &ws) && !FD_ISSET(fd, &es)) {
-            fd++;
-         }
-         A3 = make_immediate(fd,12);
-      }
-      NEXT(4); }
+   op10:
+      error(10, F(42), F(42));
    op11: { /* poll (rfd ...) (wfd ...) timeout-ms → fd/false 1=readable, 2=writeable, 3=exceptional */
       fd_set rs, ws, es;
       word *cur;

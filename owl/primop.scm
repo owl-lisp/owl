@@ -28,7 +28,6 @@
       call/cc call-with-current-continuation 
       lets/cc
       
-      _poll
       _poll2
       ;; vm interface
       vm bytes->bytecode bytecode-function
@@ -105,8 +104,7 @@
       (define sizeb       (func '(2 28 4 5 24 5)))
       (define raw         (func '(4 60 4 5 6 7 24 7)))
       (define _connect    (func '(3 34 4 5 6 24 6)))
-      (define _poll       (func '(4 9 3 11 10 4 5 6 7 24 7)))
-      (define _poll2      (func '(4 255 255 255 9 3 20 11 4 5 3 4 2 2)))
+      (define _poll2      (func '(4 9 3 11 11 4 5 6 3 4 2 11 2))) 
       (define _sleep      (func '(2 37 4 5 24 5)))
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
@@ -152,8 +150,7 @@
             (tuple 'fxband       55 2 1 fxband)
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
-            (tuple '_poll        10 3 1 _poll) ;; poll rfdlist wfdlist timeout/false → fd/false/null
-            (tuple '_poll2       11 3 2 _poll2) ;; poll rfdlist wfdlist timeout/false → fd/false/null
+            (tuple '_poll2       11 3 2 _poll2) ;; poll rfdlist wfdlist timeout/false → fd/false/null type
             (tuple 'type-byte    15 1 1 type-byte) ;; get just the type bits (new)
             (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
@@ -291,11 +288,11 @@
       (define (vm . bytes)
          ((bytes->bytecode bytes)))
 
-      (check-equal 42 ;; load 42:
+      '(check-equal 42 ;; load 42:
          (vm 14 42 4  ;;   r4 = fixnum(42)
              24 4))   ;;   return r4 = call r3 with it
       
-      (check-equal 0         ;; count down to zero:
+      '(check-equal 0         ;; count down to zero:
          ((bytes->bytecode   ;;   r4 arg
                '(14 0 5      ;;   r5 = 0
                  14 1 6      ;;   r6 = 1

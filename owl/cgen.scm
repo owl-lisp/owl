@@ -377,29 +377,29 @@
                         (cond ;                                                        .--> note, maybe have #false value set
                            (else (values (list "R[" to "]=R[" from "];") bs (put regs to (get regs from #false))))))))
                (cons 10 cify-type)
-               (cons 11 ;; jump-if-immediate-type a type lo8 hi8
-                  (λ (bs regs fail)
-                     (lets 
-                        ((a type lo8 hi8 bs (get4 (cdr bs)))
-                         (jump-len (bor (<< hi8 8) lo8)))
-                        (cond
-                           (else (values 'branch 
-                              (tuple 
-                                 (list "immediatep(R["a"])&&imm_type((word)R["a"])==" type)
-                                 (drop bs jump-len) (put regs a 'immediate)
-                                 bs (put regs a 'alloc)) regs))))))
-               (cons 12 ;; jump-if-allocated-type a type lo8 hi8
-                  (λ (bs regs fail)
-                     (lets 
-                        ((a type lo8 hi8 bs (get4 (cdr bs)))
-                         (jump-len (bor (<< hi8 8) lo8)))
-                        (cond
-                           (else (values 'branch 
-                              (tuple 
-                                 (list "allocp(R["a"])&&imm_type(V(R["a"]))==" type)
-                                 (drop bs jump-len) 
-                                 (put regs a (get alloc-types type 'alloc))
-                                 bs regs) regs)))))) ; <- raw or immediate
+               ;(cons 11 ;; jump-if-immediate-type a type lo8 hi8
+               ;   (λ (bs regs fail)
+               ;      (lets 
+               ;         ((a type lo8 hi8 bs (get4 (cdr bs)))
+               ;          (jump-len (bor (<< hi8 8) lo8)))
+               ;         (cond
+               ;            (else (values 'branch 
+               ;               (tuple 
+               ;                  (list "immediatep(R["a"])&&imm_type((word)R["a"])==" type)
+               ;                  (drop bs jump-len) (put regs a 'immediate)
+               ;                  bs (put regs a 'alloc)) regs))))))
+               ;(cons 12 ;; jump-if-allocated-type a type lo8 hi8
+               ;   (λ (bs regs fail)
+               ;      (lets 
+               ;         ((a type lo8 hi8 bs (get4 (cdr bs)))
+               ;          (jump-len (bor (<< hi8 8) lo8)))
+               ;         (cond
+               ;            (else (values 'branch 
+               ;               (tuple 
+               ;                  (list "allocp(R["a"])&&imm_type(V(R["a"]))==" type)
+               ;                  (drop bs jump-len) 
+               ;                  (put regs a (get alloc-types type 'alloc))
+               ;                  bs regs) regs)))))) ; <- raw or immediate
                ;; 13=ldi, see higher ops
                (cons 14 ;; ldfix <n> <to>
                   (λ (bs regs fail)
