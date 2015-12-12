@@ -186,16 +186,6 @@
 
 (import (owl time))
 
-;; fixme: should sleep one round to get a timing, and then use avg of the last one(s) to make an educated guess
-(define (sleep ms)
-   (lets ((end (+ ms (time-ms))))
-      (let loop ()
-         ;(print (syscall 18 1 1))
-         (let ((now (time-ms)))
-            (if (> now end)
-               now
-               (begin (interact sleeper-id 50) (loop)))))))
-
 ; -> mcp gets <cont> 5 reason info
 
 ; (run <mcp-cont> thunk quantum) -> result

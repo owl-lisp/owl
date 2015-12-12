@@ -60,6 +60,7 @@
       fasl-load         ;; path default → done?
       
       start-muxer       ;; new io muxer
+      sleep             ;; sleep ms -> sleep at least for ms
    )
 
    (import
@@ -649,53 +650,86 @@
                      (values (append (cdr lst) out) a)
                      (loop (cdr lst) (cons a out)))))))
 
-      (define (wakeup rs ws clients fd reason)
+      (define (wakeup rs ws fd reason)
          (cond
             ((eq? reason 1) ;; data ready to be read
                (lets ((rs x (grabelt rs fd)))
                   (mail (cdr x) fd)
-                  (values rs ws clients)))
+                  (values rs ws)))
             ((eq? reason 2) ;; ready to receive data
                (lets ((ws x (grabelt ws fd)))
                   (mail (cdr x) fd)
-                  (values rs ws clients)))
+                  (values rs ws)))
             (else ;; error
                (lets ((rs x (grabelt rs fd))
                       (ws y (grabelt ws fd)))
                   (if x (mail (cdr x) fd))
                   (if y (mail (cdr y) fd))
-                  (values rs ws clients)))))
+                  (values rs ws)))))
+
+      (define (push-alarm alarms time id)
+         (if (null? alarms) 
+            (list (cons time id))
+            (let ((a (car alarms)))
+               (if (< (car a) time)
+                  (cons a (push-alarm (cdr alarms) time id))
+                  (cons (cons time id) alarms)))))
                
-      (define (muxer-add rs ws clients mail)
-         ;; to debug, check that there isn't a client there already         
+      ;; including time currently causes a circular dependency - resolve later
+      (define (time-ms)
+         (lets ((ss ms (clock)))
+            (+ (* ss 1000) ms)))
+
+      (define (muxer-add rs ws alarms mail)
          (tuple-case (ref mail 2)
             ((read fd)
-               (values (cons (cons fd (ref mail 1)) rs) ws clients))
+               (values (cons (cons fd (ref mail 1)) rs) ws alarms))
             ((write fd)
-               (values rs (cons (cons fd (ref mail 1)) ws) clients))
+               (values rs (cons (cons fd (ref mail 1)) ws) alarms))
+            ((alarm ms)
+               (values rs ws (push-alarm alarms (+ (time-ms) ms) (ref mail 1))))
             (else
                (print-to stderr "bad muxer message from " (ref mail 1))
-               (values rs ws clients))))
+               (values rs ws alarms))))
 
-      (define (muxer rs ws clients)
-         (let ((envelope ((if (and (null? rs) (null? ws)) wait-mail check-mail))))
-            (if envelope
-               (lets ((rs ws clients (muxer-add rs ws clients envelope)))
-                  (muxer rs ws clients))
-               (lets
-                  ((timeout (if (single-thread?) #false 0))
-                   (waked x (_poll2 rs ws timeout)))
-                  (if waked
-                     (lets ((rs ws clients (wakeup rs ws clients waked x)))
-                        (muxer rs ws clients))
-                     (begin
-                        (set-ticker 0)
-                        (muxer rs ws clients)))))))
+      (define (muxer rs ws alarms)
+         (if (null? alarms)
+            (let ((envelope ((if (and (null? rs) (null? ws)) wait-mail check-mail))))
+               (if envelope
+                  (lets ((rs ws alarms (muxer-add rs ws alarms envelope)))
+                     (muxer rs ws alarms))
+                  (lets
+                     ((timeout (if (single-thread?) #false 0))
+                      (waked x (_poll2 rs ws timeout)))
+                     (if waked
+                        (lets ((rs ws (wakeup rs ws waked x)))
+                           (muxer rs ws alarms))
+                        (begin
+                           (set-ticker 0)
+                           (muxer rs ws alarms))))))
+            (let ((now (time-ms)))
+               (if (< now (caar alarms))
+                  (let ((envelope (check-mail)))
+                     (if envelope
+                        (lets ((rs ws alarms (muxer-add rs ws alarms envelope)))
+                           (muxer rs ws alarms))
+                        (lets
+                           ((timeout (min *max-fixnum* (- (caar alarms) now)))
+                            (waked x (_poll2 rs ws timeout)))
+                           (if waked
+                              (lets ((rs ws (wakeup rs ws waked x)))
+                                 (muxer rs ws alarms))
+                              (muxer rs ws alarms)))))
+                  (begin
+                     (mail (cdar alarms) 'alarm)
+                     (muxer rs ws (cdr alarms)))))))
             
       (define (start-muxer . id)
          (fork-server (if (null? id) 'iomux (car id))
-            (λ () (muxer null null #empty))))
+            (λ () (muxer null null null))))
 
+      (define (sleep ms)
+         (interact 'iomux (tuple 'alarm ms)))
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
@@ -705,10 +739,3 @@
 
 ))
 
-
-;(print "importing")
-;(import (owl io))
-;(print "starting new muxer")
-;(start-muxer 'new-muxer)
-;(print "interacting")
-;(interact 'new-muxer (tuple 'read (fd->port 0)))
