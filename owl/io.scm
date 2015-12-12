@@ -650,22 +650,30 @@
                      (values (append (cdr lst) out) a)
                      (loop (cdr lst) (cons a out)))))))
 
-      (define (wakeup rs ws fd reason)
+      (define (wakeup rs ws alarms fd reason)
          (cond
             ((eq? reason 1) ;; data ready to be read
-               (lets ((rs x (grabelt rs fd)))
-                  (mail (cdr x) fd)
-                  (values rs ws)))
-            ((eq? reason 2) ;; ready to receive data
+               (lets 
+                  ((rs x (grabelt rs fd))
+                   (fd envelope x)
+                   (from message envelope))
+                  (tuple-case message
+                     ((read fd)
+                        (mail from fd)
+                        (values rs ws alarms))
+                     (else
+                        (print-to stderr "wakeup: unknown wakeup " message)
+                        (values rs ws alarms)))))
+            ((eq? reason 2) ;; ready to be written to
                (lets ((ws x (grabelt ws fd)))
                   (mail (cdr x) fd)
-                  (values rs ws)))
+                  (values rs ws alarms)))
             (else ;; error
                (lets ((rs x (grabelt rs fd))
                       (ws y (grabelt ws fd)))
                   (if x (mail (cdr x) fd))
                   (if y (mail (cdr y) fd))
-                  (values rs ws)))))
+                  (values rs ws alarms)))))
 
       (define (push-alarm alarms time id)
          (if (null? alarms) 
@@ -683,9 +691,9 @@
       (define (muxer-add rs ws alarms mail)
          (tuple-case (ref mail 2)
             ((read fd)
-               (values (cons (cons fd (ref mail 1)) rs) ws alarms))
+               (values (cons (cons fd mail) rs) ws alarms))
             ((read-timeout fd ms)
-               (values (cons (cons fd (ref mail 1)) rs) ws
+               (values (cons (cons fd mail) rs) ws
                   (push-alarm alarms (+ (time-ms) ms) mail)))
             ((write fd)
                (values rs (cons (cons fd (ref mail 1)) ws) alarms))
@@ -705,7 +713,7 @@
                      ((timeout (if (single-thread?) #false 0))
                       (waked x (_poll2 rs ws timeout)))
                      (if waked
-                        (lets ((rs ws (wakeup rs ws waked x)))
+                        (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                            (muxer rs ws alarms))
                         (begin
                            (set-ticker 0)
@@ -720,7 +728,7 @@
                            ((timeout (min *max-fixnum* (- (caar alarms) now)))
                             (waked x (_poll2 rs ws timeout)))
                            (if waked
-                              (lets ((rs ws (wakeup rs ws waked x)))
+                              (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                                  (muxer rs ws alarms))
                               (muxer rs ws alarms)))))
                   (lets
