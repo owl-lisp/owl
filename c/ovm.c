@@ -1159,7 +1159,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
       cur = (word *)A0;
       while((word)cur != INULL) {
-         int fd = fixval(cur[1]);
+         int fd = fixval(((word *)cur[1])[1]);
          FD_SET(fd, &rs);
          FD_SET(fd, &es); 
          if (!(nfds > fd)) 
@@ -1168,7 +1168,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       cur = (word *)A1;
       while((word)cur != INULL) {
-         int fd = fixval(cur[1]);
+         int fd = fixval(((word *)cur[1])[1]);
          FD_SET(fd, &ws);
          FD_SET(fd, &es);
          if (!(nfds > fd)) 

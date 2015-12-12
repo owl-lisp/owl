@@ -639,24 +639,46 @@
                      (append lst out)
                      (loop lst (cons a out)))))))
 
-      (define (wakeup rs ws clients fd)
-         (mail (getf clients fd) fd)
-         (let ((rsp (delelt rs fd)))
-            (if rsp
-               (values rsp ws (del clients fd))
-               (values rs (delelt ws fd) (del clients fd)))))
+      ;; (... (x . foo) ...) x => (... ...) (x . foo)
+      (define (grabelt lst x)
+         (let loop ((lst lst) (out null))
+            (if (null? lst)
+               (values out #false)
+               (let ((a (car lst)))
+                  (if (eq? x (car a))
+                     (values (append (cdr lst) out) a)
+                     (loop (cdr lst) (cons a out)))))))
 
+      (define (wakeup rs ws clients fd reason)
+         (cond
+            ((eq? reason 1) ;; data ready to be read
+               (lets ((rs x (grabelt rs fd)))
+                  (mail (cdr x) fd)
+                  (values rs ws clients)))
+            ((eq? reason 2) ;; ready to receive data
+               (lets ((ws x (grabelt ws fd)))
+                  (mail (cdr x) fd)
+                  (values rs ws clients)))
+            (else ;; error
+               (lets ((rs x (grabelt rs fd))
+                      (ws y (grabelt ws fd)))
+                  (if x (mail (cdr x) fd))
+                  (if y (mail (cdr y) fd))
+                  (values rs ws clients)))))
+               
       (define (muxer-add rs ws clients mail)
+         ;; to debug, check that there isn't a client there already         
          (tuple-case (ref mail 2)
             ((read fd)
-               (values (cons fd rs) ws (put clients fd (ref mail 1))))
+               (values (cons (cons fd (ref mail 1)) rs) ws clients))
             ((write fd)
-               (values rs (cons fd ws) (put clients fd (ref mail 1))))
+               (values rs (cons (cons fd (ref mail 1)) ws) clients))
             (else
-               (print-to stderr "bad muxer message from " (ref mail 1)))))
+               (print-to stderr "bad muxer message from " (ref mail 1))
+               (values rs ws clients))))
 
       (define (muxer rs ws clients)
-         (let ((envelope ((if (empty? clients) wait-mail check-mail))))
+         (let ((envelope ((if (and (null? rs) (null? ws)) wait-mail check-mail))))
             (if envelope
                (lets ((rs ws clients (muxer-add rs ws clients envelope)))
                   (muxer rs ws clients))
@@ -664,14 +686,14 @@
                   ((timeout (if (single-thread?) #false 0))
                    (waked x (_poll2 rs ws timeout)))
                   (if waked
-                     (lets ((rs ws clients (wakeup rs ws clients waked)))
+                     (lets ((rs ws clients (wakeup rs ws clients waked x)))
                         (muxer rs ws clients))
                      (begin
                         (set-ticker 0)
                         (muxer rs ws clients)))))))
             
-      (define (start-muxer)
-         (fork-server 'iomux
+      (define (start-muxer . id)
+         (fork-server (if (null? id) 'iomux (car id))
             (λ () (muxer null null #empty))))
 
 
@@ -683,3 +705,10 @@
 
 ))
 
+
+;(print "importing")
+;(import (owl io))
+;(print "starting new muxer")
+;(start-muxer 'new-muxer)
+;(print "interacting")
+;(interact 'new-muxer (tuple 'read (fd->port 0)))
