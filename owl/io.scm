@@ -684,10 +684,13 @@
          (tuple-case (ref mail 2)
             ((read fd)
                (values (cons (cons fd (ref mail 1)) rs) ws alarms))
+            ((read-timeout fd ms)
+               (values (cons (cons fd (ref mail 1)) rs) ws
+                  (push-alarm alarms (+ (time-ms) ms) mail)))
             ((write fd)
                (values rs (cons (cons fd (ref mail 1)) ws) alarms))
             ((alarm ms)
-               (values rs ws (push-alarm alarms (+ (time-ms) ms) (ref mail 1))))
+               (values rs ws (push-alarm alarms (+ (time-ms) ms) mail)))
             (else
                (print-to stderr "bad muxer message from " (ref mail 1))
                (values rs ws alarms))))
@@ -720,9 +723,22 @@
                               (lets ((rs ws (wakeup rs ws waked x)))
                                  (muxer rs ws alarms))
                               (muxer rs ws alarms)))))
-                  (begin
-                     (mail (cdar alarms) 'alarm)
-                     (muxer rs ws (cdr alarms)))))))
+                  (lets
+                     ((alarm (car alarms))
+                      (time envelope alarm)
+                      (id message envelope))
+                     (tuple-case message
+                        ((alarm ms)
+                           (mail id 'alarm)
+                           (muxer rs ws (cdr alarms)))
+                        ((read-timeout fd ms)
+                           (mail id 'timeout)
+                           (lets ((rs _ (grabelt rs fd)))
+                              (muxer rs ws (cdr alarms))))
+                        (else
+                           (print-to stderr "not sure how to alarm " message)
+                           (mail id 'alarm)
+                           (muxer rs ws (cdr alarms)))))))))
             
       (define (start-muxer . id)
          (fork-server (if (null? id) 'iomux (car id))
