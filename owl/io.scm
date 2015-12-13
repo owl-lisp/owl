@@ -218,7 +218,7 @@
             ((and (eq? (type ip) type-vector-raw) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (_connect ip port)))
                   (if fd
-                     (fd->tcp fd)
+                     (fd->port fd)
                      #false)))
             (else 
                ;; note: could try to autoconvert formats to be a bit more user friendly
@@ -269,7 +269,7 @@
          (let ((res (sys-prim 4 sock #false #false)))
             (if res 
                (lets ((ip fd res))
-                  (values ip (fd->tcp fd)))
+                  (values ip (fd->port fd)))
                (begin
                   ;(interact sid socket-read-delay)
                   (interact 'iomux (tuple 'read sock))
@@ -284,7 +284,7 @@
 
       (define (tcp-socket port)
          (let ((fd (sys-prim 3 port #false #false)))
-            (if fd (fd->socket fd) fd)))
+            (if fd (fd->port fd) fd)))
 
       ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
       (define (tcp-clients port)
@@ -693,6 +693,7 @@
 
 ;(import (owl io))
 ;(start-muxer 'new-muxer)
-;(print "interacting")
-;(print " => " (interact 'new-muxer (tuple 'read-timeout (fd->port 0) 3000)))
+;(define foo (tcp-socket 31337))
+;(print "interacting with socket " foo)
+;(print " => " (interact 'new-muxer (tuple 'read foo)))
 
