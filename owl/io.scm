@@ -559,6 +559,21 @@
                      (values (append (cdr lst) out) a)
                      (loop (cdr lst) (cons a out)))))))
 
+      ;; rs = ((read-fd . read-request-mail) ...)
+      ;; ws = ((write-fd . id) ...)
+      ;; as = ((wakeup-time . alarm-mail) ...), sorted by wakeup-time
+
+      (define (remove-alarm alarms envelope)
+         (if (null? alarms)
+            (begin
+               (print-to stderr "ERROR: fd read with timeout had no matching alarm")
+               null)
+            (let ((this (car alarms)))
+               (if (eq? (cdr this) envelope)
+                  (cdr alarms)
+                  (cons this
+                     (remove-alarm (cdr alarms) envelope))))))
+
       (define (wakeup rs ws alarms fd reason)
          (cond
             ((eq? reason 1) ;; data ready to be read
@@ -570,6 +585,10 @@
                      ((read fd)
                         (mail from fd)
                         (values rs ws alarms))
+                     ((read-timeout fd timeout)
+                        (mail from fd)
+                        (values rs ws 
+                           (remove-alarm alarms envelope)))
                      (else
                         (print-to stderr "wakeup: unknown wakeup " message)
                         (values rs ws alarms)))))
@@ -649,6 +668,7 @@
                            (mail id 'alarm)
                            (muxer rs ws (cdr alarms)))
                         ((read-timeout fd ms)
+                           ;; remove both the alarm and the read request
                            (mail id 'timeout)
                            (lets ((rs _ (grabelt rs fd)))
                               (muxer rs ws (cdr alarms))))
@@ -670,4 +690,9 @@
          (wait 1))
 
 ))
+
+;(import (owl io))
+;(start-muxer 'new-muxer)
+;(print "interacting")
+;(print " => " (interact 'new-muxer (tuple 'read-timeout (fd->port 0) 3000)))
 
