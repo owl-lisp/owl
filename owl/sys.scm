@@ -110,7 +110,7 @@
             (cond
                ((not res) res)
                ((eq? res #true)
-                  (interact sleeper-id 6) ;; sleep using the associated IO thread
+                  (interact 'iomux (tuple 'alarm 100))
                   (wait pid))
                (else 
                   ;; pair of (<exittype> . <result>)

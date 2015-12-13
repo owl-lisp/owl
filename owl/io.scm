@@ -15,8 +15,6 @@
       port?                   ;; _ → bool
       flush-port              ;; fd → _
       close-port              ;; fd → _
-      start-sleeper           ;; start a (global) sleeper thread
-      sleeper-id              ;; id of sleeper thread
       start-base-threads      ;; start stdio and sleeper threads
       wait-write              ;; fd → ? (no failure handling yet)
 
@@ -55,7 +53,6 @@
       lines             ;; fd → null | ll of string, read error is just null, each [\r]\n removed
 
       system-print system-println system-stderr
-      take-nap
       fasl-save         ;; obj path → done?
       fasl-load         ;; path default → done?
       
@@ -99,11 +96,6 @@
             ((c-string path) => 
                (λ (raw) (sys-prim 1 raw mode #false)))
             (else #false)))
-
-      ;; use fd 65535 as the unique sleeper thread name.
-      (define sid (fd->port 65535))
-
-      (define sleeper-id sid)
 
       ;;; Writing
 
@@ -232,93 +224,13 @@
                ;; note: could try to autoconvert formats to be a bit more user friendly
                #false)))
 
-      ;;; Sleeper thread
-
-      ;; todo: later probably sleeper thread and convert it to a syscall
-
-      ;; run thread scheduler for n rounds between possibly calling vm sleep()
-      (define sleep-check-rounds 10)
-
-      ;; number of milliseconds to sleep for real at a time when no threads are running but
-      ;; they want to sleep, typically waiting for input or output
-      (define ms-per-round 10)
-
-      ;; IO is closely tied to sleeping in owl now, because instead of the poll there are 
-      ;; several threads doing their own IO with their own fds. the ability to sleep well 
-      ;; is critical, so the global sleeping thread is also in lib-io.
-
-      (define (find-bed ls id n)
-         (if (null? ls) 
-            (list (cons n id)) ;; last bed, select alarm
-            (let ((this (caar ls)))
-               (if (< n this) ;; add before someone to be waked later
-                  (ilist 
-                     (cons n id)
-                     (cons (- this n) (cdr (car ls)))
-                     (cdr ls))
-                  (cons (car ls)
-                     (find-bed ls id (- n this))))))) ;; wake some time after this one
-
-      (define (add-sleeper ls env)
-         (lets ((from n env))
-            (if (eq? (type n) type-fix+)
-               (find-bed ls from n)
-               (find-bed ls from 10))))   ;; silent fix
-
-      ;; note: might make sense to _sleep a round even when rounds=0 if single-thread? and did not _sleep any of the prior rounds, because otherwise we might end up having cases where many file descriptors keep ol running because at least one fd thread is always up and running. another solution would be to always wake up just one thread, which would as usual suspend during the round when inactive. needs testing.
-
-      ;; suspend execution for <rounds> thread scheduler rounds (for current thread) and also suspend the vm if no other threads are running
-      (define (sleep-for rounds)
-         (cond
-            ((eq? rounds 0)
-               rounds)
-            ((single-thread?)
-               ;; note: could make this check every n rounds or ms
-               (if (_sleep (* ms-per-round rounds)) ;; sleep really for a while
-                  ;; stop execution if breaked to enter mcp
-                  (set-ticker 0)))
-            (else
-               (lets
-                  ((a (wait 3))
-                   (rounds _ (fx- rounds 1)))
-                  (sleep-for rounds)))))
-
-      (define (wake-neighbours l)
-         (cond
-            ((null? l) l)
-            ((eq? 0 (caar l))
-               (mail (cdar l) 'rise-n-shine)
-               (wake-neighbours (cdr l)))
-            (else l)))
-         
-      ;; ls = queue of ((rounds . id) ...), sorted and only storing deltas
-      (define (sleeper ls)
-         (cond
-            ((null? ls)
-               (sleeper (add-sleeper ls (wait-mail))))
-            ((check-mail) =>
-               (λ (env) 
-                  (sleeper (add-sleeper ls env))))
-            (else
-               (sleep-for (caar ls))
-               (mail (cdar ls) 'awake) ;; wake up the thread ((n . id) ...)
-               (sleeper (wake-neighbours (cdr ls)))))) ;; wake up all the ((0 . id) ...) after it, if any
-
-      (define (start-sleeper)
-         (fork-server sid
-            (λ () (sleeper null))))
-
-
       ;; deprecated
       (define (flush-port fd)
          ;(mail fd 'flush)
-         42
-         )
+         42)
 
       (define (close-port fd)
-         (fclose fd)
-         )
-
+         (fclose fd))
 
 
       ;;;
@@ -615,9 +527,6 @@
                (port->byte-stream fd)
                #false)))
 
-      (define (take-nap)
-         (interact sid 5))
-
       (define (fasl-save obj path) 
          (vector->file 
             (list->vector (fasl-encode obj))
@@ -757,7 +666,6 @@
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
-         (start-sleeper) ;; <- remove later
          (start-muxer)
          (wait 1))
 
