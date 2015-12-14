@@ -5,7 +5,6 @@
 (define-library (owl server)
 
    (export 
-      make-http-handler
       start-server)
 
    (import
@@ -114,52 +113,6 @@
          (lets ((q ps (cut-at #\? query)))
             (values q ps)))
 
-      (define (http-respond env)
-         (lets 
-            ((fd (getf env 'fd))
-             (status (getf env 'status))
-             (version (getf env 'http-version))
-             (content-type (get env 'content-type "text/html")))
-            (if (eq? 200 (getf 'status env))
-               (begin
-                  (print-to fd "HTTP/1." version " 200 OK")
-                  (print-to fd "Content-type:" content-type)
-                  (print-to fd "")
-                  (print-to fd (get env 'content "(no content specified)"))
-                  (close-port fd))
-               (begin
-                  (print-to fd "HTTP/1." version " " status " OK")
-                  (print-to fd "Content-type:" content-type)
-                  (print-to fd "")
-                  (print-to fd (get env 'content "(no content specified)"))
-                  (close-port fd)))))
-
-      (define (make-http-handler router)
-         (λ (ll env)
-            ;(print "-----------------------------------------------")
-            ;(print "http-handler: ll " ll ", env " env)
-            (lets ((line ll (grab-line ll)))
-               (if line
-                  (begin
-                     (tuple-case (try-parse-query line)
-                        ((get query version)
-                           (lets ((query params (split-params query)))
-                              (if query
-                                 (http-respond
-                                    (router
-                                       (-> env
-                                          (put 'query (list->string query))
-                                          (put 'get-params params)
-                                          (put 'http-version version)
-                                          (put 'http-method 'get))))
-                                 (print-to (getf env 'fd)
-                                    "HTTP/1.0 500 Bad query\r\n\r\n"))))
-                        (else
-                           (print-to (getf env 'fd)
-                              "HTTP/1.0 200 OK\r\n\r\nHelo wat " (list->string line)))))
-                  (print-to (getf env 'fd) "HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\nWAT " line))
-               (close-port (getf env 'fd)))))
-
       ;; a thread which reads connections from socket and sends them to recipient
       (define (socket-accepter sock recipient)
          (let ((cli (sys-prim 4 sock #f #f)))
@@ -169,7 +122,70 @@
                   (mail recipient cli))
                (interact 'iomux (tuple 'read sock)))
             (socket-accepter sock recipient)))
+
+      ;;;
+      ;;; Request processing passes
+      ;;;
       
+      (define (fail env code reason)
+         (-> env 
+            (put 'error code)
+            (put 'status code)
+            (put 'status-text reason)
+            (put 'content reason)))
+
+      (define (get-request env)
+         (lets ((line ll (grab-line (getf env 'bs))))
+            (if line
+               (tuple-case (try-parse-query line)
+                  ((get query version)
+                     (lets ((query params (split-params query)))
+                        (if query
+                           (-> env
+                              (fupd 'bs ll) ;; rest of data
+                              (put 'query (list->string query))
+                              (put 'get-params params)
+                              (put 'http-version version)
+                              (put 'http-method 'get))
+                           (fail env 500 "Bad query"))))
+                  (else
+                     (fail env 200 (string-append "Query wat? " (list->string line)))))
+               (fail env 500 "No query received"))))
+
+      ;;;
+      ;;; Responding
+      ;;;
+
+      (define (http-respond req)
+         (let ((fd (getf req 'fd)))
+            (begin
+               (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
+               (print-to fd "Content-Type: " (get req 'response-type "text/html") "\r")
+               (print-to fd "\r")
+               (let ((data (getf req 'content)))
+                  (if data
+                     (print-to fd data)))
+               (close-port fd))))
+
+      (define (request-pipe . handlers)
+         (λ (req)
+            (fold
+               (λ (req handler)
+                  (if (getf req 'error)
+                     req
+                     (handler req)))
+               req handlers)))
+
+      (define pre-handler
+         (request-pipe
+            get-request
+            ;; get-headers
+            ))
+
+      (define post-handler
+         (request-pipe
+            http-respond))
+
       (define (server-loop handler clis)
          ;(print "Server loop waiting for mail and processing " (length (ff->list clis)) " connections")
          (lets ((envelope (wait-mail))
@@ -182,11 +198,14 @@
                       (id ip))
                      (fork-linked-server id
                         (λ () 
-                           (handler 
-                              (stream-fd-timeout fd max-request-time)
-                              (-> #empty
-                                 (put 'ip ip)
-                                 (put 'fd fd)))))
+                           (-> empty
+                              (put 'ip ip)
+                              (put 'fd fd)
+                              (put 'bs (stream-fd-timeout fd max-request-time))
+                              pre-handler
+                              handler
+                              post-handler
+                              http-respond)))
                      (server-loop handler (put clis id (time-ms)))))
                ((eq? msg 'stop)
                   (print-to stderr "stopping server"))
@@ -234,12 +253,11 @@
 
  (print "server: " 
    (start-server 'serveri 
-      (make-http-handler 
-         (λ (env) 
-            ;(print "router got " env) 
-            (-> env
-               (put 'status 200)
-               (put 'content (list "hello " env)))))
+      (λ (env) 
+         (print "router got " env) 
+         (-> env
+            (put 'status 200)
+            (put 'content (list "hello " env))))
       31337))
 
 
