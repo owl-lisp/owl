@@ -545,13 +545,19 @@
 			(syntax-rules ()
 				((-> a) a)
 				((-> a ... (op arg ...))
-					(op (-> a ...) arg ...))))
+					(op (-> a ...) arg ...))
+				((-> a ... x)
+               (x (-> a ...)))))
+
 				
 		(define-syntax ->>
 			(syntax-rules ()
 				((->> a) a)
 				((->> a ... (op arg ...))
-					(op arg ... (->> a ...)))))
+					(op arg ... (->> a ...)))
+				((->> a ... x)
+					(x (->> a ...)))))
+
 
 
 ))
