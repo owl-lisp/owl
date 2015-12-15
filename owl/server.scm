@@ -152,6 +152,50 @@
                      (fail env 200 (string-append "Query wat? " (list->string line)))))
                (fail env 500 "No query received"))))
 
+      ;; doing string->symbol on all would cause memory leak
+      (define (known-header->symbol str)
+         (cond
+            ((string-eq? str "User-Agent") 'user-agent)
+            ((string-eq? str "Accept-Language") 'accept-language)
+            ((string-eq? str "Accept") 'accept) ;; text/html, text/plain, ...
+            ((string-eq? str "Accept-Encoding") 'accept-encoding)
+            (else #false)))
+
+      (define (drop-space lst)
+         (cond
+            ((null? lst) lst)
+            ((eq? (car lst) #\space)
+               (drop-space (cdr lst)))
+            (else
+               lst)))
+
+      (define (header-value x)
+         (list->string (drop-space x)))
+
+      (define (get-headers env)
+         (lets 
+            ((line ll (grab-line (getf env 'bs)))
+             (env (fupd env 'bs ll)))
+            (if line
+               (if (null? line)
+                  env
+                  (lets ((pre post (cut-at #\: line))
+                         (pre (list->string pre))
+                         (tagp (known-header->symbol pre)))
+                     (if tagp
+                        (if (getf env tagp)
+                           (begin
+                              (print-to stderr "tried to redefine header " tagp)
+                              (get-headers env))
+                           (get-headers (put env tagp (header-value post))))
+                        (get-headers
+                           (-> env
+                              (fupd 'bs ll)
+                              (put 'headers 
+                                 (cons 
+                                    (cons pre (header-value post))
+                                    (get env 'headers null))))))))
+               (fail env 500 "No content"))))
       ;;;
       ;;; Responding
       ;;;
@@ -179,7 +223,7 @@
       (define pre-handler
          (request-pipe
             get-request
-            ;; get-headers
+            get-headers
             ))
 
       (define post-handler
@@ -230,7 +274,7 @@
                   (print-to stderr "unknown message: " msg)
                   (server-loop handler clis)))))
 
-      ;; a threat which receives clients and server commands and acts accordingly
+      ;; a thread which receives clients and server commands and acts accordingly
       (define (start-server server-id handler port)
          (let ((sock (open-socket port)))
             (print "Server socket " sock)
@@ -258,6 +302,6 @@
          (-> env
             (put 'status 200)
             (put 'content (list "hello " env))))
-      31337))
+      80))
 
 
