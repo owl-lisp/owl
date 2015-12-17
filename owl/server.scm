@@ -34,7 +34,6 @@
          (let ((block (sys-prim 5 fd maxlen 0)))
             (if (eq? block #true) ;; would block
                (begin
-                  (print "Waiting for input from " fd)
                   (if (eq? 'timeout (interact 'iomux (tuple 'read-timeout fd (- end (time-ms)))))
                      (begin
                         (print-to stderr "Timeout on fd " fd)
@@ -144,7 +143,7 @@
                            (-> env
                               (fupd 'bs ll) ;; rest of data
                               (put 'query (list->string query))
-                              (put 'get-params params)
+                              (put 'get-params params)  ;; byte list
                               (put 'http-version version)
                               (put 'http-method 'get))
                            (fail env 500 "Bad query"))))
@@ -172,6 +171,69 @@
       (define (header-value x)
          (list->string (drop-space x)))
 
+      (define (split-at x lst)
+         (if (null? lst)
+            lst
+            (lets ((these lst (cut-at x lst)))
+               (if (null? these)
+                  (split-at x lst)
+                  (cons these (split-at x lst))))))
+
+      (define (hex-val a)
+         (cond
+            ((not a) #false)
+            ((< 47 a 58) (- a 48))
+            ((< 96 a 103) (- a 87))
+            ((< 64 a 71) (- a 55))
+            (else #false)))
+
+      (define (url-decode lst)
+         (let loop ((lst lst) (out null))
+            (if (null? lst)
+               (reverse out)
+               (lets ((a lst lst))
+                  (cond
+                     ((eq? a #\+)
+                        (loop lst (cons #\space out)))
+                     ((eq? a #\%)
+                        (lets
+                           ((a lst (uncons lst #false))
+                            (b lst (uncons lst #false))
+                            (a (hex-val a))
+                            (b (hex-val b)))
+                        (if (and a b)
+                           (loop lst (cons (bor (<< a 4) b) out))
+                           #false)))
+                     (else
+                        ;; overly permissive for now, A-Za-z0-9*-._ are ok.
+                        (loop lst (cons a out))))))))
+
+      (define (split-get-params bs)
+         (lets/cc ret
+            ((bss (split-at #\& bs)))
+            (map
+               (λ (pair)
+                  (lets ((parts (split-at #\= pair)))
+                     (if (= (length parts) 2)
+                        (lets 
+                           ((name (url-decode (car parts)))
+                            (value (url-decode (cadr parts))))
+                           (if (and name value)
+                              (cons (list->string name)
+                                    (list->string value))
+                              (ret #false)))
+                        (ret #false))))
+               bss)))
+
+      (define (parse-get-params env)
+         (let ((val (getf env 'get-params)))
+            (if val
+               (let ((val (split-get-params val)))
+                  (if val
+                     (fupd env 'get-params val)
+                     (fail env 400 "Bad GET parameters")))
+               env)))
+
       (define (get-headers env)
          (lets 
             ((line ll (grab-line (getf env 'bs)))
@@ -196,6 +258,7 @@
                                     (cons pre (header-value post))
                                     (get env 'headers null))))))))
                (fail env 500 "No content"))))
+      
       ;;;
       ;;; Responding
       ;;;
@@ -223,6 +286,7 @@
       (define pre-handler
          (request-pipe
             get-request
+            parse-get-params
             get-headers
             ))
 
