@@ -653,7 +653,7 @@
                         (lets ((rs ws alarms (muxer-add rs ws alarms envelope)))
                            (muxer rs ws alarms))
                         (lets
-                           ((timeout (min *max-fixnum* (- (caar alarms) now)))
+                           ((timeout (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
                             (waked x (_poll2 rs ws timeout)))
                            (if waked
                               (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
