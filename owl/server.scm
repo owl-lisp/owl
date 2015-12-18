@@ -312,8 +312,7 @@
                               (put 'bs (stream-fd-timeout fd max-request-time))
                               pre-handler
                               handler
-                              post-handler
-                              http-respond)))
+                              post-handler)))
                      (server-loop handler (put clis id (time-ms)))))
                ((eq? msg 'stop)
                   (print-to stderr "stopping server"))
