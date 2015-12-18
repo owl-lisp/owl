@@ -1,5 +1,5 @@
 
-(define max-ms-oversleep 10)
+(define max-ms-oversleep 20)
 
 (define (close-enough? want got)
    (and (>= got want)
@@ -10,7 +10,7 @@
       (set-ticker 0)
       (if (> n 0)
          (lets 
-            ((rs x (rand rs 30))
+            ((rs x (rand rs 50))
              (start (time-ms))
              (_ (sleep x))
              (elapsed (- (time-ms) start)))
@@ -28,10 +28,8 @@
          (print "ok"))))
 
 (begin
-   (fork (lambda () (random-napper 1 10)))
-   (fork (lambda () (random-napper 12 10)))
-   (fork (lambda () (random-napper 123 10)))
-   (fork (lambda () (random-napper 1234 10)))
-   (fork (lambda () (random-napper 12345 10)))
-   (fork (lambda () (random-napper 123456 10)))
-   )
+   (fork (lambda () (random-napper 1 5)))
+   (fork (lambda () (random-napper 12 5)))
+   (fork (lambda () (random-napper 123 5)))
+   (fork (lambda () (random-napper 1234 5)))
+   (fork (lambda () (random-napper 12345 5))))
