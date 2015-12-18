@@ -21,6 +21,7 @@
       (define max-request-time (* 10 1000))
       (define max-request-size (* 1024 1024))
       (define max-request-block-size 32768)
+      (define max-post-length (* 1024 1024))
 
       (define (block->list block tail)
          (let ((end (sizeb block)))
@@ -93,7 +94,19 @@
             (tuple 'get query 
                (- ver-char #\0))))
 
-      (define parse-query parse-get)
+      (define parse-post
+         (let-parses
+            ((method (get-word "POST " 'get))
+             (query (get-greedy+ get-nonspace))
+             (skip (get-word " HTTP/1." 'foo))
+             (ver-char (get-either (get-imm #\0) (get-imm #\1))))
+            (tuple 'post query 
+               (- ver-char #\0))))
+
+      (define parse-query 
+         (get-either 
+            parse-get
+            parse-post))
          
       (define (try-parse-query bs)
          (try-parse parse-query bs #f #f 
@@ -133,6 +146,9 @@
             (put 'status-text reason)
             (put 'content reason)))
 
+      (define (nat str)
+         (string->number str 10))
+
       (define (get-request env)
          (lets ((line ll (grab-line (getf env 'bs))))
             (if line
@@ -147,6 +163,13 @@
                               (put 'http-version version)
                               (put 'http-method 'get))
                            (fail env 500 "Bad query"))))
+                  ((post query version)
+                     (print "got a post")
+                     (-> env
+                        (fupd 'bs ll)
+                        (put 'query (list->string query))
+                        (put 'http-version version)
+                        (put 'http-method 'post)))
                   (else
                      (fail env 200 (string-append "Query wat? " (list->string line)))))
                (fail env 500 "No query received"))))
@@ -154,7 +177,10 @@
       ;; doing string->symbol on all would cause memory leak
       (define (known-header->symbol str)
          (cond
+            ((string-eq? str "Host") 'host)
             ((string-eq? str "User-Agent") 'user-agent)
+            ((string-eq? str "Content-type") 'content-type)
+            ((string-eq? str "Content-length") 'content-length)
             ((string-eq? str "Accept-Language") 'accept-language)
             ((string-eq? str "Accept") 'accept) ;; text/html, text/plain, ...
             ((string-eq? str "Accept-Encoding") 'accept-encoding)
@@ -234,6 +260,29 @@
                      (fail env 400 "Bad GET parameters")))
                env)))
 
+      (define default-post-type "application/x-www-form-urlencoded")
+
+      (define (parse-post-params env)
+         (if (eq? (getf env 'http-method) 'post)
+            (lets
+               ((type (get env 'content-type default-post-type))
+                (len (nat (getf env 'content-length))))
+               (print "reading " len " bytes...")
+               (cond
+                  ((not len)
+                     (fail env 400 "No POST data length"))
+                  ((> len max-post-length)
+                     (fail env 400 "Too much POST data"))
+                  ((equal? type default-post-type)
+                     (lets ((hd (ltake (getf env 'bs) len)))
+                        (print "they are " hd)
+                        (-> env
+                           (put 'bs null) ;; for now
+                           (put 'post-data hd))))
+                  (else
+                     (fail env 400 "Unknown post content type"))))
+            env))
+
       (define (get-headers env)
          (lets 
             ((line ll (grab-line (getf env 'bs)))
@@ -288,6 +337,7 @@
             get-request
             parse-get-params
             get-headers
+            parse-post-params
             ))
 
       (define post-handler
