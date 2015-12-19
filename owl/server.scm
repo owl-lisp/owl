@@ -213,14 +213,16 @@
             ((< 64 a 71) (- a 55))
             (else #false)))
 
-      (define (url-decode lst)
+      (define (url-decode lst plus?)
          (let loop ((lst lst) (out null))
             (if (null? lst)
                (reverse out)
                (lets ((a lst lst))
                   (cond
                      ((eq? a #\+)
-                        (loop lst (cons #\space out)))
+                        (if plus?
+                           (loop lst (cons #\space out))
+                           (loop lst (cons #\+ out))))
                      ((eq? a #\%)
                         (lets
                            ((a lst (uncons lst #false))
@@ -234,7 +236,7 @@
                         ;; overly permissive for now, A-Za-z0-9*-._ are ok.
                         (loop lst (cons a out))))))))
 
-      (define (split-get-params bs)
+      (define (split-url-params bs plus?)
          (lets/cc ret
             ((bss (split-at #\& bs)))
             (map
@@ -242,8 +244,8 @@
                   (lets ((parts (split-at #\= pair)))
                      (if (= (length parts) 2)
                         (lets 
-                           ((name (url-decode (car parts)))
-                            (value (url-decode (cadr parts))))
+                           ((name (url-decode (car parts) plus?))
+                            (value (url-decode (cadr parts) plus?)))
                            (if (and name value)
                               (cons (list->string name)
                                     (list->string value))
@@ -254,7 +256,7 @@
       (define (parse-get-params env)
          (let ((val (getf env 'get-params)))
             (if val
-               (let ((val (split-get-params val)))
+               (let ((val (split-url-params val #true)))
                   (if val
                      (fupd env 'get-params val)
                      (fail env 400 "Bad GET parameters")))
@@ -262,12 +264,11 @@
 
       (define default-post-type "application/x-www-form-urlencoded")
 
-      (define (parse-post-params env)
+      (define (read-post-data env)
          (if (eq? (getf env 'http-method) 'post)
             (lets
                ((type (get env 'content-type default-post-type))
                 (len (nat (getf env 'content-length))))
-               (print "reading " len " bytes...")
                (cond
                   ((not len)
                      (fail env 400 "No POST data length"))
@@ -332,12 +333,22 @@
                      (handler req)))
                req handlers)))
 
+      (define (parse-post-data env)
+         (let ((data (getf env 'post-data)))
+            (if data
+               (lets ((params (split-url-params data #false)))
+                  (if params
+                     (put (del env 'post-data) 'post-params params)
+                     (fail env 500 "Bad POST data")))
+               env)))
+
       (define pre-handler
          (request-pipe
             get-request
             parse-get-params
             get-headers
-            parse-post-params
+            read-post-data
+            parse-post-data
             ))
 
       (define post-handler
@@ -411,7 +422,10 @@
  (print "server: " 
    (start-server 'serveri 
       (λ (env) 
-         (print "router got " env) 
+         (print "router got ") 
+         (for-each
+            (λ (x) (print " - " (car x) ": " (cdr x)))
+            (ff->list env))
          (-> env
             (put 'status 200)
             (put 'content (list "hello " env))))
