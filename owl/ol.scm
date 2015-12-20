@@ -55,7 +55,7 @@
 
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
-(define *interactive* #true) ;; be verbose 
+(define *interactive* #false) ;; be verbose 
 
 (define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 
@@ -83,7 +83,7 @@
 
 (import (owl ff))
 
-(import (only (owl iff))) ;; hack, load it but don't import anything
+(import (only (owl iff)))
 
 (import (owl math))
 
@@ -98,14 +98,6 @@
 (import (only (owl unicode) encode-point))
 
 (import (owl string))
-
-
-;; move these elsewhere
-;(define (number->string n base)
-;   (list->string (render-number n null base)))
-
-(define (fopen path mode)
-   (syscall 7 (c-string path) mode))
 
 (import (owl vector))
 
@@ -158,15 +150,6 @@
 (import (owl cps))
 
 (import (owl alpha))
-
-; a value that can be created by an instruction
-
-(define (small-value? val)
-   (or
-      (and (fixnum? val) (>= val -127) (< val 127))   
-      (eq? val #true)
-      (eq? val #false)
-      (eq? val null)))
 
 (import (owl thread))
 
@@ -383,7 +366,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       wait
       wait-mail accept-mail check-mail return-mails
       set-signal-action
-      fopen
       byte-vector?
       string->symbol
       close-port flush-port
@@ -457,14 +439,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 ; note, return value is not the owl return value. it comes
 ; from thread controller after all threads have finished.
-
-
-(define (strip-zeros n)
-   (cond
-      ((= n 0) n)
-      ((= 0 (rem n 10))
-         (strip-zeros (div n 10)))
-      (else n)))
 
 (define (memory-limit-ok? n w)
    (cond
