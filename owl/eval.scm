@@ -89,7 +89,7 @@
               raw _connect _sopen accept mkt bind set lesser? call-native
               mkred mkblack ff-bind ff-toggle ffcar ffcdr red? listuple
               fxband fx+ fxqr fx* fx- fx<< fx>> ncons ncar ncdr raw-mode
-              _sleep iomux clock time sizeb getev type-byte)))
+              iomux clock time sizeb getev type-byte)))
 
       (define (execute exp env)
          (receive (exp)

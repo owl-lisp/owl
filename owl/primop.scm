@@ -105,7 +105,6 @@
       (define raw         (func '(4 60 4 5 6 7 24 7)))
       (define _connect    (func '(3 34 4 5 6 24 6)))
       (define _poll2      (func '(4 9 3 11 11 4 5 6 3 4 2 11 2))) 
-      (define _sleep      (func '(2 37 4 5 24 5)))
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
@@ -142,7 +141,6 @@
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
             (tuple 'raw          60 3 1 raw)   ;; make raw object, and *add padding byte count to type variant*
             (tuple '_connect     34 2 1 _connect)   ;; (connect host port) -> #false | socket-fd
-            (tuple '_sleep       37 1 1 _sleep)   ;; (_sleep nms) -> #true
             (tuple 'cons         51 2 1 cons)
             (tuple 'car          52 1 1 car)
             (tuple 'cdr          53 1 1 cdr)

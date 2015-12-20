@@ -1010,6 +1010,54 @@ word boot(int nargs, char **argv) {
    return vm(entry, oargs);
 }
 
+void do_poll(word a, word b, word c, word *r1, word *r2) { 
+   fd_set rs, ws, es;
+   word *cur;
+   int nfds = 1;
+   struct timeval tv;
+   int res;
+   FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
+   cur = (word *)a;
+   while((word)cur != INULL) {
+      int fd = fixval(((word *)cur[1])[1]);
+      FD_SET(fd, &rs);
+      FD_SET(fd, &es); 
+      if (!(nfds > fd)) 
+         nfds = fd + 1;
+      cur = (word *) cur[2];
+   }
+   cur = (word *)b;
+   while ((word)cur != INULL) {
+      int fd = fixval(((word *)cur[1])[1]);
+      FD_SET(fd, &ws);
+      FD_SET(fd, &es);
+      if (!(nfds > fd)) 
+         nfds = fd + 1;
+      cur = (word *) cur[2];
+   }
+   if (c == IFALSE) {
+      res = select(nfds, &rs, &ws, &es, NULL);
+   } else {
+      int ms = fixval(c);
+      tv.tv_sec = ms/1000;
+      tv.tv_usec = (ms%1000)*1000;
+      res = select(nfds, &rs, &ws, &es, &tv);
+   }
+   if (res < 1) {
+      *r1 = IFALSE; *r2 = IFALSE; /* error, sgnal or timeout */
+   } else {
+      int fd; /* something active, wake the first thing */
+      for(fd=0;;fd++) {
+         if (FD_ISSET(fd, &rs)) {
+            *r1 = make_immediate(fd, 12); *r2 = F(1); break;
+         } else if (FD_ISSET(fd, &ws)) {
+             *r1= make_immediate(fd, 12); *r2 = F(2); break;
+         } else if (FD_ISSET(fd, &es)) {
+            *r1 = make_immediate(fd, 12); *r2 = F(3); break;
+         }
+      }
+   }
+}
 word vm(word *ob, word *args) {
    unsigned char *ip;
    int bank = 0; /* ticks deposited at syscall */
@@ -1148,55 +1196,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
       NEXT(4); 
    op9: R[ip[1]] = R[*ip]; NEXT(2);
-   op10:
-      error(10, F(42), F(42));
-   op11: { /* poll (rfd ...) (wfd ...) timeout-ms → fd/false 1=readable, 2=writeable, 3=exceptional */
-      fd_set rs, ws, es;
-      word *cur;
-      int nfds = 1;
-      struct timeval tv;
-      int res;
-      FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
-      cur = (word *)A0;
-      while((word)cur != INULL) {
-         int fd = fixval(((word *)cur[1])[1]);
-         FD_SET(fd, &rs);
-         FD_SET(fd, &es); 
-         if (!(nfds > fd)) 
-            nfds = fd + 1;
-         cur = (word *) cur[2];
-      }
-      cur = (word *)A1;
-      while((word)cur != INULL) {
-         int fd = fixval(((word *)cur[1])[1]);
-         FD_SET(fd, &ws);
-         FD_SET(fd, &es);
-         if (!(nfds > fd)) 
-            nfds = fd + 1;
-         cur = (word *) cur[2];
-      }
-      if(A2 == IFALSE) {
-         res = select(nfds, &rs, &ws, &es, NULL);
-      } else {
-         int ms = fixval(A2);
-         tv.tv_sec = ms/1000;
-         tv.tv_usec = (ms%1000)*1000;
-         res = select(nfds, &rs, &ws, &es, &tv);
-      }
-      if (res < 1) {
-         A3 = IFALSE; A4 = IFALSE;/* error, sgnal or timeout */
-      } else {
-         int fd; /* something active, wake the first thing */
-         for(fd=0;;fd++) {
-            if (FD_ISSET(fd, &rs)) {
-               A3 = make_immediate(fd, 12); A4 = F(1); break;
-            } else if (FD_ISSET(fd, &ws)) {
-               A3 = make_immediate(fd, 12); A4 = F(2); break;
-            } else if (FD_ISSET(fd, &es)) {
-               A3 = make_immediate(fd, 12); A4 = F(3); break;
-            }
-         }
-      }
+   op10: error(10, F(42), F(42));
+   op11: { 
+      do_poll(A0, A1, A2, &(A3), &(A4)); 
       NEXT(5); }
    op12: /* jb n */
       ip -= ip[0];
@@ -1398,15 +1400,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word *ob = (word *) R[ip[0]];
       R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
       NEXT(2); }
-   op37: { /* ms r */
-#ifndef WIN32
-      if (!seccompp)
-         usleep(fixval(A0)*1000);
-#else
-      Sleep(fixval(A0));
-#endif
-      A1 = BOOL(errno == EINTR);
-      NEXT(2); }
+   op37:
+      error(256, F(37), IFALSE);
    op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
       word res = fixval(A0) + fixval(A1);
       word low = res & FMAX;
