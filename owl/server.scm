@@ -342,6 +342,11 @@
                      (fail env 500 "Bad POST data")))
                env)))
 
+      (define (debug-handler msg)
+         (λ (env)
+            (print-to stderr "*** DEBUG HANDLER (" msg "): " env)
+            env))
+
       (define pre-handler
          (request-pipe
             get-request
@@ -349,11 +354,20 @@
             get-headers
             read-post-data
             parse-post-data
+            ;(debug-handler "PRE LAST")
             ))
 
       (define post-handler
          (request-pipe
+            ;(debug-handler "POST FIRST")
             http-respond))
+
+      (define (unless-error handler)
+         (λ (env)
+            (print-to stderr "UNLESS-ERROR: " env)
+            (if (getf env 'error)
+               env
+               (handler env))))
 
       (define (server-loop handler clis)
          ;(print "Server loop waiting for mail and processing " (length (ff->list clis)) " connections")
@@ -417,18 +431,41 @@
                   #false))))
 ))
 
- (import (owl server))
+(import (owl server))
+
+(define-syntax query-case
+   (syntax-rules (_dispatch)
+      ((query-case (op . args) a ...)
+         (let ((env (op . args)))
+            (query-case env a ...)))
+      ((query-case _dispatch q (pat ms . body) next ...)
+         (let ((out (pat q)))
+            (if out
+               (begin
+                  (print "OUT is " out)
+                  (apply (lambda ms . body) out))
+               (query-case _dispatch q next ...))))
+      ((query-case _dispatch q)
+         (error "unmatched query: " q))
+      ((query-case q . opts)
+         (if q
+            (query-case _dispatch q . opts)
+            (error "no query" q)))))
 
  (print "server: " 
    (start-server 'serveri 
       (λ (env) 
-         (print "router got ") 
-         (for-each
-            (λ (x) (print " - " (car x) ": " (cdr x)))
-            (ff->list env))
-         (-> env
-            (put 'status 200)
-            (put 'content (list "hello " env))))
-      80))
+         ;(print "ROUTER HAS " env)
+         ;(for-each
+         ;   (λ (x) (print " - " (car x) ": " (cdr x)))
+         ;   (ff->list env))
+         (query-case (getf env 'query)
+            (M/\/things\/thing-([0-9]+)\/([a-zA-Z]+)\.([a-z0-9]{1,4})/
+               (id resource suffix)
+               (list id resource suffix))
+            (M/(.*)/ (all)
+               (put env 'content
+                  (list 'unmatched all)))))
+      31337))
 
 
