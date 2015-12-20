@@ -189,6 +189,7 @@
       ("m/\\t\\t/" "\t\t" #true)
       ("c/\\t/" "a\tb\tc" ("a" "b" "c"))
       ("c/[ \\t\\n\\r]+/" "a  \tb\tc\t\r\td" ("a" "b" "c" "d"))
+      ("M/(a*)(b*)(c*)/" "abbb" ("a" "bbb" ""))
       ))
 
 ;; run a small battery of tests during load to check for issues

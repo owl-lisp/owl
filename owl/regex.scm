@@ -38,6 +38,7 @@
       (only (owl syscall) error)
       (owl ff)
       (owl list)
+      (owl lazy)
       (owl math)
       (owl string)
       (owl primop)
@@ -536,7 +537,6 @@
                (else ;; force
                   (loop (ll))))))
 
-      ;; todo: use the flags of the regexp to choose what kind of replacer to make. now implicit /g
       (define (make-replacer rex rep all? start?)
          (λ (target) 
             (cond
@@ -545,6 +545,32 @@
                (else
                   (rex-replace (iter target) rex rep start? all?)))))
 
+      (define (rex-full-match ll rex)
+         (let ((match (rex-match-prefix rex ll)))
+            (if match
+               (lets 
+                  ((ls buff ms match))
+                  ;; check end of stream
+                  (lets ((a ls (uncons ls #false)))
+                     (if a 
+                        #false
+                        ms)))
+               #false)))
+
+      (define (make-full-match rex)
+         (λ (target) 
+            (cond
+               ((string? target)
+                  (let ((res (rex-full-match (str-iter target) rex)))
+                     (if res
+                        (map (o runes->string cdr) 
+                           (cdr (reverse res)))
+                        #false)))
+               (else
+                  (let ((res (rex-full-match (iter target) rex)))
+                     (if res
+                        (map cdr (cdr (reverse res)))
+                        res))))))
 
 
       ;;;
@@ -560,6 +586,10 @@
       ;; maybe get a ?
       (define get-altp 
          (get-either (get-imm 63) (get-epsilon #false)))
+
+      ;; todo: / or ?, and carry along in get-regex
+      (define get-regex-delim
+         (get-imm #\/))
 
       ;; → (rex → rex')
       (define get-star 
@@ -912,7 +942,6 @@
             (get-imm 103) 
             (get-epsilon #false)))
 
-      ;; for testing, s/<regex>/<str>/[g]
       (define get-replace-regex
          (let-parses
             ((skip (get-imm 115))  ;; opening s
@@ -925,12 +954,21 @@
              (all? get-maybe-g)) ;; fixme: add other search/replace match than g
             (make-replacer rex rep all? start?)))
 
+      (define get-full-match-regex
+         (let-parses
+            ((skip (get-imm #\M))  ;; opening s
+             (delim get-regex-delim)
+             (rex (get-regex))     ;; delim not carried yet
+             (skip (get-imm delim)))
+            (make-full-match rex)))
+
       (define get-sexp-regex
          (get-any-of
             get-replace-regex
             get-matcher-regex
             get-cutter-regex
             get-copy-matcher-regex ;; m/<regex>/ -> like /<regex>/ but returns a list of the matched data
+            get-full-match-regex ;; M/<regex>/ -> return list of (fully matched) patterns, test
             ))
 
       ;; str -> rex|#false, for conversion of strings to complete matchers

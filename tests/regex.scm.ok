@@ -157,4 +157,5 @@
  | 'm/\t\t/' + '		' = '#true'
  | 'c/\t/' + 'a	b	c' = '(a b c)'
  | 'c/[ \t\n\r]+/' + 'a  	b	c		d' = '(a b c d)'
+ | 'M/(a*)(b*)(c*)/' + 'abbb' = '(a bbb )'
  '--> ~~\o\ ALL TESTS PASSED /o/~~ 
