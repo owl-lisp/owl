@@ -320,8 +320,11 @@
                (print-to fd "Content-Type: " (get req 'response-type "text/html") "\r")
                (print-to fd "\r")
                (let ((data (getf req 'content)))
-                  (if data
-                     (print-to fd data)))
+                  (cond
+                     ((byte-vector? data)
+                        (write-really data fd))
+                     (else
+                        (print-to fd data))))
                (close-port fd))))
 
       (define (request-pipe . handlers)
@@ -452,17 +455,26 @@
             (query-case _dispatch q . opts)
             (error "no query" q)))))
 
+(define favicon 
+   (list->byte-vector 
+      '(0 0 1 0 1 0 15 15 2 0 1 0 1 0 168 0 0 0 22 0 0 0 40 0 0 0 15 0 0 0 30 0 0 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 0 249 62 0 0 240 30 0 0 229 78 0 0 234 174 0 0 197 70 0 0 202 166 0 0 197 70 0 0 195 134 0 0 198 198 0 0 232 46 0 0 228 78 0 0 246 222 0 0 241 30 0 0 224 14 0 0 239 238 0 0 249 62 0 0 240 30 0 0 229 78 0 0 234 174 0 0 197 70 0 0 202 166 0 0 197 70 0 0 195 134 0 0 198 198 0 0 232 46 0 0 228 78 0 0 246 222 0 0 241 30 0 0 224 14 0 0 239 238 0 0)))
+
  (print "server: " 
    (start-server 'serveri 
       (λ (env) 
          ;(print "ROUTER HAS " env)
-         ;(for-each
-         ;   (λ (x) (print " - " (car x) ": " (cdr x)))
-         ;   (ff->list env))
+         (for-each
+            (λ (x) (print " - " (car x) ": " (cdr x)))
+            (ff->list env))
          (query-case (getf env 'query)
             (M/\/things\/thing-([0-9]+)\/([a-zA-Z]+)\.([a-z0-9]{1,4})/
                (id resource suffix)
-               (list id resource suffix))
+               (put env 'content
+                  (list id resource suffix)))
+            (M/\/favicon\.ico/ ()
+               (-> env
+                  (put 'content favicon)
+                  (put 'response-type "image/x-icon")))
             (M/(.*)/ (all)
                (put env 'content
                   (list 'unmatched all)))))
