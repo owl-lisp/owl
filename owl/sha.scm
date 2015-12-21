@@ -49,7 +49,8 @@
          null)))
 
 (define (xor-poss x n ps lst)
-   (if (eq? n 0) 
+   (print (list 'xor-poss x n ps lst))
+   (if (eq? n 1) 
       (if (null? ps)
          (bxor x (car lst))
          (xor-poss (bxor x (car lst)) (car ps) (cdr ps) (cdr lst)))
@@ -64,12 +65,13 @@
 ;; i-3 i-8 i-14 i-16
 (define (extend-initial-words lst)
    (let loop ((lst lst) (n 16))
+      (print (list 'extend lst n))
       (if (= n 80)
          lst
          (loop
             (cons
                (band #xffffffff
-                  (<< (xor-poss 0 3 '(5 6 2) lst)) 1)
+                  (<< (xor-poss 0 3 '(5 6 2) lst) 1))
                lst)
             (+ n 1)))))
 
@@ -88,8 +90,9 @@
    (bxor w #xffffffff))
 
 ;; eww.. this can be deuglified easily, but first get it running.
-(define (sha1-chunk a b c d e ws)
-   (let loop ((i 0) (a a) (b b) (c c) (d d) (e e) (ws (reverse ws)))
+(define (sha1-chunk h0 h1 h2 h3 h4 ws)
+   (let loop ((i 0) (a h0) (b h1) (c h2) (d h3) (e h4) (ws (reverse ws)))
+      (print (list 'sha1-loop i a b c d e ws))
       (cond
          ((< i 20)
             (lets ((f (bxor (band b c) (band (bnot b) d)))
@@ -116,12 +119,19 @@
                      (sha1-step a b c d e f k (car ws))))
                (loop (+ i 1) a b c d e (cdr ws))))
          (else
-            (list 'block-sha1 a b c d e)))))
+            (list 
+               (word (+ h0 a))
+               (word (+ h1 b))
+               (word (+ h2 c))
+               (word (+ h3 d))
+               (word (+ h4 e)))))))
 
 (print 
-   (sha1-chunk h0 h1 h2 h3 h4
-      (grab-initial-words 
-         (sha1-finish-pad 0))))
+   (map (λ (x) (number->string x 16))
+      (sha1-chunk h0 h1 h2 h3 h4
+         (extend-initial-words 
+            (grab-initial-words 
+               (sha1-finish-pad 0))))))
 
 
 
