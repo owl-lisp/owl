@@ -29,6 +29,7 @@
       (exports (owl math-extra))
       (exports (owl math))
       (exports (owl tuple))
+      (exports (owl digest))
       (exports (scheme cxr))
       (exports (scheme time))
       wait
@@ -63,5 +64,6 @@
       (owl render)
       (owl syscall)
       (owl math)
+      (owl digest)
       (scheme cxr)
       (scheme time)))

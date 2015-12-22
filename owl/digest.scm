@@ -5,8 +5,14 @@
       sha-1)
 
    (import
+      (owl defmac)
+      (owl math)
+      (owl list)
+      (owl io)
+      (owl string)
+      (scheme base)
       (owl lazy)
-      (owl base))
+      )
 
    (begin
 
