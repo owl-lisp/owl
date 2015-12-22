@@ -311,16 +311,16 @@ static word *gc(int size, word *regs) {
          breaked |= 8; /* will be passed over to mcp at thread switch*/
       }
       nfree -= size*W + MEMPAD;   /* how much really could be snipped off */
-      if (nfree < (heapsize / 10) || nfree < 0) {
-         /* increase heap size if less than 10% is free by ~10% of heap size (growth usually implies more growth) */
+      if (nfree < (heapsize / 6) || nfree < 0) {
+         /* increase heap size if less than 16% is free by ~10% of heap size (growth usually implies more growth) */
          regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data  */
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
          if (nfree <= size) {
             breaked |= 8; /* will be passed over to mcp at thread switch. may cause owl<->gc loop if handled poorly on lisp side! */
          }
-      } else if (nfree > (heapsize/5)) {
-         /* decrease heap size if more than 20% is free by 10% of the free space */
+      } else if (nfree > (heapsize/3)) {
+         /* decrease heap size if more than 33% is free by 10% of the free space */
          int dec = -(nfree/10);
          int new = nfree - dec;
          if (new > size*W*2 + MEMPAD) {
