@@ -2,7 +2,7 @@
 (define-library (owl digest)
    
    (export
-      sha-1)
+      sha1)
 
    (import
       (owl defmac)
@@ -11,8 +11,7 @@
       (owl io)
       (owl string)
       (scheme base)
-      (owl lazy)
-      )
+      (owl lazy))
 
    (begin
 
@@ -69,11 +68,11 @@
                (let loop ((ll (cons a ll)) (ws null) (n 0))
                   (cond
                      ((= n 16)
-                        ws)
+                        (values ws ll))
                      (else
                         (lets ((x ll (grab-word ll)))
                            (loop ll (cons x ws) (+ n 1))))))
-               null)))
+               (values #false null))))
 
       (define (xor-poss x n ps lst)
          (if (eq? n 1) 
@@ -97,13 +96,6 @@
       (define (bnot w)
          (bxor w #xffffffff))
 
-      (define h0 #x67452301)
-      (define h1 #xefcdab89)
-      (define h2 #x98badcfe)
-      (define h3 #x10325476)
-      (define h4 #xc3d2e1f0)
-                                    
-      ;; eww.. this can be deuglified easily, but first get it running.
       (define (sha1-chunk h0 h1 h2 h3 h4 ws)
          (let loop ((i 0) (a h0) (b h1) (c h2) (d h3) (e h4) (ws (reverse ws)))
             ;(print (list 'sha1-loop i a b c d e ws))
@@ -133,31 +125,42 @@
                            (sha1-step a b c d e f k (car ws))))
                      (loop (+ i 1) a b c d e (cdr ws))))
                (else
-                  (list 
+                  (values 
                      (word (+ h0 a))
                      (word (+ h1 b))
                      (word (+ h2 c))
                      (word (+ h3 d))
                      (word (+ h4 e)))))))
 
-   (define (see x val)
-      (print x ": " val)
-      val)
+   (define (sha1-format-result ws)
+      (list->string
+         (foldr append null
+            (map (λ (x) (cdr (string->list (number->string (+ #x100000000 x) 16)))) ws))))
 
-   ;; not done yet
-   (define (sha-1 thing)
+   (define (sha1-chunks ll)
+      (let loop 
+         ((ll (sha1-pad ll)) 
+          (h0 #x67452301) 
+          (h1 #xefcdab89) 
+          (h2 #x98badcfe) 
+          (h3 #x10325476) 
+          (h4 #xc3d2e1f0))
+         (lets ((ws ll (grab-initial-words ll)))
+            (if ws
+               (lets 
+                  ((h0 h1 h2 h3 h4 
+                     (sha1-chunk h0 h1 h2 h3 h4 
+                        (extend-initial-words ws))))
+                  (loop ll h0 h1 h2 h3 h4))
+               (sha1-format-result (list h0 h1 h2 h3 h4))))))
+
+   (define (sha1 thing)
       (cond
          ((string? thing)
-            (sha-1 (str-iter thing)))
+            (sha1-chunks (str-iter thing)))
          (else
-            (list->string
-               (foldr append null
-                  (map 
-                     (λ (x) (cdr (string->list (number->string (+ #x100000000 x) 16))))
-                     (sha1-chunk h0 h1 h2 h3 h4
-                        (extend-initial-words 
-                           (grab-initial-words 
-                              (sha1-pad thing))))))))))
+            (sha1-chunks thing))))
+
 ))
 
 
