@@ -145,6 +145,9 @@
       (define input-block-size 
          *vec-leaf-size*) ;; changing from 256 breaks vector leaf things
 
+      (define stream-block-size
+         #x8000)
+
       (define (try-get-block fd block-size block?)
          (let ((res (sys-prim 5 fd block-size 0)))
             (if (eq? res #true) ;; would block
@@ -487,7 +490,7 @@
 
       (define (port->byte-stream fd)
          (λ ()
-            (let ((buff (get-block fd input-block-size)))
+            (let ((buff (get-block fd stream-block-size)))
                (cond  
                   ((eof? buff)
                      (close-port fd)
