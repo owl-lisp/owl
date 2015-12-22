@@ -161,6 +161,8 @@
 
 (import (owl suffix))
 
+(import (owl digest))
+
 (define error-tag "err")
 
 (define (error? x)
