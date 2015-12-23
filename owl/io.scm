@@ -31,6 +31,7 @@
       vector->file
       write-vector            ;; vec port
       port->byte-stream       ;; fd → (byte ...) | thunk 
+      byte-stream->port       ;; bs fd → bool
 
       ;; temporary exports
       fclose                 ;; fd → _
@@ -501,6 +502,22 @@
                   (else
                      (stream-chunk buff (- (sizeb buff) 1)
                         (port->byte-stream fd)))))))
+
+      (define (byte-stream->port bs fd)
+         (let loop ((bs bs) (n stream-block-size) (out null))
+            (cond
+               ((eq? n 0)
+                  (if (write-really (list->byte-vector (reverse out)) fd)
+                     (loop bs stream-block-size null)
+                     #false))
+               ((pair? bs)
+                  (loop (cdr bs) (- n 1) (cons (car bs) out)))
+               ((null? bs)
+                  (if (null? out)
+                     #true
+                     (loop bs 0 out)))
+               (else
+                  (loop (bs) n out)))))
 
       (define (lines fd)
          (let loop ((ll (port->byte-stream fd)) (out null))
