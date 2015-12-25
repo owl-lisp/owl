@@ -322,7 +322,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (import (owl base))
 
-(import (owl server))
+(import (owl http))
 
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 

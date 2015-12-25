@@ -1,8 +1,8 @@
 ;;;
-;;; IO testing and server prototyping - not part of owl build yet
+;;; HTTP server
 ;;;
 
-(define-library (owl server)
+(define-library (owl http)
 
    (export 
       http-server
@@ -383,7 +383,7 @@
                (handler env))))
 
       (define (clear-env env)
-         ;(print "more data is " (getf env 'bs))
+         ; (print "clearing env, bs is " (getf env 'bs))
          (-> empty
             (put 'ip (getf env 'ip))
             (put 'fd (getf env 'fd))
@@ -411,8 +411,8 @@
                            (print-request-info env n "closing on end of data") 
                            (close-port (getf env 'fd)))
                         (begin
-                           (print-request-info env n "")
-                            ; (loop (+ n 1) (clear-env env))
+                            (print-request-info env n "")
+                            ;(loop (+ n 1) (clear-env env))
                             (close-port (getf env 'fd))
                             )))
                   (begin
