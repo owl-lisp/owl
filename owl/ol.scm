@@ -322,6 +322,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (import (owl base))
 
+(import (owl server))
+
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
    (cons 

@@ -5,20 +5,18 @@
 (define-library (owl server)
 
    (export 
-      start-server)
+      http-server
+      query-case
+      )
 
    (import
-      (owl io)
-      (owl ff)
-      (owl syscall)
-      (owl defmac)
       (owl base)
       (owl parse)
       (owl env))
 
    (begin
       
-      (define max-request-time (* 10 1000))
+      (define max-request-time (* 1 1000))    
       (define max-request-size (* 1024 1024))
       (define max-request-block-size 32768)
       (define max-post-length (* 1024 1024))
@@ -142,6 +140,7 @@
       (define (fail env code reason)
          (-> env 
             (put 'error code)
+            (put 'bs null)            ;; disconnect on error
             (put 'status code)
             (put 'status-text reason)
             (put 'content reason)))
@@ -264,6 +263,18 @@
 
       (define default-post-type "application/x-www-form-urlencoded")
 
+      (define (lazy-read lst n)
+         (let loop ((lst lst) (out null) (n 0))
+            (cond
+               ((eq? n 0)
+                  (values (reverse out) lst))
+               ((pair? lst)
+                  (loop (cdr lst) (cons (car lst) out) (- n 1)))
+               ((null? lst)
+                  (values #false lst))
+               (else
+                  (loop (lst) out n)))))
+
       (define (read-post-data env)
          (if (eq? (getf env 'http-method) 'post)
             (lets
@@ -275,11 +286,12 @@
                   ((> len max-post-length)
                      (fail env 400 "Too much POST data"))
                   ((equal? type default-post-type)
-                     (lets ((hd (ltake (getf env 'bs) len)))
-                        (print "they are " hd)
-                        (-> env
-                           (put 'bs null) ;; for now
-                           (put 'post-data hd))))
+                     (lets ((hd tl (lazy-read (getf env 'bs) len)))
+                        (if hd
+                           (-> env 
+                              (put 'bs tail)
+                              (put 'post-data hd))
+                           (fail 500 "Insufficient POST data"))))
                   (else
                      (fail env 400 "Unknown post content type"))))
             env))
@@ -315,17 +327,16 @@
 
       (define (http-respond req)
          (let ((fd (getf req 'fd)))
-            (begin
-               (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
-               (print-to fd "Content-Type: " (get req 'response-type "text/html") "\r")
-               (print-to fd "\r")
-               (let ((data (getf req 'content)))
-                  (cond
-                     ((byte-vector? data)
-                        (write-really data fd))
-                     (else
-                        (print-to fd data))))
-               (close-port fd))))
+            (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
+            (print-to fd "Content-Type: " (get req 'response-type "text/html") "\r")
+            (print-to fd "\r")
+            (let ((data (getf req 'content)))
+               (cond
+                  ((byte-vector? data)
+                     (write-really data fd))
+                  (else
+                     (print-to fd data))))
+            req))
 
       (define (request-pipe . handlers)
          (λ (req)
@@ -367,10 +378,46 @@
 
       (define (unless-error handler)
          (λ (env)
-            (print-to stderr "UNLESS-ERROR: " env)
             (if (getf env 'error)
                env
                (handler env))))
+
+      (define (clear-env env)
+         ;(print "more data is " (getf env 'bs))
+         (-> empty
+            (put 'ip (getf env 'ip))
+            (put 'fd (getf env 'fd))
+            (put 'bs (getf env 'bs))))
+
+      (define (ip->str ip)
+         (list->string
+            (foldr
+               (λ (thing tl) (render thing (if (null? tl) tl (cons #\. tl))))
+               null 
+               (vector->list ip))))
+            
+      (define (print-request-info env n str)
+         (print 
+            (time) " " (ip->str (getf env 'ip)) " [" (getf env 'fd ) "," n "]: "
+            (getf env 'http-method) " " (getf env 'query) " -> " (get env 'status 200) " " str))
+
+      (define (handle-connection handler env)
+         (let loop ((n 0) (env env))
+            (let ((env (post-handler (handler (pre-handler env)))))
+               (if (eq? 200 (get env 'status 200))
+                  (let ((bs (get env 'bs null)))
+                     (if (null? bs)
+                        (begin
+                           (print-request-info env n "closing on end of data") 
+                           (close-port (getf env 'fd)))
+                        (begin
+                           (print-request-info env n "")
+                            ; (loop (+ n 1) (clear-env env))
+                            (close-port (getf env 'fd))
+                            )))
+                  (begin
+                     (print-request-info env n " -> closing on non-200")
+                     (close-port (getf env 'fd)))))))
 
       (define (server-loop handler clis)
          ;(print "Server loop waiting for mail and processing " (length (ff->list clis)) " connections")
@@ -384,13 +431,12 @@
                       (id ip))
                      (fork-linked-server id
                         (λ () 
-                           (-> empty
-                              (put 'ip ip)
-                              (put 'fd fd)
-                              (put 'bs (stream-fd-timeout fd max-request-time))
-                              pre-handler
-                              handler
-                              post-handler)))
+                           (handle-connection 
+                              (unless-error handler)
+                              (-> empty
+                                 (put 'ip ip)
+                                 (put 'fd fd)
+                                 (put 'bs (stream-fd-timeout fd max-request-time))))))
                      (server-loop handler (put clis id (time-ms)))))
                ((eq? msg 'stop)
                   (print-to stderr "stopping server"))
@@ -408,6 +454,8 @@
                                  (print-to (ref from 3) "HTTP/1.0 500 ERROR CODE " op "\r\n\r\nERROR " op)
                                  (close-port (ref from 3))))
                            (server-loop handler (del clis from))))
+                     ((update handler state-transform)
+                        (server-loop handler (state-transform clis)))
                      (else
                         (print-to stderr "weird message: " envelope)
                         (server-loop handler clis))))
@@ -416,7 +464,7 @@
                   (server-loop handler clis)))))
 
       ;; a thread which receives clients and server commands and acts accordingly
-      (define (start-server server-id handler port)
+      (define (http-server server-id handler port)
          (let ((sock (open-socket port)))
             (print "Server socket " sock)
             (if sock
@@ -432,52 +480,23 @@
                (begin
                   (print-to stderr server-id "failed to get socket")
                   #false))))
+
+   (define-syntax query-case
+      (syntax-rules (_dispatch)
+         ((query-case (op . args) a ...)
+            (let ((env (op . args)))
+               (query-case env a ...)))
+         ((query-case _dispatch q (pat ms . body) next ...)
+            (let ((out (pat q)))
+               (if out
+                  (begin
+                     (apply (lambda ms . body) out))
+                  (query-case _dispatch q next ...))))
+         ((query-case _dispatch q)
+            (error "unmatched query: " q))
+         ((query-case q . opts)
+            (if q
+               (query-case _dispatch q . opts)
+               (error "query-case: no query" q)))))
+
 ))
-
-(import (owl server))
-
-(define-syntax query-case
-   (syntax-rules (_dispatch)
-      ((query-case (op . args) a ...)
-         (let ((env (op . args)))
-            (query-case env a ...)))
-      ((query-case _dispatch q (pat ms . body) next ...)
-         (let ((out (pat q)))
-            (if out
-               (begin
-                  (print "OUT is " out)
-                  (apply (lambda ms . body) out))
-               (query-case _dispatch q next ...))))
-      ((query-case _dispatch q)
-         (error "unmatched query: " q))
-      ((query-case q . opts)
-         (if q
-            (query-case _dispatch q . opts)
-            (error "no query" q)))))
-
-(define favicon 
-   (list->byte-vector 
-      '(0 0 1 0 1 0 15 15 2 0 1 0 1 0 168 0 0 0 22 0 0 0 40 0 0 0 15 0 0 0 30 0 0 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 0 249 62 0 0 240 30 0 0 229 78 0 0 234 174 0 0 197 70 0 0 202 166 0 0 197 70 0 0 195 134 0 0 198 198 0 0 232 46 0 0 228 78 0 0 246 222 0 0 241 30 0 0 224 14 0 0 239 238 0 0 249 62 0 0 240 30 0 0 229 78 0 0 234 174 0 0 197 70 0 0 202 166 0 0 197 70 0 0 195 134 0 0 198 198 0 0 232 46 0 0 228 78 0 0 246 222 0 0 241 30 0 0 224 14 0 0 239 238 0 0)))
-
- (print "server: " 
-   (start-server 'serveri 
-      (λ (env) 
-         ;(print "ROUTER HAS " env)
-         (for-each
-            (λ (x) (print " - " (car x) ": " (cdr x)))
-            (ff->list env))
-         (query-case (getf env 'query)
-            (M/\/things\/thing-([0-9]+)\/([a-zA-Z]+)\.([a-z0-9]{1,4})/
-               (id resource suffix)
-               (put env 'content
-                  (list id resource suffix)))
-            (M/\/favicon\.ico/ ()
-               (-> env
-                  (put 'content favicon)
-                  (put 'response-type "image/x-icon")))
-            (M/(.*)/ (all)
-               (put env 'content
-                  (list 'unmatched all)))))
-      31337))
-
-
