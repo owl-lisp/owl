@@ -15,6 +15,7 @@
       fold2
       first
       halve
+      list*
       ╯°□°╯
       
       diff union intersect)
@@ -254,7 +255,12 @@
                      (values (reverse (cons (car t) out)) (cdr t))
                      (walk (cdr t) (cdr h) (cons (car t) out)))))))
 
+      (define ╯°□°╯ reverse)     
 
-   (define ╯°□°╯ reverse)     
-
+      (define-syntax list*
+         (syntax-rules ()
+            ((list*) '())
+            ((list* a) a)
+            ((list* a . b)
+               (cons a (list* . b)))))
 ))
