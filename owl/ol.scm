@@ -324,6 +324,8 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (import (owl http))
 
+(import (owl html))
+
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
    (cons 

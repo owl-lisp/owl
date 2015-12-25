@@ -6,7 +6,6 @@
       )
 
    (import
-      (owl defmac)
       (owl base))
 
    (begin
@@ -20,53 +19,74 @@
                tail)
             (else
                (ret #false))))
-         
-      (define (gen exp ret tail)
-         (cond
-            ((null? exp)
-               tail)
-            ((not exp)
-               tail)
-            ((pair? exp)
-               (let ((hd (car exp)))
-                  (cond
-                     ((eq? hd 'p)
-                        (list* #\< #\p #\> 
-                           (gen-tail (cdr exp) ret tail gen)))
-                     ((eq? hd 'b)
-                        (list* #\< #\b #\> 
-                           (gen-tail (cdr exp) ret 
-                              (list* #\< #\/ #\b #\> tail)
-                              gen)))
-                     ((eq? hd 'i)
-                        (list* #\< #\i #\> 
-                           (gen-tail (cdr exp) ret 
-                              (list* #\< #\/ #\i #\> tail) gen)))
-                     ((eq? hd 'div)
-                        (list* #\< #\d #\i #\v #\> 
-                           (gen-tail (cdr exp) ret 
-                              (list* #\< #\/ #\d #\i #\v #\> tail) gen)))
-                     ((eq? hd 'ul)
-                        (list* #\< #\u #\l #\> 
-                           (gen-tail (cdr exp) ret 
-                              (list* #\< #\/ #\u #\l #\> tail) gen)))
-                     ((eq? hd 'li)
-                        (list* #\< #\l #\i #\> 
-                           (gen-tail (cdr exp) ret 
-                              (list* #\< #\/ #\l #\i #\> tail) gen)))
-                     ((eq? hd 'ol)
-                        (list* #\< #\o #\l #\> 
-                           (gen-tail (cdr exp) ret 
-                              (list* #\< #\/ #\o #\l #\> tail))))
-                     (else
-                        (ret #false)))))
-            (else
-               (render exp tail))))
+
+
+      (define (gen-attrs pairs tail)
+         (if (null? pairs)
+            tail
+            (let ((fst (car pairs)))
+               ;; no quoting yet
+               (cons #\space 
+                  (render (car fst)
+                     (list* #\= #\"
+                        (render (cadr fst)
+                           (cons #\" (gen-attrs (cdr pairs) tail)))))))))
+
+      (define open-only?
+         (lets
+            ((keys '(p img))
+             (ff (list->ff (zip cons keys keys))))
+            (λ (x) (get ff x #false))))
+
+      (define closed-tag?
+         (lets 
+            ((keys '(a b i div html head title h1 h2 h3 h4 h5 table tr td iframe ul ol li))
+             (ff (list->ff (zip cons keys keys))))
+            (λ (x) (get ff x #false))))
+
+      (define (generate ret)
+
+         (define (maybe-gen-attrs lst tail)
+            (cond
+               ((null? lst) tail)
+               ((and (pair? (car lst)) (pair? (caar lst)))
+                  (gen-attrs (car lst)
+                     (cons #\>
+                        (foldr gen tail (cdr lst)))))
+               (else
+                  (cons #\> 
+                     (foldr gen tail lst)))))
+
+         (define (gen exp tail)
+            (cond
+               ((null? exp)
+                  tail)
+               ((not exp)
+                  tail)
+               ((pair? exp)
+                  (let ((hd (car exp)))
+                     (cond
+                        ((open-only? hd)
+                           (cons #\< 
+                              (render hd
+                                 (maybe-gen-attrs (cdr exp) tail))))
+                        ((closed-tag? hd)
+                           (cons #\< 
+                              (render hd 
+                                 (maybe-gen-attrs (cdr exp)
+                                    (list* #\< #\/ 
+                                       (render hd (cons #\> tail)))))))
+                        (else
+                           (ret #false)))))
+               (else
+                  (render exp tail))))
+
+         gen)
 
       (define (html->x exp x)
          (call/cc 
             (lambda (ret)
-               (let ((bs (gen exp ret null)))
+               (let ((bs ((generate ret) exp null)))
                   (if bs (x bs) bs)))))
 
       (define (html exp)
@@ -79,9 +99,13 @@
    (html
       '(div
          (ul
+            (li (a ((href "http://lol") (target "_top")) "trololo"))
             (li (p "foo" (b "bar") "baz"))
             (li (p "BAR"))))))
 
 
+;; how about attributes?
+;; (a (foo . bar) ...)?
+;; (a (href . "foo") ..)
 
       
