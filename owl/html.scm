@@ -47,13 +47,23 @@
 
       (define open-only?
          (lets
-            ((keys '(p img))
+            ((keys '(p img area base basefont br hr col embed input keygen 
+               link meta param track wbr))
              (ff (list->ff (zip cons keys keys))))
             (λ (x) (get ff x #false))))
 
       (define closed-tag?
          (lets 
-            ((keys '(a b i div html head title h1 h2 h3 h4 h5 table tr td iframe ul ol li))
+            ((keys '(a abbr acronym address applet article aside audio b
+               bdi bdo big blockquote body i div html head header title h1
+               h2 h3 h4 h5 h6 table tbody tr textarea tfoot th thead time
+               title td iframe ul ol li button canvas caption center cite
+               code colgroup datalist dl dd del details dfn dialog dir dt em
+               fieldset figcaption figure font footer form frame frameset
+               ins kbd label legend main map mark menu menuitem meter nav
+               noframes noscript object optgroup select output prep progress
+               q rp rt ruby s samp script section select small source span
+               strike strong style sub summary sup tt u ul var video))
              (ff (list->ff (zip cons keys keys))))
             (λ (x) (get ff x #false))))
 
@@ -105,7 +115,9 @@
       (define (html->x exp x)
          (call/cc 
             (lambda (ret)
-               (let ((bs ((generate ret) exp null)))
+               (let 
+                  ((bs ((generate ret) exp null)))
+                  ;; <!DOCTYPE html> could be added at this point
                   (if bs (x bs) bs)))))
 
       (define (html exp)
