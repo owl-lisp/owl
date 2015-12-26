@@ -16,7 +16,7 @@
 
    (begin
       
-      (define max-request-time (* 1 1000))    
+      (define max-request-time (* 15 1000))    
       (define max-request-size (* 1024 1024))
       (define max-request-block-size 32768)
       (define max-post-length (* 1024 1024))
@@ -325,10 +325,37 @@
       ;;; Responding
       ;;;
 
+      ;; clamp content heavily to avoid header content escapes even with 
+      ;; encoding confusion. might make sense to respond with an error 
+      ;; instead.
+      (define (render-header val tail)
+         (foldr
+            (λ (char tl)
+               (cond
+                  ((< char #\space) tl)
+                  ((> char 126) tl)
+                  (else (cons char tl))))
+            tail
+            (render val null)))
+
+      (define (emit-header fd name val)
+         (write-really
+            (list->byte-vector
+               (render-header name 
+                  (ilist #\: #\space
+                     (render-header val '(#\return #\newline)))))
+            fd))
+
+      (define (maybe-emit-header env fd sym name)
+         (let ((val (getf env sym)))
+            (if val
+               (emit-header fd name val))))
+
       (define (http-respond req)
          (let ((fd (getf req 'fd)))
             (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
-            (print-to fd "Content-Type: " (get req 'response-type "text/html") "\r")
+            (emit-header fd "Content-Type" (get req 'response-type "text/html"))
+            (maybe-emit-header req fd 'server "Server")
             (print-to fd "\r")
             (let ((data (getf req 'content)))
                (cond
@@ -361,6 +388,9 @@
             (print-to stderr "*** DEBUG HANDLER (" msg "): " env)
             env))
 
+      (define (add-server-info env)
+         (put env 'server "ohttpd/0.1"))
+
       (define pre-handler
          (request-pipe
             get-request
@@ -368,6 +398,7 @@
             get-headers
             read-post-data
             parse-post-data
+            add-server-info
             ;(debug-handler "PRE LAST")
             ))
 
