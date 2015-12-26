@@ -356,7 +356,7 @@
             (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
             (emit-header fd "Content-Type" (get req 'response-type "text/html"))
             (maybe-emit-header req fd 'server "Server")
-            (let ((data (getf req 'content)))
+            (let ((data (get req 'content "No data")))
                (cond
                   ((byte-vector? data)
                      (emit-header fd "Content-length" (sizeb data))
@@ -373,11 +373,15 @@
                         (emit-header fd "Content-length" len)
                         (print-to fd "\r")
                         (byte-stream->port data fd)))
-                  ((list data)
+                  ((list? data)
                      (emit-header fd "Content-length" (length data))
                      (print-to fd "\r")
                      (byte-stream->port data fd))
+                  ((eq? (getf req 'status) 404)
+                     (print-to fd "\r")
+                     (print-to fd "404 No such anything"))
                   (else
+                     (print-to fd "\r")
                      (print-to fd data))))
             req))
 
@@ -421,7 +425,8 @@
       (define post-handler
          (request-pipe
             ;(debug-handler "POST FIRST")
-            http-respond))
+            ;http-respond
+            (λ (env) env)))
 
       (define (unless-error handler)
          (λ (env)
@@ -450,7 +455,8 @@
 
       (define (handle-connection handler env)
          (let loop ((n 0) (env env))
-            (let ((env (post-handler (handler (pre-handler env)))))
+            (let ((env (http-respond (post-handler (handler (pre-handler env))))))
+               (print " - env " env)
                (if (eq? 200 (get env 'status 200))
                   (let ((bs (get env 'bs null)))
                      (if (null? bs)
