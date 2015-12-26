@@ -112,13 +112,17 @@
 
          gen)
 
+      (define doctype "<!DOCTYPE html>\n")
+
       (define (html->x exp x)
          (call/cc 
             (lambda (ret)
                (let 
                   ((bs ((generate ret) exp null)))
                   ;; <!DOCTYPE html> could be added at this point
-                  (if bs (x bs) bs)))))
+                  (if bs 
+                     (x (append (string->list doctype) bs)) 
+                     bs)))))
 
       (define (html exp)
          (html->x exp runes->string))
