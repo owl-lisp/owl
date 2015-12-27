@@ -5,9 +5,9 @@
 (define-library (owl http)
 
    (export 
-      http-server
+      server
       query-case
-      )
+      fail)
 
    (import
       (owl base)
@@ -456,7 +456,6 @@
       (define (handle-connection handler env)
          (let loop ((n 0) (env env))
             (let ((env (http-respond (post-handler (handler (pre-handler env))))))
-               (print " - env " env)
                (if (eq? 200 (get env 'status 200))
                   (let ((bs (get env 'bs null)))
                      (if (null? bs)
@@ -517,7 +516,7 @@
                   (server-loop handler clis)))))
 
       ;; a thread which receives clients and server commands and acts accordingly
-      (define (http-server server-id handler port)
+      (define (server server-id handler port)
          (let ((sock (open-socket port)))
             (print "Server socket " sock)
             (if sock
