@@ -5,9 +5,9 @@
 (define-library (owl http)
 
    (export 
-      http-server
+      server
       query-case
-      )
+      fail)
 
    (import
       (owl base)
@@ -534,7 +534,7 @@
                   (server-loop handler clis)))))
 
       ;; a thread which receives clients and server commands and acts accordingly
-      (define (http-server server-id handler port)
+      (define (server server-id handler port)
          (let ((sock (open-socket port)))
             (print "Server socket " sock)
             (if sock
