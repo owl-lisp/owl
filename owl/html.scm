@@ -31,6 +31,8 @@
             ((string? val)
                (let ((cs (string->list val)))
                   (quote-once cs tail)))
+            ((number? val)
+               (render val tail))
             (else
                (error "render-quoted: cannot handle this yet: " val))))
 
