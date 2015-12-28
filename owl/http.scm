@@ -83,14 +83,16 @@
       (define get-nonspace
          (get-byte-if (λ (x) (not (eq? x #\space)))))
 
-      (define parse-get
+      (define parse-get-or-head
          (let-parses
-            ((method (get-word "GET " 'get))
+            ((method 
+               (get-either 
+                  (get-word "GET " 'get)
+                  (get-word "HEAD " 'head)))
              (query (get-greedy+ get-nonspace))
              (skip (get-word " HTTP/1." 'foo))
              (ver-char (get-either (get-imm #\0) (get-imm #\1))))
-            (tuple 'get query 
-               (- ver-char #\0))))
+            (tuple method query (- ver-char #\0))))
 
       (define parse-post
          (let-parses
@@ -103,7 +105,7 @@
 
       (define parse-query 
          (get-either 
-            parse-get
+            parse-get-or-head
             parse-post))
          
       (define (try-parse-query bs)
@@ -162,6 +164,16 @@
                               (put 'http-version version)
                               (put 'http-method 'get))
                            (fail env 500 "Bad query"))))
+                  ((head query version) ;; clone of get for now
+                     (lets ((query params (split-params query)))
+                        (if query
+                           (-> env
+                              (fupd 'bs ll) ;; rest of data
+                              (put 'query (list->string query))
+                              (put 'get-params params)  ;; byte list
+                              (put 'http-version version)
+                              (put 'http-method 'head))
+                           (fail env 500 "Bad query"))))
                   ((post query version)
                      (print "got a post")
                      (-> env
@@ -170,7 +182,7 @@
                         (put 'http-version version)
                         (put 'http-method 'post)))
                   (else
-                     (fail env 200 (string-append "Query wat? " (list->string line)))))
+                     (fail env 500 "Query wat")))
                (fail env 500 "No query received"))))
 
       ;; doing string->symbol on all would cause memory leak
@@ -361,28 +373,34 @@
                   ((byte-vector? data)
                      (emit-header fd "Content-length" (sizeb data))
                      (print-to fd "\r")
-                     (write-really data fd))
+                     (if (not (eq? 'head (getf req 'http-method)))
+                        (write-really data fd)))
                   ((vector? data)
                      (emit-header fd "Content-length" (vector-length data))
                      (print-to fd "\r")
-                     (write-vector data fd))
+                     (if (not (eq? 'head (getf req 'http-method)))
+                        (write-vector data fd)))
                   ((string? data)
                      (lets
                         ((data (string->list data))
                          (len (length data)))
                         (emit-header fd "Content-length" len)
                         (print-to fd "\r")
-                        (byte-stream->port data fd)))
+                        (if (not (eq? 'head (getf req 'http-method)))
+                           (byte-stream->port data fd))))
                   ((list? data)
                      (emit-header fd "Content-length" (length data))
                      (print-to fd "\r")
-                     (byte-stream->port data fd))
+                     (if (not (eq? 'head (getf req 'http-method)))
+                        (byte-stream->port data fd)))
                   ((eq? (getf req 'status) 404)
                      (print-to fd "\r")
-                     (print-to fd "404 No such anything"))
+                     (if (not (eq? 'head (getf req 'http-method)))
+                        (print-to fd "404 No such anything")))
                   (else
                      (print-to fd "\r")
-                     (print-to fd data))))
+                     (if (not (eq? 'head (getf req 'http-method)))
+                        (print-to fd data)))))
             req))
 
       (define (request-pipe . handlers)
@@ -456,7 +474,6 @@
       (define (handle-connection handler env)
          (let loop ((n 0) (env env))
             (let ((env (http-respond (post-handler (handler (pre-handler env))))))
-               (print " - env " env)
                (if (eq? 200 (get env 'status 200))
                   (let ((bs (get env 'bs null)))
                      (if (null? bs)
