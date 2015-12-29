@@ -32,6 +32,8 @@
       write-vector            ;; vec port
       port->byte-stream       ;; fd → (byte ...) | thunk 
       byte-stream->port       ;; bs fd → bool
+      port->block-stream      ;; fd → (bvec ...)
+      block-stream->port      ;; (bvec ...) fd → bool
 
       ;; temporary exports
       fclose                 ;; fd → _
@@ -489,6 +491,18 @@
                (stream-chunk buff next
                   (cons (refb buff pos) tail)))))
 
+      (define (port->block-stream fd)
+         (let ((block (get-block fd stream-block-size)))
+            (cond
+               ((eof? block)
+                  (close-port fd)
+                  null)
+               ((not block)
+                  null)
+               (else
+                  (pair block 
+                     (port->block-stream fd))))))
+      
       (define (port->byte-stream fd)
          (λ ()
             (let ((buff (get-block fd stream-block-size)))
@@ -502,6 +516,17 @@
                   (else
                      (stream-chunk buff (- (sizeb buff) 1)
                         (port->byte-stream fd)))))))
+
+      (define (block-stream->port bs fd)
+         (cond
+            ((null? bs)
+               #true)
+            ((pair? bs)
+               (if (write-really (car bs) fd)
+                  (block-stream->port (cdr bs) fd)
+                  #false))
+            (else
+               (block-stream->port (bs) fd))))
 
       (define (byte-stream->port bs fd)
          (let loop ((bs bs) (n stream-block-size) (out null))
