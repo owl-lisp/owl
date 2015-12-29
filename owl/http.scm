@@ -363,6 +363,17 @@
             (if val
                (emit-header fd name val))))
 
+      (define (byte-list? data)
+         (and (pair? data) 
+            (number? (car data))))
+
+      (define (block-list? data)
+         (and (pair? data)
+            (byte-vector? (car data))))
+
+      (define (block-list-length lst)
+         (fold (λ (s b) (+ s (sizeb b))) 0 lst))
+
       (define (http-respond req)
          (let ((fd (getf req 'fd)))
             (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
@@ -388,11 +399,16 @@
                         (print-to fd "\r")
                         (if (not (eq? 'head (getf req 'http-method)))
                            (byte-stream->port data fd))))
-                  ((list? data)
+                  ((byte-list? data)
                      (emit-header fd "Content-length" (length data))
                      (print-to fd "\r")
                      (if (not (eq? 'head (getf req 'http-method)))
                         (byte-stream->port data fd)))
+                  ((block-list? data)
+                     (emit-header fd "Content-length" (block-list-length data))
+                     (print-to fd "\r")
+                     (if (not (eq? 'head (getf req 'http-method)))
+                        (block-stream->port data fd)))
                   ((eq? (getf req 'status) 404)
                      (print-to fd "\r")
                      (if (not (eq? 'head (getf req 'http-method)))
@@ -457,6 +473,7 @@
          (-> empty
             (put 'ip (getf env 'ip))
             (put 'fd (getf env 'fd))
+            (put 'start (time-ms))
             (put 'bs (getf env 'bs))))
 
       (define (ip->str ip)
@@ -467,9 +484,10 @@
                (vector->list ip))))
             
       (define (print-request-info env n str)
-         (print 
-            (time) " " (ip->str (getf env 'ip)) " [" (getf env 'fd ) "," n "]: "
-            (getf env 'http-method) " " (getf env 'query) " -> " (get env 'status 200) " " str))
+         (let ((elapsed (- (time-ms) (get env 'start 0))))
+            (print 
+               (time) " " (ip->str (getf env 'ip)) " [" (getf env 'fd ) "," n "]: "
+               (getf env 'http-method) " " (getf env 'query) " -> " (get env 'status 200) " " str " (" elapsed "ms)")))
 
       (define (handle-connection handler env)
          (let loop ((n 0) (env env))
@@ -506,6 +524,7 @@
                               (-> empty
                                  (put 'ip ip)
                                  (put 'fd fd)
+                                 (put 'start (time-ms))
                                  (put 'bs (stream-fd-timeout fd max-request-time))))))
                      (server-loop handler (put clis id (time-ms)))))
                ((eq? msg 'stop)
