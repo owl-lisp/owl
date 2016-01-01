@@ -12,24 +12,12 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
-
-/*** Portability Issues ***/
-
-#ifdef WIN32 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <conio.h>
-#include <windows.h>
-typedef unsigned long in_addr_t;
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/wait.h>
 #ifndef O_BINARY
 #define O_BINARY 0
-#endif
 #endif
 
 #ifdef __gnu_linux__
@@ -168,9 +156,7 @@ pid_t waitpid(pid_t pid, int *status, int options);
 int chdir(const char *path);
 int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 
-#ifndef WIN32 
 int execv(const char *path, char *const argv[]);
-#endif
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -344,18 +330,10 @@ static word *gc(int size, word *regs) {
 /*** OS Interaction and Helpers ***/
 
 void set_blocking(int sock, int blockp) {
-#ifdef WIN32
-   unsigned long flags = 1;
-   if(sock>3) { /* stdin is read differently, out&err block */
-      ioctlsocket(sock, FIONBIO, &flags);
-   }
-#else
    fcntl(sock, F_SETFL, (blockp?:O_NONBLOCK));
-#endif
 }
 
 void signal_handler(int signal) {
-#ifndef WIN32
    switch(signal) {
       case SIGINT: 
          breaked |= 2; break;
@@ -364,7 +342,6 @@ void signal_handler(int signal) {
          // printf("vm: signal %d\n", signal);
          breaked |= 4;
    }
-#endif
 }
 
 /* small functions defined locally after hitting some portability issues */
@@ -388,14 +365,12 @@ int llen(word *ptr) {
 }
 
 void set_signal_handler() {
-#ifndef WIN32
    struct sigaction sa;
    sa.sa_handler = signal_handler;
    sigemptyset(&sa.sa_mask);
    sa.sa_flags = SA_RESTART;
    sigaction(SIGINT, &sa, NULL);
    sigaction(SIGPIPE, &sa, NULL);
-#endif
 }
 
 /* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
@@ -671,11 +646,7 @@ static word prim_sys(int op, word a, word b, word c) {
          myaddr.sin_port = htons(port);
          myaddr.sin_addr.s_addr = INADDR_ANY;
          s = socket(AF_INET, SOCK_STREAM, 0);
-#ifndef WIN32
          if (s < 0) return IFALSE;
-#else
-	 if (s == INVALID_SOCKET) return IFALSE;
-#endif
          if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
              || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
              || listen(s, SOMAXCONN) != 0) {
@@ -709,21 +680,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *res;
          int n, nwords = (max/W) + 2;
          allocate(nwords, res);
-#ifndef WIN32
          n = read(fd, ((char *) res) + W, max);
-#else
-         if (fd == 0) { /* windows stdin in special apparently  */
-            if(!_isatty(0) || _kbhit()) { /* we don't get hit by kb in pipe */
-               n = read(fd, ((char *) res) + W, max);
-            } else {
-               n = -1;
-               errno = EAGAIN;
-            }
-
-         } else {
-            n = read(fd, ((char *) res) + W, max);
-         }
-#endif
          if (n > 0) { /* got some bytes */
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
@@ -803,7 +760,6 @@ static word prim_sys(int op, word a, word b, word c) {
          int nargs = llen((word *)b);
          char **args = malloc((nargs+1) * sizeof(char *));
          char **argp = args;
-#ifndef WIN32 
          if (args == NULL) 
             return IFALSE;
          while(nargs--) {
@@ -818,14 +774,16 @@ static word prim_sys(int op, word a, word b, word c) {
          set_blocking(0,0); /* exec failed, back to nonblocking io for owl */
          set_blocking(1,0);
          set_blocking(2,0);
-#endif
          return IFALSE; }
-      case 20: { /* chdir path res */
-         char *path = ((char *)a) + W;
-         if (chdir(path) < 0)
+      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
+         pid_t pid = fork();
+         if (pid == -1) /* fork failed */
             return IFALSE;
-         return ITRUE; }
-#ifndef WIN32
+         if (pid == 0) /* we're in child, return true */
+            return ITRUE;
+         if ((int)pid > FMAX)
+            exit(5);
+         return F(pid&FMAX); }
       case 19: { /* wait <pid> <respair> _ */
          pid_t pid = (a == IFALSE) ? -1 : fixval(a);
          int status;
@@ -853,18 +811,13 @@ static word prim_sys(int op, word a, word b, word c) {
             r = (word *)IFALSE;
          }
          return (word)r; }
-      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
-         pid_t pid = fork();
-         if (pid == -1) /* fork failed */
+      case 20: { /* chdir path res */
+         char *path = ((char *)a) + W;
+         if (chdir(path) < 0)
             return IFALSE;
-         if (pid == 0) /* we're in child, return true */
-            return ITRUE;
-         if ((int)pid > FMAX)
-            exit(5);
-         return F(pid&FMAX); }
+         return ITRUE; }
       case 21: /* kill pid signal → fixnum */
          return (kill(fixval(a), fixval(b)) < 0) ? IFALSE : ITRUE;
-#endif
       default: 
          return IFALSE;
    }
@@ -1592,20 +1545,6 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
 }
 
 int main(int nargs, char **argv) {
-#ifndef WIN32
    return boot(nargs, argv);
-#else
-   WSADATA wsaData;
-
-   // Initialize Winsock
-   int sock_init = WSAStartup(MAKEWORD(2,2), &wsaData);
-   if (sock_init  != 0) {
-       puts("WSAStartup failed");
-       return 1;
-   }
-   word boot_result = boot(nargs, argv);
-   WSACleanup();
-   return boot_result;
-#endif
 }
 
