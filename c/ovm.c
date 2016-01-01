@@ -818,6 +818,12 @@ static word prim_sys(int op, word a, word b, word c) {
          return ITRUE; }
       case 21: /* kill pid signal → fixnum */
          return (kill(fixval(a), fixval(b)) < 0) ? IFALSE : ITRUE;
+      case 22:  /* unlink path → bool */
+         return (unlink(((char *)a)+W) == 0) ? ITRUE : IFALSE;
+      case 23:  /* rmdir path → bool */
+         return (rmdir(((char *)a)+W) == 0) ? ITRUE : IFALSE;
+      case 24:  /* rmdir path → bool */
+         return (mkdir((((char *)a)+W), fixval(b)) == 0) ? ITRUE : IFALSE;
       default: 
          return IFALSE;
    }

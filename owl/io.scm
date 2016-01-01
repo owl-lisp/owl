@@ -8,6 +8,7 @@
       ;; thread-oriented non-blocking io
       open-output-file        ;; path → fd | #false
       open-input-file         ;; path → fd | #false
+      open-append-file        ;; path → fd | #false
       open-socket             ;; port → thread-id | #false
       open-connection         ;; ip port → thread-id | #false
       port->fd                ;; port → fixnum
@@ -135,12 +136,20 @@
       ;; how many bytes (max) to add to output buffer before flushing it to the fd
       (define output-buffer-size 4096)
 
+      (define mode/create   #b0001)
+      (define mode/truncate #b0010)
+      (define mode/append   #b0100)
+
       (define (open-input-file path) 
          (let ((fd (fopen path 0)))
             (if fd (fd->port fd) fd)))
 
       (define (open-output-file path)
          (let ((fd (fopen path 1)))
+            (if fd (fd->port fd) fd)))
+
+      (define (open-append-file path)
+         (let ((fd (fopen path (bor mode/append (bor mode/create mode/truncate)))))
             (if fd (fd->port fd) fd)))
 
       ;;; Reading

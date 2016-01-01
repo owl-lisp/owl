@@ -16,6 +16,9 @@
       chdir
       kill
       getenv
+      unlink
+      rmdir
+      mkdir
       sighup
       signint
       sigquit
@@ -131,6 +134,16 @@
       ;; pid signal → success?
       (define (kill pid signal)
          (sys-prim 21 pid signal #false))
+
+      (define (unlink path)
+         (sys-prim 22 path #false #false))
+      
+      (define (rmdir path)
+         (sys-prim 23 path #false #false))
+
+      (define (mkdir path mode)
+         (sys-prim 24 path mode #false))
+
 
 
       ;;;

@@ -1,0 +1,4 @@
+rmdir tmp/new -> #false
+mkdir tmp/new -> #true
+rmdir tmp/new -> #true
+rmdir tmp/new -> #false
