@@ -665,9 +665,11 @@ static word prim_sys(int op, word a, word b, word c) {
          struct stat sb;
          if (!(allocp(path) && imm_type(*path) == 3))
             return IFALSE;
-         val |= O_BINARY | ((mode == 1) ? O_WRONLY | O_CREAT | O_TRUNC : 0);
-         val |= (mode & 4) ? O_APPEND | O_WRONLY : 0;
-         val = open(((char *) path) + W, val,(S_IRUSR|S_IWUSR));
+         val |= O_BINARY | ((mode & 1) ? O_WRONLY : O_RDONLY) \
+                         | ((mode & 2) ? O_TRUNC : 0) \
+                         | ((mode & 4) ? O_APPEND : 0) \
+                         | ((mode & 8) ? O_CREAT : 0);
+         val = open(((char *) path) + W, val, (S_IRUSR|S_IWUSR));
          if (val < 0 || fstat(val, &sb) == -1 || sb.st_mode & S_IFDIR) {
             close(val);
             return IFALSE;
