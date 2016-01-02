@@ -58,6 +58,7 @@ typedef int32_t   wdiff;
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
 #define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | (RAWBIT|2) | ((p) << 8))
 #define F(val)                      (((val) << IPOS) | 2) 
+#define FN(val)                     (((val) << IPOS) | 32) 
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc)&255) == 2)
@@ -329,8 +330,8 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-void set_blocking(int sock, int blockp) {
-   fcntl(sock, F_SETFL, (blockp?:O_NONBLOCK));
+void toggle_blocking(int sock, int blockp) {
+   fcntl(sock, F_SETFL, fcntl(sock, F_GETFD)^O_NONBLOCK);
 }
 
 void signal_handler(int signal) {
@@ -508,7 +509,7 @@ static word prim_connect(word *host, word port) {
       close(sock);
       return IFALSE;
    }
-   set_blocking(sock,0);
+   toggle_blocking(sock,0);
    return F(sock);
 }
 
@@ -588,6 +589,24 @@ static word prim_ref(word pword, word pos)  {
    return ob[pos];
 }
 
+static int64_t cnum(word a) {
+   if(allocp(a)) {
+      exit(42);
+   }
+   return fixval(a);
+}
+
+static word onum(int64_t a) {
+   if (a < 0) {
+      if (a < 0-FMAX)
+         exit(42);
+      return FN(0-a);
+   } else if (a > FMAX) {
+      exit(42);
+   }
+   return F(a);
+}
+
 static word prim_set(word wptr, word pos, word val) {
    word *ob = (word *) wptr;
    word hdr;
@@ -623,17 +642,18 @@ static word prim_sys(int op, word a, word b, word c) {
       case 1: { /* 1 = fopen <str> <mode> <to> */
          char *path = (char *) a;
          int mode = fixval(b);
-         int val;
+         int val = 0;
          struct stat sb;
          if (!(allocp(path) && imm_type(*path) == 3))
             return IFALSE;
-         mode |= O_BINARY | ((mode > 0) ? O_CREAT | O_TRUNC : 0);
-         val = open(((char *) path) + W, mode,(S_IRUSR|S_IWUSR));
+         val |= O_BINARY | ((mode == 1) ? O_WRONLY | O_CREAT | O_TRUNC : 0);
+         val |= (mode & 4) ? O_APPEND | O_WRONLY : 0;
+         val = open(((char *) path) + W, val,(S_IRUSR|S_IWUSR));
          if (val < 0 || fstat(val, &sb) == -1 || sb.st_mode & S_IFDIR) {
             close(val);
             return IFALSE;
          }
-         set_blocking(val,0);
+         toggle_blocking(val,0);
          return F(val); }
       case 2: 
          return close(fixval(a)) ? IFALSE : ITRUE;
@@ -653,7 +673,7 @@ static word prim_sys(int op, word a, word b, word c) {
             close(s);
             return IFALSE;
          }
-         set_blocking(s,0);
+         toggle_blocking(s,0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = fixval(a);
@@ -664,7 +684,7 @@ static word prim_sys(int op, word a, word b, word c) {
          char *ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
-         set_blocking(fd,0);
+         toggle_blocking(fd,0);
          ipa = (char *) &addr.sin_addr;
          *fp = make_raw_header(2, TBVEC, 4%W);
          bytecopy(ipa, ((char *) fp) + W, 4);
@@ -767,13 +787,13 @@ static word prim_sys(int op, word a, word b, word c) {
             b = ((word *) b)[2];
          }
          *argp = NULL;
-         set_blocking(0,1); /* try to return stdio to blocking mode */
-         set_blocking(1,1); /* warning, other file descriptors will stay in nonblocking mode */
-         set_blocking(2,1);
+         toggle_blocking(0,1); /* try to return stdio to blocking mode */
+         toggle_blocking(1,1); /* warning, other file descriptors will stay in nonblocking mode */
+         toggle_blocking(2,1);
          execv(path, args); /* may return -1 and set errno */
-         set_blocking(0,0); /* exec failed, back to nonblocking io for owl */
-         set_blocking(1,0);
-         set_blocking(2,0);
+         toggle_blocking(0,0); /* exec failed, back to nonblocking io for owl */
+         toggle_blocking(1,0);
+         toggle_blocking(2,0);
          return IFALSE; }
       case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
          pid_t pid = fork();
@@ -824,6 +844,11 @@ static word prim_sys(int op, word a, word b, word c) {
          return (rmdir(((char *)a)+W) == 0) ? ITRUE : IFALSE;
       case 24:  /* rmdir path → bool */
          return (mkdir((((char *)a)+W), fixval(b)) == 0) ? ITRUE : IFALSE;
+      case 25: {
+         int whence = fixval(c);
+         off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
+         return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p));
+      }
       default: 
          return IFALSE;
    }
@@ -959,9 +984,9 @@ word boot(int nargs, char **argv) {
    entry = (word *) ptrs[pos-1]; 
    /* set up signal handler */
    set_signal_handler();
-   set_blocking(0,0); /* change to nonblocking stdio */
-   set_blocking(1,0);
-   set_blocking(2,0);
+   toggle_blocking(0,0); /* change to nonblocking stdio */
+   toggle_blocking(1,0);
+   toggle_blocking(2,0);
    /* clear the pointers */
    /* fixme, wrong when heap has > 65534 objects */
    ptrs[0] = make_raw_header(nobjs+1,0,0);

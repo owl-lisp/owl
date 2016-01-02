@@ -19,6 +19,10 @@
       unlink
       rmdir
       mkdir
+      lseek
+      file-size
+      seek-pos 
+      seek-end
       sighup
       signint
       sigquit
@@ -144,7 +148,26 @@
       (define (mkdir path mode)
          (sys-prim 24 path mode #false))
 
+      (define seek/set 0) ;; set position to pos
+      (define seek/cur 1) ;; increment position by pos
+      (define seek/end 2) ;; set position to file end + pos
 
+      (define (lseek fd pos whence)
+         (sys-prim 25 fd pos whence))
+
+      (define (file-size path)
+         (let ((port (open-input-file path)))
+            (if port
+               (let ((end (lseek port 0 seek/end)))
+                  (close-port port)
+                  end)
+               #false)))
+
+      (define (seek-end fd)
+         (lseek fd 0 seek/end))
+
+      (define (seek-pos fd pos)
+         (lseek fd pos seek/set))
 
       ;;;
       ;;; Environment variables
