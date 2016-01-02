@@ -11,6 +11,7 @@
       open-append-file        ;; path → fd | #false
       open-socket             ;; port → thread-id | #false
       open-connection         ;; ip port → thread-id | #false
+      file-size
       port->fd                ;; port → fixnum
       fd->port                ;; fixnum → port
       port?                   ;; _ → bool
@@ -70,6 +71,7 @@
       (owl queue)
       (owl string)
       (owl list-extra)
+      (owl sys)
       (owl ff)
       (owl equal)
       (owl vector)
@@ -156,7 +158,11 @@
 
       (define (open-append-file path)
          (let ((fd (fopen path append-mode)))
-            (if fd (fd->port fd) fd)))
+            (if fd 
+               (let ((port (fd->port fd)))
+                  (seek-end port)
+                  port)
+               #false)))
 
       ;;; Reading
 
@@ -749,6 +755,14 @@
          (start-muxer)
          (wait 1))
 
+      (define (file-size path)
+         (let ((port (open-input-file path)))
+            (if port
+               (let ((end (seek-end port)))
+                  (close-port port)
+                  end)
+               port)))
+             
 ))
 
 ;(import (owl io))

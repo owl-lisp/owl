@@ -20,7 +20,6 @@
       rmdir
       mkdir
       lseek
-      file-size
       seek-pos 
       seek-end
       sighup
@@ -40,7 +39,6 @@
       (owl string)
       (owl math)
       (owl equal)
-      (owl io)
       (owl syscall)
       (owl list)
       (owl vector))
@@ -154,14 +152,6 @@
 
       (define (lseek fd pos whence)
          (sys-prim 25 fd pos whence))
-
-      (define (file-size path)
-         (let ((port (open-input-file path)))
-            (if port
-               (let ((end (lseek port 0 seek/end)))
-                  (close-port port)
-                  end)
-               #false)))
 
       (define (seek-end fd)
          (lseek fd 0 seek/end))
