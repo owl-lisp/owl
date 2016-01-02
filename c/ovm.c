@@ -591,9 +591,18 @@ static word prim_ref(word pword, word pos)  {
 
 static int64_t cnum(word a) {
    if(allocp(a)) {
-      exit(42);
+     int64_t x = 0;
+     int shift = 0;
+     word *p = (word *) a;
+     while(a != INULL) {
+         x |= F(p[1]) << shift;
+         shift += FBITS;
+         p = (word *) p[2];
+     }
+     return x;
+   } else {
+      return fixval(a);
    }
-   return fixval(a);
 }
 
 static word onum(int64_t a) {
@@ -602,7 +611,17 @@ static word onum(int64_t a) {
          exit(42);
       return FN(0-a);
    } else if (a > FMAX) {
-      exit(42);
+      word *r = fp;
+      if (a >= ((int64_t)1 << FBITS*2)) 
+         exit(42);
+      r[0] = make_header(3, 40);
+      r[4] = F(a>>FBITS);
+      r[2] = (word) (r + 3);
+      r[3] = make_header(3, 40);
+      r[1] = F(a&FMAX);
+      r[5] = INULL;
+      fp += 6;
+      return (word) r;
    }
    return F(a);
 }
