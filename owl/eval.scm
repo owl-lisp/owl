@@ -399,7 +399,18 @@
                    (rex (thing->rex thing)))
                   (cond
                      ((function? rex)
-                        (prompt env (keep (λ (sym) (rex (symbol->string sym))) (env-keys env))))
+                        (define (seek env)
+                           (keep (λ (sym) (rex (symbol->string sym))) (env-keys env)))
+                        (print "current toplevel: " 
+                           (apply str (interleave ", " (seek env))))
+                        (for-each
+                           (λ (lib)
+                              (let ((matches (seek (cdr lib))))
+                                 (if (not (null? matches))
+                                    (print 
+                                       (str "   " (car lib) ": " (apply str (interleave ", " matches)))))))
+                           (env-get env '*libraries* null))
+                        (prompt env (repl-message #false)))
                      (else
                         (prompt env "I would have preferred a regex or a symbol.")))
                   (repl env in)))
