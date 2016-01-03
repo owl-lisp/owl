@@ -282,7 +282,6 @@
 
       ;; load and save path to *loaded*
 
-      ;; todo: should keep a list of documents *loading* and use that to detect circular loads (and to indent the load msgs)
       (define (repl-load repl path in env)
          (lets 	
             ((exps ;; find the file to read
@@ -304,7 +303,7 @@
                       (outcome (repl load-env exps)))
                      (tuple-case outcome
                         ((ok val env)
-                           (repl (mark-loaded (env-set env '*interactive* current-prompt) path) in))
+                           (ok val (env-set env '*interactive* current-prompt)))
                         ((error reason partial-env)
                            ; fixme, check that the fd is closed!
                            (repl-fail env (list "Could not load" path "because" reason))))))
@@ -342,13 +341,14 @@
                (lets ((op in (uncons in #false)))
                   (cond
                      ((string? op)
-                        (let ((res (repl-load repl op in env)))
-                           (if (ok? res)
-                              (prompt env 
-                                 (repl-message (string-append ";; Loaded " op)))
-                              (prompt env 
-                                 (repl-message (string-append ";; Failed to load " op))))
-                           res))
+                        (tuple-case (repl-load repl op in env)
+                           ((ok exp env)
+                              (prompt env (repl-message (string-append ";; Loaded " op)))
+                              (repl env in))
+                           ((error reason envp)
+                              (prompt env (repl-message (string-append ";; Failed to load " op)))
+                              ;; drop out of loading (recursively) files, or hit repl trampoline on toplevel
+                              (repl-fail env reason))))
                      (else
                         (repl-fail env (list "expected ,load \"dir/foo.scm\", got " op))))))
             ((forget-all-but)
