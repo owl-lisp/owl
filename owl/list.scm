@@ -16,6 +16,7 @@
       first
       halve
       list*
+      interleave
       ╯°□°╯
       
       diff union intersect)
@@ -244,6 +245,14 @@
                   (intersect (cdr a) b)))
             (else
                (intersect (cdr a) b))))
+
+      (define (interleave mid lst)
+         (if (null? lst)
+            null
+            (let loop ((a (car lst)) (as (cdr lst)))
+               (if (null? as)
+                  (list a)
+                  (ilist a mid (loop (car as) (cdr as)))))))
 
       ;; lst → a b, a ++ b == lst, length a = length b | length b + 1
       (define (halve lst)
