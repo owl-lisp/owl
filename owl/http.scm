@@ -363,6 +363,12 @@
             (if val
                (emit-header fd name val))))
 
+      (define (emit-response-headers env fd)
+         (ff-fold
+            (λ (_ name value) 
+               (emit-header fd name value))
+            null (get env 'response-headers empty)))
+
       (define (byte-list? data)
          (and (pair? data) 
             (number? (car data))))
@@ -378,7 +384,8 @@
          (let ((fd (getf req 'fd)))
             (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
             (emit-header fd "Content-Type" (get req 'response-type "text/html"))
-            (maybe-emit-header req fd 'server "Server")
+            (maybe-emit-header req fd 'server "Server") ;; move to response-headers
+            (emit-response-headers req fd)
             (let ((data (get req 'content "No data")))
                (cond
                   ((byte-vector? data)
@@ -456,11 +463,21 @@
             ;(debug-handler "PRE LAST")
             ))
 
+      (define (add-response-header env key value)
+         (put env 'response-headers
+            (put (get env 'response-headers empty) key value)))
+
+      (define maybe-add-close-header
+         (λ (env)
+            (if (not (pair? (getf env 'bs)))
+               (add-response-header env 'Connection "close")
+               env)))
+
       (define post-handler
          (request-pipe
             ;(debug-handler "POST FIRST")
             ;http-respond
-            (λ (env) env)))
+            maybe-add-close-header)) ;; Connection: close, if bs is non-pair
 
       (define (unless-error handler)
          (λ (env)
@@ -493,16 +510,14 @@
          (let loop ((n 0) (env env))
             (let ((env (http-respond (post-handler (handler (pre-handler env))))))
                (if (eq? 200 (get env 'status 200))
-                  (let ((bs (get env 'bs null)))
-                     (if (null? bs)
-                        (begin
-                           (print-request-info env n "closing on end of data") 
-                           (close-port (getf env 'fd)))
+                  (lets ((bs (get env 'bs null)))
+                     (if (pair? bs)
                         (begin
                             (print-request-info env n "")
-                            ;(loop (+ n 1) (clear-env env))
-                            (close-port (getf env 'fd))
-                            )))
+                            (loop (+ n 1) (clear-env env)))
+                        (begin
+                           (print-request-info env n "closing on non-pair data")
+                           (close-port (getf env 'fd)))))
                   (begin
                      (print-request-info env n " -> closing on non-200")
                      (close-port (getf env 'fd)))))))
@@ -589,3 +604,5 @@
                (error "query-case: no query" q)))))
 
 ))
+
+
