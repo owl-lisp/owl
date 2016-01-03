@@ -1,38 +1,6 @@
 ;;;
 ;;; Object serialization and reconstruction
 ;;;
-;
-; fasl protocl for inter-owl/process communication:
-;	- each message is a fasl-encoded object
-;	- all protocol-messages are plain owl objects
-;		+ therefore, the this will work mostly like if the things
-;       were running on the same machine and/or process
-;	- remote execution keeps *no* sharing state.
-;		+ all threads are self-contained, and must be able to 
-;       migrate elsewhere at any point (modulo io)
-;  - evaluator node operation:
-;		+ contains a thread scheduler and one thread handling thread
-;       and object migration
-;		+ has a mapping of local thread ids to their origins
-;		+ when a thread finishes (or crashes) serialize the result and send to origin with id
-;	 	+ when a new thread is received
-;			- choose a new thread identifier for it (fixnum)
-;			- fork it 
-;			- send #(1 <id>) as reponse
-;	- evaluator messages
-;		+ #(1 <id>) - reponse - thread forked 
-;		+ #(2 <id>) - request - ask if the thread is runnign
-;		+ #(3 <id>) - request - kill a thread (if running)
-;	- evaluator has a list of fds for active communication
-;		+ for a locally forked evaluator, just stdin and stdout 
-;		+ a server node has a socket to which it accepts connections
-;		+ authenticated things talk over a stream-ciphered channel, etc, with the same requests
-;		+ when a connection closes, all requests started by it are also closed (by default)
-
-;; todo: removing dependencies to bignum math would increase speed
-;; todo: add a version which handles symbols and ff's specially
-
-;; fixme: encoder which returns the number of objects is probably no longer needed
 
 ; protocol
 ;	<obj> = 0 <type> <value> 				-- immediate object
@@ -232,7 +200,7 @@
       (define (fasl-encode obj)
          (force-ll (encode obj (λ (x) x))))
 
-      (define chunk-size 4096)
+      (define chunk-size 32767)
 
       (define (chunk-stream bs n buff)
          (cond

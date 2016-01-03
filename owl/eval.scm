@@ -143,8 +143,8 @@
             ((finished result not used)
                result) ; <- is already ok/fail
             ((crashed opcode a b)
-               (let ((render (env-get env 'render render)))
-                 (fail (verbose-vm-error env opcode a b))))
+               ;; note! ob != called function for closures and procs, so the name is lost
+               (fail (verbose-vm-error env opcode a b)))
             ((error cont reason info)
                ; note, these could easily be made resumable by storing cont
                (fail (list reason info)))
@@ -329,24 +329,28 @@
    ,words            - list all current definitions
    ,expand <expr>    - expand macros in the expression
    ,find [regex|sym] - list all defined words matching regex or m/<sym>/
+   ,load string      - (re)load a file
    ,libraries        - show all currently loaded libraries
-   ,l                - || -
    ,quit             - exit owl")
 
       (define (repl-op repl op in env)
          (case op	
             ((help)
-               (prompt env repl-ops-help)
+               (prompt env (repl-message repl-ops-help))
                (repl env in))
             ((load)
                (lets ((op in (uncons in #false)))
                   (cond
-                     ((symbol? op)
-                        (repl-load repl (symbol->string op) in env))
                      ((string? op)
-                        (repl-load repl op in env))
+                        (let ((res (repl-load repl op in env)))
+                           (if (ok? res)
+                              (prompt env 
+                                 (repl-message (string-append ";; Loaded " op)))
+                              (prompt env 
+                                 (repl-message (string-append ";; Failed to load " op))))
+                           res))
                      (else
-                        (repl-fail env (list "Not loadable: " op))))))
+                        (repl-fail env (list "expected ,load \"dir/foo.scm\", got " op))))))
             ((forget-all-but)
                (lets ((op in (uncons in #false)))
                   (if (and (list? op) (all symbol? op))
@@ -399,7 +403,7 @@
                      (else
                         (prompt env "I would have preferred a regex or a symbol.")))
                   (repl env in)))
-            ((libraries libs l)
+            ((libraries libs)
                (print "Currently defined libraries:")
                (for-each print (map car (env-get env library-key null)))
                (prompt env (repl-message #false))
@@ -408,15 +412,18 @@
                (lets ((exp in (uncons in #false)))
                   (tuple-case (macro-expand exp env)
                      ((ok exp env)
-                        (write exp))
+                        (print exp))
                      ((fail reason)
-                        (print "Macro expansion failed: " reason)))
+                        (print ";; Macro expansion failed: " reason)))
+                  (prompt env (repl-message #false))
                   (repl env in)))
             ((quit)
                ; this goes to repl-trampoline
                (tuple 'ok 'quitter env))
             (else
-               (print "unknown repl op: " op)
+               (prompt env 
+                  (repl-message
+                     (str ";; unknown repl op: " op ". use ,help for help.")))
                (repl env in))))
 
       ;; → (name ...) | #false
@@ -703,8 +710,18 @@
       ;; update *owl-names* (used by renderer of repl prompt) if the defined value is a function
       (define (maybe-name-function env name value)
          (if (function? value)
-            (env-set env name-tag
-               (put (env-get env name-tag empty) value name))
+            (lets
+               ((names (env-get env name-tag empty))
+                (old (getf env value))
+                (env 
+                  (if old
+                     env
+                     (env-set env name-tag
+                        (put names value name)))))
+               (if (eq? (type value) 16)
+                  env
+                  ;; if this is a proc or closure name also the internal parts
+                  (maybe-name-function env name (ref value 1))))
             env))
 
       ;; update *owl-meta* to have some data about this

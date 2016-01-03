@@ -25,9 +25,10 @@
    
    (export 
       make-serializer    ;; names → ((obj tl) → (byte ... . tl))
-      ;serialize       ;; obj tl        → (byte ... . tl), eager, always shared
-      ;serialize-lazy  ;; obj tl share? → (byte ... . tl), lazy, optional sharing
-      render          ;; obj tl        → (byte ... . tl) -- deprecated
+      ;serialize         ;; obj tl        → (byte ... . tl), eager, always shared
+      ;serialize-lazy    ;; obj tl share? → (byte ... . tl), lazy, optional sharing
+      render             ;; obj tl        → (byte ... . tl) -- deprecated
+      str                ;; renderable ... → string
       )
 
    (begin
@@ -299,4 +300,7 @@
                (force-ll 
                   (serialize-lazy val tl #true)))))
 
+      (define (str . args)
+         (runes->string
+            (foldr render null args)))
 ))

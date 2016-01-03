@@ -708,7 +708,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      ;; load the given files
                      (define input
                         (foldr (λ (path tail) (ilist ',load path tail)) null others))
-                     (tuple-case (repl env input)
+                     (tuple-case (repl (env-set env '*interactive* #false) input)
                         ((ok val env)  
                            0)
                         ((error reason partial-env)
