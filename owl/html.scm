@@ -1,6 +1,9 @@
 (define-library (owl html)
 
-   (export html)
+   (export 
+      html
+      carry-session)     ;; sexp varname value
+
 
    (import (owl base))
 
@@ -36,16 +39,32 @@
             (else
                (error "render-quoted: cannot handle this yet: " val))))
 
+      ;; generate HTML for the attributes, with special handling for some of them
       (define (gen-attrs pairs tail)
          (if (null? pairs)
             tail
-            (let ((fst (car pairs)))
-               ;; no quoting yet
+            (lets
+               ((fst (car pairs))
+                (rest (cons #\" (gen-attrs (cdr pairs) tail)))) ;; after current one
                (cons #\space 
                   (render (car fst)
                      (list* #\= #\"
                         (render-quoted (cadr fst)
-                           (cons #\" (gen-attrs (cdr pairs) tail)))))))))
+                           (cond
+                              ((eq? (car fst) 'href)
+                                 ;; render get parameters
+                                 (cons #\?
+                                    (foldr
+                                       (λ (thing tail)
+                                          (render-quoted (car thing) 
+                                             (cons #\=
+                                                (render-quoted (cadr thing)
+                                                   (if (eq? (car tail) #\") ;; no & after last
+                                                      tail
+                                                      (cons #\& tail))))))
+                                       rest (cddr fst))))
+                              (else
+                                 rest)))))))))
 
       (define open-only?
          (lets
@@ -68,6 +87,21 @@
                strike strong style sub summary sup tt u ul var video))
              (ff (list->ff (zip cons keys keys))))
             (λ (x) (get ff x #false))))
+
+      (define (carry-session sexp var val)
+         (cond
+            ((pair? sexp)
+               (case (car sexp)
+                  ('a 
+                     ;; here
+                     sexp)
+                  ('form
+                     ;; and here
+                     sexp)
+                  ;; ...
+                  (else
+                     (map (λ (x) (carry-session x var val)) sexp))))
+            (else sexp)))
 
       (define (render-quoting-tags str tail)
          (str-foldr
@@ -128,17 +162,21 @@
 
       (define (html exp)
          (html->x exp runes->string))
+
 ))
 
 (import (owl html))
 
 (print
    (html
-      '(div
-         (ul
-            (li (a ((href "http://lol") (target "_top")) "trololo"))
-            (li (p "foo" (b "bar") "baz"))
-            (li ((style "foo: \"lol\"")) "ke<script>alert(42);</script>kekek")
-            (li (p "BAR"))))))
+      (carry-session
+         '(div
+            (ul
+               (li (a ((href "http://lol" ("foo" "bar") ("baz" "quux")) (target "_top")) "trololo"))
+               (li (a ((href "http://lol") (target "_top")) "trololox"))
+               (li (p "foo" (b "bar") "baz"))
+               (li ((style "foo: \"lol\"")) "ke<script>alert(42);</script>kekek")
+               (li (p "BAR"))))
+         "os" "0x3232323")))
 
       
