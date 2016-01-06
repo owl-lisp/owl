@@ -54,7 +54,7 @@
                               ((eq? (car fst) 'href)
                                  ;; render get parameters
                                  (if (null? (cddr fst))
-                                    tail
+                                    rest
                                     (cons #\?
                                        (foldr
                                           (λ (thing tail)
