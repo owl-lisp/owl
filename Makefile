@@ -9,14 +9,9 @@ CC?=gcc
 # owl needs just a single binary
 all owl: bin/ol
 
-# make a bytecode image instead of a binary to avoid having to call C-compiler, 
-# which make take minutes on a really slow machine
-bytecode-owl: fasl/ol.fasl
-	# note that tests are omitted because they have already been run against fasl/ol.fasl, 
-	# and /usr/bin/ovm may be too old
-	echo '#!$(DISTFILES)$(PREFIX)$(BINDIR)/ovm' > bin/ol
-	cat fasl/ol.fasl >> bin/ol
-	chmod +x bin/ol
+simple-ol: bin/vm
+	bin/vm fasl/init.fasl --run owl/ol.scm -s none -o c/ol.c
+	$(CC) $(CFLAGS) -o bin/ol c/ol.c
 
 ## fasl (plain bytecode) image boostrap
 
