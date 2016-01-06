@@ -53,16 +53,18 @@
                            (cond
                               ((eq? (car fst) 'href)
                                  ;; render get parameters
-                                 (cons #\?
-                                    (foldr
-                                       (λ (thing tail)
-                                          (render-quoted (car thing) 
-                                             (cons #\=
-                                                (render-quoted (cadr thing)
-                                                   (if (eq? (car tail) #\") ;; no & after last
-                                                      tail
-                                                      (cons #\& tail))))))
-                                       rest (cddr fst))))
+                                 (if (null? (cddr fst))
+                                    tail
+                                    (cons #\?
+                                       (foldr
+                                          (λ (thing tail)
+                                             (render-quoted (car thing) 
+                                                (cons #\=
+                                                   (render-quoted (cadr thing)
+                                                      (if (eq? (car tail) #\") ;; no & after last
+                                                         tail
+                                                         (cons #\& tail))))))
+                                          rest (cddr fst)))))
                               (else
                                  rest)))))))))
 
@@ -103,6 +105,8 @@
          
       (define (carry-session sexp var val)
          (cond
+            ((not val)
+               sexp)
             ((pair? sexp)
                (case (car sexp)
                   ('a 
@@ -181,6 +185,9 @@
 ))
 
 (import (owl html))
+
+(print 
+   (html (carry-session '(a ((href "http://haltp.org")) "link") "SID" #false)))
 
 (print
    (html
