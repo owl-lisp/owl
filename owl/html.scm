@@ -87,14 +87,29 @@
                strike strong style sub summary sup tt u ul var video))
              (ff (list->ff (zip cons keys keys))))
             (λ (x) (get ff x #false))))
-
+   
+      (define (add-href-attribute attribs var val)
+         (cond
+            ((null? attribs)
+               #false)
+            ((eq? (caar attribs) 'href)
+               (cons 
+                  (append (car attribs) (list  (list var val)))
+                  (cdr attribs)))
+            ((add-href-attribute (cdr attribs) var val) =>
+               (λ (tail)
+                  (cons (car attribs) tail)))
+            (else #false)))
+         
       (define (carry-session sexp var val)
          (cond
             ((pair? sexp)
                (case (car sexp)
                   ('a 
-                     ;; here
-                     sexp)
+                     (let ((atts (add-href-attribute (cadr sexp) var val)))
+                        (if atts
+                           (ilist 'a atts (map (λ (exp) (carry-session exp var val)) (cddr sexp)))
+                           (map (λ (exp) (carry-session exp var val)) sexp))))
                   ('form
                      ;; and here
                      sexp)
