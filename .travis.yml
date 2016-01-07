@@ -1,8 +1,7 @@
 language: c
 
 before_install: 
-  - echo "HELLO LOG?"
-  - uname | grep Linux && sudo apt-get install -y gcc-multilib
+  - uname | grep Linux && sudo apt-get install -y gcc-multilib || true
 
 os: 
   - linux
