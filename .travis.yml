@@ -1,7 +1,8 @@
 language: c
 
 before_install: 
-  - uname | grep Linux && sudo apt-get install -y libc6-dev-i386
+  - echo "HELLO LOG?"
+  - uname | grep Linux && sudo apt-get install -y gcc-multilib
 
 os: 
   - linux
