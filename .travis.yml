@@ -2,7 +2,7 @@ language: c
 
 before_install: 
   - uname
-  - (uname | grep Linux && sudo apt-get install -y gcc-multilib) || true
+  - (uname | grep Linux && sudo apt-get upgrade -qq && sudo apt-get install -y gcc-multilib) || true
 
 os: 
   - linux
