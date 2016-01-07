@@ -1,4 +1,4 @@
-language: C
+language: c
 
 os: 
   - linux
@@ -8,4 +8,8 @@ compiler:
   - clang
   - gcc
 
+env:
+  - CFLAGS="-O2"
+  - CFLAGS="-O2 -m32"
+   
 script: make
