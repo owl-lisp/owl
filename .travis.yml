@@ -1,5 +1,8 @@
 language: c
 
+before_install: 
+  - uname | grep Linux && sudo apt-get install -y libc6-dev-i386
+
 os: 
   - linux
   - osx
