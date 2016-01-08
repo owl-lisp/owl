@@ -17,6 +17,7 @@
             ((null? ls) 
                tail)
             (else
+               (print-to stderr "bad html: " ls)
                (ret #false))))
 
       ;; quote \:s and ":s with \. e.g. a""b → a\"\"b → a\\\"\\\"b → ...
@@ -102,7 +103,8 @@
                (λ (tail)
                   (cons (car attribs) tail)))
             (else #false)))
-         
+        
+      ;; todo: rather persist var(s)
       (define (carry-session sexp var val)
          (cond
             ((not val)
@@ -115,9 +117,11 @@
                            (ilist 'a atts (map (λ (exp) (carry-session exp var val)) (cddr sexp)))
                            (map (λ (exp) (carry-session exp var val)) sexp))))
                   ('form
-                     ;; and here
-                     sexp)
-                  ;; ...
+                     (ilist 'form 
+                        `(input ((style "hidden") (name ,var) (value ,val)))
+                        (map 
+                           (λ (x) (carry-session x var val)) 
+                           (cdr sexp))))
                   (else
                      (map (λ (x) (carry-session x var val)) sexp))))
             (else sexp)))
@@ -159,6 +163,7 @@
                                     (list* #\< #\/ 
                                        (render hd (cons #\> tail))))))
                            (else
+                              (print-to stderr "bad html operator: " (car exp))
                               (ret #false))))))
                ((string? exp)
                   (render-quoting-tags exp tail))
@@ -194,6 +199,7 @@
       (carry-session
          '(div
             (ul
+               (form (input ((type "submit")) "doit"))
                (li (a ((href "http://lol" ("foo" "bar") ("baz" "quux")) (target "_top")) "trololo"))
                (li (a ((href "http://lol") (target "_top")) "trololox"))
                (li (p "foo" (b "bar") "baz"))
