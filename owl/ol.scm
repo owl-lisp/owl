@@ -78,51 +78,28 @@
 (define owl-ohai-seccomp "You see a prompt. You feel restricted.")
 
 (import (owl boolean))
-
 (import (owl list))
-
 (import (owl ff))
-
 (import (only (owl iff)))
-
 (import (owl math))
-
 (import (owl list-extra))
-
 (import (owl sort))
-
 (import (owl math-extra))
-
 (import (owl lazy))
-
 (import (only (owl unicode) encode-point))
-
 (import (owl string))
-
 (import (owl vector))
-
 (import (owl symbol))
-
 (import (owl tuple))
-
 (import (owl function))
-
 (import (owl equal))
-
 (import (owl rlist))
-
 (import (owl render))
- 
 (import (only (owl queue))) ; just load it
-
 (import (owl intern))
-
 (import (owl io))
-
 (import (owl parse))
-
 (import (owl regex))
-
 (import (owl sexp))
 
 (define (ok? x) (eq? (ref x 1) 'ok))
@@ -130,37 +107,22 @@
 (define (fail reason) (tuple 'fail reason))
 
 (import (scheme cxr))
-
 (import (scheme base))
-
 (import (scheme case-lambda))
-
+(import (scheme write))
 (import (owl env))
-
 (import (owl gensym))
-
 (import (owl bisect))
-
 (import (owl macro))
-
 (import (owl ast))
-
 (import (owl fixedpoint))
-
 (import (owl cps))
-
 (import (owl alpha))
-
 (import (owl thread))
-
 (import (owl assemble))
-
 (import (owl closure))
-
 (import (owl compile))
-
 (import (owl suffix))
-
 (import (owl digest))
 
 (define error-tag "err")
