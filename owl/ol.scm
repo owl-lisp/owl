@@ -191,6 +191,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (import (owl eval))
 (import (owl base))
+(import (owl date))
 (import (owl http))
 (import (owl html))
 
