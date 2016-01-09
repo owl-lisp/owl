@@ -52,17 +52,11 @@
 ;; this should later be just a sequence of imports followed by a fasl dump
 
 (import (owl core))     ;; get special forms, primops and define-syntax
-
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
-
 (define *interactive* #false) ;; be verbose 
-
 (define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
-
 (define *owl-names* #empty)
-
 (import (owl syscall))
-
 (import (owl primop))
 
 (define *loaded* '())   ;; can be removed soon, was used by old ,load and ,require
@@ -106,10 +100,6 @@
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
 
-(import (scheme cxr))
-(import (scheme base))
-(import (scheme case-lambda))
-(import (scheme write))
 (import (owl env))
 (import (owl gensym))
 (import (owl bisect))
@@ -124,62 +114,10 @@
 (import (owl compile))
 (import (owl suffix))
 (import (owl digest))
-
-(define error-tag "err")
-
-(define (error? x)
-   (and (tuple? x)
-      (eq? (ref x 1) error-tag)))
-
 (import (owl time))
-
-; -> mcp gets <cont> 5 reason info
-
-; (run <mcp-cont> thunk quantum) -> result
-
-(define input-chunk-size  1024)
-(define output-chunk-size 4096)
-
-(define file-in 0)
-(define file-out 1)
-
-; read-file path|fd fail -> (exp ...) ∨ (fail reason)
-(define (read-file src fail)
-   (cond
-      ((string? src)
-         (let ((port (open-input-file src)))
-            (if port
-               (read-file port fail)
-               (fail (list "unable to open " src)))))
-      ((number? src)
-         (read-exps-from src null fail))
-      (else 
-         (fail (list "bad source " src)))))
-
-
-(define-syntax share-bindings
-   (syntax-rules (defined)
-      ((share-bindings) null)
-      ((share-bindings this . rest)
-         (cons
-            (cons 'this
-               (tuple 'defined (mkval this)))
-            (share-bindings . rest)))))
-
-(define (share-modules mods) 
-   (for null mods
-      (λ (envl mod)
-         (append (ff->list mod) envl))))
-
-;,load "owl/arguments.scm"
-;,load "owl/random.scm"
-
 (import (owl random))
-
 (import (owl args))
-
 (import (owl cgen))
-
 (import (only (owl dump) make-compiler dump-fasl load-fasl))
 
 
@@ -190,7 +128,7 @@
 (define (suspend path)
    (let ((maybe-world (syscall 16 #true #true)))
       (if (eq? maybe-world 'resumed)
-         'loaded
+         "Welcome back."
          (begin
             (dump-fasl maybe-world path)
             'saved))))
@@ -281,18 +219,29 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;;          '-- to be a fairly large subset of at least, so adding this
 
 (import (owl eval))
-
 (import (owl base))
-
 (import (owl http))
-
 (import (owl html))
+
+(import (scheme cxr))
+(import (scheme base))
+(import (scheme case-lambda))
+(import (scheme write))
 
 ;; push it to libraries for sharing, replacing the old one
 (define *libraries* 
    (cons 
       (cons '(owl core) *owl-core*)
       (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
+
+(define-syntax share-bindings
+   (syntax-rules (defined)
+      ((share-bindings) null)
+      ((share-bindings this . rest)
+         (cons
+            (cons 'this
+               (tuple 'defined (mkval this)))
+            (share-bindings . rest)))))
 
 ;; todo: share the modules instead later
 (define shared-misc
@@ -337,7 +286,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       byte-vector?
       string->symbol
       close-port flush-port
-      read-file
       set-memory-limit 
       get-word-size
       get-memory-limit
@@ -384,7 +332,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (test     "-t" "--test"     has-arg comment "evaluate given expression exit with 0 unless the result is #false")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
-       (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state (fasl)")
+       (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state saved with suspend")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
        (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup or exit if it failed")
        (seccomp-heap     "-H" "--heap"     cook ,string->number default "5"
