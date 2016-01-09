@@ -70,6 +70,7 @@
 
 (define owl-ohai "You see a prompt.")
 (define owl-ohai-seccomp "You see a prompt. You feel restricted.")
+(define owl-ohai-resume "Welcome back.")
 
 (import (owl boolean))
 (import (owl list))
@@ -120,7 +121,6 @@
 (import (owl cgen))
 (import (only (owl dump) make-compiler dump-fasl load-fasl))
 
-
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
    (make-compiler *vm-special-ops*))
 
@@ -128,13 +128,12 @@
 (define (suspend path)
    (let ((maybe-world (syscall 16 #true #true)))
       (if (eq? maybe-world 'resumed)
-         "Welcome back."
+         owl-ohai-resume
          (begin
             (dump-fasl maybe-world path)
             'saved))))
 
 (import (owl checksum))
-
 (import (owl sys))
 
 ;;;
@@ -180,35 +179,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          (halt exit-seccomp-failed))))
 
 
-(define-library (owl char)
-   (export char? char->integer integer->char)
-   (import
-      (owl defmac)
-      (owl math))
-   (begin
-      (define char? number?)
-      (define char->integer self)
-      (define integer->char self)))
-
-;; profiling doesn't yet have a good home. merge to lib-internals or lib-debug later?
-;; run thunk and show n most called functions. no timings yet.
-(define (profile thunk n)
-   (lets
-      ((skip (start-profiling))
-       (skip (set-ticker 0))
-       (res (thunk))
-       (stats (stop-profiling))
-       (most-used
-         (take
-            (sort
-               (λ (a b) (> (car a) (car b)))
-               (ff-fold
-                  (λ (out func n)
-                     (cons (cons n func) out))
-                  null stats))
-            n)))
-      (for-each (λ (p) (print*-to stdout  (list (car p) ":" (cdr p)))) most-used) ;; <- could use stderr later
-      res))
+(import (owl char))
 
 ;; implementation features, used by cond-expand
 (define *features*
@@ -291,16 +262,12 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       get-memory-limit
       checksum
       string->sexp
-      profile
       read read-ll
       *features*
       *include-dirs*
       *libraries*      ;; all currently loaded libraries
       ))
 
-
-;,load "owl/test.scm"     ; a simple algorithm equality/benchmark tester
-;,load "owl/sys.scm"      ; more operating system interface
 
 (define shared-bindings shared-misc)
 
@@ -339,7 +306,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compiltion (0-2)")
-       ;(profile  "-p" "--profile" comment "Count calls when combined with --run (testing)")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads #false "--no-threads" comment "do not include threading and io to generated c-code")
@@ -377,35 +343,13 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       (else
          (string-append path ".c"))))
 
-(define (try thunk fail-val)
-   ; run the compiler chain in a new task
-   (let ((id (list 'thread)))
-      (fork-linked-server id thunk)
-      (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) id))) 2)
-         ((finished result not used)
-            result)
-         ((crashed opcode a b)
-            (print-to stderr (verbose-vm-error empty opcode a b))
-            fail-val)
-         ((error cont reason info)
-            ; note, these could easily be made resumable by storing cont
-            (print-to stderr
-               (list->string
-                  (foldr render '(10) (list "error: " reason info))))
-            fail-val)
-         (else is bad ;; should not happen
-            (print-to stderr (list "que? " bad))
-            fail-val))))
-
-(define (owl-run outcome args path profile?)
+(define (owl-run outcome args path)
    (if outcome
       (tuple-case outcome
          ((ok val env)
             ;; be silent when all is ok
             ;; exit with 127 and have error message go to stderr when the run crashes
-            (if profile?
-               (try (λ () (profile (λ () (val args)) 30)) 127)
-               (try (λ () (val args)) 127)))
+            (try (λ () (val args)) 127))
          ((error reason env)
             (print-repl-error
                (list "ol: cannot run" path "because there was an error during loading:" reason))
@@ -414,22 +358,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 
 (define about-owl 
 "Owl Lisp -- a functional scheme for world domination
-Copyright (c) 2015 Aki Helin
+Copyright (c) 2016 Aki Helin
 Check out https://github.com/aoh/owl-lisp for more information.")
 
-
-
-
-
-;;;
-;;; MCP, master control program and the thread controller
-;;;
-
-; special keys in mcp state 
-
-
-;; pick usual suspects in a module to avoid bringing them to toplevel here
-;; mainly to avoid accidentalaly introducing bringing generic functions here  
 
 (define-library (owl usuals)
 
@@ -450,6 +381,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       (owl sort)
       (owl equal)
       (owl ff)
+      (owl lazy)
       (owl sexp))
 
    (begin
@@ -472,6 +404,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                take keep remove 
                thread-controller
                ;sexp-parser 
+               uncons lfold lmap
                rand seed->rands
                ))))
 
@@ -486,7 +419,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          (let ((outcome (if (equal? path "-") (repl-port env stdin) (repl-file env path))))
             (tuple-case outcome
                ((ok val env)
-                  (if (or 1 (function? val)) ;; <- testing, could allow individual module compilation also
+                  (if (function? val)
                      (begin
                         (compiler val 
                            ;; output path
@@ -602,8 +535,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                            1)))
                   ((getf dict 'run) =>
                      (λ (path)
-                        (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path
-                           (get dict 'profile #false))))
+                        (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path)))
                   ((getf dict 'evaluate) => 
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting

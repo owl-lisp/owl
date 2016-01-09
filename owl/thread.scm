@@ -15,7 +15,8 @@
    (export 
       start-thread-controller
       thread-controller 
-      repl-signal-handler)
+      repl-signal-handler
+      try)
 
    (import
       (owl defmac)
@@ -444,6 +445,26 @@
       (define (start-thread-controller threads state-alist)
          (thread-controller thread-controller threads
             null (list->ff state-alist)))
+
+      (define (try thunk fail-val)
+         ; run the compiler chain in a new task
+         (let ((id (list 'thread)))
+            (fork-linked-server id thunk)
+            (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) id))) 2)
+               ((finished result not used)
+                  result)
+               ((crashed opcode a b)
+                  (print-to stderr (verbose-vm-error empty opcode a b))
+                  fail-val)
+               ((error cont reason info)
+                  ; note, these could easily be made resumable by storing cont
+                  (print-to stderr
+                     (list->string
+                        (foldr render '(10) (list "error: " reason info))))
+                  fail-val)
+               (else is bad ;; should not happen
+                  (print-to stderr (list "que? " bad))
+                  fail-val))))
 
       ;; signal handler which kills the 'repl-eval thread if there, or repl 
       ;; if not, meaning we are just at toplevel minding our own business.
