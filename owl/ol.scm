@@ -2,7 +2,7 @@
 ;;; ol.scm: an Owl read-eval-print loop.
 ;;;
 
-#| Copyright (c) 2012-2015 Aki Helin
+#| Copyright (c) 2012-2016 Aki Helin
  |
  | Permission is hereby granted, free of charge, to any person obtaining a 
  | copy of this software and associated documentation files (the "Software"),
@@ -64,7 +64,7 @@
 
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.9")
+(define *owl-version* "0.1.10")
 (define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
 (define max-object-size #xffff)
 
