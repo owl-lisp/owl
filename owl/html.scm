@@ -49,7 +49,7 @@
                 (rest (cons #\" (gen-attrs (cdr pairs) tail)))) ;; after current one
                (cons #\space 
                   (render (car fst)
-                     (list* #\= #\"
+                     (ilist #\= #\"
                         (render-quoted (cadr fst)
                            (cond
                               ((eq? (car fst) 'href)
@@ -160,7 +160,7 @@
                            ((closed-tag? hd)
                               (render hd 
                                  (maybe-gen-attrs (cdr exp)
-                                    (list* #\< #\/ 
+                                    (ilist #\< #\/ 
                                        (render hd (cons #\> tail))))))
                            (else
                               (print-to stderr "bad html operator: " (car exp))

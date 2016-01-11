@@ -15,7 +15,6 @@
       fold2
       first
       halve
-      list*
       interleave
       ╯°□°╯
       
@@ -265,11 +264,4 @@
                      (walk (cdr t) (cdr h) (cons (car t) out)))))))
 
       (define ╯°□°╯ reverse)     
-
-      (define-syntax list*
-         (syntax-rules ()
-            ((list*) '())
-            ((list* a) a)
-            ((list* a . b)
-               (cons a (list* . b)))))
 ))
