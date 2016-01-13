@@ -34,7 +34,7 @@
 #endif
 
 typedef uintptr_t word;
-
+typedef uint8_t   byte;
 #ifdef _LP64
 typedef int64_t   wdiff;
 #else
@@ -137,7 +137,7 @@ static word *memstart;
 static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
-unsigned char *hp;       /* heap pointer when loading heap */
+byte *hp;       /* heap pointer when loading heap */
 static int seccompp;     /* are we in seccomp? */
 static unsigned long seccomp_time; /* virtual time within seccomp sandbox in ms */
 static word *fp;
@@ -346,10 +346,10 @@ void signal_handler(int signal) {
 }
 
 /* small functions defined locally after hitting some portability issues */
-static void bytecopy(char *from, char *to, int n) { while(n--) *to++ = *from++; }
+static void bytecopy(byte *from, byte *to, int n) { while(n--) *to++ = *from++; }
 static void wordcopy(word *from, word *to, int n) { while(n--) *to++ = *from++; }
 
-unsigned int lenn(char *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
+unsigned int lenn(byte *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
    unsigned int p = 0;
    while(p < max && *pos++) p++;
    return p;
@@ -385,14 +385,14 @@ static word *mkbvec(int len, int type) {
 }
 
 /* map a null or C-string to False, Null or owl-string, false being null or too large string */
-word strp2owl(char *sp) {
+word strp2owl(byte *sp) {
    int len;
    word *res;
    if (!sp) return IFALSE;
    len = lenn(sp, FMAX+1);
    if (len == FMAX+1) return INULL; /* can't touch this */
    res = mkbvec(len, TBVEC); /* make a bvec instead of a string since we don't know the encoding */
-   bytecopy(sp, ((char *)res)+W, len);
+   bytecopy(sp, ((byte *)res)+W, len);
    return (word)res;
 }
 
@@ -412,7 +412,7 @@ word get_nat() {
 
 word *get_field(word *ptrs, int pos) {
    if (0 == *hp) {
-      unsigned char type;
+      byte type;
       word val;
       hp++;
       type = *hp++;
@@ -437,13 +437,13 @@ word *get_obj(word *ptrs, int me) {
          break; }
       case 2: {
          int bytes, pads;
-         unsigned char *wp;
+         byte *wp;
          type = *hp++ & 31; /* low 5 bits, the others are pads */
          bytes = get_nat();
          size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
          pads = (size-1)*W - bytes;
          *fp++ = make_raw_header(size, type, pads);
-         wp = (unsigned char *) fp;
+         wp = (byte *) fp;
          while (bytes--) { *wp++ = *hp++; };
          while (pads--) { *wp++ = 0; };
          fp = (word *) wp;
@@ -457,7 +457,7 @@ word *get_obj(word *ptrs, int me) {
 int count_objs(word *words) {
    word *orig_fp = fp;
    word nwords = 0;
-   unsigned char *orig_hp = hp;
+   byte *orig_hp = hp;
    int n = 0;
    while(*hp != 0) {
       get_obj(NULL, 0); /* dry run just to count the objects */
@@ -470,7 +470,7 @@ int count_objs(word *words) {
    return n;
 }
 
-unsigned char *load_heap(char *path) { 
+byte *load_heap(char *path) { 
    struct stat st;
    int fd, pos = 0;
    if(stat(path, &st)) exit(1);
@@ -492,7 +492,7 @@ unsigned char *load_heap(char *path) {
 
 static word prim_connect(word *host, word port) {
    int sock;
-   unsigned char *ip = ((unsigned char *) host) + W;
+   byte *ip = ((unsigned char *) host) + W;
    unsigned long ipfull;
    struct sockaddr_in addr;
    port = fixval(port);
@@ -569,7 +569,7 @@ static int prim_refb(word pword, int pos) {
    hsize = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7); /* bytes - pads */ 
    if (pos >= hsize) 
       return IFALSE;
-   return F(((unsigned char *) ob)[pos+W]);
+   return F(((byte *) ob)[pos+W]);
 }
 
 static word prim_ref(word pword, word pos)  {
@@ -581,7 +581,7 @@ static word prim_ref(word pword, word pos)  {
    if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */ 
       size = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
       if (pos >= size) { return IFALSE; }
-      return F(((unsigned char *) ob)[pos+W]);
+      return F(((byte *) ob)[pos+W]);
    }
    size = hdrsize(hdr);
    if (!pos || size <= pos) /* tuples are indexed from 1 (probably later 0-255)*/
@@ -654,7 +654,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (immediatep(buff)) return IFALSE;
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
-         wrote = write(fd, ((char *)buff)+W, len);
+         wrote = write(fd, ((byte *)buff)+W, len);
          if (wrote > 0) return F(wrote);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
@@ -702,13 +702,13 @@ static word prim_sys(int op, word a, word b, word c) {
          socklen_t len = sizeof(addr);
          int fd;
          word *pair;
-         char *ipa;
+         byte *ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
          toggle_blocking(fd,0);
-         ipa = (char *) &addr.sin_addr;
+         ipa = (byte *) &addr.sin_addr;
          *fp = make_raw_header(2, TBVEC, 4%W);
-         bytecopy(ipa, ((char *) fp) + W, 4);
+         bytecopy(ipa, ((byte *) fp) + W, 4);
          fp[2] = PAIRHDR;
          fp[3] = (word) fp;
          fp[4] = F(fd);
@@ -721,7 +721,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *res;
          int n, nwords = (max/W) + 2;
          allocate(nwords, res);
-         n = read(fd, ((char *) res) + W, max);
+         n = read(fd, ((byte *) res) + W, max);
          if (n > 0) { /* got some bytes */
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
@@ -769,10 +769,10 @@ static word prim_sys(int op, word a, word b, word c) {
          unsigned int len;
          struct dirent *dire = readdir(dirp);
          if (!dire) return IEOF; /* eof at end of dir stream */
-         len = lenn(dire->d_name, FMAX+1);
+         len = lenn((byte *)dire->d_name, FMAX+1);
          if (len == FMAX+1) return IFALSE; /* false for errors, like too long file names */
          res = mkbvec(len, 3); /* make a fake raw string (OS may not use valid UTF-8) */
-         bytecopy((char *)&dire->d_name, (char *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
+         bytecopy((byte *)&dire->d_name, (byte *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
          return (word)res; }
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)fliptag(a));
@@ -788,14 +788,14 @@ static word prim_sys(int op, word a, word b, word c) {
          if (immediatep(buff)) return IFALSE;
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
-         wrote = send(fd, ((char *)buff)+W, len, 0); /* <- no MSG_DONTWAIT in win32 */
+         wrote = send(fd, ((byte *)buff)+W, len, 0);
          if (wrote > 0) return F(wrote);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 16: { /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
          char *name = (char *)a;
          if (!allocp(name)) return IFALSE;
-         return strp2owl(getenv(name + W)); }
+         return strp2owl((byte *)getenv(name + W)); }
       case 17: { /* exec[v] path argl ret */
          char *path = ((char *) a) + W;
          int nargs = llen((word *)b);
@@ -878,7 +878,7 @@ static word prim_sys(int op, word a, word b, word c) {
 static word prim_lraw(word wptr, int type, word revp) {
    word *lst = (word *) wptr;
    int nwords, len = 0, pads;
-   unsigned char *pos;
+   byte *pos;
    word *raw, *ob;
    if (revp != IFALSE) { exit(1); } /* <- to be removed */
    ob = lst;
@@ -893,7 +893,7 @@ static word prim_lraw(word wptr, int type, word revp) {
    pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
    *raw = make_raw_header(nwords, type, pads);
    ob = lst;
-   pos = ((unsigned char *) raw) + W;
+   pos = ((byte *) raw) + W;
    while ((word) ob != INULL) {
       *pos++ = fixval(ob[1])&255;
       ob = (word *) ob[2];
@@ -933,7 +933,7 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
 
 word boot(int nargs, char **argv) {
    int this, pos, nobjs;
-   unsigned char *file_heap = NULL;
+   byte *file_heap = NULL;
    word *entry;
    word *oargs = (word *) INULL;
    word *ptrs;
@@ -948,7 +948,7 @@ word boot(int nargs, char **argv) {
       }
       nargs--; argv++; /* skip vm */
    } else {
-      hp = (unsigned char *) &heap;
+      hp = (byte *) &heap;
    }
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
    memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
@@ -960,8 +960,8 @@ word boot(int nargs, char **argv) {
    this = nargs-1;
    usegc = 1;
    while(this >= 0) { /* build an owl string list to oargs at bottom of heap */
-      char *str = argv[this];
-      char *pos = str;
+      byte *str = (byte *) argv[this];
+      byte *pos = str;
       int pads;
       word *tmp;
       int len = 0, size;
@@ -979,7 +979,7 @@ word boot(int nargs, char **argv) {
       tmp = fp;
       fp += size;
       *tmp = make_raw_header(size, 3, pads);
-      pos = ((char *) tmp) + W;
+      pos = ((byte *) tmp) + W;
       while(*str) *pos++ = *str++;
       *fp = PAIRHDR;
       fp[1] = (word) tmp;
