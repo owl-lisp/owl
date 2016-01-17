@@ -46,7 +46,7 @@ done
 
 for file in tests/*$SUFFIX.sh
 do
-   (sh $file $@ 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   ((sh $file $@ 2>&1 || echo "NONZERO: $file $?") | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
    waitnjobs $MAXJOBS
 done
 

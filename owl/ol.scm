@@ -309,8 +309,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
-       (no-threads #false "--no-threads" comment "do not include threading and io to generated c-code")
-       )))
+       (bare #false "--bare" comment "do not add anything to generated code (like threads or UTF-8 decoding)"))))
 
 (define brief-usage-text "Usage: ol [args] [file] ...")
 
@@ -429,8 +428,8 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                               ((equal? path "-") path) ; stdin → stdout
                               (else (c-source-name path)))
                            ;; inverse option on command line, add here if set
-                           (if (get opts 'no-threads #false)
-                              opts
+                           (if (get opts 'bare #false)
+                              (put opts 'no-utf8-decode #true)
                               (put opts 'want-threads #true))
                            ;; to be customizable via command line opts
                            (let ((opt (abs (get opts 'optimize 0))))

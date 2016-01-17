@@ -375,9 +375,7 @@
 
                 (entry ;; possibly add code to utf-8 decode command line arguments
                   (if (get opts 'no-utf8-decode #false)
-                     (begin
-                        (print " - not decoding command line arguments")
-                        entry)
+                     entry
                      (with-decoded-args entry)))
 
                 (native-cook ;; make a function to possibly rewrite bytecode during save (usually to native code wrappers)
