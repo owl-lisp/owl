@@ -306,7 +306,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (seccomp-heap     "-H" "--heap"     cook ,string->number default "5"
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
-       (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compiltion (0-2)")
+       (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (no-threads #false "--no-threads" comment "do not include threading and io to generated c-code")
