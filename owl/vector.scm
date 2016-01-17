@@ -558,8 +558,12 @@
             (vec-iterr a)))
 
       ;; fixme: make-vector does not share the nodes despite most being equal
-      (define (make-vector n elem)
-         (list->vector (repeat elem n)))
+      (define make-vector 
+         (case-lambda 
+            ((n)
+               (list->vector (repeat #false n)))
+            ((n val)
+               (list->vector (repeat val n)))))
 
       ;;;
       ;;; Vector construction
