@@ -80,27 +80,24 @@
             (cons (type-byte-of val)
                (send-number (cast val 0) tail))))
 
-      (define (partial-object-closure root pred)
-         (define (clos seen obj)
-            (cond
-               ((immediate? obj) seen)
-               ((not (pred obj)) seen)
-               ((getf seen obj) =>
-                  (λ (n) (fupd seen obj (+ n 1))))
-               (else
-                  (let ((seen (put seen obj 1)))
-                     (if (raw? obj)
-                        seen
-                        (fold clos seen (tuple->list obj)))))))
-         (clos empty root))
+      (define (partial-object-closure seen obj)
+         (cond
+            ((immediate? obj) seen)
+            ((getf seen obj) =>
+               (λ (n) (fupd seen obj (+ n 1))))
+            (else
+               (let ((seen (put seen obj 1)))
+                  (if (raw? obj)
+                     seen
+                     (fold partial-object-closure seen 
+                        (tuple->list obj)))))))
 
-      ;; don't return ff, type of which is changing atm
       (define (sub-objects root pred)
          (ff->list
-            (partial-object-closure root pred)))
+            (partial-object-closure empty root)))
 
       (define (object-closure obj)
-         (partial-object-closure obj (λ (x) #t)))
+         (partial-object-closure empty obj))
 
       (define (objects-below obj)	
          (ff-fold
