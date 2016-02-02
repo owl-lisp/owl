@@ -1,10 +1,11 @@
-Owl Lisp -- yet another pet lisp 
-Copyright (c) 2015 Aki Helin
+Owl Lisp -- a purely functional scheme
+Copyright (c) 2016 Aki Helin
 
 OVERVIEW
 ~~~~~~~~
 
-Owl Lisp is a simple purely functional Lisp.
+Owl Lisp is a functtional dialect of the Scheme programming language. It
+is mainly based on applicative subset of the R7RS standard.
 
 
 REQUIREMENTS
