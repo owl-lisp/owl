@@ -83,7 +83,7 @@
                h2 h3 h4 h5 h6 table tbody tr textarea tfoot th thead time
                title td iframe ul ol li button canvas caption center cite
                code colgroup datalist dl dd del details dfn dialog dir dt em
-               fieldset figcaption figure font footer form frame frameset
+               fieldset figcaption figure font footer form pre frame frameset
                ins kbd label legend main map mark menu menuitem meter nav
                noframes noscript object optgroup select output prep progress
                q rp rt ruby s samp script section select small source span
