@@ -259,6 +259,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       string->symbol
       close-port flush-port
       set-memory-limit 
+      gensym
       get-word-size
       get-memory-limit
       checksum

@@ -26,6 +26,8 @@
 		ff-iter     ; ff -> ((key . value) ...) stream (in order)
       ff?
       ff-singleton? ; ff → bool (has just one key?)
+      ff-max      ; ff def → largest key or def
+      ff-min      ; ff def → least key or def
       list->ff ff->list 
       ff->sexp
       ff-ok?
@@ -265,6 +267,18 @@
                      (else
                         (black-bright left this this-val (putn right key val))))))))
 
+      (define (ff-max node def)
+         (if (eq? node #empty)
+            def
+            (with-ff (node left key _ right)
+               (ff-max right key))))
+      
+      (define (ff-min node def)
+         (if (eq? node #empty)
+            def
+            (with-ff (node left key _ right)
+               (ff-min left key))))
+        
       ;; bytecoded get
       (define (get ff key def)
          (if (eq? ff #empty)
