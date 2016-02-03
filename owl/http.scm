@@ -16,7 +16,7 @@
 
    (begin
       
-      (define max-request-time (* 15 1000))    
+      (define max-request-time (* 15 1000))
       (define max-request-size (* 1024 1024))
       (define max-request-block-size 32768)
       (define max-post-length (* 1024 1024))
@@ -148,7 +148,9 @@
             (put 'content reason)))
 
       (define (nat str)
-         (string->number str 10))
+         (if str
+           (string->number str 10)
+           #false))
 
       (define (get-request env)
          (lets ((line ll (grab-line (getf env 'bs))))
@@ -175,12 +177,13 @@
                               (put 'http-method 'head))
                            (fail env 500 "Bad query"))))
                   ((post query version)
-                     (print "got a post")
-                     (-> env
-                        (fupd 'bs ll)
-                        (put 'query (list->string query))
-                        (put 'http-version version)
-                        (put 'http-method 'post)))
+                     (if query
+                       (-> env
+                          (fupd 'bs ll)
+                          (put 'query (list->string query))
+                          (put 'http-version version)
+                          (put 'http-method 'post))
+                       (fail env 500 "Bad query")))
                   (else
                      (fail env 500 "Query wat")))
                (fail env 500 "No query received"))))
@@ -190,8 +193,11 @@
          (cond
             ((string-eq? str "Host") 'host)
             ((string-eq? str "User-Agent") 'user-agent)
+            ((string-eq? str "Referer") 'referer) ;; originally Referrer
             ((string-eq? str "Content-type") 'content-type)
             ((string-eq? str "Content-length") 'content-length)
+            ((string-eq? str "Content-Length") 'content-length)
+            ((string-eq? str "content-length") 'content-length)
             ((string-eq? str "Accept-Language") 'accept-language)
             ((string-eq? str "Accept") 'accept) ;; text/html, text/plain, ...
             ((string-eq? str "Accept-Encoding") 'accept-encoding)
@@ -276,7 +282,7 @@
       (define default-post-type "application/x-www-form-urlencoded")
 
       (define (lazy-read lst n)
-         (let loop ((lst lst) (out null) (n 0))
+         (let loop ((lst lst) (out null) (n n))
             (cond
                ((eq? n 0)
                   (values (reverse out) lst))
@@ -455,12 +461,16 @@
       (define pre-handler
          (request-pipe
             get-request
+            (debug-handler "AA -1")
             parse-get-params
+            (debug-handler "AA 0")
             get-headers
+            (debug-handler "AA 1")
             read-post-data
+            (debug-handler "AA 2")
             parse-post-data
+            (debug-handler "AA 3")
             add-server-info
-            ;(debug-handler "PRE LAST")
             ))
 
       (define (add-response-header env key value)

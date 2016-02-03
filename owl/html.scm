@@ -118,10 +118,12 @@
                            (map (λ (exp) (carry-session exp var val)) sexp))))
                   ('form
                      (ilist 'form 
-                        `(input ((style "hidden") (name ,var) (value ,val)))
-                        (map 
-                           (λ (x) (carry-session x var val)) 
-                           (cdr sexp))))
+                        (append
+                          (map 
+                             (λ (x) (carry-session x var val)) 
+                             (cdr sexp))
+                          (list
+                            `(input ((type "hidden") (name ,var) (value ,val)))))))
                   (else
                      (map (λ (x) (carry-session x var val)) sexp))))
             (else sexp)))
@@ -185,6 +187,9 @@
                      bs)))))
 
       (define (html exp)
+         ;(display "HTML: ")
+         ;(write exp)
+         ;(newline)
          (html->x exp runes->string))
 
 ))
