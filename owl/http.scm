@@ -461,15 +461,11 @@
       (define pre-handler
          (request-pipe
             get-request
-            (debug-handler "AA -1")
             parse-get-params
-            (debug-handler "AA 0")
             get-headers
-            (debug-handler "AA 1")
             read-post-data
-            (debug-handler "AA 2")
             parse-post-data
-            (debug-handler "AA 3")
+            ;(debug-handler "AA 3")
             add-server-info
             ))
 
