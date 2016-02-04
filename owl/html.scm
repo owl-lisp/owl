@@ -48,26 +48,28 @@
                ((fst (car pairs))
                 (rest (cons #\" (gen-attrs (cdr pairs) tail)))) ;; after current one
                (cons #\space 
-                  (render (car fst)
-                     (ilist #\= #\"
-                        (render-quoted (cadr fst)
-                           (cond
-                              ((eq? (car fst) 'href)
-                                 ;; render get parameters
-                                 (if (null? (cddr fst))
-                                    rest
-                                    (cons #\?
-                                       (foldr
-                                          (λ (thing tail)
-                                             (render-quoted (car thing) 
-                                                (cons #\=
-                                                   (render-quoted (cadr thing)
-                                                      (if (eq? (car tail) #\") ;; no & after last
-                                                         tail
-                                                         (cons #\& tail))))))
-                                          rest (cddr fst)))))
-                              (else
-                                 rest)))))))))
+                  (if (null? (cdr fst))
+                    (render (car fst) tail)
+                    (render (car fst)
+                       (ilist #\= #\"
+                          (render-quoted (cadr fst)
+                             (cond
+                                ((eq? (car fst) 'href)
+                                   ;; render get parameters
+                                   (if (null? (cddr fst))
+                                      rest
+                                      (cons #\?
+                                         (foldr
+                                            (λ (thing tail)
+                                               (render-quoted (car thing) 
+                                                  (cons #\=
+                                                     (render-quoted (cadr thing)
+                                                        (if (eq? (car tail) #\") ;; no & after last
+                                                           tail
+                                                           (cons #\& tail))))))
+                                            rest (cddr fst)))))
+                                (else
+                                   rest))))))))))
 
       (define open-only?
          (lets
@@ -141,7 +143,7 @@
 
          (define (maybe-gen-attrs lst tail)
             (cond
-               ((null? lst) tail)
+               ((null? lst) (cons #\> tail))
                ((and (pair? (car lst)) (pair? (caar lst)))
                   (gen-attrs (car lst)
                      (cons #\> (foldr gen tail (cdr lst)))))

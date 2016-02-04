@@ -444,7 +444,7 @@
       (define (parse-post-data env)
          (let ((data (getf env 'post-data)))
             (if data
-               (lets ((params (split-url-params data #false)))
+               (lets ((params (split-url-params data #true)))
                   (if params
                      (put (del env 'post-data) 'post-params params)
                      (fail env 500 "Bad POST data")))
