@@ -23,6 +23,7 @@
       (owl list-extra)
       (owl ff)
       (owl lazy)
+      (owl symbol)
       (owl io) ; testing
       (owl primop)
       (owl unicode)
@@ -35,7 +36,7 @@
       (define (between? lo x hi)
          (and (<= lo x) (<= x hi)))
 
-      (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:@"))
+      (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:")) ;; owl uses @ for finite function syntax
 
       (define (symbol-lead-char? n) 
          (or 
@@ -357,6 +358,45 @@
                   (cons '_sharp_vector fields) ; <- quasiquote macro expects to see this in vectors
                   (list->vector fields)))))
 
+      (define (valid-ff-node? val)
+         (and (pair? val)
+            (or
+               (symbol? val) 
+               (immediate? val))))
+
+      (define (valid-ff-key? val)
+        (or (symbol? val) (immediate? val)))
+
+      (define (ff-able? lst)
+        (cond
+          ((null? lst)
+            #true)
+          ((valid-ff-key? (car lst))
+            (let ((lst (cdr lst)))
+              (if (null? lst)
+                #false
+                (ff-able? (cdr lst)))))
+          (else 
+            (print-to stderr "Invalid ff key: " (car lst))
+            #false)))
+
+      (define (lst->ff lst)
+         (let loop ((lst lst) (ff #empty))
+            (if (null? lst)
+               ff
+               (lets ((k lst lst)
+                      (v lst lst))
+                  (loop lst (put ff k v))))))
+            
+      (define (get-ff get-any)
+         (let-parses
+            ((skip (get-imm #\@))
+             (fields 
+               (intern-symbols
+                  (get-list-of get-any)))
+             (foo (assert ff-able? fields)))
+            (lst->ff fields)))
+
       (define (get-sexp)
          (let-parses
             ((skip maybe-whitespace)
@@ -369,7 +409,8 @@
                   get-string
                   get-funny-word
                   (get-list-of (get-sexp))
-                  (get-vector-of (get-sexp))
+                  (get-vector-of (get-sexp)) ;; #(...) -> vector or #((a . b) (c . d))
+                  (get-ff (get-sexp)) ;; #(...) -> vector or #((a . b) (c . d))
                   (get-quoted (get-sexp))
                   (get-byte-if eof?)
                   get-quoted-char)))

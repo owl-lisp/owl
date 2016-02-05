@@ -106,8 +106,8 @@
                ((eq? obj #empty) ;; don't print as #()
                   (ilist #\# #\e #\m #\p #\t #\y tl))
 
-               ((ff? obj) ;; fixme: ff not parsed yet this way
-                  (cons #\# (render (ff->list obj) tl)))
+               ((ff? obj)
+                  (cons #\@ (render (ff-foldr (λ (st k v) (cons k (cons v st))) null obj) tl)))
              
                ((tuple? obj)
                   (ilist #\# #\[ (render (tuple->list obj) (cons #\] tl))))
@@ -229,11 +229,11 @@
                ((rlist? obj) ;; fixme: rlist not parsed yet
                   (ilist #\# #\r (ser sh (rlist->list obj) k)))
 
-               ((eq? obj #empty) ;; don't print as #()
+               ((eq? obj #empty) ;; @() is also valid
                   (ilist #\# #\e #\m #\p #\t #\y (delay (k sh))))
 
-               ((ff? obj) ;; fixme: ff not parsed yet this way
-                  (cons #\# (ser sh (ff->list obj) k)))
+               ((ff? obj)
+                  (cons #\@ (ser sh (ff-foldr (λ (st k v) (cons k (cons v st))) null obj) k)))
 
                ((tuple? obj)
                   (ilist #\# #\[
@@ -252,10 +252,10 @@
 
       (define (self-quoting? val)
          (or 
-            ;; note, all immediates are
-            (number? val) (string? val) (boolean? val) (function? val) 
-            (port? val) (tcp? val) (socket? val) (null? val) (rlist? val)
-            (eq? val #empty)))
+            (immediate? val)
+            (number? val) (string? val) (function? val) 
+            (tcp? val) (socket? val) (rlist? val)
+            (ff? val)))
 
       ;; could drop val earlier to possibly gc it while rendering 
       (define (maybe-quote val lst)
