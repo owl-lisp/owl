@@ -36,8 +36,10 @@
       (owl math)
       (owl primop)
       (owl ff)
+      (owl symbol)
       (owl lazy)
       (owl list)
+      (owl intern)
       (owl rlist))
 
    (begin
@@ -264,6 +266,9 @@
             (lets ((ll byte (grab ll fail)))
                (get-bytes ll (- n 1) fail (cons byte out)))))
 
+      (define (ff-union a b)
+         (ff-fold put b a))
+
       ; → ll value | (fail reason)
       (define (decoder ll got fail)
          (cond
@@ -279,7 +284,25 @@
                             (ll size (get-nat ll fail 0))
                             (ll fields (get-fields ll got size fail null))
                             (obj (listuple type size fields)))
-                           (decoder ll (rcons obj got) fail)))
+                           ;; could just rcons obj to got, but some thigns are special when
+                           ;; doing just partial heap transfers
+                           (cond
+                              ((symbol? obj)
+                                 ;; symbols must be (re)interned. they are only valid up to equalit within the fasl.
+                                 (decoder ll 
+                                    (rcons
+                                       (string->symbol (symbol->string obj))
+                                       got)
+                                    fail))
+                              ((ff? obj)
+                                 ;; WARNING: this is expensive! but correct and used for now
+                                 (ff-bind obj
+                                    (λ (l k v r)
+                                       (decoder ll
+                                          (rcons (ff-union l (put r k v)) got)
+                                          fail))))
+                              (else
+                                 (decoder ll (rcons obj got) fail)))))
                      ((eq? kind 2) ; raw, type SIZE byte ...
                         (lets
                            ((ll type (grab ll fail))
@@ -320,7 +343,7 @@
       ;; decode a full (possibly lazy) list of data, and succeed only if it exactly matches a fasl-encoded object
 
       (define failed "fail") ;; a unique object
-
+          
       ;; ll fail → val | fail
       (define (decode ll fail-val)
          (lets ((ll ob (decode-or ll (λ (why) failed))))

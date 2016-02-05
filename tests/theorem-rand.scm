@@ -415,7 +415,7 @@
    (theory
 
       theorem fasl-1
-         ∀ f ∊ (Ff-of Num)
+         ∀ f ∊ (List-of Short)
             f = (fasl-decode (fasl-encode f) 'bad)
 
       theorem bisect-1

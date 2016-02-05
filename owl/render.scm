@@ -18,7 +18,7 @@
       (owl lazy)
       (owl math)
       (owl port)
-      (only (owl fasl) sub-objects)
+      ;(only (owl fasl) sub-objects)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
       (only (owl string) render-string string?))
@@ -267,6 +267,22 @@
       (define (shareable? x)
          (not (or (function? x) (symbol? x) (port? x) (tcp? x) (socket? x))))
 
+      (define (partial-object-closure seen obj)
+         (cond
+            ((immediate? obj) seen)
+            ((getf seen obj) =>
+               (λ (n) (fupd seen obj (+ n 1))))
+            (else
+               (let ((seen (put seen obj 1)))
+                  (if (raw? obj)
+                     seen
+                     (fold partial-object-closure seen
+                        (tuple->list obj)))))))
+
+      (define (sub-objects root pred)
+         (ff->list
+            (partial-object-closure empty root)))
+
       ;; val → ff of (ob → node-id)
       (define (label-shared-objects val)
          (lets
@@ -275,9 +291,10 @@
                (fold 
                   (λ (shared p)
                      (lets ((ob refs p))
-                        (if (eq? refs 1)
-                           shared
-                           (cons ob shared))))
+                        (cond
+                          ((eq? refs 1) shared)
+                          ((shareable? ob) (cons ob shared))
+                          (else shared))))
                   null refs)))
             (let loop ((out empty) (shares shares) (n 1))
                (if (null? shares)
