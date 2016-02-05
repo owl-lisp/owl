@@ -1049,7 +1049,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
       res = select(nfds, &rs, &ws, &es, &tv);
    }
    if (res < 1) {
-      *r1 = IFALSE; *r2 = IFALSE; /* error, sgnal or timeout */
+      *r1 = IFALSE; *r2 = BOOL(res < 0); /* 0 = timeout, otherwise error or signal */
    } else {
       int fd; /* something active, wake the first thing */
       for(fd=0;;fd++) {

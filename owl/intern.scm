@@ -29,7 +29,6 @@
       (owl list)
       (owl math)
       (owl function)
-      (owl io)
       (only (owl primop) apply)
       (owl ff)
       (owl tuple)

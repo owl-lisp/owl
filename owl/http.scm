@@ -130,7 +130,7 @@
          (let ((cli (sys-prim 4 sock #f #f)))
             (if cli
                (begin 
-                  ;(print "Socket acceptor got " cli)
+                  (print "Socket acceptor got " cli)
                   (mail recipient cli))
                (interact 'iomux (tuple 'read sock)))
             (socket-accepter sock recipient)))
@@ -549,7 +549,8 @@
                                  (put 'bs (stream-fd-timeout fd max-request-time))))))
                      (server-loop handler (put clis id (time-ms)))))
                ((eq? msg 'stop)
-                  (print-to stderr "stopping server"))
+                  (print-to stderr "server stopping")
+                  (mail 'from 'stopped))
                ((tuple? msg) 
                   (tuple-case msg
                      ((finished a b c)
@@ -583,10 +584,11 @@
                      ;; start reading connections
                      (print "Starting reader")
                      (let ((reader (fork (λ () (socket-accepter sock server-id)))))
-                        (print "Reader is " reader)
+                        ;(print "Reader is " reader)
                         (server-loop handler #empty)
+                        (close-port sock)
                         (kill reader)
-                        (close-port sock))))
+                        )))
                (begin
                   (print-to stderr server-id "failed to get socket")
                   #false))))

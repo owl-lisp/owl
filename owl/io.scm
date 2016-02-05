@@ -699,6 +699,7 @@
 
       (define (muxer rs ws alarms)
          (if (null? alarms)
+            ;; No alarms, just maybe IO and messages
             (let ((envelope ((if (and (null? rs) (null? ws)) wait-mail check-mail))))
                (if envelope
                   (lets ((rs ws alarms (muxer-add rs ws alarms envelope)))
@@ -706,13 +707,20 @@
                   (lets
                      ((timeout (if (single-thread?) #false 0))
                       (waked x (_poll2 rs ws timeout)))
-                     (if waked
-                        (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
+                     (cond
+                        (waked
+                          (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
+                             (muxer rs ws alarms)))
+                        (x ;; an error was signaled - activate all since we don't
+                           ;; know which fd is to blame
+
+                           (print-to stderr "ACTIVATE ALL 1!")
                            (muxer rs ws alarms))
-                        (begin
+                        (else
                            (set-ticker 0)
                            (muxer rs ws alarms))))))
             (let ((now (time-ms)))
+               ;;; alarms and next is not up yet
                (if (< now (caar alarms))
                   (let ((envelope (check-mail)))
                      (if envelope
@@ -721,10 +729,16 @@
                         (lets
                            ((timeout (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
                             (waked x (_poll2 rs ws timeout)))
-                           (if waked
-                              (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
+                           (cond
+                              (waked
+                                 (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
+                                    (muxer rs ws alarms)))
+                              (x
+                                 (print-to stderr "ACTIVATE ALL 2!")
                                  (muxer rs ws alarms))
-                              (muxer rs ws alarms)))))
+                              (else
+                                 (muxer rs ws alarms))))))
+                  ;; the bell tolls
                   (lets
                      ((alarm (car alarms))
                       (time envelope alarm)
