@@ -92,15 +92,20 @@
                strike strong style sub summary sup tt u ul var video))
              (ff (list->ff (zip cons keys keys))))
             (λ (x) (get ff x #false))))
-   
+  
+      (define (external-link? str)
+         (m/^[a-z0-9]+:/ str))
+      
       (define (add-href-attribute attribs var val)
          (cond
             ((null? attribs)
                #false)
             ((eq? (caar attribs) 'href)
-               (cons 
-                  (append (car attribs) (list  (list var val)))
-                  (cdr attribs)))
+               (if (external-link? (cadar attribs))
+                  attribs
+                  (cons 
+                     (append (car attribs) (list  (list var val)))
+                     (cdr attribs))))
             ((add-href-attribute (cdr attribs) var val) =>
                (λ (tail)
                   (cons (car attribs) tail)))
