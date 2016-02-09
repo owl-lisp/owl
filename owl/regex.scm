@@ -649,6 +649,9 @@
                   (imm-val #\n (imm #\newline))    ;; \n = newline
                   (imm-val #\r (imm 13))           ;; \r = carriage return
                   (imm-val #\t (imm 9))            ;; \t = tab
+                  (imm-val #\* (imm #\*))          ;; \* = *
+                  (imm-val #\+ (imm #\+))          ;; \* = +
+                  (imm-val #\? (imm #\?))          ;; \* = ?
                   (imm-val #\W accept-nonword)     ;; \W = [^_0-9a-zA-Z]
                   (imm-val #\s accept-space)       ;; \s = [ \t\r\n\v\f]
                   (imm-val #\S accept-nonspace)    ;; \S = [ \t\r\n\v\f]
