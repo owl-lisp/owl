@@ -161,19 +161,22 @@
                ((null? exp) tail)
                ((not exp) tail)
                ((pair? exp)
-                  (let ((hd (car exp)))
-                     (cons #\<
-                        (cond
-                           ((open-only? hd)
-                              (render hd (maybe-gen-attrs (cdr exp) tail)))
-                           ((closed-tag? hd)
-                              (render hd 
-                                 (maybe-gen-attrs (cdr exp)
-                                    (ilist #\< #\/ 
-                                       (render hd (cons #\> tail))))))
-                           (else
-                              (print-to stderr "bad html operator: " (car exp))
-                              (ret #false))))))
+                  (if (eq? (car exp) 'cat)
+                     ;; just cat(enate) the following values
+                     (foldr gen tail (cdr exp))
+                     (let ((hd (car exp)))
+                        (cons #\<
+                           (cond
+                              ((open-only? hd)
+                                 (render hd (maybe-gen-attrs (cdr exp) tail)))
+                              ((closed-tag? hd)
+                                 (render hd 
+                                    (maybe-gen-attrs (cdr exp)
+                                       (ilist #\< #\/ 
+                                          (render hd (cons #\> tail))))))
+                              (else
+                                 (print-to stderr "bad html operator: " (car exp))
+                                 (ret #false)))))))
                ((string? exp)
                   (render-quoting-tags exp tail))
                (else
