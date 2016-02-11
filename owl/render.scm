@@ -318,6 +318,6 @@
                   (serialize-lazy val tl #true)))))
 
       (define (str . args)
-         (runes->string
+         (bytes->string
             (foldr render null args)))
 ))
