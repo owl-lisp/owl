@@ -7,6 +7,7 @@
    (export 
       server
       query-case
+      add-response-header
       fail)
 
    (import
@@ -309,7 +310,7 @@
                            (-> env 
                               (put 'bs tail)
                               (put 'post-data hd))
-                           (fail 500 "Insufficient POST data"))))
+                           (fail env 500 "Insufficient POST data"))))
                   (else
                      (fail env 400 "Unknown post content type"))))
             env))
