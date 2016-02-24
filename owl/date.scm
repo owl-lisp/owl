@@ -5,38 +5,25 @@
 
    (export
       date
-      leap-year?
-      next-date ;; d m y → d' m' y'
-      )
+      leap-year?  ;; y → bool
+      valid-date? ;; d m y → bool
+      next-date   ;; d m y → d' m' y'
+      week-info   ;; d m y → week weekday
+      day-names-fi
+      day-names-en
+      date-str
+      minute hour day week year leap-year)
 
    (begin
 
       ;; 0 = epoch @ Thu Jan 1 1970
 
       (define minute 60)
-
       (define hour (* 60 minute))
-
       (define day (* 24 hour))
-      
       (define week (* day 7))
-
-      (define (day-name n)
-         (vector-ref #(Thursday Friday Saturday Sunday Monday Tuesday Wednesday) n))
-
-      (define (day-of x)
-         (let loop ((x (modulo x week)) (daynum 0))
-            (if (< x day)
-               (day-name daynum)
-               (loop (- x day) (+ daynum 1)))))
-
-      (define (date-of x)
-         (print x " = " (day-of x)))
-
-      (define date
-         (case-lambda
-            (()  (date-of (time)))
-            ((x) (date-of x))))
+      (define year (* day 365))
+      (define leap-year (+ year day))
 
       ;;;
       ;;; D M Y calculations
@@ -72,15 +59,16 @@
             (else
                (values (+ day 1) month year))))
 
+      ;; date is valid *and* date computations work for it
       (define (valid-date? d m y)
          (and
-            (and (fixnum? m) (<= 1 m 12)))
-            (integer? y)
-            (and (fixnum? d) (>= d 1))
-            (<= d (days-in-month m y)))
+            (and (fixnum? m) (<= 1 m 12))
+            (and (integer? y) (> y 1200)) ;; check prior years also
+            (and (fixnum? d) (>= d 1) 
+               (<= d (days-in-month m y)))))
 
       ;;;
-      ;;; Weekday calculations
+      ;;; Weekish calculations
       ;;;
 
       (define (leap-years-before y)
@@ -101,9 +89,15 @@
       (define (year-start-day y)
          (+ 1 (remainder (+ 5 (* 365 y) (leap-years-before y)) 7)))
 
-      ;; not there yet
+      (define day-names-fi
+         (tuple "maanantai" "tiistai" "keskiviikko" "torstai" "perjantai" "lauantai" "sunnuntai"))
+
+      (define day-names-en
+         (tuple "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"))
+
+      ;; naive-ish version
       (define (week-info d m y)
-         (let loop ((rd 1) (rm m) (week 1) (day (year-start-day y)))
+         (let loop ((rd 1) (rm 1) (week 1) (day (year-start-day y)))
             (if (and (= rd d) (= rm m))
                (values week day)
                (lets ((rd rm y (next-date rd rm y))
@@ -111,6 +105,43 @@
                       (week (if (= day 1) (+ week 1) week)))
                   (loop rd rm week day)))))
 
-))
+      ;;;
+      ;;; UNIXish time
+      ;;;
 
+      (define leap-years-since-epoch   
+         (let ((before-epoch (leap-years-before 1970)))
+            (lambda (y) (- (leap-years-before y) before-epoch))))
+
+      (define (seek-year s)
+         (let loop ((s s) (y 1970))
+            (let ((year-len (if (leap-year? y) leap-year year)))
+               (if (> s year-len)
+                  (loop (- s year-len) (+ y 1))
+                  (values s y)))))
+
+      (define (naive-date s)
+         (lets ((s y (seek-year s)))
+            (let loop ((d 1) (m 1) (y y) (s s))
+               (if (< s day)
+                  (lets
+                     ((hour s (quotrem s hour))
+                      (min s (quotrem s minute)))
+                     (values d m y hour min s))
+                  (lets ((d m y (next-date d m y)))
+                     (loop d m y (- s day)))))))
+
+      (define (zpad n)
+         (if (< n 10) "0" ""))
+
+      (define date
+         (case-lambda
+            (() (naive-date (time))) 
+            ((sec) (naive-date sec))))
+
+      (define (date-str s)
+         (lets ((d m y H M S (naive-date s)))
+            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S " " d "." m "." y)))
+
+))
 
