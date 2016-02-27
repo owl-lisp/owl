@@ -25,6 +25,7 @@
       str-fold           ; fold over code points, as in lists
       str-foldr          ; ditto
       str-app            ; a ++ b, temp
+      str-iter-bytes     ; "a .. n" -> lazy list of UTF-8 encoded bytes
       ; later: str-len str-ref str-set str-append...
       str-replace        ; str pat value -> str' ;; todo: drop str-replace, we have regexen now
       str-map            ; op str → str'
@@ -455,6 +456,14 @@
       (define (string-ci>? a b)       (eq? 3 (str-compare upcase a b)))
       (define (string-ci>=? a b) (not (eq? 1 (str-compare upcase a b))))
 
+      (define (str-iter-bytes str)
+         (ledit 
+            (lambda (codepoint)
+               (if (lesser? codepoint #x80)
+                  #false ;; keep the old one
+                  (encode-point codepoint null)))
+            (str-iter str)))
+                  
       (define (make-string n char)
          (list->string (repeat char n)))))
 
