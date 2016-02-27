@@ -1,0 +1,14 @@
+x #false
+o #true
+x #false
+x #false
+o #true
+x #false
+x #false
+--
+1.1.1970 is Thursday of week 1
+15.6.1215 is Monday of week 25
+19.1.2038 is Tuesday of week 4
+23.2.2016 is Tuesday of week 9
+1.5.2061 is Sunday of week 18
+31.12.9999 is Friday of week 53
