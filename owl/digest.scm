@@ -2,12 +2,14 @@
 (define-library (owl digest)
    
    (export
-      sha1)
+      sha1          ;; str | vec | list | ll → str
+      sha1-raw)     ;; ditto → byte list
 
    (import
       (owl defmac)
       (owl math)
       (owl list)
+      (owl vector)
       (owl io)
       (owl string)
       (scheme base)
@@ -152,14 +154,17 @@
                      (sha1-chunk h0 h1 h2 h3 h4 
                         (extend-initial-words ws))))
                   (loop ll h0 h1 h2 h3 h4))
-               (sha1-format-result (list h0 h1 h2 h3 h4))))))
+               (list h0 h1 h2 h3 h4)))))
 
-   (define (sha1 thing)
-      (cond
-         ((string? thing)
-            (sha1-chunks (str-iter thing)))
-         (else
-            (sha1-chunks thing))))
+   (define (sha1-raw thing)
+      (sha1-chunks
+         (cond
+            ((string? thing) (str-iter thing)) ;; fixme, unicode
+            ((vector? thing) (vec-iter thing))
+            (else thing))))
+
+   (define sha1 
+      (o sha1-format-result sha1-raw))
 
 ))
 
