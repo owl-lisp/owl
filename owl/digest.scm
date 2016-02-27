@@ -159,7 +159,7 @@
    (define (sha1-raw thing)
       (sha1-chunks
          (cond
-            ((string? thing) (str-iter thing)) ;; fixme, unicode
+            ((string? thing) (str-iter-bytes thing))
             ((vector? thing) (vec-iter thing))
             (else thing))))
 

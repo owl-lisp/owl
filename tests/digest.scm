@@ -21,3 +21,7 @@
 
 (if (not (equal? (sha1 "a") (sha1 (vector #\a)))) 
    (print "sha1 vector fail"))
+
+(if (not (equal? (sha1 "ä") (sha1 (list 195 164))))
+   (print "sha1 unicode fail"))
+
