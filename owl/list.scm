@@ -15,6 +15,7 @@
       fold2
       first
       halve
+      edit                      ;; op lst → lst'
       interleave
       ╯°□°╯
       
@@ -59,6 +60,7 @@
                (let ((hd (op (car a) (car b))))
                   (cons hd (zip op (cdr a) (cdr b)))))))
 
+         
       ; (for st l op) == (fold op st l)
       ; just usually less indentation clutter 
 
@@ -146,6 +148,14 @@
             ((a b . cs) (app a (app b (appl cs appl) app) app))
             ((a) a)
             (() null)))
+
+      (define (edit op l)
+         (if (null? l)
+            l
+            (let ((x (op (car l))))
+               (if x
+                  (append x (edit op (cdr l)))
+                  (cons (car l) (edit op (cdr l)))))))
 
       ;(define (reverse l) (fold (λ (r a) (cons a r)) null l))
 

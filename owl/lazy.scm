@@ -13,7 +13,7 @@
       lzip ltake llast llen
       lcar lcdr
       lkeep lremove
-      ldrop llref
+      ldrop llref ledit
       pair tail uncons
       force-ll                ; ll -> list
       subsets permutations    ; usual applications
@@ -175,6 +175,18 @@
                   (liota-walk-one pos end))    ; increment iota
                (liota-walk-one pos end))
             (liota-walk pos step end)))      ; general iota
+
+      (define (ledit op l)
+         (cond
+            ((pair? l)
+               (let ((x (op (car l))))
+                  (if x
+                     (append x (ledit op (cdr l)))
+                     (cons (car l) (ledit op (cdr l))))))
+            ((null? l) l)
+            (else 
+               (lambda ()
+                  (ledit op (l))))))
 
       (define (liter op st)
          (pair st (liter op (op st))))
