@@ -2,10 +2,11 @@
 (define-library (owl digest)
    
    (export
-      sha1          ;; str | vec | list | ll → str
-      sha1-raw      ;; ditto → integer list
-      sha1-bytes    ;; ditto → byte list
-      hmac-sha1     ;; key, data → sha1 
+      sha1            ;; str | vec | list | ll → str
+      sha1-raw        ;; ditto → integer list
+      sha1-bytes      ;; ditto → byte list
+      hmac-sha1       ;; key, data → sha1 
+      hmac-sha1-bytes ;; key, data → sha1 bytes
       )
 
    (import
@@ -17,8 +18,7 @@
       (owl io)
       (owl string)
       (scheme base)
-      (owl lazy)
-      )
+      (owl lazy))
 
    (begin
 
@@ -141,7 +141,7 @@
                      (word (+ h3 d))
                      (word (+ h4 e)))))))
 
-   (define (uint->bytes n tail)
+   (define (uint32->bytes n tail)
       (lets
          ((a (band n #xff)) (n (>> n 8))
           (b (band n #xff)) (n (>> n 8))
@@ -150,12 +150,18 @@
          (ilist d c b a tail)))
 
    (define (ws->bytes ws)
-      (foldr uint->bytes null ws))
+      (foldr uint32->bytes null ws))
 
-   (define (sha1-format-result ws)
+   ;; silly version for now
+   (define (hash-bytes->string bs)
       (list->string
-         (foldr append null
-            (map (λ (x) (cdr (string->list (number->string (+ #x100000000 x) 16)))) ws))))
+         (foldr
+            (λ (b tl)
+               (append (cdr (string->list (number->string (+ #x100 b) 16))) tl))
+            null bs)))
+
+   (define sha1-format-result 
+      (o hash-bytes->string ws->bytes))
 
    (define (sha1-chunks ll)
       (let loop 
@@ -197,24 +203,28 @@
                (cons (bxor a b)
                   (list-xor as bs))))))
 
-   (define (hmac-sha1 key msg)
-      (lets
-         ((key (string->bytes key))
-          (msg (string->bytes msg))
-          (key
-            (if (> (length key) sha1-blocksize)
-               (sha1-bytes key)
-               key))
-          (key
-            (append key
-               (map (λ (x) 0)
-                  (iota 0 1 (- sha1-blocksize (length key))))))
-          (o-pad (map (λ (x) #x5c) (iota 0 1 sha1-blocksize)))
-          (i-pad (map (λ (x) #x36) (iota 0 1 sha1-blocksize))))
-         (sha1
-            (append (list-xor o-pad key)
-               (sha1-bytes (append (list-xor i-pad key) msg))))))
+   (define (make-hmac hasher blocksize)
+      (lambda (key msg)
+         (lets
+            ((key (string->bytes key)) ;; we want to UTF-8 encode it
+             (msg (string->bytes msg)) ;; ditto
+             (key (if (> (length key) blocksize) (hasher key) key))
+             (key
+               (append key
+                  (map (λ (x) 0)
+                     (iota 0 1 (- blocksize (length key))))))
+             (o-pad (map (λ (x) #x5c) (iota 0 1 blocksize)))
+             (i-pad (map (λ (x) #x36) (iota 0 1 blocksize))))
+            (hasher
+               (append (list-xor o-pad key)
+                  (hasher (append (list-xor i-pad key) msg)))))))
+               
+   (define hmac-sha1-bytes
+      (make-hmac sha1-bytes sha1-blocksize))
 
+   (define (hmac-sha1 k m)
+      (hash-bytes->string
+         (hmac-sha1-bytes k m)))
 ))
 
 
