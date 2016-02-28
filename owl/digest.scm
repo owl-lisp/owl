@@ -3,19 +3,26 @@
    
    (export
       sha1          ;; str | vec | list | ll → str
-      sha1-raw)     ;; ditto → byte list
+      sha1-raw      ;; ditto → integer list
+      sha1-bytes    ;; ditto → byte list
+      hmac-sha1     ;; key, data → sha1 
+      )
 
    (import
       (owl defmac)
       (owl math)
       (owl list)
+      (owl list-extra)
       (owl vector)
       (owl io)
       (owl string)
       (scheme base)
-      (owl lazy))
+      (owl lazy)
+      )
 
    (begin
+
+      (define sha1-blocksize 64)
 
       (define (n->bytes n)
          (let ((a (band n 255))
@@ -134,6 +141,17 @@
                      (word (+ h3 d))
                      (word (+ h4 e)))))))
 
+   (define (uint->bytes n tail)
+      (lets
+         ((a (band n #xff)) (n (>> n 8))
+          (b (band n #xff)) (n (>> n 8))
+          (c (band n #xff)) (n (>> n 8))
+          (d (band n #xff)))
+         (ilist d c b a tail)))
+
+   (define (ws->bytes ws)
+      (foldr uint->bytes null ws))
+
    (define (sha1-format-result ws)
       (list->string
          (foldr append null
@@ -163,8 +181,39 @@
             ((vector? thing) (vec-iter thing))
             (else thing))))
 
+   (define sha1-bytes
+      (o ws->bytes sha1-raw))
+
    (define sha1 
       (o sha1-format-result sha1-raw))
+
+   (define (list-xor a b)
+      (cond
+         ((null? a) b)
+         ((null? b) a)
+         (else
+            (lets ((a as a)
+                   (b bs b))
+               (cons (bxor a b)
+                  (list-xor as bs))))))
+
+   (define (hmac-sha1 key msg)
+      (lets
+         ((key (string->bytes key))
+          (msg (string->bytes msg))
+          (key
+            (if (> (length key) sha1-blocksize)
+               (sha1-bytes key)
+               key))
+          (key
+            (append key
+               (map (λ (x) 0)
+                  (iota 0 1 (- sha1-blocksize (length key))))))
+          (o-pad (map (λ (x) #x5c) (iota 0 1 sha1-blocksize)))
+          (i-pad (map (λ (x) #x36) (iota 0 1 sha1-blocksize))))
+         (sha1
+            (append (list-xor o-pad key)
+               (sha1-bytes (append (list-xor i-pad key) msg))))))
 
 ))
 
