@@ -35,4 +35,5 @@
 (test "SHA256" sha256 "abc" "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 (test "SHA256" sha256 "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq" "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1")
 
-
+(test2 "HMAC-SHA256" hmac-sha256 "" "" "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad")
+(test2 "HMAC-SHA256" hmac-sha256 "key" "The quick brown fox jumps over the lazy dog" "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8")

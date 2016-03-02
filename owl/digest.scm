@@ -10,6 +10,8 @@
       sha256-bytes
       hmac-sha1       ;; key, data → sha1 
       hmac-sha1-bytes ;; key, data → sha1 bytes
+      hmac-sha256
+      hmac-sha256-bytes
       )
 
    (import
@@ -26,6 +28,8 @@
    (begin
 
       (define sha1-blocksize 64)
+      (define sha256-blocksize 64)
+      (define sha512-blocksize 64)
 
       (define (n->bytes n)
          (let ((a (band n 255))
@@ -331,6 +335,15 @@
 
    (define sha256
       (o sha1-format-result sha256-raw))
+
+   (define hmac-sha256-bytes
+      (make-hmac sha256-bytes sha256-blocksize))
+
+   (define (hmac-sha256 k m)
+      (hash-bytes->string
+         (hmac-sha256-bytes k m)))
+
+
 
    ;; Switch to 64-bit SHA-2 once it's there
 
