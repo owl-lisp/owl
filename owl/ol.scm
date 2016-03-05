@@ -64,7 +64,7 @@
 
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.10")
+(define *owl-version* "0.1.11")
 (define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
 (define max-object-size #xffff)
 
@@ -114,7 +114,6 @@
 (import (owl closure))
 (import (owl compile))
 (import (owl suffix))
-(import (owl digest))
 (import (owl time))
 (import (owl random))
 (import (owl args))
@@ -190,10 +189,12 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       ;;          '-- to be a fairly large subset of at least, so adding this
 
 (import (owl eval))
+(import (owl digest))
 (import (owl base))
 (import (owl date))
 (import (owl http))
 (import (owl html))
+(import (owl crypt))
 
 (import (scheme cxr))
 (import (scheme base))

@@ -77,10 +77,13 @@ functions. To make programs run faster, one can use for example:
   $ ol -O2 -o test.c test.scm && gcc -O2 -o test test.c
 
 
-DOCUMENTATION
-~~~~~~~~~~~~~
+UPDATES AND DOCUMENTATION
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For further documentation, see:
+For further documentation and updates, see:
 
-  http://code.google.com/p/owl-lisp/wiki/OwlManual 
+  https://haltp.org/n/10
+
+  https://github.com/aoh/owl-lisp
+
 

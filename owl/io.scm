@@ -706,16 +706,21 @@
                      (muxer rs ws alarms))
                   (lets
                      ((timeout (if (single-thread?) #false 0))
+                      ;(_ (print (list '_poll2_1 rs ws timeout)))
                       (waked x (_poll2 rs ws timeout)))
+                     ;(print " - " waked ", " x)
+                     ;(display "o")
                      (cond
                         (waked
                           (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                              (muxer rs ws alarms)))
                         (x ;; an error was signaled - activate all since we don't
                            ;; know which fd is to blame
-
-                           (print-to stderr "ACTIVATE ALL 1!")
-                           (muxer rs ws alarms))
+                           ;(print-to stderr "ACTIVATE ALL 1!")
+                           ;(muxer rs ws alarms)
+                           ;(print-to stderr "stopping on signal " x)
+                           3
+                           )
                         (else
                            (set-ticker 0)
                            (muxer rs ws alarms))))))
@@ -728,14 +733,20 @@
                            (muxer rs ws alarms))
                         (lets
                            ((timeout (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
+                            ;(_ (print (list '_poll2 rs ws timeout)))
                             (waked x (_poll2 rs ws timeout)))
+                           ;(print " - " waked ", " x)
+                           ;(display "x")
                            (cond
                               (waked
                                  (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                                     (muxer rs ws alarms)))
                               (x
-                                 (print-to stderr "ACTIVATE ALL 2!")
-                                 (muxer rs ws alarms))
+                                 ;(print-to stderr "ACTIVATE ALL 2!")
+                                 ;(muxer rs ws alarms)
+                                 ;(print-to stderr "stopping on signal " x)
+                                 2
+                                 )
                               (else
                                  (muxer rs ws alarms))))))
                   ;; the bell tolls
