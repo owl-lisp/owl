@@ -2,13 +2,23 @@
 (define-library (owl digest)
    
    (export
-      sha1          ;; str | vec | list | ll → str
-      sha1-raw)     ;; ditto → byte list
+      sha1            ;; str | vec | list | ll → str
+      sha1-raw        ;; ditto → integer list
+      sha1-bytes      ;; ditto → byte list
+      sha256
+      sha256-raw
+      sha256-bytes
+      hmac-sha1       ;; key, data → sha1 
+      hmac-sha1-bytes ;; key, data → sha1 bytes
+      hmac-sha256
+      hmac-sha256-bytes
+      )
 
    (import
       (owl defmac)
       (owl math)
       (owl list)
+      (owl list-extra)
       (owl vector)
       (owl io)
       (owl string)
@@ -16,6 +26,10 @@
       (owl lazy))
 
    (begin
+
+      (define sha1-blocksize 64)
+      (define sha256-blocksize 64)
+      (define sha512-blocksize 64)
 
       (define (n->bytes n)
          (let ((a (band n 255))
@@ -42,6 +56,12 @@
             (bor
                (<< x n)
                (>> x (- 32 n)))))
+      
+      (define (ror x n)
+         (word
+            (bor
+               (>> x n)
+               (<< x (- 32 n)))))
 
       (define (sha1-pad ll)
          (let loop ((ll ll) (bits 0))
@@ -83,15 +103,6 @@
                (xor-poss (bxor x (car lst)) (car ps) (cdr ps) (cdr lst)))
             (xor-poss x (- n 1) ps (cdr lst))))
 
-      ;; i-3 i-8 i-14 i-16
-      (define (extend-initial-words lst)
-         (let loop ((lst lst) (n 16))
-            (if (= n 80)
-               lst
-               (loop
-                  (cons (rol (xor-poss 0 3 '(5 6 2) lst) 1) lst)
-                  (+ n 1)))))
-
       (define (sha1-step a b c d e f k w)
          (values (word (+ (rol a 5) f e k w)) a (word (rol b 30)) c d))
 
@@ -100,7 +111,6 @@
 
       (define (sha1-chunk h0 h1 h2 h3 h4 ws)
          (let loop ((i 0) (a h0) (b h1) (c h2) (d h3) (e h4) (ws (reverse ws)))
-            ;(print (list 'sha1-loop i a b c d e ws))
             (cond
                ((< i 20)
                   (lets ((f (bor (band b c) (band (bnot b) d)))
@@ -134,10 +144,37 @@
                      (word (+ h3 d))
                      (word (+ h4 e)))))))
 
-   (define (sha1-format-result ws)
+   (define (uint32->bytes n tail)
+      (lets
+         ((a (band n #xff)) (n (>> n 8))
+          (b (band n #xff)) (n (>> n 8))
+          (c (band n #xff)) (n (>> n 8))
+          (d (band n #xff)))
+         (ilist d c b a tail)))
+
+   (define (ws->bytes ws)
+      (foldr uint32->bytes null ws))
+
+   ;; silly version for now
+   (define (hash-bytes->string bs)
       (list->string
-         (foldr append null
-            (map (λ (x) (cdr (string->list (number->string (+ #x100000000 x) 16)))) ws))))
+         (foldr
+            (λ (b tl)
+               (append (cdr (string->list (number->string (+ #x100 b) 16))) tl))
+            null bs)))
+
+   (define sha1-format-result 
+      (o hash-bytes->string ws->bytes))
+
+      ;; i-3 i-8 i-14 i-16
+      (define (sha1-extend-initial-words lst)
+         (let loop ((lst lst) (n 16))
+            (if (= n 80)
+               lst
+               (loop
+                  (cons (rol (xor-poss 0 3 '(5 6 2) lst) 1) lst)
+                  (+ n 1)))))
+
 
    (define (sha1-chunks ll)
       (let loop 
@@ -152,7 +189,7 @@
                (lets 
                   ((h0 h1 h2 h3 h4 
                      (sha1-chunk h0 h1 h2 h3 h4 
-                        (extend-initial-words ws))))
+                        (sha1-extend-initial-words ws))))
                   (loop ll h0 h1 h2 h3 h4))
                (list h0 h1 h2 h3 h4)))))
 
@@ -163,9 +200,153 @@
             ((vector? thing) (vec-iter thing))
             (else thing))))
 
+   (define sha1-bytes
+      (o ws->bytes sha1-raw))
+
    (define sha1 
       (o sha1-format-result sha1-raw))
 
+   (define (list-xor a b)
+      (cond
+         ((null? a) b)
+         ((null? b) a)
+         (else
+            (lets ((a as a)
+                   (b bs b))
+               (cons (bxor a b)
+                  (list-xor as bs))))))
+
+   (define (make-hmac hasher blocksize)
+      (lambda (key msg)
+         (lets
+            ((key (string->bytes key)) ;; we want to UTF-8 encode it
+             (msg (string->bytes msg)) ;; ditto
+             (key (if (> (length key) blocksize) (hasher key) key))
+             (key
+               (append key
+                  (map (λ (x) 0)
+                     (iota 0 1 (- blocksize (length key))))))
+             (o-pad (map (λ (x) #x5c) (iota 0 1 blocksize)))
+             (i-pad (map (λ (x) #x36) (iota 0 1 blocksize))))
+            (hasher
+               (append (list-xor o-pad key)
+                  (hasher (append (list-xor i-pad key) msg)))))))
+               
+   (define hmac-sha1-bytes
+      (make-hmac sha1-bytes sha1-blocksize))
+
+   (define (hmac-sha1 k m)
+      (hash-bytes->string
+         (hmac-sha1-bytes k m)))
+
+
+   ;;;
+   ;;; SHA-2
+   ;;;
+
+   ;; 0 .. 63
+   (define ks
+      (list
+         #x428a2f98 #x71374491 #xb5c0fbcf #xe9b5dba5 #x3956c25b #x59f111f1 #x923f82a4 #xab1c5ed5
+         #xd807aa98 #x12835b01 #x243185be #x550c7dc3 #x72be5d74 #x80deb1fe #x9bdc06a7 #xc19bf174
+         #xe49b69c1 #xefbe4786 #x0fc19dc6 #x240ca1cc #x2de92c6f #x4a7484aa #x5cb0a9dc #x76f988da
+         #x983e5152 #xa831c66d #xb00327c8 #xbf597fc7 #xc6e00bf3 #xd5a79147 #x06ca6351 #x14292967
+         #x27b70a85 #x2e1b2138 #x4d2c6dfc #x53380d13 #x650a7354 #x766a0abb #x81c2c92e #x92722c85
+         #xa2bfe8a1 #xa81a664b #xc24b8b70 #xc76c51a3 #xd192e819 #xd6990624 #xf40e3585 #x106aa070
+         #x19a4c116 #x1e376c08 #x2748774c #x34b0bcb5 #x391c0cb3 #x4ed8aa4a #x5b9cca4f #x682e6ff3
+         #x748f82ee #x78a5636f #x84c87814 #x8cc70208 #x90befffa #xa4506ceb #xbef9a3f7 #xc67178f2))
+
+   (define sha256-pad
+      sha1-pad)
+
+   (define (sha256-chunk h0 h1 h2 h3 h4 h5 h6 h7 ws)
+      (let loop ((a h0) (b h1) (c h2) (d h3) (e h4) (f h5) (g h6) (h h7) (ws (reverse ws)) (ks ks))
+         (if (null? ws)
+            (values 
+               (word (+ h0 a))
+               (word (+ h1 b))
+               (word (+ h2 c))
+               (word (+ h3 d))
+               (word (+ h4 e))
+               (word (+ h5 f))
+               (word (+ h6 g))
+               (word (+ h7 h)))
+            (lets
+               ((S1 (bxor (bxor (ror e 6) (ror e 11)) (ror e 25)))
+                (ch (bxor (band e f) (band g (bnot e))))
+                (temp1 (word (+ h S1 ch (car ws) (car ks))))
+                (S0 (bxor (bxor (ror a 2) (ror a 13)) (ror a 22)))
+                (maj (bxor (bxor (band a b) (band a c)) (band b c)))
+                (temp2 (+ S0 maj)))
+               (loop (word (+ temp1 temp2)) a b c (word (+ d temp1)) e f g (cdr ws) (cdr ks))))))
+
+   (define (pick lst n)
+      (if (eq? n 1)
+         (lets ((a as lst))
+            (values a as))
+         (pick (cdr lst) (- n 1))))
+
+   ;; i-3 i-8 i-14 i-16
+   (define (sha256-extend-initial-words lst)
+      (let loop ((lst lst) (n 16))
+         (if (eq? n 64)
+            lst
+            (lets ;;  
+               ((p2 l (pick lst 2)) ;; i-2
+                (p7 l (pick l 5))   ;; i-7 
+                (p15 l (pick l 8))  ;; i-15
+                (p16 l (pick l 1))  ;; i-16
+                (s0 (bxor (bxor (ror p15 7) (ror p15 18)) (>> p15 3)))
+                (s1 (bxor (bxor (ror p2 17) (ror p2 19)) (>> p2 10)))
+                (new (word (+ (+ p16 s0) (+ p7 s1)))))
+               (loop (cons new lst) (+ n 1))))))
+               
+
+   (define (sha256-chunks ll)
+      (let loop 
+         ((ll (sha256-pad ll))
+          (h0 #x6a09e667)
+          (h1 #xbb67ae85)
+          (h2 #x3c6ef372)
+          (h3 #xa54ff53a)
+          (h4 #x510e527f)
+          (h5 #x9b05688c)
+          (h6 #x1f83d9ab)
+          (h7 #x5be0cd19))
+         (lets ((ws ll (grab-initial-words ll)))
+            (if ws
+               (lets 
+                  ((h0 h1 h2 h3 h4 h5 h6 h7
+                     (sha256-chunk h0 h1 h2 h3 h4 h5 h6 h7 
+                        (sha256-extend-initial-words ws))))
+                  (loop ll h0 h1 h2 h3 h4 h5 h6 h7))
+               (list h0 h1 h2 h3 h4 h5 h6 h7)))))
+
+   
+   (define (sha256-raw thing)
+      (sha256-chunks
+         (cond
+            ((string? thing) (str-iter-bytes thing))
+            ((vector? thing) (vec-iter thing))
+            (else thing))))
+
+   (define sha256-bytes
+      (o ws->bytes sha256-raw))
+
+   (define sha256
+      (o sha1-format-result sha256-raw))
+
+   (define hmac-sha256-bytes
+      (make-hmac sha256-bytes sha256-blocksize))
+
+   (define (hmac-sha256 k m)
+      (hash-bytes->string
+         (hmac-sha256-bytes k m)))
+
+
+
+   ;; Switch to 64-bit SHA-2 once it's there
+
+   (define sha2 sha256)
+
 ))
-
-
