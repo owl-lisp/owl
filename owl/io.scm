@@ -663,6 +663,7 @@
                   (mail (cdr x) fd)
                   (values rs ws alarms)))
             (else ;; error
+               (print-to stderr "bug: not removing alarm on io error, if there")
                (lets ((rs x (grabelt rs fd))
                       (ws y (grabelt ws fd)))
                   (if x (mail (cdr x) fd))
@@ -706,21 +707,12 @@
                      (muxer rs ws alarms))
                   (lets
                      ((timeout (if (single-thread?) #false 0))
-                      ;(_ (print (list '_poll2_1 rs ws timeout)))
                       (waked x (_poll2 rs ws timeout)))
-                     ;(print " - " waked ", " x)
-                     ;(display "o")
                      (cond
                         (waked
                           (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                              (muxer rs ws alarms)))
-                        (x ;; an error was signaled - activate all since we don't
-                           ;; know which fd is to blame
-                           ;(print-to stderr "ACTIVATE ALL 1!")
-                           ;(muxer rs ws alarms)
-                           ;(print-to stderr "stopping on signal " x)
-                           3
-                           )
+                        (x 3)
                         (else
                            (set-ticker 0)
                            (muxer rs ws alarms))))))
@@ -732,22 +724,16 @@
                         (lets ((rs ws alarms (muxer-add rs ws alarms envelope)))
                            (muxer rs ws alarms))
                         (lets
-                           ((timeout (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
-                            ;(_ (print (list '_poll2 rs ws timeout)))
+                           ((timeout 
+                              (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
                             (waked x (_poll2 rs ws timeout)))
-                           ;(print " - " waked ", " x)
-                           ;(display "x")
                            (cond
                               (waked
                                  (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                                     (muxer rs ws alarms)))
-                              (x
-                                 ;(print-to stderr "ACTIVATE ALL 2!")
-                                 ;(muxer rs ws alarms)
-                                 ;(print-to stderr "stopping on signal " x)
-                                 2
-                                 )
-                              (else
+                              (x 2)
+                              (else 
+                                 (set-ticker 0)
                                  (muxer rs ws alarms))))))
                   ;; the bell tolls
                   (lets

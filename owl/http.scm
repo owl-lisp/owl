@@ -538,7 +538,8 @@
                   (lets 
                      ((ip rfd msg)
                       (fd (fd->port rfd))
-                      (id ip))
+                      (id (tuple 'http-client ip fd)))
+                     (print-to stderr "server starting client fd " fd " with ip " ip)
                      (fork-linked-server id
                         (λ () 
                            (handle-connection 
@@ -559,6 +560,7 @@
                            (server-loop handler (del clis from))))
                      ((crashed op a b)
                         (let ((cli (getf clis from)))
+                           ;; todo: add log & client handler
                            (print-to stderr "Thread crash while processing connection " from)
                            (print-to stderr (verbose-vm-error *toplevel* op a b))
                            (if from
