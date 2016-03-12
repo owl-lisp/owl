@@ -195,6 +195,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (import (owl http))
 (import (owl html))
 (import (owl crypt))
+(import (owl codec))
 
 (import (scheme cxr))
 (import (scheme base))
