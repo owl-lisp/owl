@@ -12,6 +12,7 @@
 
    (import
       (owl base)
+      (owl unicode)
       (owl parse)
       (owl env))
 
@@ -130,9 +131,7 @@
       (define (socket-accepter sock recipient)
          (let ((cli (sys-prim 4 sock #f #f)))
             (if cli
-               (begin 
-                  (print "Socket acceptor got " cli)
-                  (mail recipient cli))
+               (mail recipient cli)
                (interact 'iomux (tuple 'read sock)))
             (socket-accepter sock recipient)))
 
@@ -254,6 +253,9 @@
                         ;; overly permissive for now, A-Za-z0-9*-._ are ok.
                         (loop lst (cons a out))))))))
 
+      (define (maybe op val)
+        (if val (op val) val))
+
       (define (split-url-params bs plus?)
          (lets/cc ret
             ((bss (split-at #\& bs)))
@@ -262,8 +264,8 @@
                   (lets ((parts (split-at #\= pair)))
                      (if (= (length parts) 2)
                         (lets 
-                           ((name (url-decode (car parts) plus?))
-                            (value (url-decode (cadr parts) plus?)))
+                           ((name (maybe utf8-decode (url-decode (car parts) plus?)))
+                            (value (maybe utf8-decode (url-decode (cadr parts) plus?))))
                            (if (and name value)
                               (cons (list->string name)
                                     (list->string value))
@@ -390,7 +392,7 @@
       (define (http-respond req)
          (let ((fd (getf req 'fd)))
             (print-to fd "HTTP/1." (get req 'http-version 0) " " (get req 'status 200) " " (get req 'status-text "OK") "\r")
-            (emit-header fd "Content-Type" (get req 'response-type "text/html"))
+            (emit-header fd "Content-Type" (get req 'response-type "text/html; charset=utf-8"))
             (maybe-emit-header req fd 'server "Server") ;; move to response-headers
             (emit-response-headers req fd)
             (let ((data (get req 'content "No data")))
@@ -407,7 +409,7 @@
                         (write-vector data fd)))
                   ((string? data)
                      (lets
-                        ((data (string->list data))
+                        ((data (string->bytes data))
                          (len (length data)))
                         (emit-header fd "Content-length" len)
                         (print-to fd "\r")
@@ -444,6 +446,7 @@
 
       (define (parse-post-data env)
          (let ((data (getf env 'post-data)))
+            ;; fixme: implicit utf-8 requirement
             (if data
                (lets ((params (split-url-params data #true)))
                   (if params
