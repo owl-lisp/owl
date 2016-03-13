@@ -1,0 +1,7 @@
+read/write 0 OK
+read/write 10+4/3i OK
+read/write #true OK
+read/write #false OK
+read/write #empty OK
+read/write @(1 2) OK
+read/write @(a 1 b 2 c 3) OK

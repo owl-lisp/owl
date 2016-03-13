@@ -392,10 +392,9 @@
          (let-parses
             ((skip (get-imm #\@))
              (fields 
-               (intern-symbols
-                  (get-list-of get-any)))
+               (get-list-of get-any))
              (foo (assert ff-able? fields)))
-            (lst->ff fields)))
+            (lst->ff (intern-symbols fields))))
 
       (define (get-sexp)
          (let-parses
