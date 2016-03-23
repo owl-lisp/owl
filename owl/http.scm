@@ -71,7 +71,7 @@
                               (if (eq? b #\newline)
                                  (values (reverse out) ll)
                                  ;; stray carriage returns are forbidden
-                                 #false)))
+                                 (values #false ll))))
                         (else
                            (loop ll (cons a out))))))
                (else
@@ -155,37 +155,40 @@
       (define (get-request env)
          (lets ((line ll (grab-line (getf env 'bs))))
             (if line
-               (tuple-case (try-parse-query line)
-                  ((get query version)
-                     (lets ((query params (split-params query)))
+               (if (null? line)
+                  (get-request (fupd env 'bs ll)) ;; servers should ignore these according to spec
+                  (tuple-case (try-parse-query line)
+                     ((get query version)
+                        (lets ((query params (split-params query)))
+                           (if query
+                              (-> env
+                                 (fupd 'bs ll) ;; rest of data
+                                 (put 'query (list->string query))
+                                 (put 'get-params params)  ;; byte list
+                                 (put 'http-version version)
+                                 (put 'http-method 'get))
+                              (fail env 500 "Bad query"))))
+                     ((head query version) ;; clone of get for now
+                        (lets ((query params (split-params query)))
+                           (if query
+                              (-> env
+                                 (fupd 'bs ll) ;; rest of data
+                                 (put 'query (list->string query))
+                                 (put 'get-params params)  ;; byte list
+                                 (put 'http-version version)
+                                 (put 'http-method 'head))
+                              (fail env 500 "Bad query"))))
+                     ((post query version)
                         (if query
-                           (-> env
-                              (fupd 'bs ll) ;; rest of data
-                              (put 'query (list->string query))
-                              (put 'get-params params)  ;; byte list
-                              (put 'http-version version)
-                              (put 'http-method 'get))
-                           (fail env 500 "Bad query"))))
-                  ((head query version) ;; clone of get for now
-                     (lets ((query params (split-params query)))
-                        (if query
-                           (-> env
-                              (fupd 'bs ll) ;; rest of data
-                              (put 'query (list->string query))
-                              (put 'get-params params)  ;; byte list
-                              (put 'http-version version)
-                              (put 'http-method 'head))
-                           (fail env 500 "Bad query"))))
-                  ((post query version)
-                     (if query
-                       (-> env
-                          (fupd 'bs ll)
-                          (put 'query (list->string query))
-                          (put 'http-version version)
-                          (put 'http-method 'post))
-                       (fail env 500 "Bad query")))
-                  (else
-                     (fail env 500 "Query wat")))
+                          (-> env
+                             (fupd 'bs ll)
+                             (put 'query (list->string query))
+                             (put 'http-version version)
+                             (put 'http-method 'post))
+                          (fail env 500 "Bad query")))
+                     (else
+                        (print "odd line: " line)
+                        (fail env 500 "Query wat"))))
                (fail env 500 "No query received"))))
 
       ;; doing string->symbol on all would cause memory leak
@@ -318,6 +321,7 @@
             env))
 
       (define (get-headers env)
+         ;(print "getting headers from " (getf env 'bs))
          (lets 
             ((line ll (grab-line (getf env 'bs)))
              (env (fupd env 'bs ll)))
@@ -524,12 +528,17 @@
                      (if (pair? bs)
                         (begin
                             (print-request-info env n "")
-                            (loop (+ n 1) (clear-env env)))
+                            ;(loop (+ n 1) (clear-env env))
+                           (close-port (getf env 'fd))
+                            )
                         (begin
-                           (print-request-info env n "closing on non-pair data")
-                           (close-port (getf env 'fd)))))
+                           ;(print-request-info env n "closing on non-pair data")
+                           (close-port (getf env 'fd))
+                           ;(print-request-info env n "")
+                           ;(loop (+ n 1) (clear-env env))
+                           )))
                   (begin
-                     (print-request-info env n " -> closing on non-200")
+                     ;(print-request-info env n " -> closing on non-200")
                      (close-port (getf env 'fd)))))))
 
       (define (server-loop handler clis)
@@ -542,7 +551,7 @@
                      ((ip rfd msg)
                       (fd (fd->port rfd))
                       (id (tuple 'http-client ip fd)))
-                     (print-to stderr "server starting client fd " fd " with ip " ip)
+                     ;(print-to stderr "server starting client fd " fd " with ip " ip)
                      (fork-linked-server id
                         (λ () 
                            (handle-connection 
