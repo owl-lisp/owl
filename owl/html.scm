@@ -87,7 +87,7 @@
                code colgroup datalist dl dd del details dfn dialog dir dt em
                fieldset figcaption figure font footer form pre frame frameset
                ins kbd label legend main map mark menu menuitem meter nav
-               noframes noscript object optgroup select output prep progress
+               noframes noscript object optgroup select option output prep progress
                q rp rt ruby s samp script section select small source span
                strike strong style sub summary sup tt u ul var video))
              (ff (list->ff (zip cons keys keys))))
