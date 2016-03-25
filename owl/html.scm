@@ -117,22 +117,25 @@
             ((not val)
                sexp)
             ((pair? sexp)
-               (case (car sexp)
-                  ('a 
-                     (let ((atts (add-href-attribute (cadr sexp) var val)))
-                        (if atts
-                           (ilist 'a atts (map (λ (exp) (carry-session exp var val)) (cddr sexp)))
-                           (map (λ (exp) (carry-session exp var val)) sexp))))
-                  ('form
-                     (ilist 'form 
-                        (append
-                          (map 
-                             (λ (x) (carry-session x var val)) 
-                             (cdr sexp))
-                          (list
-                            `(input ((type "hidden") (name ,var) (value ,val)))))))
-                  (else
-                     (map (λ (x) (carry-session x var val)) sexp))))
+               (let ((hd (car sexp)))
+                 (cond
+                    ((eq? hd 'a)
+                       (let ((atts (add-href-attribute (cadr sexp) var val)))
+                          (if atts
+                             (ilist 'a atts (map (λ (exp) (carry-session exp var val)) (cddr sexp)))
+                             (map (λ (exp) (carry-session exp var val)) sexp))))
+                    ((eq? hd 'form)
+                       (ilist 'form 
+                          (append
+                            (map 
+                               (λ (x) (carry-session x var val)) 
+                               (cdr sexp))
+                            (list
+                              `(input ((type "hidden") (name ,var) (value ,val)))))))
+                    ((eq? hd 'quote)
+                       sexp)
+                    (else
+                       (map (λ (x) (carry-session x var val)) sexp)))))
             (else sexp)))
 
       (define (render-quoting-tags str tail)

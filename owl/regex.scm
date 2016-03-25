@@ -29,13 +29,14 @@
       get-sexp-regex
       string->regex
       string->replace-regex
-		string->complete-match-regex
-      )
+      string->complete-match-regex
+      rex-matches)
 
    (import
       (owl defmac)
       (owl parse)
       (only (owl syscall) error)
+      (owl io)
       (owl ff)
       (owl list)
       (owl lazy)
@@ -445,6 +446,11 @@
          (if (null? out)
             null
             (list (runes->string (reverse out)))))
+     
+      (define (force node)
+         (cond ((pair? node) node)
+               ((null? node) node)
+               (else (force (node)))))
 
       (define (rex-cut rex ll start? out)
          (cond
@@ -454,19 +460,23 @@
                (let ((res (rex-match-prefix rex ll)))
                   (cond
                      (res
-                        (lets ((ls buff ms res))
+                        (lets ((ls buff ms res)
+                               (ls (force ls)))
                            ;; buff = reverse matched range
                            (cons (runes->string (reverse out)) ;; non-matched up to now
-                              (if start?
-                                 (list ls)
-                                 (rex-cut rex ls #false null)))))
+                              (cond
+                                 (start?
+                                    (list ls))
+                                 ((null? ls)  ;; trailing match
+                                    (list ""))
+                                 (else
+                                    (rex-cut rex ls #false null))))))
                      (start?
                         (list ll))
                      (else
                         (rex-cut rex (cdr ll) start? (cons (car ll) out))))))
             (else
                (rex-cut rex (ll) start? out))))
-         
 
       ;; regex that cuts stuff to pieces at matches
       (define (make-cutter rex start?)
@@ -475,7 +485,21 @@
                ; global? retain
                null)))
 
-
+      (define (rex-matches rex thing)
+         (let loop ((ll (iter thing)) (out null))
+            (print (list 'loop ll out))
+            (cond
+               ((null? ll)
+                  (reverse out))
+               ((pair? ll)
+                  (let ((res (rex-match-prefix rex ll)))
+                    (print 'res res)
+                     (if res
+                        (lets ((ls buff ms res))
+                           (loop ls (cons (runes->string (reverse buff)) out)))
+                        (loop (cdr ll) out))))
+               (else (loop (ll) out)))))
+                        
       ;;;
       ;;; Replacing
       ;;;
@@ -926,10 +950,6 @@
              (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
              (rex (get-regex))
              (skip (get-imm 47)) ;; closing /
-            ;(flags get-cut-flags) ;; [r]emove (default), keep as [p]refix, keep as [s]uffix
-                                   ;; (c/X/[r] "fooXbarXbaz") → '("foo" "bar" "baz")
-                                   ;; (c/X/p   "fooXbarXbaz") → '("foo" "Xbar" "Xbaz")
-                                   ;; (c/X/s    "fooXbarXbaz") → '("fooX" "barX" "baz")
             )
            (make-cutter rex start?)))
 

@@ -122,7 +122,7 @@
                   (if (eq? hd x)
                      (values (reverse out) lst)
                      (loop lst (cons hd out)))))))
-                  
+      
       (define (split-params query)
          (lets ((q ps (cut-at #\? query)))
             (values q ps)))
@@ -223,8 +223,9 @@
             (lets ((these lst (cut-at x lst)))
                (if (null? these)
                   (split-at x lst)
-                  (cons these (split-at x lst))))))
-
+                  (cons these 
+                    (split-at x lst))))))
+      
       (define (hex-val a)
          (cond
             ((not a) #false)
@@ -259,6 +260,7 @@
       (define (maybe op val)
         (if val (op val) val))
 
+
       (define (split-url-params bs plus?)
          (lets/cc ret
             ((bss (split-at #\& bs)))
@@ -272,8 +274,12 @@
                            (if (and name value)
                               (cons (list->string name)
                                     (list->string value))
-                              (ret #false)))
-                        (ret #false))))
+                              (begin
+                                 (print "post data fail: bad name or value: " name ", " value)
+                                 (ret #false))))
+                        (begin
+                           (print "post data fail: no two parts in " pair) 
+                          (ret #false)))))
                bss)))
 
       (define (parse-get-params env)

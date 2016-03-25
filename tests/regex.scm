@@ -3,7 +3,7 @@
 ;;;
 
 ;,r "owl/regex.l" 
-; (import (owl regex)) ;; when testing without a heap rebuild
+(import (owl regex)) ;; when testing without a heap rebuild
 
 ;; regex str → did-match-ok?
 (define (test regex input should?)
@@ -159,6 +159,7 @@
       ("s/((\\w+) (\\w+) )*/\\2 \\3 /" "it was a fine day" "a fine day")
       ("s/(..)(?:.*)(.)/\\1\\2/" "quel chance" "que")
       ("c/foo/" "franzfoolisp" ("franz" "lisp"))
+      ("c/=/" "foo=" ("foo" ""))
       ("c/(\\d)\\1/" "121121221121221" ("12" "21" "" "21" "1"))
       ("c/λ/" "fooλbarλbaz" ("foo" "bar" "baz"))
       ;("c/^foo/" "foofoo" ("" "foo")) ; <- does not work yet
