@@ -569,7 +569,7 @@
                                  (put 'bs (stream-fd-timeout fd max-request-time))))))
                      (server-loop handler (put clis id (time-ms)))))
                ((eq? msg 'stop)
-                  (print-to stderr "server stopping")
+                  ;(print-to stderr "server stopping")
                   (mail 'from 'stopped))
                ((tuple? msg) 
                   (tuple-case msg
