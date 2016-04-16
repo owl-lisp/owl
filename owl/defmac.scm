@@ -22,7 +22,7 @@
 
       immediate? allocated? raw? record? eof?
 
-		-> ->>
+      -> ->> if-lets
 
       type-bytecode
       type-proc
@@ -558,6 +558,16 @@
 				((->> a ... x)
 					(x (->> a ...)))))
 
-
+    (define-syntax if-lets
+      (syntax-rules ()
+          ((if-lets () then else)
+            then)
+          ((if-lets ((k ... val) . rest) then else)
+            (lets ((k ... val))
+              (if k
+                (if-lets rest then else)
+                else)))
+          ((if-lets bindings then)
+            (if-lets bindings then #false))))
 
 ))

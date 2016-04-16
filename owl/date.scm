@@ -16,6 +16,8 @@
 
    (begin
 
+      ; --rfc-2822 + date-str timezone offset
+
       ;; 0 = epoch @ Thu Jan 1 1970
 
       (define minute 60)

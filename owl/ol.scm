@@ -64,7 +64,7 @@
 
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.11")
+(define *owl-version* "0.1.12")
 (define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
 (define max-object-size #xffff)
 
