@@ -64,7 +64,7 @@ typedef int32_t   wdiff;
 #define fixnump(desc)               (((desc)&255) == 2)
 #define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
-#define header(x)                   *(word *x)
+#define header(x)                   *((word *)x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
 #define imm_val(x)                  ((x) >> IPOS)
 #define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
@@ -663,7 +663,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int mode = fixval(b);
          int val = 0;
          struct stat sb;
-         if (!(allocp(path) && imm_type(*path) == 3))
+         if (!(allocp(path) && imm_type(header(a)) == 3))
             return IFALSE;
          val |= O_BINARY | ((mode & 1) ? O_WRONLY : O_RDONLY) \
                          | ((mode & 2) ? O_TRUNC : 0) \
