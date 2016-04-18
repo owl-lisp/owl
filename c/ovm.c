@@ -144,7 +144,7 @@ static word *fp;
 int usegc;
 int slice;
 
-word vm();
+word vm(word *ob, word *args);
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void *malloc(size_t size);
