@@ -113,3 +113,7 @@
 (check-posix->date 4519814883 "12 Friday 16:08:03 24.03.2113")
 (check-posix->date 5996209931 "01 Saturday 13:52:11 05.01.2160")
 (check-posix->date 7539713850 "48 Sunday 04:57:30 04.12.2208")
+(check-posix->date 5711558749 "53 Tuesday 00:05:49 29.12.2150")
+
+
+

@@ -115,12 +115,30 @@
       ;; the days during the last week of the year belong instead to week 
       ;; 1 of the subsequent year, if the thursday of the week belongs to 
       ;; the next year
+
+      (define (days-to-thursday d)
+        (if (< d 5)
+          (- 4 d)
+          (+ 4 (- 7 d))))
+
+      (define (days-to-sunday d)
+         (- 7 d))
+
       (define (maybe-swap-year y md week day)
          (cond
             ((< week 52) (values week day))
-            ((< md 29)   (values week day))
-            ((< day 4)   (values 1 day))
-            (else        (values week day))))
+            ((> day 3) 
+              ;; thursday already contained in this week
+              (values week day))
+            ((< (+ md (days-to-sunday day)) 32)
+              ;; whole week fits the year
+              (values week day))
+            ((< (+ md (days-to-thursday day)) 32)
+              ;; partial, but switch happens before thursday
+              (values week day))
+            (else
+              ;; subsequent thursday falls to next year
+              (values 1 day))))
 
       ;; naive-ish but corret version, against which to add tests
       (define (week-info d m y)
