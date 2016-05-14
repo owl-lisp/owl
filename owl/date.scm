@@ -1,5 +1,10 @@
 
+;; todo: check how far before 1970 these hold
+;; todo: --rfc-2822
+;; todo: date-str timezone offsets
+
 (define-library (owl date)
+
    (import
       (owl base))
 
@@ -15,8 +20,6 @@
       minute hour day week year leap-year)
 
    (begin
-
-      ; --rfc-2822 + date-str timezone offset
 
       ;; 0 = epoch @ Thu Jan 1 1970
 
@@ -87,7 +90,6 @@
                    (c _ (quotrem y 400)))
                   (+ 1 (- (+ (- a 0) (- c 0)) (- b 0)))))))
 
-      ;; fixme, this holds from 1200-ish onwards. what happened there?
       (define (year-start-day y)
          (+ 1 (remainder (+ 5 (* 365 y) (leap-years-before y)) 7)))
 
@@ -97,15 +99,42 @@
       (define day-names-en
          (tuple "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"))
 
-      ;; naive-ish version
+      ;; compute day of week and ISO-compliant week number
+      (define (year-start-week-info y)
+        (let ((d (year-start-day y)))
+          (cond
+            ((< d 5) ;; mon-wed, week 1
+              (values d 1))
+            ((eq? d 5) ;; friday - week 53 of previous
+               (values d 53))
+            ((eq? d 6) ;; saturday - week 52, or 53 if previous was a leap year
+               (values d (+ 52 (if (leap-year? (- y 1)) 1 0))))
+            (else ;; sunday
+               (values d 52)))))
+
+      ;; the days during the last week of the year belong instead to week 
+      ;; 1 of the subsequent year, if the thursday of the week belongs to 
+      ;; the next year
+      (define (maybe-swap-year y week day)
+         (cond
+            ((< week 52) (values week day))
+            ((< day 4)   (values 1 day))
+            (else        (values week day))))
+
+      ;; naive-ish but corret version, against which to add tests
       (define (week-info d m y)
-         (let loop ((rd 1) (rm 1) (week 1) (day (year-start-day y)))
-            (if (and (= rd d) (= rm m))
-               (values week day)
-               (lets ((rd rm y (next-date rd rm y))
-                      (day (if (= day 7) 1 (+ day 1)))
-                      (week (if (= day 1) (+ week 1) week)))
-                  (loop rd rm week day)))))
+         (lets ((day week (year-start-week-info y))
+                (reset? (not (eq? week 1)))) ;; reset to week 1 on next monday
+           (let loop ((rd 1) (rm 1) (week week) (day day) (reset? reset?))
+              (if (and (= rd d) (= rm m))
+                 (maybe-swap-year y week day)
+                 (lets ((rd rm y (next-date rd rm y))
+                        (day (if (eq? day 7) 1 (+ day 1))))
+                   (if (eq? day 1)
+                      (if reset?
+                        (loop rd rm 1 day #false)
+                        (loop rd rm (+ week 1) day reset?))
+                      (loop rd rm week day reset?)))))))
 
       ;;;
       ;;; UNIXish time
