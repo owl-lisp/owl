@@ -115,9 +115,10 @@
       ;; the days during the last week of the year belong instead to week 
       ;; 1 of the subsequent year, if the thursday of the week belongs to 
       ;; the next year
-      (define (maybe-swap-year y week day)
+      (define (maybe-swap-year y md week day)
          (cond
             ((< week 52) (values week day))
+            ((< md 29)   (values week day))
             ((< day 4)   (values 1 day))
             (else        (values week day))))
 
@@ -127,7 +128,7 @@
                 (reset? (not (eq? week 1)))) ;; reset to week 1 on next monday
            (let loop ((rd 1) (rm 1) (week week) (day day) (reset? reset?))
               (if (and (= rd d) (= rm m))
-                 (maybe-swap-year y week day)
+                 (maybe-swap-year y d week day)
                  (lets ((rd rm y (next-date rd rm y))
                         (day (if (eq? day 7) 1 (+ day 1))))
                    (if (eq? day 1)
