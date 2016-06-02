@@ -835,7 +835,7 @@
                      (evaluate exp env))))
             ((fail reason)
                (tuple 'fail 
-                  (list "Macro expansion failed: " reason)))))
+                  (list "Macro expansion of" exp "failed: " reason)))))
 
       ; (repl env in) -> #(ok value env) | #(error reason env)
 
