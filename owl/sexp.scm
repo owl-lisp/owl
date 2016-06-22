@@ -62,7 +62,11 @@
                (string->uninterned-symbol (runes->string (cons head tail))))
             (let-parses
                ((skip (get-imm #\|))
-                (chars (get-greedy+ (get-rune-if (λ (x) (not (eq? x #\|))))))
+                (chars 
+                  (get-greedy* 
+                    (get-either
+                      (let-parses ((skip (get-imm #\\)) (rune get-rune)) rune)
+                      (get-rune-if (λ (x) (not (eq? x #\|)))))))
                 (skip (get-imm #\|)))
                (string->uninterned-symbol (runes->string chars)))))
 
