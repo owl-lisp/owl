@@ -4,8 +4,8 @@ Copyright (c) 2016 Aki Helin
 OVERVIEW
 ~~~~~~~~
 
-Owl Lisp is a functtional dialect of the Scheme programming language. It
-is mainly based on applicative subset of the R7RS standard.
+Owl Lisp is a functional dialect of the Scheme programming language. It
+is mainly based on the applicative subset of the R7RS standard.
 
 
 REQUIREMENTS
