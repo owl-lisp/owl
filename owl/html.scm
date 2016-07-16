@@ -37,6 +37,8 @@
                   (quote-once cs tail)))
             ((number? val)
                (render val tail))
+            ((symbol? val)
+               (render (str val) tail))
             (else
                (error "render-quoted: cannot handle this yet: " val))))
 
@@ -110,7 +112,25 @@
                (λ (tail)
                   (cons (car attribs) tail)))
             (else #false)))
-        
+   
+      ;; (a ((href link (arg val) ...)) "...")
+      (define (simple-link-parts sexp)
+         (let ((atts (cadr sexp)) (body (cddr sexp)))
+            (if (and (= (length atts) 1) (eq? (caar atts) 'href)
+                     (= (length body) 1) (string? (car body)))
+               (let ((href (cdar atts)))
+                  (values (car href) (cdr href) (car body)))
+               (values #f #f #f))))
+
+      (define (make-link-form href args text)
+         (ilist 'form 
+            `((method "POST") (action ,href))
+            `(input ((type "submit") (class "btn") (value ,text)))
+            (map 
+               (λ (pair) 
+                  `(input ((type hidden) (name ,(car pair)) (value ,(cadr pair)))))
+               args)))
+
       ;; todo: rather persist var(s)
       (define (carry-session sexp var val)
          (cond
@@ -120,10 +140,13 @@
                (let ((hd (car sexp)))
                  (cond
                     ((eq? hd 'a)
-                       (let ((atts (add-href-attribute (cadr sexp) var val)))
-                          (if atts
-                             (ilist 'a atts (map (λ (exp) (carry-session exp var val)) (cddr sexp)))
-                             (map (λ (exp) (carry-session exp var val)) sexp))))
+                       (lets ((href args text (simple-link-parts sexp)))
+                          (cond
+                             ((not href)
+                                (error "cannot carry session for link: " sexp))
+                             ((m/:\// href) sexp) ;; external link
+                             (else
+                               (make-link-form href (cons (list var val) args) text)))))
                     ((eq? hd 'form)
                        (ilist 'form 
                           (append
