@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/wait.h>
+#include <termios.h>
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -156,6 +157,8 @@ pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 int chdir(const char *path);
 int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+
+struct termios tsettings;
 
 int execv(const char *path, char *const argv[]);
 
@@ -329,6 +332,7 @@ static word *gc(int size, word *regs) {
 
 
 /*** OS Interaction and Helpers ***/
+
 
 void toggle_blocking(int sock, int blockp) {
    fcntl(sock, F_SETFL, fcntl(sock, F_GETFD)^O_NONBLOCK);
@@ -734,6 +738,7 @@ static word prim_sys(int op, word a, word b, word c) {
             return IEOF;
          return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
       case 6:
+         tcsetattr(0, TCSANOW, &tsettings);
          EXIT(fixval(a)); /* stop the press */
       case 7: /* set memory limit (in mb) */
          max_heap_mb = fixval(a);
@@ -868,8 +873,20 @@ static word prim_sys(int op, word a, word b, word c) {
       case 25: {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
-         return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p));
-      }
+         return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
+		case 26: {
+         static struct termios old;
+            if (a == ITRUE) {
+               tcgetattr(0, &old);
+               old.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+               old.c_oflag &= ~OPOST;
+               old.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+               old.c_cflag &= ~(CSIZE | PARENB);
+               old.c_cflag |= CS8;
+               tcsetattr(0, TCSANOW, &old);
+            } else  {
+               tcsetattr(0, TCSANOW, &tsettings);
+            }}
       default: 
          return IFALSE;
    }
@@ -1597,6 +1614,10 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
 }
 
 int main(int nargs, char **argv) {
-   return boot(nargs, argv);
+   int rval;
+   tcgetattr(0, &tsettings);
+   rval = boot(nargs, argv);
+   tcsetattr(0, TCSANOW, &tsettings);
+   return rval;
 }
 
