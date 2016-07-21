@@ -49,6 +49,62 @@
       (define (clear-screen-top) (write-byte-vector stdout #(27 #\[ #\1 #\J)))
       (define (clear-screen-bottom) (write-byte-vector stdout #(27 #\[ #\J)))
 
+      ;;; Terminal input stream
+
+      (define (get-natural ll def)
+        (let loop ((n 0) (first? #true) (ll ll))
+          (lets ((x ll (uncons ll #false)))
+            (cond
+              ((not x) (values def ll)) 
+              ((< 47 x 58)
+                (loop (+ (* n 10) (- x 48)) #false ll))
+              (first?
+                (values def (cons x ll)))
+              (else
+                (values n (cons x ll)))))))
+      
+      (define (get-imm ll val)
+        (lets ((x ll (uncons ll #false)))
+          (if (eq? x val)
+            (values x ll)
+            (values #false (cons x ll)))))
+  
+      (define (terminal-input)
+        (let loop ((ll (port->byte-stream stdin)))
+          (cond
+            ((pair? ll)
+              (lets ((hd ll ll))
+                (cond
+                  ((eq? hd 27) ;; decode escape sequence
+                    (lets ((op ll (uncons ll #false)))
+                      (cond
+                        ((eq? op 91)
+                          (lets ((op ll (uncons ll #false)))
+                            (cond
+                              ((eq? op 65) (cons (tuple 'arrow 'up) (loop ll)))
+                              ((eq? op 66) (cons (tuple 'arrow 'down) (loop ll)))
+                              ((eq? op 67) (cons (tuple 'arrow 'right) (loop ll)))
+                              ((eq? op 68) (cons (tuple 'arrow 'left) (loop ll)))
+                              (else 
+                                (lets
+                                  ((a ll (get-natural (cons op ll) #false))
+                                   (x ll (get-imm ll #\;))
+                                   (b ll (get-natural ll #false))
+                                   (y ll (get-imm ll #\R)))
+                                  ;(print (list 'esc a x b y)) 
+                                  (cond
+                                    ((and a b x y)
+                                      (cons (tuple 'cursor-position a b) (loop ll)))
+                                    (else
+                                      (cons (tuple 'esc-unknown 91 op) null))))))))
+                        (else
+                          (pair (tuple 'esc-unknown op) null)))))
+                  ((eq? hd 127) (cons (tuple 'backspace) (loop ll)))
+                  ((eq? hd 13)  (cons (tuple 'enter) (loop ll)))
+                  (else
+                    (cons (tuple 'key hd) (loop ll))))))
+            ((null? ll) ll)
+            (else (λ () (loop (ll)))))))
 
       ;;; Cursor movement
 
@@ -92,6 +148,31 @@
       ;;        bs    127
       ;;        ^K    11  -- remove line right
       ;;        ^U    21  -- remove line left
+
+      (define (wait-cursor-position ll)
+        (let loop ((head null) (ll ll))
+          (lets ((this ll (uncons ll #false)))
+            (cond
+              ((not this)
+                (values #false #false ll))
+              ((eq? 'cursor-position (ref this 1))
+                (values (ref this 3) (ref this 2) (append (reverse head) ll)))
+              (else
+                (loop (cons this head) ll))))))
+                
+      ;; ll → cols rows ll'
+      (define (get-cursor-position ll)
+        ;; request cursor position
+        (write-byte-vector stdout #(27 #\[ #\6 #\n))
+        (wait-cursor-position ll))
+
+      (define (get-terminal-size ll)
+        (lets 
+          ((x y ll (get-cursor-position ll))
+           (res (cursor-pos 4095 4095))
+           (xm ym ll (get-cursor-position ll)))
+          (cursor-pos x y)
+          (values xm ym ll)))
 
       (define (get-terminal-byte)
          (car (vector->list (get-block stdin 1))))
@@ -176,13 +257,30 @@
                         (display (list->string right))
                         (cursor-left (length right))))
                   (interactive-readline (cons b left) right)))))
-         
+      
       (define (read-line-interactive)
          (set-terminal-rawness #true)
          (let ((res (interactive-readline null null)))
             (set-terminal-rawness #false)
             res))
 
+      (print "raw: " (set-terminal-rawness #true))
+      '(print
+        (lets/cc exit ()
+          (lfold
+            (λ (state evt)
+              (cursor-pos 0 0)
+              (clear-screen)
+              (print evt)
+              (if (equal? evt (tuple 'key 97))
+                (exit evt)
+                state))
+            null (terminal-input))))
+      (begin
+        (cursor-pos 1 10)
+        (lets ((x y ll (get-terminal-size (terminal-input))))
+          (print "Terminal dimensions are " x "x" y))
+        (set-terminal-rawness #false))
       ;(display "Interactive readline: ") (print (read-line-interactive))
       
       ))
