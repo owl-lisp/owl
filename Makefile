@@ -110,6 +110,7 @@ clean:
 	-rm -f fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
 	-rm -f c/vm.c c/ol.c
 	-rm -f doc/*.gz
+	-rm -f tmp/*
 	-rm -f bin/ol bin/vm
 
 # make a standalone binary against dietlibc for relase

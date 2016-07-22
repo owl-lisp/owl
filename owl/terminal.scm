@@ -132,6 +132,8 @@
                   ((eq? hd 21)  (cons (tuple 'nak) (loop ll))) ;; ^u
                   ((eq? hd 3)  (cons (tuple 'end-of-text) (loop ll))) ;; ^c
                   ((eq? hd 4)  (cons (tuple 'end-of-transmission) (loop ll))) ;; ^d
+                  ((eq? hd 16)  (cons (tuple 'data-link-escape) (loop ll))) ;; ^p
+                  ((eq? hd 14)  (cons (tuple 'shift-out) (loop ll))) ;; ^n
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
@@ -435,7 +437,8 @@
                     (else
                       (tuple 'unsupported-arrow dir))))
                 ((enter)
-                  (print " -> " (append (reverse left) right))
+                  ;; debug
+                  ; (print "readline -> " (append (reverse left) right))
                   (values ll
                     (list->string (append (reverse left) right))))
                 ((nak)
@@ -446,6 +449,10 @@
                   (values null #false))
                 ((end-of-transmission)
                   (values null #false))
+                ((data-link-escape) ;; ^p -> up
+                   (loop (cons (tuple 'arrow 'up) ll) hi left right cx off))
+                ((shift-out) ;; ^n -> down
+                   (loop (cons (tuple 'arrow 'down) ll) hi left right cx off))
                 (else
                   (values ll (tuple 'wat op))))))))
 
