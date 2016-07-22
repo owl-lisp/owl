@@ -118,6 +118,7 @@
                           (pair (tuple 'esc-unknown op) null)))))
                   ((eq? hd 127) (cons (tuple 'backspace) (loop ll)))
                   ((eq? hd 13)  (cons (tuple 'enter) (loop ll)))
+                  ((eq? hd 21)  (cons (tuple 'nak) (loop ll))) ;; ^u
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
@@ -295,11 +296,16 @@
           (display visible-left)
           cx))
 
-      (define (history->state elem)
+      ;; upgrade a possible string to readline state at end of it
+      (define (history->state elem off)
         (cond
           ((string? elem)
-            ;; fixme, doesn't take width into account
-            (values (reverse (string->list elem)) null 0))
+            ;; compute a suitable offset
+            (let ((len (string-length elem)))
+              (values 
+                (reverse (string->list elem)) 
+                null 
+                (max 0 (* (- (quot len off) 1) off)))))
           (else
             (values (ref elem 1) (ref elem 2) (ref elem 3)))))
 
@@ -393,7 +399,7 @@
                           (lets 
                             ((new old hi)
                              (current (tuple left right off))
-                             (left right off (history->state (car old)))
+                             (left right off (history->state (car old) offset-delta))
                              (cx (update-line-left x y off left)))
                             (update-line-right right w cx)
                             (loop ll 
@@ -407,7 +413,7 @@
                           (lets 
                             ((new old hi)
                              (current (tuple left right off))
-                             (left right off (history->state (car new)))
+                             (left right off (history->state (car new) offset-delta))
                              (cx (update-line-left x y off left)))
                             (update-line-right right w cx)
                             (loop ll 
@@ -417,6 +423,10 @@
                       (tuple 'unsupported-arrow dir))))
                 ((enter)
                   (list->string (append (reverse left) right)))
+                ((nak)
+                  (cursor-pos x y)
+                  (update-line-right right w x)
+                  (loop ll hi null right x off))
                 (else
                   (tuple 'wat op)))))))
 
@@ -455,7 +465,9 @@
             (display val)
             (cursor-pos 10 3)
             (display "readline: ")
-            (let ((res (editable-readline ll (list "edellinen" "keskimmainen" "historian viimeinen"))))
+            (let ((res (editable-readline ll 
+                    (list "edellinen" 
+                          "keskimmainen"))))
               (cursor-pos 10 5)
               (display res)
               (cursor-pos 10 7)
