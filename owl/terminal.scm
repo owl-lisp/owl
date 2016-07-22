@@ -12,7 +12,9 @@
       lowint-text
       underlined-text
       reverse-text
-      invisible-text)
+      invisible-text
+     
+      get-terminal-size)
 
    (begin
      
@@ -257,14 +259,113 @@
                         (display (list->string right))
                         (cursor-left (length right))))
                   (interactive-readline (cons b left) right)))))
-      
+    
+
+      ;; show as much of right as fits after cx (cursor x)
+      ;; return cursor to cx
+      (define (update-line-right right w cx)
+        (clear-line-right)
+        (if (pair? right)
+          (let ((visible-right (list->string (take right (- w cx)))))
+            (display visible-right)
+            (cursor-left (string-length visible-right)))))
+       
+      (define (readline ll history)
+        (lets 
+          ((w h ll (get-terminal-size ll))
+           (x y ll (get-cursor-position ll))
+           (offset-delta (+ 1 (div (- w x) 2)))
+           (width (- w x)))
+          (let loop ((ll ll) (hi history) (left null) (right null) (cx x) (off 0))
+            (lets ((op ll (uncons ll #false)))
+              (tuple-case op
+                ((key k)
+                  (let ((left (cons k left))
+                        (cx (+ cx 1)))
+                    (display (list->string (list k)))
+                    (update-line-right right w cx)
+                    (if (= cx w)
+                      (lets  ;; share
+                        ((off (+ off offset-delta))
+                         (visible-left (list->string (drop (reverse left) off))))
+                        (cursor-pos x y)
+                        (clear-line-right)
+                        (display visible-left)
+                        (update-line-right right w cx)
+                        (loop ll hi left right (+ x (string-length visible-left)) off))
+                      (loop ll hi left right cx off))))
+                ((backspace)
+                  (if (= cx x) ;; beginning
+                    (if (= off 0) ;; no scroll, do nothing
+                      (loop ll hi left right cx off)
+                      (lets ;; update, share
+                        ((off (- off offset-delta))
+                         (visible-left (list->string (drop (reverse left) off)))
+                         (cx (+ x (string-length visible-left))))
+                        (cursor-pos x y)
+                        (clear-line-right)
+                        (display visible-left)
+                        (update-line-right right w cx)
+                        (loop (cons op ll) hi left right cx off)))
+                    (let ((cx (- cx 1)))
+                      (cursor-left 1)
+                      (update-line-right right w cx)
+                      (loop ll hi (cdr left) right cx off))))
+                ((arrow dir)
+                  (cond
+                    ((eq? dir 'left)
+                      (if (= cx x) ;; beginning
+                        (if (= off 0) ;; no scroll, nop
+                          (loop ll hi left right cx off)
+                          (lets ;; unscroll + recurse, shared
+                            ((off (- off offset-delta))
+                             (visible-left (list->string (drop (reverse left) off)))
+                             (cx (+ x (string-length visible-left))))
+                            (cursor-pos x y)
+                            (clear-line-right)
+                            (display visible-left)
+                            (update-line-right right w cx)
+                            (loop (cons op ll) hi left right cx off)))
+                        (begin
+                          (cursor-left 1)
+                          (loop ll hi (cdr left) (cons (car left) right) (- cx 1) off))))
+                    ((eq? dir 'right)
+                      (cond
+                        ((null? right) ;; no way to go
+                          (loop ll hi left right cx off))
+                        ((= cx w) ;; end, scroll + recurse, share
+                          (lets
+                            ((off (+ off offset-delta))
+                             (visible-left (list->string (drop (reverse left) off)))
+                             (cx (+ x (string-length visible-left))))
+                            (cursor-pos x y)
+                            (clear-line-right)
+                            (display visible-left)
+                            (update-line-right right w cx)
+                            (loop (cons op ll) hi left right cx off)))
+                        (else
+                          (cursor-right 1)
+                          (loop ll hi (cons (car right) left) (cdr right) (+ cx 1) off))))
+                    (else
+                      (tuple 'unsupported-arrow dir))))
+                ((enter)
+                  (list->string (append (reverse left) right)))
+                (else
+                  (tuple 'wat op)))))))
+
+      (define editable-readline
+        (case-lambda
+          (() (readline (terminal-input) null))
+          ((ll) (readline ll null))
+          ((ll history) (readline ll history))))
+
       (define (read-line-interactive)
          (set-terminal-rawness #true)
          (let ((res (interactive-readline null null)))
             (set-terminal-rawness #false)
             res))
 
-      (print "raw: " (set-terminal-rawness #true))
+      (set-terminal-rawness #true)
       '(print
         (lets/cc exit ()
           (lfold
@@ -277,12 +378,23 @@
                 state))
             null (terminal-input))))
       (begin
-        (cursor-pos 1 10)
+        (clear-screen)
+        (cursor-pos 20 10)
         (lets ((x y ll (get-terminal-size (terminal-input))))
-          (print "Terminal dimensions are " x "x" y))
+          (let ((val (str x "x" y)))
+            (cursor-pos
+              (- (div x 2) (div (string-length val) 2))
+              (div y 2))
+            (display val)
+            (cursor-pos 10 3)
+            (display "readline: ")
+            (let ((res (editable-readline ll)))
+              (cursor-pos 10 4)
+              (display res))))
+        (cursor-pos 1 1)
         (set-terminal-rawness #false))
       ;(display "Interactive readline: ") (print (read-line-interactive))
-      
+      (set-terminal-rawness #false)
       ))
 
 
