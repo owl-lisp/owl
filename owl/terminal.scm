@@ -3,7 +3,7 @@
    (import
       (owl base)
       (owl io)
-      (only (owl unicode) utf8-decoder)
+      (only (owl unicode) utf8-decoder utf8-encode)
       (owl sys))
 
    (export
@@ -15,7 +15,8 @@
       reverse-text
       invisible-text
      
-      get-terminal-size)
+      get-terminal-size
+      port->readline-stream)
 
    (begin
      
@@ -423,13 +424,14 @@
                     (else
                       (tuple 'unsupported-arrow dir))))
                 ((enter)
-                  (list->string (append (reverse left) right)))
+                  (values ll
+                    (list->string (append (reverse left) right))))
                 ((nak)
                   (cursor-pos x y)
                   (update-line-right right w x)
                   (loop ll hi null right x off))
                 (else
-                  (tuple 'wat op)))))))
+                  (values ll (tuple 'wat op))))))))
 
       (define editable-readline
         (case-lambda
@@ -443,40 +445,22 @@
             (set-terminal-rawness #false)
             res))
 
-      (set-terminal-rawness #true)
-      '(print
-        (lets/cc exit ()
-          (lfold
-            (λ (state evt)
-              (cursor-pos 0 0)
-              (clear-screen)
-              (print evt)
-              (if (equal? evt (tuple 'key 97))
-                (exit evt)
-                state))
-            null (terminal-input))))
-      (begin
-        (clear-screen)
-        (cursor-pos 20 10)
-        (lets ((x y ll (get-terminal-size (terminal-input))))
-          (let ((val (str x "x" y)))
-            (cursor-pos
-              (- (div x 2) (div (string-length val) 2))
-              (div y 2))
-            (display val)
-            (cursor-pos 10 3)
-            (display "readline: ")
-            (let ((res (editable-readline ll 
-                    (list "edellinen" 
-                          "keskimmainen"))))
-              (cursor-pos 10 5)
-              (display res)
-              (cursor-pos 10 7)
-              (display (string->list res)))))
-        (cursor-pos 1 1)
-        (set-terminal-rawness #false))
-      ;(display "Interactive readline: ") (print (read-line-interactive))
-      (set-terminal-rawness #false)
-      ))
+      ;; port → byte stream
+      (define (port->readline-stream port prompt)
+        (let loop ((history null) (ll (terminal-input)))
+          (if prompt (display prompt))
+          (set-terminal-rawness #true)
+          (lets 
+            ((x y ll (get-terminal-size (terminal-input)))
+             (ll res (editable-readline ll history)))
+            (set-terminal-rawness #false)
+            ;(append (utf8-encode (string->list res)) (pair 10 (loop (cons res history) ll)))
+            (pair res (loop (cons res history) ll)))))
+
+      (lets/cc exit ()
+        (lfold
+          (λ (nth line) (print "\n" line) (if (equal? line "quit") (exit nth) (+ nth 1)))
+          0 (port->readline-stream stdin ": ")))
+      (set-terminal-rawness #false)))
 
 
