@@ -3,6 +3,7 @@
    (import
       (owl base)
       (owl io)
+      (only (owl unicode) utf8-decoder)
       (owl sys))
 
    (export
@@ -72,7 +73,7 @@
             (values #false (cons x ll)))))
   
       (define (terminal-input)
-        (let loop ((ll (port->byte-stream stdin)))
+        (let loop ((ll (utf8-decoder (port->byte-stream stdin) (λ (loop line ll) (print-to stderr "Bad UTF-8 in terminal input") null))))
           (cond
             ((pair? ll)
               (lets ((hd ll ll))
