@@ -89,16 +89,31 @@
                               ((eq? op 68) (cons (tuple 'arrow 'left) (loop ll)))
                               (else 
                                 (lets
-                                  ((a ll (get-natural (cons op ll) #false))
-                                   (x ll (get-imm ll #\;))
-                                   (b ll (get-natural ll #false))
-                                   (y ll (get-imm ll #\R)))
-                                  ;(print (list 'esc a x b y)) 
-                                  (cond
-                                    ((and a b x y)
-                                      (cons (tuple 'cursor-position a b) (loop ll)))
-                                    (else
-                                      (cons (tuple 'esc-unknown 91 op) null))))))))
+                                  ((a ll (get-natural (cons op ll) #false)))
+                                  (if a
+                                    (lets ((x ll (uncons ll #false)))
+                                      (cond
+                                        ((not x)
+                                          null)
+                                        ((eq? x #\;)
+                                          (lets ((b ll (get-natural ll #false)))
+                                            (if b
+                                              (lets ((op ll (uncons ll #false)))
+                                                (if op
+                                                  (cond
+                                                    ((eq? op #\R)
+                                                      (cons (tuple 'cursor-position a b) (loop ll)))
+                                                    (else
+                                                      (cons 
+                                                        (tuple 'esc-unknown-binop a ";" b (list->string (list op)))
+                                                        null)))
+                                                  null))
+                                              null)))
+                                        ((and (eq? a 3) (eq? x #\~))
+                                          (cons (tuple 'delete) (loop ll)))
+                                        (else
+                                          (cons (tuple 'esc-unknown-unary-op a (list->string (list x))) ll))))
+                                    null))))))
                         (else
                           (pair (tuple 'esc-unknown op) null)))))
                   ((eq? hd 127) (cons (tuple 'backspace) (loop ll)))
@@ -269,11 +284,30 @@
           (let ((visible-right (list->string (take right (- w cx)))))
             (display visible-right)
             (cursor-left (string-length visible-right)))))
-       
+      
+      ;; → cx
+      (define (update-line-left x y off left)
+        (lets
+          ((visible-left (list->string (drop (reverse left) off)))
+           (cx (+ x (string-length visible-left))))
+          (cursor-pos x y)
+          (clear-line-right)
+          (display visible-left)
+          cx))
+
+      (define (history->state elem)
+        (cond
+          ((string? elem)
+            ;; fixme, doesn't take width into account
+            (values (reverse (string->list elem)) null 0))
+          (else
+            (values (ref elem 1) (ref elem 2) (ref elem 3)))))
+
       (define (readline ll history)
         (lets 
           ((w h ll (get-terminal-size ll))
            (x y ll (get-cursor-position ll))
+           (history (cons null history))  ; (newer . older)
            (offset-delta (+ 1 (div (- w x) 2)))
            (width (- w x)))
           (let loop ((ll ll) (hi history) (left null) (right null) (cx x) (off 0))
@@ -311,6 +345,11 @@
                       (cursor-left 1)
                       (update-line-right right w cx)
                       (loop ll hi (cdr left) right cx off))))
+                ((delete)
+                  (if (pair? right)
+                    (let ((right (cdr right)))
+                      (update-line-right right w cx)
+                      (loop ll hi left right cx off))))
                 ((arrow dir)
                   (cond
                     ((eq? dir 'left)
@@ -346,6 +385,34 @@
                         (else
                           (cursor-right 1)
                           (loop ll hi (cons (car right) left) (cdr right) (+ cx 1) off))))
+                    ((eq? dir 'up)
+                      (cond
+                        ((null? (cdr hi)) ;; nothing oldr available
+                          (loop ll hi left right cx off))
+                        (else
+                          (lets 
+                            ((new old hi)
+                             (current (tuple left right off))
+                             (left right off (history->state (car old)))
+                             (cx (update-line-left x y off left)))
+                            (update-line-right right w cx)
+                            (loop ll 
+                              (cons (cons current new) (cdr old))
+                              left right cx off)))))
+                    ((eq? dir 'down)
+                      (cond
+                        ((null? (car hi)) ;; nothing newer available
+                          (loop ll hi left right cx off))
+                        (else
+                          (lets 
+                            ((new old hi)
+                             (current (tuple left right off))
+                             (left right off (history->state (car new)))
+                             (cx (update-line-left x y off left)))
+                            (update-line-right right w cx)
+                            (loop ll 
+                              (cons (cdr new) (cons current old))
+                              left right cx off)))))
                     (else
                       (tuple 'unsupported-arrow dir))))
                 ((enter)
@@ -388,9 +455,11 @@
             (display val)
             (cursor-pos 10 3)
             (display "readline: ")
-            (let ((res (editable-readline ll)))
-              (cursor-pos 10 4)
-              (display res))))
+            (let ((res (editable-readline ll (list "edellinen" "keskimmainen" "historian viimeinen"))))
+              (cursor-pos 10 5)
+              (display res)
+              (cursor-pos 10 7)
+              (display (string->list res)))))
         (cursor-pos 1 1)
         (set-terminal-rawness #false))
       ;(display "Interactive readline: ") (print (read-line-interactive))
