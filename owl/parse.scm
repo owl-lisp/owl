@@ -269,7 +269,7 @@
       ; rchunks fd block? -> rchunks' end?
       ;; bug: maybe-get-input should now use in-process mail queuing using return-mails syscall at the end if necessary 
       (define (maybe-get-input rchunks fd block? prompt)
-         (let ((chunk (try-get-block fd 1024 #false)))
+         (let ((chunk (try-get-block fd 4096 #false)))
             ;; handle received input
             (cond
                ((not chunk) ;; read error in port

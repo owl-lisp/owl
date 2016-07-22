@@ -311,6 +311,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
          comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
+       (interactive "-i" "--interactive" comment "use builtin interactive line editor")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (bare #false "--bare" comment "do not add anything to generated code (like threads or UTF-8 decoding)"))))
@@ -549,7 +550,9 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   ((null? others)
                      (greeting env seccomp?)
                      (repl-trampoline repl 
-                        (env-set env '*seccomp* seccomp?)))
+                        (-> env
+                           (env-set '*seccomp* seccomp?)
+                           (env-set '*line-editor* (getf dict 'interactive)))))
                   (else
                      ;; load the given files
                      (define input

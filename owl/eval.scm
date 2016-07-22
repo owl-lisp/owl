@@ -35,6 +35,7 @@
       (owl syscall)
       (owl time) ;; for testing metadata
       (owl symbol)
+      (owl terminal)
       (owl io)
       (owl math)
       (owl list-extra)
@@ -866,13 +867,15 @@
                
       ;; run the repl on a fresh input stream, report errors and catch exit
 
-      (define (stdin-sexp-stream bounced?)
-         (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?)))
+      (define (stdin-sexp-stream env bounced?)
+         (if (env-get env '*line-editor* #false)
+           (λ () (port->readline-sexp-stream stdin #false))
+           (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?))))
 
       (define (repl-trampoline repl env)
          (let boing ((repl repl) (env env) (bounced? #false))
             (lets
-               ((stdin (stdin-sexp-stream bounced?))
+               ((stdin (stdin-sexp-stream env bounced?))
                 (stdin  
                   (if bounced? 
                      (begin ;; we may need to reprint a prompt here

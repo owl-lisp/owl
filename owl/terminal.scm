@@ -1,9 +1,17 @@
 (define-library (owl terminal)
 
    (import
-      (owl base)
+      (owl defmac)
+      (owl math)
+      (owl list)
+      (owl string)
+      (owl lazy)
+      (owl ff)
+      (owl list-extra)
+      (scheme base)
       (owl io)
       (only (owl unicode) utf8-decoder utf8-encode)
+      (only (owl sexp) string->sexp)
       (owl sys))
 
    (export
@@ -16,7 +24,7 @@
       invisible-text
      
       get-terminal-size
-      port->readline-stream)
+      port->readline-sexp-stream)
 
    (begin
      
@@ -445,8 +453,9 @@
             (set-terminal-rawness #false)
             res))
 
-      ;; port → byte stream
-      (define (port->readline-stream port prompt)
+       (define failed "x")
+
+       (define (port->readline-sexp-stream port prompt)
         (let loop ((history null) (ll (terminal-input)))
           (if prompt (display prompt))
           (set-terminal-rawness #true)
@@ -454,13 +463,18 @@
             ((x y ll (get-terminal-size (terminal-input)))
              (ll res (editable-readline ll history)))
             (set-terminal-rawness #false)
-            ;(append (utf8-encode (string->list res)) (pair 10 (loop (cons res history) ll)))
-            (pair res (loop (cons res history) ll)))))
+            (write-byte-vector stdout #(10))
+            (lets ((val (string->sexp res failed)))
+              (if (eq? val failed)
+                (begin
+                  (print ";; syntax error")
+                  (loop (cons res history) ll))
+                (pair val (loop (cons res history) ll)))))))
 
-      (lets/cc exit ()
+      '(lets/cc exit ()
         (lfold
           (λ (nth line) (print "\n" line) (if (equal? line "quit") (exit nth) (+ nth 1)))
-          0 (port->readline-stream stdin ": ")))
-      (set-terminal-rawness #false)))
+          0 (port->readline-sexp-stream stdin "> ")))
+      '(set-terminal-rawness #false)))
 
 

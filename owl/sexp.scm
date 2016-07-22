@@ -455,7 +455,7 @@
          (try-parse (get-number-in-base base) lst #false #false #false))
 
       (define (string->sexp str fail)
-         (try-parse (get-sexp) (str-iter str) #false #false fail))
+         (try-parse sexp-parser (str-iter str) #false #false fail))
 
       ;; parse all contents of vector to a list of sexps, or fail with 
       ;; fail-val and print error message with further info if errmsg 
