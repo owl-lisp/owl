@@ -3,6 +3,7 @@
    (import
       (owl defmac)
       (owl math)
+      (owl primop)
       (owl list)
       (owl string)
       (owl lazy)
@@ -129,6 +130,8 @@
                   ((eq? hd 127) (cons (tuple 'backspace) (loop ll)))
                   ((eq? hd 13)  (cons (tuple 'enter) (loop ll)))
                   ((eq? hd 21)  (cons (tuple 'nak) (loop ll))) ;; ^u
+                  ((eq? hd 3)  (cons (tuple 'end-of-text) (loop ll))) ;; ^c
+                  ((eq? hd 4)  (cons (tuple 'end-of-transmission) (loop ll))) ;; ^d
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
@@ -432,12 +435,17 @@
                     (else
                       (tuple 'unsupported-arrow dir))))
                 ((enter)
+                  (print " -> " (append (reverse left) right))
                   (values ll
                     (list->string (append (reverse left) right))))
                 ((nak)
                   (cursor-pos x y)
                   (update-line-right right w x)
                   (loop ll hi null right x off))
+                ((end-of-text)
+                  (values null #false))
+                ((end-of-transmission)
+                  (values null #false))
                 (else
                   (values ll (tuple 'wat op))))))))
 
@@ -464,12 +472,27 @@
              (ll res (editable-readline ll history)))
             (set-terminal-rawness #false)
             (write-byte-vector stdout #(10))
-            (lets ((val (string->sexp res failed)))
-              (if (eq? val failed)
-                (begin
-                  (print ";; syntax error")
-                  (loop (cons res history) ll))
-                (pair val (loop (cons res history) ll)))))))
+            (if res
+              (lets ((val (string->sexp res failed)))
+                (if (eq? val failed)
+                  (begin
+                    (print ";; syntax error")
+                    (loop (cons res history) ll))
+                  (pair val (loop (cons res history) ll))))
+              null))))
+
+      (define (port->readline-line-stream port prompt)
+        (let loop ((history null) (ll (terminal-input)))
+          (if prompt (display prompt))
+          (set-terminal-rawness #true)
+          (lets 
+            ((x y ll (get-terminal-size (terminal-input)))
+             (ll res (editable-readline ll history)))
+            (set-terminal-rawness #false)
+            (write-byte-vector stdout #(10))
+            (if res
+              (pair res (loop (cons res history) ll))
+              null))))
 
       '(lets/cc exit ()
         (lfold
