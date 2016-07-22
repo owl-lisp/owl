@@ -229,7 +229,7 @@
                         (else
                            (fail loop line ll)))))
                (else
-                  (loop (ll) line)))))
+                  (λ () (loop (ll) line))))))
 
 
       ;;;
