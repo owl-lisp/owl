@@ -137,6 +137,8 @@
                   ((eq? hd 16)  (cons (tuple 'data-link-escape) (loop ll))) ;; ^p
                   ((eq? hd 14)  (cons (tuple 'shift-out) (loop ll))) ;; ^n
                   ((eq? hd 23)  (cons (tuple 'end-of-transmission-block) (loop ll))) ;; ^w
+                  ((eq? hd 1)  (cons (tuple 'ctrl-a) (loop ll))) ;; ^n
+                  ((eq? hd 5)  (cons (tuple 'ctrl-e) (loop ll))) ;; ^w
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
@@ -479,6 +481,17 @@
                      (loop
                         (backspace-over-word left ll bs #true)
                         hi left right cx off)))
+                ((ctrl-a)
+                  (let ((right (append (reverse left) right)))
+                     (cursor-pos x y)
+                     (update-line-right right w x)
+                     (loop ll hi null right x 0)))
+                ((ctrl-e)
+                  ;; use arrow to scroll as usual easily
+                  (loop 
+                     (fold (λ (ll x) (cons (tuple 'arrow 'right) ll)) ll
+                        (iota 0 1 (length right)))
+                     hi left right cx off))
                 (else
                   (values ll (tuple 'wat op))))))))
 
@@ -536,7 +549,7 @@
              0 (port->readline-line-stream stdin "> ")))
          (set-terminal-rawness #false))
       
-      ;(internal-test)
+     ; (internal-test)
 
 ))
 
