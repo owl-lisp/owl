@@ -1,5 +1,18 @@
 (define-library (owl terminal)
 
+   (export
+      set-terminal-rawness
+      normal-text
+      bold-text
+      lowint-text
+      underlined-text
+      reverse-text
+      invisible-text
+     
+      get-terminal-size
+      port->readline-sexp-stream
+      port->readline-line-stream)
+
    (import
       (owl defmac)
       (owl math)
@@ -15,17 +28,6 @@
       (only (owl sexp) string->sexp)
       (owl sys))
 
-   (export
-      set-terminal-rawness
-      normal-text
-      bold-text
-      lowint-text
-      underlined-text
-      reverse-text
-      invisible-text
-     
-      get-terminal-size
-      port->readline-sexp-stream)
 
    (begin
      
@@ -134,6 +136,9 @@
                   ((eq? hd 4)  (cons (tuple 'end-of-transmission) (loop ll))) ;; ^d
                   ((eq? hd 16)  (cons (tuple 'data-link-escape) (loop ll))) ;; ^p
                   ((eq? hd 14)  (cons (tuple 'shift-out) (loop ll))) ;; ^n
+                  ((eq? hd 23)  (cons (tuple 'end-of-transmission-block) (loop ll))) ;; ^w
+                  ((eq? hd 1)  (cons (tuple 'ctrl-a) (loop ll))) ;; ^n
+                  ((eq? hd 5)  (cons (tuple 'ctrl-e) (loop ll))) ;; ^w
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
@@ -324,6 +329,23 @@
           (else
             (values (ref elem 1) (ref elem 2) (ref elem 3)))))
 
+      (define (whitespace? x)
+         (or (eq? x #\space) 
+             (eq? x #\tab)))
+
+      (define (backspace-over-word left ll bs blanks?)
+         (cond
+            ((null? left)
+               ll)
+            ((whitespace? (car left))
+               (if blanks?
+                  (backspace-over-word (cdr left) (cons bs ll) bs #true)
+                  ll))
+            (blanks?
+               (backspace-over-word left ll bs #false))
+            (else
+               (backspace-over-word (cdr left) (cons bs ll) bs #false))))
+
       (define (readline ll history)
         (lets 
           ((w h ll (get-terminal-size ll))
@@ -453,6 +475,23 @@
                    (loop (cons (tuple 'arrow 'up) ll) hi left right cx off))
                 ((shift-out) ;; ^n -> down
                    (loop (cons (tuple 'arrow 'down) ll) hi left right cx off))
+                ((end-of-transmission-block) ;; ^w -> add n backspaces
+                   (let ((bs (tuple 'backspace)))
+                     ;; remove via backspace to get scrolling to work correctly easily for now
+                     (loop
+                        (backspace-over-word left ll bs #true)
+                        hi left right cx off)))
+                ((ctrl-a)
+                  (let ((right (append (reverse left) right)))
+                     (cursor-pos x y)
+                     (update-line-right right w x)
+                     (loop ll hi null right x 0)))
+                ((ctrl-e)
+                  ;; use arrow to scroll as usual easily
+                  (loop 
+                     (fold (λ (ll x) (cons (tuple 'arrow 'right) ll)) ll
+                        (iota 0 1 (length right)))
+                     hi left right cx off))
                 (else
                   (values ll (tuple 'wat op))))))))
 
@@ -501,10 +540,17 @@
               (pair res (loop (cons res history) ll))
               null))))
 
-      '(lets/cc exit ()
-        (lfold
-          (λ (nth line) (print "\n" line) (if (equal? line "quit") (exit nth) (+ nth 1)))
-          0 (port->readline-sexp-stream stdin "> ")))
-      '(set-terminal-rawness #false)))
+      (define (internal-test)
+         (lets/cc exit ()
+           (lfold
+             (λ (nth line) 
+               (print "\n" line " = " (string->list line))
+               (if (equal? line "quit") (exit nth) (+ nth 1)))
+             0 (port->readline-line-stream stdin "> ")))
+         (set-terminal-rawness #false))
+      
+     ; (internal-test)
+
+))
 
 
