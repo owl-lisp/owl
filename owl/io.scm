@@ -518,16 +518,17 @@
                   (cons (refb buff pos) tail)))))
 
       (define (port->block-stream fd)
-         (let ((block (get-block fd stream-block-size)))
-            (cond
-               ((eof? block)
-                  (close-port fd)
-                  null)
-               ((not block)
-                  null)
-               (else
-                  (pair block 
-                     (port->block-stream fd))))))
+         (λ ()
+           (let ((block (get-block fd stream-block-size)))
+              (cond
+                 ((eof? block)
+                    (close-port fd)
+                    null)
+                 ((not block)
+                    null)
+                 (else
+                    (cons block 
+                       (port->block-stream fd)))))))
 
       ;; include metadata symbols
       (define (port->meta-block-stream fd)
