@@ -1,10 +1,10 @@
 (import (owl lazy))
 
-(define (editor x)
+(define (editor x ll)
    (cond
-      ((even? x) #false) ;; keep evens
-      ((< x 10) null)    ;; drop small ones
-      (else (list x x))))  ;; double big odds
+      ((even? x) (cons x ll)) ;; keep evens
+      ((< x 10) ll)    ;; drop small ones
+      (else (ilist x x ll))))  ;; double big odds
 
 (print (force-ll (ltake (ledit editor (lnums 1)) 20)))
 

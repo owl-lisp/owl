@@ -32,6 +32,7 @@
       file->list              ;; list io, may be moved elsewhere later
       vector->file
       write-vector            ;; vec port
+      port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk 
       port->byte-stream       ;; fd → (byte ...) | thunk 
       byte-stream->port       ;; bs fd → bool
       port->block-stream      ;; fd → (bvec ...)
@@ -77,6 +78,7 @@
       (owl vector)
       (owl render)
       (owl list)
+      (owl symbol)
       (owl math)
       (owl fasl)
       (owl tuple)
@@ -186,6 +188,9 @@
       ;; get a block of size up to block size
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
+      
+      (define (maybe-get-block fd block-size)
+         (try-get-block fd block-size #false))
 
       (define (bvec-append a b)
          (list->byte-vector
@@ -523,20 +528,36 @@
                (else
                   (pair block 
                      (port->block-stream fd))))))
-      
-      (define (port->byte-stream fd)
-         (λ ()
-            (let ((buff (get-block fd stream-block-size)))
-               (cond  
-                  ((eof? buff)
+
+      ;; include metadata symbols
+      (define (port->meta-block-stream fd)
+         (let loop ((block? #false))
+            (let ((block (try-get-block fd stream-block-size block?)))
+               (cond
+                  ((eof? block)
                      (close-port fd)
                      null)
-                  ((not buff)
-                     ;(print "bytes-stream-port: no buffer received?")
-                     null)
+                  ((not block)
+                     (list 'io-error))
+                  ((eq? block #true) ;; will block
+                     (pair 'block
+                        (loop #true)))
                   (else
-                     (stream-chunk buff (- (sizeb buff) 1)
-                        (port->byte-stream fd)))))))
+                     (pair block (loop #false)))))))
+
+      (define (port->byte-stream fd)
+         (ledit
+            (λ (block ll)
+               (stream-chunk block (- (sizeb block) 1) ll))
+            (port->block-stream fd)))
+
+      (define (port->meta-byte-stream fd)
+         (ledit
+            (λ (block ll)
+               (if (vector? block)
+                  (stream-chunk block (- (sizeb block) 1) ll)
+                  (pair block ll)))
+            (port->meta-block-stream fd)))
 
       (define (block-stream->port bs fd)
          (cond
@@ -773,12 +794,6 @@
                   (close-port port)
                   end)
                port)))
-             
-))
 
-;(import (owl io))
-;(start-muxer 'new-muxer)
-;(define foo (tcp-socket 31337))
-;(print "interacting with socket " foo)
-;(print " => " (interact 'new-muxer (tuple 'read foo)))
+))
 

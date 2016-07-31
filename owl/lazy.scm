@@ -179,11 +179,10 @@
       (define (ledit op l)
          (cond
             ((pair? l)
-               (let ((x (op (car l))))
-                  (if x
-                     (append x (ledit op (cdr l)))
-                     (cons (car l) (ledit op (cdr l))))))
-            ((null? l) l)
+               (op (car l)
+                  (λ () (ledit op (cdr l)))))
+            ((null? l)
+               l)
             (else 
                (lambda ()
                   (ledit op (l))))))

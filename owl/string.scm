@@ -458,10 +458,10 @@
 
       (define (str-iter-bytes str)
          (ledit 
-            (lambda (codepoint)
+            (lambda (codepoint tl)
                (if (lesser? codepoint #x80)
-                  #false ;; keep the old one
-                  (encode-point codepoint null)))
+                  (cons codepoint tl)
+                  (encode-point codepoint tl)))
             (str-iter str)))
                   
       (define (make-string n char)
