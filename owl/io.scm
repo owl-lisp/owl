@@ -671,18 +671,20 @@
                    (from message envelope))
                   (tuple-case message
                      ((read fd)
-                        (mail from fd)
+                        (mail from message)
                         (values rs ws alarms))
                      ((read-timeout fd timeout)
-                        (mail from fd)
+                        (mail from message)
                         (values rs ws 
                            (remove-alarm alarms envelope)))
                      (else
                         (print-to stderr "wakeup: unknown wakeup " message)
                         (values rs ws alarms)))))
             ((eq? reason 2) ;; ready to be written to
-               (lets ((ws x (grabelt ws fd)))
-                  (mail (cdr x) fd)
+               (lets ((ws x (grabelt ws fd))
+                      (fd envelope x)
+                      (from message envelope))
+                  (mail from message)
                   (values rs ws alarms)))
             (else ;; error
                (print-to stderr "bug: not removing alarm on io error, if there")
@@ -713,7 +715,7 @@
                (values (cons (cons fd mail) rs) ws
                   (push-alarm alarms (+ (time-ms) ms) mail)))
             ((write fd)
-               (values rs (cons (cons fd (ref mail 1)) ws) alarms))
+               (values rs (cons (cons fd mail) ws) alarms))
             ((alarm ms)
                (values rs ws (push-alarm alarms (+ (time-ms) ms) mail)))
             (else
