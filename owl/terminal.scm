@@ -2,13 +2,19 @@
 
    (export
       set-terminal-rawness
-      normal-text
-      bold-text
-      lowint-text
-      underlined-text
-      reverse-text
-      invisible-text
-     
+      font-normal          ;; lst → lst'
+      font-bold            ;; lst → lst'
+      clear-screen         ;; lst → lst'
+      clear-screen-top     ;; lst → lst'
+      clear-screen-bottom  ;; lst → lst'
+      clear-line           ;; lst → lst'
+      clear-line-left      ;; lst → lst'
+      clear-line-right     ;; lst → lst'
+      set-cursor           ;; lst x y → lst'
+
+      tio
+      output
+      terminal-server
       get-terminal-size
       port->readline-sexp-stream
       port->readline-line-stream)
@@ -19,6 +25,9 @@
       (owl primop)
       (owl list)
       (owl string)
+      (owl tuple)
+      (owl syscall)
+      (owl render)
       (owl lazy)
       (owl ff)
       (owl list-extra)
@@ -46,23 +55,18 @@
 
       ;;; Text mode
 
-      (define (normal-text)     (write-byte-vector stdout #(27 #\[     #\m)))
-      (define (bold-text)       (write-byte-vector stdout #(27 #\[ #\1 #\m)))
-      (define (lowint-text)     (write-byte-vector stdout #(27 #\[ #\2 #\m)))
-      (define (underlined-text) (write-byte-vector stdout #(27 #\[ #\4 #\m)))
-      (define (blinking-text)   (write-byte-vector stdout #(27 #\[ #\5 #\m)))
-      (define (reverse-text)    (write-byte-vector stdout #(27 #\[ #\7 #\m)))
-      (define (invisible-text)  (write-byte-vector stdout #(27 #\[ #\8 #\m)))
+      (define (font-normal lst)  (ilist 27 #\[     #\m lst))
+      (define (font-bold lst)    (ilist 27 #\[ #\1 #\m lst))
 
       ;;; Clearing content
 
-      (define (clear-line)       (write-byte-vector stdout #(27 #\[ #\2 #\K)))
-      (define (clear-line-right) (write-byte-vector stdout #(27 #\[ #\K)))
-      (define (clear-line-left)  (write-byte-vector stdout #(27 #\[ #\1 #\K)))
+      (define (clear-line lst)       (ilist 27 #\[ #\2 #\K lst))
+      (define (clear-line-right lst) (ilist 27 #\[ #\K lst))
+      (define (clear-line-left lst)  (ilist 27 #\[ #\1 #\K lst))
 
-      (define (clear-screen) (write-byte-vector stdout #(27 #\[ #\2 #\J)))
-      (define (clear-screen-top) (write-byte-vector stdout #(27 #\[ #\1 #\J)))
-      (define (clear-screen-bottom) (write-byte-vector stdout #(27 #\[ #\J)))
+      (define (clear-screen lst) (ilist 27 #\[ #\2 #\J lst))
+      (define (clear-screen-top lst) (ilist 27 #\[ #\1 #\J lst))
+      (define (clear-screen-bottom lst) (ilist 27 #\[ #\J lst))
 
       ;;; Terminal input stream
 
@@ -149,6 +153,10 @@
       (define (cursor-pos x y)
          (write-bytes stdout
             (ilist 27 #\[ (num->bytes y (cons #\; (num->bytes x (list #\f)))))))
+      
+      (define (set-cursor lst x y)
+         (ilist 27 #\[ (num->bytes y (cons #\; (num->bytes x (cons #\f lst))))))
+    
     
       (define (cursor-up n) 
          (if (eq? n 1)
@@ -169,6 +177,12 @@
          (if (eq? n 1)
             (write-byte-vector stdout #(27 #\[ #\D))
             (unary-op n #\D)))
+
+      (define (toggle-cursor show?)
+         (write-byte-vector stdout
+            (if show?
+               #(27 #\[ #\? #\2 #\5 #\h)
+               #(27 #\[ #\? #\2 #\5 #\l))))
 
       (define (cursor-top-left n) 
          (write-byte-vector stdout #(27 #\[ #\H)))
@@ -251,7 +265,7 @@
                      (interactive-readline left right)
                      (begin
                         (cursor-left 1)
-                        (clear-line-right)
+                        (write-bytes stdout (clear-line-right null))
                         (if (pair? right)
                            (begin
                               (display (list->string right))
@@ -259,14 +273,14 @@
                         (interactive-readline (cdr left) right))))
                ((eq? b 21) ;; ^U
                   (cursor-left (length left))
-                  (clear-line-right)
+                  (write-bytes stdout (clear-line-right null))
                   (if (pair? right)
                      (begin
                         (display (list->string right))
                         (cursor-left (length right))))
                   (interactive-readline null right))
                ((eq? b 11) ;; ^K
-                  (clear-line-right)
+                  (write-bytes stdout (clear-line-right null))
                   (interactive-readline left null))
                ((eq? b 27)
                   (let ((op (get-esc-input)))
@@ -300,7 +314,7 @@
       ;; show as much of right as fits after cx (cursor x)
       ;; return cursor to cx
       (define (update-line-right right w cx)
-        (clear-line-right)
+        (write-bytes stdout (clear-line-right null))
         (if (pair? right)
           (let ((visible-right (list->string (take right (- w cx)))))
             (display visible-right)
@@ -312,7 +326,7 @@
           ((visible-left (list->string (drop (reverse left) off)))
            (cx (+ x (string-length visible-left))))
           (cursor-pos x y)
-          (clear-line-right)
+          (write-bytes stdout (clear-line-right null))
           (display visible-left)
           cx))
 
@@ -366,7 +380,7 @@
                         ((off (+ off offset-delta))
                          (visible-left (list->string (drop (reverse left) off))))
                         (cursor-pos x y)
-                        (clear-line-right)
+                        (write-bytes stdout (clear-line-right null))
                         (display visible-left)
                         (update-line-right right w cx)
                         (loop ll hi left right (+ x (string-length visible-left)) off))
@@ -380,7 +394,7 @@
                          (visible-left (list->string (drop (reverse left) off)))
                          (cx (+ x (string-length visible-left))))
                         (cursor-pos x y)
-                        (clear-line-right)
+                        (write-bytes stdout (clear-line-right null))
                         (display visible-left)
                         (update-line-right right w cx)
                         (loop (cons op ll) hi left right cx off)))
@@ -404,7 +418,7 @@
                              (visible-left (list->string (drop (reverse left) off)))
                              (cx (+ x (string-length visible-left))))
                             (cursor-pos x y)
-                            (clear-line-right)
+                            (write-bytes stdout (clear-line-right null))
                             (display visible-left)
                             (update-line-right right w cx)
                             (loop (cons op ll) hi left right cx off)))
@@ -421,7 +435,7 @@
                              (visible-left (list->string (drop (reverse left) off)))
                              (cx (+ x (string-length visible-left))))
                             (cursor-pos x y)
-                            (clear-line-right)
+                            (write-bytes stdout (clear-line-right null))
                             (display visible-left)
                             (update-line-right right w cx)
                             (loop (cons op ll) hi left right cx off)))
@@ -540,17 +554,116 @@
               (pair res (loop (cons res history) ll))
               null))))
 
+      (define (terminal-server fd receiver)
+         (set-terminal-rawness #true)
+         (let loop ((ll (terminal-input))
+                    (requested? #false))
+            (cond
+               ((null? ll)
+                  (mail receiver 'eof)
+                  (set-terminal-rawness #false))
+               ((pair? ll)
+                  (mail receiver (car ll))
+                  (loop (cdr ll) requested?))
+               ((not requested?)
+                  (mail 'iomux (tuple 'read fd))
+                  (cursor-pos 1 1)
+                  (write-bytes stdout (clear-line-right null))
+                  (loop ll #true))
+               (else
+                  (tuple-case (wait-mail)
+                     ((iomux msg)
+                        (tuple-case msg
+                           ((read fd)
+                              (loop (ll) #false))
+                           (else
+                              (error "iomux responded with " msg))))
+                     (else is env
+                        (let ((msg (ref env 2)))
+                        (cond
+                           ((eq? 'get-terminal-size msg)
+                              (lets ((x y ll (get-terminal-size ll)))
+                                 (mail (ref env 1) (cons x y))
+                                 (loop ll requested?)))
+                           ((eq? 'get-cursor-position msg)
+                              (lets ((x y ll (get-cursor-position ll)))
+                                 (mail (ref env 1) (cons x y))
+                                 (loop ll requested?)))
+                           ((pair? msg)
+                              (write-bytes stdout msg)
+                              (loop ll requested?))
+                           ((null? msg)
+                              (loop ll requested?))
+                           ((vector? msg)
+                              (write-byte-vector stdout msg)
+                              (loop ll requested?))
+                           ((tuple? msg)
+                              (tuple-case msg
+                                 ((set-cursor x y)
+                                    (cursor-pos (car msg) (cdr msg)))
+                                 (else
+                                    (print-to stdout "terminal: unknown message " msg)))
+                              (loop ll requested?))
+                           ((eq? msg 'stop)
+                             (loop null #false))
+                           (else
+                              (print-to stdout "terminal: unknown message " msg)
+                              (loop ll requested?))))))))))
+
+      (define (printer)
+         (let ((env (wait-mail)))
+            (display env)
+            (cond
+               ((equal? env (tuple 'terminal (tuple 'key #\h)))
+                  (print "hiding cursor")
+                  (toggle-cursor #false))
+               ((equal? env (tuple 'terminal (tuple 'key #\c)))
+                  (print "getting cursor position")
+                  (print "cursor is at " (interact 'terminal 'get-cursor-position)))
+               ((equal? env (tuple 'terminal (tuple 'key #\s)))
+                  (toggle-cursor #true))
+               ((equal? env (tuple 'terminal (tuple 'key #\q)))
+                  (toggle-cursor #true)
+                  (mail 'terminal 'stop)))
+            (printer)))
+
       (define (internal-test)
-         (lets/cc exit ()
+         '(lets/cc exit ()
            (lfold
              (λ (nth line) 
                (print "\n" line " = " (string->list line))
                (if (equal? line "quit") (exit nth) (+ nth 1)))
              0 (port->readline-line-stream stdin "> ")))
-         (set-terminal-rawness #false))
+         '(set-terminal-rawness #false)
+         (write-bytes stdout (clear-screen null))
+         (fork-linked-server 'printer printer)
+         (fork-linked-server 'terminal
+            (λ () (terminal-server stdin 'printer)))
+         (let loop ()
+            (print "main: " (wait-mail))))
       
-     ; (internal-test)
+     ;(internal-test)
+
+     (define (output lst val)
+      (render val lst))
+     
+     (define (output-bold lst val)
+      (font-bold (render val (font-normal lst))))
+
+     (define-syntax tio
+      (syntax-rules ()
+         ((tio (op . arg) . rest)
+            (op (tio . rest) . arg))
+         ((tio) '())
+         ((tio val . rest)
+            (render val (tio . rest)))))
+            
+     '(write-bytes stdout
+      (tio (set-cursor 10 10)
+          (output "AAA")
+          1234
+          (set-cursor 12 12)
+          "YYYY"
+          ))
 
 ))
-
-
