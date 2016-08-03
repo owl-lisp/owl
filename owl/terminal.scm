@@ -12,6 +12,16 @@
       clear-line-right     ;; lst → lst'
       set-cursor           ;; lst x y → lst'
 
+      cursor-hide          ;; lst → lst'
+      cursor-show          ;; lst → lst'
+      cursor-save          ;; lst → lst'
+      cursor-restore       ;; lst → lst'
+
+      cursor-up            ;; lst n → lst'
+      cursor-down          ;; lst n → lst'
+      cursor-left          ;; lst n → lst'
+      cursor-right         ;; lst n → lst'
+
       tio
       output
       terminal-server
@@ -41,15 +51,18 @@
    (begin
      
       (define (num->bytes n tl)
-         (if (eq? (type n) type-fix+)
-            (append (string->list (number->string n 10)) tl)
-            (cons #\0 tl)))
+         (cond
+            ((eq? n 1) (cons #\1 tl))
+            ((eq? (type n) type-fix+)
+              (append (string->list (number->string n 10)) tl))
+            (else
+              (cons #\0 tl))))
 
       ;;; ^[[<n><op>
       (define (unary-op n op)
          (write-bytes stdout
             (ilist 27 #\[ (num->bytes n (list op)))))
-
+      
       (define (set-terminal-rawness rawp)
          (sys-prim 26 rawp #f #f))
 
@@ -157,32 +170,29 @@
       (define (set-cursor lst x y)
          (ilist 27 #\[ (num->bytes y (cons #\; (num->bytes x (cons #\f lst))))))
     
-    
-      (define (cursor-up n) 
-         (if (eq? n 1)
-            (write-byte-vector stdout #(27 #\[ #\A))
-            (unary-op n #\A)))
+      (define (cursor-up lst n) 
+         (ilist 27 #\[ (num->bytes n (cons #\A lst))))
 
-      (define (cursor-down n) 
-         (if (eq? n 1)
-            (write-byte-vector stdout #(27 #\[ #\B))
-            (unary-op n #\B)))
+      (define (cursor-down lst n) 
+         (ilist 27 #\[ (num->bytes n (cons #\B lst))))
 
-      (define (cursor-right n) 
-         (if (eq? n 1)
-            (write-byte-vector stdout #(27 #\[ #\C))
-            (unary-op n #\C)))
+      (define (cursor-right lst n) 
+         (ilist 27 #\[ (num->bytes n (cons #\C lst))))
 
-      (define (cursor-left n) 
-         (if (eq? n 1)
-            (write-byte-vector stdout #(27 #\[ #\D))
-            (unary-op n #\D)))
+      (define (cursor-left lst n) 
+         (ilist 27 #\[ (num->bytes n (cons #\D lst))))
 
-      (define (toggle-cursor show?)
-         (write-byte-vector stdout
-            (if show?
-               #(27 #\[ #\? #\2 #\5 #\h)
-               #(27 #\[ #\? #\2 #\5 #\l))))
+      (define (cursor-hide lst) 
+        (ilist 27 #\[ #\? #\2 #\5 #\l lst))
+
+      (define (cursor-show lst) 
+        (ilist 27 #\[ #\? #\2 #\5 #\h lst))
+
+      (define (cursor-save lst) 
+        (ilist 27 #\[ #\s lst))
+
+      (define (cursor-restore lst) 
+        (ilist 27 #\[ #\u lst))
 
       (define (cursor-top-left n) 
          (write-byte-vector stdout #(27 #\[ #\H)))
@@ -203,6 +213,7 @@
 
       (define (wait-cursor-position ll)
         (let loop ((head null) (ll ll))
+          (print (list 'loop head ll))
           (lets ((this ll (uncons ll #false)))
             (cond
               ((not this)
@@ -226,27 +237,6 @@
           (cursor-pos x y)
           (values xm ym ll)))
 
-      (define (get-terminal-byte)
-         (car (vector->list (get-block stdin 1))))
-
-      (define (get-esc-input)
-         (let ((b (get-terminal-byte)))
-            (if (eq? b 91) ;; arrow
-               (let ((op (get-terminal-byte)))
-                  (cond
-                     ((eq? op 65) 'up)
-                     ((eq? op 66) 'down)
-                     ((eq? op 67) 'right)
-                     ((eq? op 68) 'left)
-                     (else
-                        (print-to stderr (list 'unknown-escape 27 91 op)
-                        #false))))
-               (begin
-                  (print-to stderr (list 'unknown-escape 27 b))
-                  #false))))
-
-      ;;; Minimal readline-ish reading support
-
       (define (read-byte)
          (let ((block (get-block stdin 1)))
             (cond
@@ -254,63 +244,7 @@
                (block
                   (vector-ref block 0))
                (else block))))
-               
-      (define (interactive-readline left right)
-         (let ((b (read-byte)))
-            (cond
-               ((eq? b 13) 
-                  (append (reverse left) right))
-               ((eq? b 127)
-                  (if (null? left)
-                     (interactive-readline left right)
-                     (begin
-                        (cursor-left 1)
-                        (write-bytes stdout (clear-line-right null))
-                        (if (pair? right)
-                           (begin
-                              (display (list->string right))
-                              (cursor-left (length right))))
-                        (interactive-readline (cdr left) right))))
-               ((eq? b 21) ;; ^U
-                  (cursor-left (length left))
-                  (write-bytes stdout (clear-line-right null))
-                  (if (pair? right)
-                     (begin
-                        (display (list->string right))
-                        (cursor-left (length right))))
-                  (interactive-readline null right))
-               ((eq? b 11) ;; ^K
-                  (write-bytes stdout (clear-line-right null))
-                  (interactive-readline left null))
-               ((eq? b 27)
-                  (let ((op (get-esc-input)))
-                     (cond
-                        ((eq? op 'left)
-                           (if (null? left)
-                              (interactive-readline left right)
-                              (begin
-                                 (cursor-left 1)
-                                 (interactive-readline (cdr left) (cons (car left) right)))))
-                        ((eq? op 'right)
-                           (if (null? right)
-                              (interactive-readline left right)
-                              (begin
-                                 (cursor-right 1)
-                                 (interactive-readline (cons (car right) left) (cdr right)))))
-                        (else
-                           ;(print-to stderr (list 'wat))
-                           (interactive-readline left right)))))
-               ((eof? b) #false)
-               ((not b) #false)
-               (else
-                  (display (list->string (list b)))
-                  (if (pair? right)
-                     (begin
-                        (display (list->string right))
-                        (cursor-left (length right))))
-                  (interactive-readline (cons b left) right)))))
-    
-
+      
       ;; show as much of right as fits after cx (cursor x)
       ;; return cursor to cx
       (define (update-line-right right w cx)
@@ -318,7 +252,7 @@
         (if (pair? right)
           (let ((visible-right (list->string (take right (- w cx)))))
             (display visible-right)
-            (cursor-left (string-length visible-right)))))
+            (write-bytes stdout (cursor-left null (string-length visible-right))))))
       
       ;; → cx
       (define (update-line-left x y off left)
@@ -399,7 +333,7 @@
                         (update-line-right right w cx)
                         (loop (cons op ll) hi left right cx off)))
                     (let ((cx (- cx 1)))
-                      (cursor-left 1)
+                      (write-bytes stdout (cursor-left null 1))
                       (update-line-right right w cx)
                       (loop ll hi (cdr left) right cx off))))
                 ((delete)
@@ -423,7 +357,7 @@
                             (update-line-right right w cx)
                             (loop (cons op ll) hi left right cx off)))
                         (begin
-                          (cursor-left 1)
+                          (write-bytes stdout (cursor-left null 1))
                           (loop ll hi (cdr left) (cons (car left) right) (- cx 1) off))))
                     ((eq? dir 'right)
                       (cond
@@ -440,7 +374,7 @@
                             (update-line-right right w cx)
                             (loop (cons op ll) hi left right cx off)))
                         (else
-                          (cursor-right 1)
+                          (write-bytes stdout (cursor-right null 1))
                           (loop ll hi (cons (car right) left) (cdr right) (+ cx 1) off))))
                     ((eq? dir 'up)
                       (cond
@@ -514,12 +448,6 @@
           (() (readline (terminal-input) null))
           ((ll) (readline ll null))
           ((ll history) (readline ll history))))
-
-      (define (read-line-interactive)
-         (set-terminal-rawness #true)
-         (let ((res (interactive-readline null null)))
-            (set-terminal-rawness #false)
-            res))
 
        (define failed "x")
 
@@ -615,15 +543,13 @@
             (display env)
             (cond
                ((equal? env (tuple 'terminal (tuple 'key #\h)))
-                  (print "hiding cursor")
-                  (toggle-cursor #false))
+                  (print "hiding cursor"))
                ((equal? env (tuple 'terminal (tuple 'key #\c)))
                   (print "getting cursor position")
                   (print "cursor is at " (interact 'terminal 'get-cursor-position)))
                ((equal? env (tuple 'terminal (tuple 'key #\s)))
-                  (toggle-cursor #true))
+                 42)
                ((equal? env (tuple 'terminal (tuple 'key #\q)))
-                  (toggle-cursor #true)
                   (mail 'terminal 'stop)))
             (printer)))
 
@@ -652,18 +578,57 @@
 
      (define-syntax tio
       (syntax-rules ()
-         ((tio (op . arg) . rest)
-            (op (tio . rest) . arg))
+         ((tio (op . args) . rest)
+            (op (tio . rest) . args))
          ((tio) '())
          ((tio val . rest)
             (render val (tio . rest)))))
-            
-     '(write-bytes stdout
-      (tio (set-cursor 10 10)
-          (output "AAA")
-          1234
-          (set-cursor 12 12)
-          "YYYY"
-          ))
+     
+     (define-syntax tio*
+      (syntax-rules ()
+         ((tio* x) x)
+         ((tio* (op . args) . rest)
+            (op (tio* . rest) . args))
+         ((tio*) '())
+         ((tio* val . rest)
+            (render val (tio* . rest)))))
+
+    (define (vert-line tl chr x y h)
+      (fold
+        (λ (tl y)
+          (set-cursor (cons chr tl) x y))
+        tl
+        (iota y 1 (+ y h))))
+    
+    (define (horiz-line tl b l e x y w)
+      (set-cursor 
+        (cons b (fold (λ (tl _) (cons l tl)) (cons e tl) (iota 0 1 (- w 2))))
+        x y))
+
+    (define (draw-box tl xo yo w h)
+      (lets
+        ((tl (horiz-line tl #\. #\- #\. xo yo w))
+         (tl (horiz-line tl #\' #\- #\' xo (+ yo (- h 1)) w))
+         (tl (vert-line tl #\| xo (+ yo 1) (- h 2)))
+         (tl (vert-line tl #\| (+ xo (- w 1)) (+ yo 1) (- h 2))))
+        tl))
+
+     '(print "getting terminal size")
+     '(lets ((_ (set-terminal-rawness #true))
+            (ll (terminal-input))
+            (_ (print ll))
+            (xm ym ll (get-terminal-size ll)))
+       (let loop ((x 0) (y 0))
+        (if (< x 30)
+          (begin
+            (write-bytes stdout 
+              (tio
+                (clear-screen)
+                (draw-box x y 5 6)
+                (draw-box (- 30 x) (- 40 y) 7 5)
+                (set-cursor 1 1)))
+            (sleep 30)
+            (loop (+ x 1) (+ y 1)))
+          'done)))
 
 ))
