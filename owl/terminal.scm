@@ -23,6 +23,8 @@
       cursor-right         ;; lst n → lst'
 
       tio
+      tio*
+
       output
       terminal-server
       get-terminal-size
