@@ -22,6 +22,8 @@
       cursor-left          ;; lst n → lst'
       cursor-right         ;; lst n → lst'
 
+      draw-box 
+
       tio
       tio*
 
@@ -58,6 +60,7 @@
             ((eq? (type n) type-fix+)
               (append (string->list (number->string n 10)) tl))
             (else
+              (print-to stderr "num->bytes: bad pos " n)
               (cons #\0 tl))))
 
       ;;; ^[[<n><op>
@@ -170,7 +173,9 @@
             (ilist 27 #\[ (num->bytes y (cons #\; (num->bytes x (list #\f)))))))
       
       (define (set-cursor lst x y)
-         (ilist 27 #\[ (num->bytes y (cons #\; (num->bytes x (cons #\f lst))))))
+         (if (and (> x 0) (> y 0))
+            (ilist 27 #\[ (num->bytes y (cons #\; (num->bytes x (cons #\f lst)))))
+            (error "set-cursor: bad position " (cons x y))))
     
       (define (cursor-up lst n) 
          (ilist 27 #\[ (num->bytes n (cons #\A lst))))
@@ -215,7 +220,6 @@
 
       (define (wait-cursor-position ll)
         (let loop ((head null) (ll ll))
-          (print (list 'loop head ll))
           (lets ((this ll (uncons ll #false)))
             (cond
               ((not this)
@@ -497,8 +501,6 @@
                   (loop (cdr ll) requested?))
                ((not requested?)
                   (mail 'iomux (tuple 'read fd))
-                  (cursor-pos 1 1)
-                  (write-bytes stdout (clear-line-right null))
                   (loop ll #true))
                (else
                   (tuple-case (wait-mail)
@@ -579,7 +581,9 @@
       (font-bold (render val (font-normal lst))))
 
      (define-syntax tio
-      (syntax-rules ()
+      (syntax-rules (raw)
+         ((tio (raw lst) . rest)
+            (append lst (tio . rest)))
          ((tio (op . args) . rest)
             (op (tio . rest) . args))
          ((tio) '())
@@ -587,7 +591,9 @@
             (render val (tio . rest)))))
      
      (define-syntax tio*
-      (syntax-rules ()
+      (syntax-rules (raw)
+         ((tio* (raw lst) . rest)
+            (append lst (tio* . rest)))
          ((tio* x) x)
          ((tio* (op . args) . rest)
             (op (tio* . rest) . args))
