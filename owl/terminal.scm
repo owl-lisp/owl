@@ -30,6 +30,7 @@
       output
       terminal-server
       get-terminal-size
+      readline
       port->readline-sexp-stream
       port->readline-line-stream)
 
@@ -150,7 +151,7 @@
                                           (cons (tuple 'esc-unknown-unary-op a (list->string (list x))) ll))))
                                     null))))))
                         (else
-                          (pair (tuple 'esc-unknown op) null)))))
+                          (cons (tuple 'esc) ll)))))
                   ((eq? hd 127) (cons (tuple 'backspace) (loop ll)))
                   ((eq? hd 13)  (cons (tuple 'enter) (loop ll)))
                   ((eq? hd 21)  (cons (tuple 'nak) (loop ll))) ;; ^u
@@ -161,6 +162,8 @@
                   ((eq? hd 23)  (cons (tuple 'end-of-transmission-block) (loop ll))) ;; ^w
                   ((eq? hd 1)  (cons (tuple 'ctrl-a) (loop ll))) ;; ^n
                   ((eq? hd 5)  (cons (tuple 'ctrl-e) (loop ll))) ;; ^w
+                  ((eq? hd 6)  (cons (tuple 'ctrl #\f) (loop ll))) ;; switch to these
+                  ((eq? hd 2)  (cons (tuple 'ctrl #\b) (loop ll)))
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
@@ -300,11 +303,9 @@
             (else
                (backspace-over-word (cdr left) (cons bs ll) bs #false))))
 
-      (define (readline ll history)
+      (define (readline ll history x y w)
         (lets 
-          ((w h ll (get-terminal-size ll))
-           (x y ll (get-cursor-position ll))
-           (history (cons null history))  ; (newer . older)
+          ((history (cons null history))  ; (newer . older)
            (offset-delta (+ 1 (div (- w x) 2)))
            (width (- w x)))
           (let loop ((ll ll) (hi history) (left null) (right null) (cx x) (off 0))
@@ -449,11 +450,22 @@
                 (else
                   (values ll (tuple 'wat op))))))))
 
-      (define editable-readline
+      (define (get-dimensions ll)
+        (lets ((w h ll (get-terminal-size ll))  
+               (x y ll (get-cursor-position ll)))
+              (values x y w ll)))
+
+      (define editable-readline 
         (case-lambda
-          (() (readline (terminal-input) null))
-          ((ll) (readline ll null))
-          ((ll history) (readline ll history))))
+          (() 
+            (lets ((x y w ll (get-dimensions (terminal-input))))
+              (readline ll null x y w)))
+          ((ll) 
+            (lets ((x y w ll (get-dimensions ll)))
+              (readline ll null x y w)))
+          ((ll history) 
+            (lets ((x y w ll (get-dimensions ll)))
+              (readline ll history x y w)))))
 
        (define failed "x")
 
@@ -521,6 +533,10 @@
                               (lets ((x y ll (get-cursor-position ll)))
                                  (mail (ref env 1) (cons x y))
                                  (loop ll requested?)))
+                           ((eq? 'get-input msg)
+                             ;; block while some thread uses the input stream
+                             (let ((ll (interact (ref env 1) ll)))
+                              (loop ll requested?)))
                            ((pair? msg)
                               (write-bytes stdout msg)
                               (loop ll requested?))
