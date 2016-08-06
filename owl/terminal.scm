@@ -151,7 +151,7 @@
                                           (cons (tuple 'esc-unknown-unary-op a (list->string (list x))) ll))))
                                     null))))))
                         (else
-                          (cons (tuple 'esc) ll)))))
+                          (cons (tuple 'esc) (loop (cons op ll)))))))
                   ((eq? hd 127) (cons (tuple 'backspace) (loop ll)))
                   ((eq? hd 13)  (cons (tuple 'enter) (loop ll)))
                   ((eq? hd 21)  (cons (tuple 'nak) (loop ll))) ;; ^u
