@@ -80,6 +80,7 @@
       (owl list)
       (owl symbol)
       (owl math)
+      (owl unicode)
       (owl fasl)
       (owl tuple)
       (owl primop)
@@ -588,7 +589,8 @@
                   (loop (bs) n out)))))
 
       (define (lines fd)
-         (let loop ((ll (port->byte-stream fd)) (out null))
+         (let loop ((ll (utf8-decoder (port->byte-stream fd) (λ (self line ll) null))) 
+                    (out null))
             (cond
                ((pair? ll)
                   (lets ((byte ll ll))
@@ -607,7 +609,8 @@
                      (list
                         (list->string (reverse out)))))
                (else
-                  (loop (ll) out)))))
+                  (λ ()
+                    (loop (ll) out))))))
 
       (define (file->byte-stream path)
          (let ((fd (open-input-file path)))
