@@ -29,6 +29,7 @@
 
       output
       terminal-server
+		terminal-input
       get-terminal-size
       readline
       port->readline-sexp-stream
@@ -107,8 +108,9 @@
             (values x ll)
             (values #false (cons x ll)))))
   
-      (define (terminal-input)
-        (let loop ((ll (utf8-decoder (port->byte-stream stdin) (λ (loop line ll) (print-to stderr "Bad UTF-8 in terminal input") null))))
+      (define (terminal-input . opt)
+			(let ((port (if (null? opt) stdin (car opt)))) 
+        (let loop ((ll (utf8-decoder (port->byte-stream port) (λ (loop line ll) (print-to stderr "Bad UTF-8 in terminal input") null))))
           (cond
             ((pair? ll)
               (lets ((hd ll ll))
@@ -168,7 +170,7 @@
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
-            (else (λ () (loop (ll)))))))
+            (else (λ () (loop (ll))))))))
 
       ;;; Cursor movement
 
@@ -502,13 +504,15 @@
               null))))
 
       (define (terminal-server fd receiver)
-         (set-terminal-rawness #true)
-         (let loop ((ll (terminal-input))
+         (if (eq? fd stdin)
+				(set-terminal-rawness #true))
+         (let loop ((ll (terminal-input fd))
                     (requested? #false))
             (cond
                ((null? ll)
                   (mail receiver 'eof)
-                  (set-terminal-rawness #false))
+						(if (eq? fd stdin)
+							(set-terminal-rawness #false)))
                ((pair? ll)
                   (mail receiver (car ll))
                   (loop (cdr ll) requested?))
@@ -537,7 +541,7 @@
                            ((eq? 'get-input msg)
                              ;; block while some thread uses the input stream
                              (let ((ll (interact (ref env 1) ll)))
-                              (loop ll requested?)))
+                                (loop ll requested?)))
                            ((pair? msg)
                               (write-bytes stdout msg)
                               (loop ll requested?))

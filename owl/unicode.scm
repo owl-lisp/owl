@@ -223,8 +223,8 @@
                      (cond
                         (val
                            (if (eq? val #\newline)
-                              (pair val (loop ll (+ line 1)))
-                              (pair val (loop ll line))))
+                              (cons val (loop ll (+ line 1)))
+                              (cons val (loop ll line))))
                         ;; drop bom here later
                         (else
                            (fail loop line ll)))))
