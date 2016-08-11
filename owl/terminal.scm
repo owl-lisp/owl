@@ -164,6 +164,7 @@
                   ((eq? hd 5)  (cons (tuple 'ctrl-e) (loop ll))) ;; ^w
                   ((eq? hd 6)  (cons (tuple 'ctrl #\f) (loop ll))) ;; switch to these
                   ((eq? hd 2)  (cons (tuple 'ctrl #\b) (loop ll)))
+                  ((eq? hd 18)  (cons (tuple 'ctrl #\r) (loop ll))) ;; ^n
                   (else
                     (cons (tuple 'key hd) (loop ll))))))
             ((null? ll) ll)
