@@ -1,4 +1,5 @@
 doc/ol.1.gz
+doc/ovm.1.gz
 c/ol.c
 c/vm.c
 fasl/boot.fasl
