@@ -1,6 +1,5 @@
 /* Owl Lisp runtime */
 
-#include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
@@ -452,7 +451,7 @@ word *get_obj(word *ptrs, int me) {
          while (pads--) { *wp++ = 0; };
          fp = (word *) wp;
          break; }
-      default: puts("bad object in heap"); exit(42);
+      default: exit(42);
    }
    return fp;
 }
@@ -970,7 +969,6 @@ word boot(int nargs, char **argv) {
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
    memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
    if (!memstart) {
-      puts("Failed to allocate initial memory\n");
       exit(4);
    }
    memend = memstart + FMAX + INITCELLS - MEMPAD;
@@ -984,7 +982,6 @@ word boot(int nargs, char **argv) {
       int len = 0, size;
       while(*pos++) len++;
       if (len > FMAX) {
-         puts("owl: command line argument too long");
          exit(1);
       }
       size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
@@ -1013,7 +1010,6 @@ word boot(int nargs, char **argv) {
    pos = 0;
    while(pos < nobjs) { /* or until fasl stream end mark */
       if (fp >= memend) {
-         puts("gc needed during heap import\n");
          exit(1);
       }
       fp = get_obj(ptrs, pos);
