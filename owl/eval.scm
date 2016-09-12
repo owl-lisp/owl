@@ -5,19 +5,18 @@
 
 (define-library (owl eval)
 
-	(export 
-		repl-file 
-		repl-port
-		repl-string 
-		repl-trampoline 
-		repl
-		exported-eval						; fixme, here only temporarily
-		print-repl-error
-		bind-toplevel
-      library-import                ; env exps fail-cont → env' | (fail-cont <reason>)
+   (export 
+      repl-file 
+      repl-port
+      repl-string 
+      repl-trampoline 
+      repl
+      exported-eval             ; fixme, here only temporarily
+      print-repl-error
+      bind-toplevel
+      library-import            ; env exps fail-cont → env' | (fail-cont <reason>)
       evaluate
-      *owl-core*
-		)
+      *owl-core*)
 
    (import 
       (owl defmac)
@@ -105,23 +104,15 @@
       ; (op exp env) -> #(ok exp' env') | #(fail info)
       (define compiler-passes
          (list 
-                            ;; macres have already been expanded
+                            ;; macros have already been expanded
             apply-env       ;; apply previous definitions
             sexp->ast       ;; safe sane tupled structure
             fix-points      ;; make recursion explicit <3
             alpha-convert   ;; assign separate symbols to all bound values
             cps             ;; convert to continuation passing style
-                            ;; partial eval here?
             build-closures  ;; turn lambdas into closures where necessary
             compile         ;; translate and flatten to bytecode
-                            ;;   |
-                            ;;   '---> split this into separate passes
-                            ;;           + ast->rtl      - refer registers and closures (infinite regs here)
-                            ;;           + convert-calls - lots of args -> enlist tail, convert lambdas accordingly
-                            ;;           + register value analysis? (car&cdr after known type -> _ref, etc)
-                            ;;           + allocate-registers - infinite -> fixed register set
-            execute         ;; call the resulting code
-            )) 
+            execute))       ;; call the resulting code
 
       ; run the code in its own thread
       (define (evaluate-as exp env task)
@@ -920,7 +911,4 @@
             ;; list of sexps
             (if exps
                (repl env exps)
-               (tuple 'error "not parseable" env))))
-
-
-))
+               (tuple 'error "not parseable" env))))))
