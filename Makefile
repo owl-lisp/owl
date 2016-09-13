@@ -59,7 +59,7 @@ c/diet-ol.c: fasl/ol.fasl
 bin/ol: c/ol.c
 	# compile the real owl repl binary
 	$(CC) $(CFLAGS) -o bin/olp c/ol.c
-	CC=$(CC) tests/run all bin/olp
+	CC="$(CC)" CFLAGS="$(CFLAGS)" tests/run all bin/olp
 	test -f bin/ol && mv bin/ol bin/ol-old || true
 	mv bin/olp bin/ol
 
@@ -114,9 +114,9 @@ clean:
 	-rm -f bin/ol bin/vm
 
 # make a standalone binary against dietlibc for relase
-standalone:
+standalone: c/ol.c
 	-rm -f bin/ol
-	make CFLAGS="-O2 -DNO_SECCOMP" CC="diet gcc" bin/ol
+	diet gcc -O2 -DNO_SECCOMP -o bin/ol c/ol.c
 
 fasl-update: fasl/ol.fasl
 	cp fasl/ol.fasl fasl/init.fasl
