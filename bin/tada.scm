@@ -31,8 +31,41 @@
    (let ((res (match exp pat)))
       (if res (ref res 1) #false)))
 
+
+; could find these from the parsed result, but using a silly line-based approach
+; here since we're reading the comments also at the same time this way
+(define (maybe-definition-args defn)
+   (if (m/^ *\(define +\(/ defn)  ; )) 
+      (s/\).*// ; (
+         (s/.*\(define +\([^ ]+ *// defn)) ; ))
+      #false))
+
+(define (maybe fn val) 
+   (if val (fn val) val))
+
+(define (maybe-put ff k v)
+   (if v (put ff k v) ff))
+
+(define (find-args defn comms)
+   (or (maybe s/,.*// (first m/.* -> / comms #false))
+       (maybe-definition-args defn)))
+
+(define (find-description comms)
+   (maybe s/.*, *// (first m/.* -> .*,/ comms #false)))   
+   
+(define (examples comms)
+   (map s/   //
+      (keep m/^   .* = / comms)))
+
+(define (metadata-entry name defn-line prev-comments)
+   (-> #empty
+      (maybe-put 'name name)
+      (maybe-put 'description (find-description prev-comments))
+      (maybe-put 'args (find-args defn-line prev-comments))
+      (maybe-put 'examples (examples prev-comments))))
+         
 (define (find-metadatas path)
-   (let loop ((ls (lines (open-input-file path))) (cs null) (metas null))
+   (let loop ((ls (lines (open-input-file path))) (cs null) (metas #empty))
       (lets ((line ls (uncons ls #false)))
          (if line
             (cond
@@ -40,13 +73,19 @@
                   (loop ls (cons (s/^ *;; // line) cs) metas))
                ((m/^ *\(define / line) ;) happy paren balancer
                   (let ((name (s/^ *\(define \(?([^ ]+).*/\1/ line))) ; ))
-                     (loop ls null (cons (cons name (reverse cs)) metas))))
+                     (loop ls null 
+                        (let ((name (string->symbol name)))
+                           (put metas name
+                              (metadata-entry name line (reverse cs)))))))
                (else
                   (loop ls null metas)))
             metas))))
 
 (define safe-chars 
-   (fold (lambda (ff x) (put ff x x)) #empty (list #\space #\- #\_ #\: #\( #\))))
+   (fold 
+      (lambda (ff x) (put ff x x)) 
+      #empty 
+      (list #\space #\- #\_ #\: #\( #\) #\?)))
 
 (define (html-safe s)
    (list->string
@@ -89,25 +128,34 @@
    (map
       (lambda (sym) (cons sym (meta-of sym metas)))
       exps))
+
+(define (output-documentation name info)
+   (print " - *" (html-safe (str name)) "* "
+      (get info 'args "")
+      (let ((desc (getf info 'description)))
+         (if desc
+            (str " /" desc "/")
+            "")))
+   (for-each 
+      (lambda (exp)
+         (print "   - " exp))
+      (get info 'examples null)))
    
 (define (format-metadatas lib exps metas)
-   (print "### " (html-safe (str lib)))
-   (print "")
-   (for-each 
-      (lambda (row)
-         (print "*" (html-safe (str (car row))) "*")
-         (for-each
-            (lambda (comment-line)
-               (print " - " (html-safe comment-line)))
-            (cdr row))
-         (print))
-      (pick-metadatas exps metas))
-   (print))
+   (lets ((exported (fold (lambda (ff name) (put ff name name)) #empty exps)))
+      (print "*" (html-safe (str lib)) "*")
+      (ff-fold
+         (lambda (_ name info)
+            (if (getf exported name)
+               (output-documentation name info)))
+         #false metas)
+      (print)))
+
 
 (define (tada path)
-   ;(print "Reading " path)
+   (print-to stderr (str "Reading " path))
    (lets ((sexps (force-ll (read-ll (open-input-file path)))))
-      ;(print "Read " (length sexps) " exps")
+      (print-to stderr (str " - " (length sexps) " exps"))
       (if (= (length sexps) 1)
          (lets
             ((info (maybe-tada-module (car sexps)))
