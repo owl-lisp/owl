@@ -234,22 +234,4 @@
 
 ))
 
-'(import (owl html))
 
-'(print 
-   (html (carry-session '(a ((href "http://haltp.org")) "link") "SID" #false)))
-
-'(print
-   (html
-      (carry-session
-         '(div
-            (ul
-               (form (input ((type "submit")) "doit"))
-               (li (a ((href "http://lol" ("foo" "bar") ("baz" "quux")) (target "_top")) "trololo"))
-               (li (a ((href "http://lol") (target "_top")) "trololox"))
-               (li (p "foo" (b "bar") "baz"))
-               (li ((style "foo: \"lol\"")) "ke<script>alert(42);</script>kekek")
-               (li (p "BAR"))))
-         "os" "0x3232323")))
-
-      

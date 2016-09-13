@@ -45,25 +45,34 @@
                   (loop ls null metas)))
             metas))))
 
+(define safe-chars 
+   (fold (lambda (ff x) (put ff x x)) #empty (list #\space #\- #\_ #\: #\( #\))))
+
 (define (html-safe s)
    (list->string
       (foldr
          (lambda (char tl)
             (cond
-               ((eq? char #\<) (ilist #\& #\l #\t #\; tl))
-               ((eq? char #\>) (ilist #\& #\g #\t #\; tl))
-               ((eq? char #\*) (ilist #\& #\a #\m #\p #\; tl))
-               (else (cons char tl))))
+               ((<= #\a char #\z) (cons char tl))
+               ((<= #\0 char #\9) (cons char tl))
+               ((<= #\A char #\Z) (cons char tl))
+               ((getf safe-chars char) (cons char tl))
+               (else (render (str "&#" char ";") tl))))
          null
          (string->list s))))
 
+(define (export? x) 
+   (and (pair? x) 
+      (list? x) 
+      (eq? (car x) 'export)))
+
 (define (maybe-tada-module sexp)
-   (let ((res (match sexp '(define-library ? ? ? ?))))
+   (let ((res (match sexp '(define-library ? . ?))))
       (if res
          (lets ((library (ref res 1))
-                (exports (or (match-1 (ref res 2) '(export . ?))
-                             (match-1 (ref res 3) '(export . ?))
-                             (match-1 (ref res 4) '(export . ?)))))
+                (exports
+                   (fold (lambda (found x) (or found (if (export? x) (cdr x) #false)))
+                      #false (ref res 2))))
               (if (and library exports)
                  (cons library exports)
                  #f)))))
@@ -82,7 +91,7 @@
       exps))
    
 (define (format-metadatas lib exps metas)
-   (print "## " (html-safe (str lib)))
+   (print "### " (html-safe (str lib)))
    (print "")
    (for-each 
       (lambda (row)
@@ -105,7 +114,7 @@
              (metas (find-metadatas path)))
             (if (and info metas)
                (format-metadatas (car info) (cdr info) metas)))
-         #false)))
+         (print-to stderr "Warning: not tadaing " path))))
 
 (lambda (args)
    (map tada (cdr args)))

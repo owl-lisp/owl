@@ -1,4 +1,4 @@
-/;;
+;;;
 ;;; Strings
 ;;;
 
@@ -50,14 +50,15 @@
       char-ci=?          ; cp cp → bool (temp)
       )
 
-   (import (owl iff))
-   (import (only (owl syscall) error))
-   (import (owl unicode))
-   (import (owl list))
-   (import (owl list-extra))
-   (import (owl defmac))
-   (import (owl lazy))
-   (import (owl math))
+   (import 
+      (owl iff)
+      (only (owl syscall) error)
+      (owl unicode)
+      (owl list)
+      (owl list-extra)
+      (owl defmac)
+      (owl lazy)
+      (owl math))
 
    (include "owl/unicode-char-folds.scm")
 

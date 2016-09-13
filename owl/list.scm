@@ -32,6 +32,7 @@
 
       (define null '())
 
+      ;; ? -> bool
       (define (pair? x) (eq? type-pair (type x)))
 
       (define (null? x) (eq? x null))
