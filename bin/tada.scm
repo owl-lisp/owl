@@ -1,6 +1,6 @@
 #!/usr/bin/ol --run 
 
-;; totally automatic documentation aggrecator (TADA)
+;; totally automatic documentation aggregator (TADA)
 ;; initial minimal viable version
 ;; usage: tada owl-library.scm -> documentation
 
