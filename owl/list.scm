@@ -32,9 +32,10 @@
 
       (define null '())
 
-      ;; ? -> bool
+      ;; any -> bool
       (define (pair? x) (eq? type-pair (type x)))
 
+      ;; any -> bool
       (define (null? x) (eq? x null))
 
       (define-syntax withcc
@@ -42,17 +43,24 @@
             ((withcc name proc)
                (call/cc (λ (name) proc)))))
 
+      ;; '((a . b) . c) -> a
       (define (caar x) (car (car x)))
+      ;; '(a . (b . c)) -> b
       (define (cadr x) (car (cdr x)))
+      ;; '((a . b) . c) -> b
       (define (cdar x) (cdr (car x)))
+      ;; '(a . (b . c)) -> c
       (define (cddr x) (cdr (cdr x)))
 
+      ;; any -> bool, check if a thing is a linked list, O(n)
       (define (list? l)
          (cond
             ((null? l) #true)
             ((pair? l) (list? (cdr l)))
             (else #false)))
 
+      ;; fn as bs -> ((fn a b) ...), zip values of lists together with a function
+      ;;    (zip cons '(1 2 3) '(a b c d)) = '((1 . a) (2 . b) (3 . c))
       (define (zip op a b)
          (cond
             ((null? a) null)
@@ -62,14 +70,14 @@
                   (cons hd (zip op (cdr a) (cdr b)))))))
 
          
-      ; (for st l op) == (fold op st l)
-      ; just usually less indentation clutter 
-
       (define (for st l op)
          (if (null? l)
             st
             (for (op st (car l)) (cdr l) op)))
 
+      ;; op state lst -> state', walk over a list from left and compute a value
+      ;;    (fold - 0 '(1 2 3)) = -6
+      ;;    (fold (lambda (a b) (cons b a)) null '(a b c)) = '(c b a)
       (define (fold op state lst) 
          (if (null? lst) 
             state 
@@ -83,18 +91,24 @@
             (lets ((this st (op st)))
                (cons this (unfold op st end?)))))
 
+      ;; op s1 s2 lst -> s1' s2', fold with 2 states
       (define (fold2 op s1 s2 lst)
          (if (null? lst)
             (values s1 s2)
             (lets ((s1 s2 (op s1 s2 (car lst))))
                (fold2 op s1 s2 (cdr lst)))))
 
+      ;; op st lst -> st', compute a value from the right
+      ;;    (foldr - 0 '(1 2 3)) = 2
+      ;;    (foldr cons null '(a b c)) = '(a b c)
       (define (foldr op st lst)
          (if (null? lst)
             st
             (op (car lst)
                (foldr op st (cdr lst)))))
 
+      ;; fn lst -> lst', run a function to all elements of a list
+      ;;    (map even? '(1 2 3)) = '(#false #true #false)
       (define (map fn lst)
          (if (null? lst)
             null
@@ -103,6 +117,7 @@
                 (hd (fn hd))) ;; compute head first
                (cons hd (map fn tl)))))
 
+      ;; fn lst -> _, run a function to all elements of a list for side effects
       (define (for-each op lst)
          (if (null? lst)
             null
@@ -110,28 +125,30 @@
                (op (car lst))
                (for-each op (cdr lst)))))
 
+      ;; lst key -> bool
       (define (has? lst x)
          (cond
             ((null? lst) #false)
             ((eq? (car lst) x) lst)
             (else (has? (cdr lst) x))))
 
+      ;; lst k -> #false | value, get a value from an association list
       (define (getq lst k)
          (cond
             ((null? lst) #false)
             ((eq? k (car (car lst))) (car lst))
             (else (getq (cdr lst) k))))
 
+      ;; last list default -> last-elem | default, get the last value of a list
       (define (last l def)
          (fold (λ (a b) b) def l)) 
 
+      ;; mem compare lst elem -> bool, check if lst contains elem comparing with compare
       (define (mem cmp lst elem)
          (cond
             ((null? lst) #false)
             ((cmp (car lst) elem) lst)
             (else (mem cmp (cdr lst) elem))))
-
-      ;(define (append a b) (foldr cons b a))
 
       (define (app a b app)
          (if (null? a)
@@ -143,6 +160,8 @@
             (car l)
             (app (car l) (appl (cdr l) appl) app)))
 
+      ;; append list ... -> list', join lists
+      ;;    (append '(1) '() '(2 3)) = '(1 2 3)
       (define append
          (case-lambda 
             ((a b) (app a b app))
@@ -150,6 +169,7 @@
             ((a) a)
             (() null)))
 
+      ; todo: update to work like ledit
       (define (edit op l)
          (if (null? l)
             l
@@ -165,6 +185,7 @@
             b
             (rev-loop (cdr a) (cons (car a) b))))
 
+      ;; lst -> lst', reverse a list
       (define (reverse l) (rev-loop l null))   
 
       ;; misc
