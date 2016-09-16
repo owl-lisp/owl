@@ -31,7 +31,6 @@
    (let ((res (match exp pat)))
       (if res (ref res 1) #false)))
 
-
 ; could find these from the parsed result, but using a silly line-based approach
 ; here since we're reading the comments also at the same time this way
 (define (maybe-definition-args defn)
@@ -101,20 +100,45 @@
          (string->list s))))
 
 (define (export? x) 
-   (and (pair? x) 
-      (list? x) 
-      (eq? (car x) 'export)))
+   (and (pair? x) (list? x) (eq? (car x) 'export)))
 
+(define (begin? x)
+   (and (pair? x) (list? x) (eq? (car x) 'begin)))
+
+(define (add-defn-metadata meta exp)
+   (cond
+      ((match exp '(define (? . ?) . ?)) =>
+         (lambda (ms)
+            (let ((val (getf meta (ref ms 1))))
+               (if val ;; exported, collecting data for it
+                  (put meta (ref ms 1) (put val 'args (ref ms 2)))
+                  meta))))
+      ;; could also grab (define foo (lambda (args) bar))
+      (else meta)))
+
+(define (pick-exports exps body)
+   (lets ((meta (fold (lambda (ff exp) (put ff exp (put #empty 'name exp))) #empty exps)))
+      (fold add-defn-metadata meta body)))
+
+;; sexp -> #f | (libname . metadata-ff)
 (define (maybe-tada-module sexp)
    (let ((res (match sexp '(define-library ? . ?))))
       (if res
          (lets ((library (ref res 1))
                 (exports
-                   (fold (lambda (found x) (or found (if (export? x) (cdr x) #false)))
+                   (fold 
+                      (lambda (found x) 
+                         (or found (if (export? x) (cdr x) #false)))
+                      #false (ref res 2)))
+                (body 
+                   (fold 
+                      (lambda (found x) (or found (if (begin? x) (cdr x) #false)))
                       #false (ref res 2))))
               (if (and library exports)
-                 (cons library exports)
-                 #f)))))
+                 (cons library
+                    (pick-exports library exports))
+                 #f))
+        #false)))
 
 (define (meta-of sym ms)
    (cond
@@ -134,7 +158,7 @@
       (get info 'args "")
       (let ((desc (getf info 'description)))
          (if desc
-            (str " /" desc "/")
+            (str " _" desc "_")
             "")))
    (for-each 
       (lambda (exp)
@@ -151,15 +175,15 @@
          #false metas)
       (print)))
 
-
 (define (tada path)
    (print-to stderr (str "Reading " path))
    (lets ((sexps (force-ll (read-ll (open-input-file path)))))
-      (print-to stderr (str " - " (length sexps) " exps"))
+      ;(print-to stderr (str " - " (length sexps) " exps"))
       (if (= (length sexps) 1)
          (lets
             ((info (maybe-tada-module (car sexps)))
              (metas (find-metadatas path)))
+            (print "both done")
             (if (and info metas)
                (format-metadatas (car info) (cdr info) metas)))
          (print-to stderr "Warning: not tadaing " path))))
