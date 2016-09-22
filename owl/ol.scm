@@ -192,8 +192,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (import (owl digest))
 (import (owl base))
 (import (owl date))
-(import (owl http))
-(import (owl html))
 (import (owl codec))
 ;(import (owl terminal))
 
