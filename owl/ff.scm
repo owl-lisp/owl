@@ -280,7 +280,7 @@
                (ff-min left key))))
         
       ;; bytecoded get
-      (define (get ff key def)
+      '(define (get ff key def)
          (if (eq? ff #empty)
             def
             (let ((this-k (ref ff 1)))
@@ -307,7 +307,7 @@
                               def))))))))
 
       ;; primitive get via vm
-      '(define (get ff key def) (ff key def))
+      (define (get ff key def) (ff key def))
 
       ;; ff key val -> ff', *key must be in ff*
       (define (ff-update ff key val)
