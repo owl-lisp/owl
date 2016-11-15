@@ -11,7 +11,7 @@ all owl: bin/ol
 
 simple-ol: bin/vm
 	bin/vm fasl/init.fasl --run owl/ol.scm -s none -o c/ol.c
-	$(CC) $(CFLAGS) -o bin/ol c/ol.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o bin/ol c/ol.c
 
 ## fasl (plain bytecode) image boostrap
 
@@ -32,7 +32,7 @@ fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
 ## building just the virtual machine to run fasl images
 
 bin/vm: c/vm.c
-	$(CC) $(CFLAGS) -o bin/vm c/vm.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o bin/vm c/vm.c
 
 bin/diet-vm: c/vm.c
 	diet $(CC) -DNO_SECCOMP -Os -o bin/diet-vm c/vm.c
@@ -58,8 +58,8 @@ c/diet-ol.c: fasl/ol.fasl
 
 bin/ol: c/ol.c
 	# compile the real owl repl binary
-	$(CC) $(CFLAGS) -o bin/olp c/ol.c
-	CC="$(CC)" CFLAGS="$(CFLAGS)" tests/run all bin/olp
+	$(CC) $(CFLAGS) $(LDFLAGS) -o bin/olp c/ol.c
+	CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" tests/run all bin/olp
 	test -f bin/ol && mv bin/ol bin/ol-old || true
 	mv bin/olp bin/ol
 
