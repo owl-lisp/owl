@@ -10,6 +10,7 @@
    (export
       dir-fold
       dir->list
+      dir->list-all
       exec
       fork
       wait
@@ -20,6 +21,8 @@
       rmdir
       mkdir
       lseek
+      directory?
+      file?
       seek-pos 
       seek-end
       sighup
@@ -32,7 +35,12 @@
       sigsegv
       sigpipe
       sigalrm
-      sigterm)
+      sigterm
+      stdin
+      stdout
+      stderr
+      fopen
+      fclose)
 
    (import
       (owl defmac)
@@ -40,10 +48,28 @@
       (owl math)
       (owl equal)
       (owl syscall)
+      (owl port)
       (owl list)
       (owl vector))
 
    (begin
+
+      ;; standard io ports
+      (define stdin  (fd->port 0))
+      (define stdout (fd->port 1))
+      (define stderr (fd->port 2))
+
+      ;; use type 12 for fds 
+
+      (define (fclose fd)
+         (sys-prim 2 fd #false #false))
+
+      (define (fopen path mode)
+         (cond
+            ((c-string path) => 
+               (λ (raw) (sys-prim 1 raw mode #false)))
+            (else #false)))
+
 
       ;;;
       ;;; Unsafe operations not to be exported
@@ -56,6 +82,20 @@
                (sys-prim 11 cs #false #false)
                #false)))
 
+      (define (directory? path)
+         (if (string? path)
+            (let ((dfd (open-dir path)))
+               (if dfd
+                  (begin (fclose dfd) #true)
+                  #false))
+            #false))
+
+      (define (file? path)
+         (let ((fd (fopen path 0)))
+            (if fd
+               (begin (fclose fd) #true)
+               #false)))
+         
       ;; unsafe-dirfd → #false | eof | bvec
       (define (read-dir obj)
          (sys-prim 12 obj #false #false))
@@ -76,16 +116,26 @@
             (if dfd
                (let loop ((st st))
                   (let ((val (read-dir dfd)))
-                     (cond
-                        ((eof? val) st)
-                        ((equal? val ".") (loop st))
-                        ((equal? val "..") (loop st))
-                        (else (loop (op st val))))))
+                     (if (eof? val)
+                        st
+                        (loop (op st val)))))
                #false)))
 
+      ;; no dotfiles
       (define (dir->list path)
-         (dir-fold (λ (seen this) (cons this seen)) null path))
+         (dir-fold 
+            (λ (seen this) 
+               (if (eq? #\. (refb this 0))
+                  seen
+                  (cons this seen)))
+             null path))
 
+      ;; everything reported by OS
+      (define (dir->list-all path)
+         (dir-fold 
+            (λ (seen this) (cons this seen))
+             null path))
+       
       (define (chdir path)
          (let ((path (c-string path)))
             (and path
