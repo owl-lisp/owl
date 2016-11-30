@@ -16,10 +16,6 @@
 #include <sys/wait.h>
 #include <sys/wait.h>
 #include <termios.h>
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-
 #ifdef __gnu_linux__
 #ifndef NO_SECCOMP
 #include <sys/prctl.h>
@@ -40,9 +36,6 @@ typedef int64_t   wdiff;
 #else
 typedef int32_t   wdiff;
 #endif
-
-
-/*** Macros ***/
 
 #define IPOS                        8 /* offset of immediate payload */
 #define SPOS                        16 /* offset of size bits in header immediate values */
@@ -479,7 +472,7 @@ byte *load_heap(char *path) {
    if(stat(path, &st)) exit(1);
    hp = realloc(NULL, st.st_size);
    if (hp == NULL) exit(2);
-   fd = open(path, O_RDONLY | O_BINARY);
+   fd = open(path, O_RDONLY);
    if (fd < 0) exit(3);
    while(pos < st.st_size) {
       int n = read(fd, hp+pos, st.st_size-pos);
@@ -668,7 +661,7 @@ static word prim_sys(int op, word a, word b, word c) {
          struct stat sb;
          if (!(allocp(path) && imm_type(header(a)) == 3))
             return IFALSE;
-         val |= O_BINARY | ((mode & 1) ? O_WRONLY : O_RDONLY) \
+         val |= ((mode & 1) ? O_WRONLY : O_RDONLY) \
                          | ((mode & 2) ? O_TRUNC : 0) \
                          | ((mode & 4) ? O_APPEND : 0) \
                          | ((mode & 8) ? O_CREAT : 0);
@@ -1022,7 +1015,6 @@ word boot(int nargs, char **argv) {
    toggle_blocking(1,0);
    toggle_blocking(2,0);
    /* clear the pointers */
-   /* fixme, wrong when heap has > 65534 objects */
    ptrs[0] = make_raw_header(nobjs+1,0,0);
    if (file_heap != NULL) free((void *) file_heap);
    return vm(entry, oargs);
@@ -1078,10 +1070,10 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
 }
 word vm(word *ob, word *args) {
    unsigned char *ip;
-   int bank = 0; /* ticks deposited at syscall */
-   int ticker = slice; /* any initial value ok */
-   unsigned short acc = 0; /* no support for >255arg functions */
-   int op; /* opcode to execute */
+   int bank = 0;
+   int ticker = slice;
+   unsigned short acc = 0;
+   int op;
    static word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
@@ -1167,7 +1159,7 @@ switch_thread: /* enter mcp if present */
       ob = (word *) R[0]; 
       R[0] = IFALSE; /* remove mcp cont */
       /* R3 marks the syscall to perform */
-      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1); /* fixme - handle also differnet signals via one handler  */
+      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1);
       R[4] = (word) state;
       R[5] = F(breaked);
       R[6] = IFALSE;
@@ -1176,9 +1168,7 @@ switch_thread: /* enter mcp if present */
       goto apply;
    }
 invoke: /* nargs and regs ready, maybe gc and execute ob */
-   if (((word)fp) + 1024*64 >= ((word) memend))
-      //(1)  // always gc
-	{
+   if (((word)fp) + 1024*64 >= ((word) memend)) {
       int p = 0; 
       *fp = make_header(NR+2, 50); /* hdr r_0 .. r_(NR-1) ob */ 
       while(p < NR) { fp[p+1] = R[p]; p++; } 
@@ -1492,7 +1482,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             A4 = *ob;
       }
       NEXT(5); }
-   op50: { /* run thunk quantum */ /* fixme: maybe move to sys */
+   op50: { /* run thunk quantum */
       word hdr;
       ob = (word *) A0;
       R[0] = R[3];
