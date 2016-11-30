@@ -16,7 +16,8 @@
       week-info   ;; d m y → week weekday
       day-names-fi
       day-names-en
-      date-str
+      date-str    ;; secs [tz-offset-hours] -> str
+      date-str-tz ;; secs tz-offset-hours -> str
       minute hour day week year leap-year)
 
    (begin
@@ -189,9 +190,23 @@
             (() (naive-date (time))) 
             ((sec) (naive-date sec))))
 
-      (define (date-str s)
-         (lets ((d m y H M S (naive-date s)))
-            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S " " d "." m "." y)))
+      (define (hours->secs h)
+         (floor (* h 3600)))
+          
+      (define (date-str-tz s tz)
+         (lets ((d m y H M S (naive-date (+ s tz)))
+                (tz-sign (if (< tz 0) "-" "+"))
+                (tz (abs tz))
+                (tz-mins _ (quotrem tz 60))
+                (tz-hours tz-mins (quotrem tz-mins 60)))
+            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S 
+                 " " d "." m "." y
+                 " UTC" tz-sign (zpad tz-hours) tz-hours ":" (zpad tz-mins) tz-mins)))
+     
+      (define (date-str s . tz)
+         (if (null? tz)
+            (date-str-tz s 0)
+            (date-str-tz s (hours->secs (car tz)))))
 
 ))
 
