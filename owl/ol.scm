@@ -35,15 +35,13 @@
 
 (define *libraries*
    (keep 
-      (λ (lib) 
-         (equal? (car lib) '(owl core)))
-      *libraries*))
+      (λ (lib) (equal? (car lib) '(owl core)))
+       *libraries*))
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
 ,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run build-start)
-
 
 ;;;
 ;;; Time for a new REPL
@@ -53,23 +51,19 @@
 
 (import (owl core))     ;; get special forms, primops and define-syntax
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
+
 (define *interactive* #false) ;; be verbose 
 (define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
 (import (owl syscall))
 (import (owl primop))
 
-(define *loaded* '())   ;; can be removed soon, was used by old ,load and ,require
-
-
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.13")
-(define exit-seccomp-failed 2)    ;; --seccomp given but cannot do it
+(define *owl-version* "0.1.14a")
 (define max-object-size #xffff)
 
 (define owl-ohai "You see a prompt.")
-(define owl-ohai-seccomp "You see a prompt. You feel restricted.")
 (define owl-ohai-resume "Welcome back.")
 
 (import (owl boolean))
@@ -79,7 +73,6 @@
 (import (owl math))
 (import (owl list-extra))
 (import (owl sort))
-(import (owl math-extra))
 (import (owl lazy))
 (import (only (owl unicode) encode-point))
 (import (owl string))
@@ -88,15 +81,18 @@
 (import (owl tuple))
 (import (owl function))
 (import (owl equal))
-(import (owl rlist))
 (import (owl render))
-(import (only (owl queue))) ; just load it
 (import (owl intern))
 (import (owl io))
 (import (owl parse))
 (import (owl regex))
 (import (owl sexp))
+(import (only (owl math-extra)))
+(import (only (owl rlist)))
+(import (only (owl queue)))
 
+;; extremely old data structure being used between compler steps.
+;; replace later.
 (define (ok? x) (eq? (ref x 1) 'ok))
 (define (ok exp env) (tuple 'ok exp env))
 (define (fail reason) (tuple 'fail reason))
@@ -134,50 +130,6 @@
 
 (import (owl checksum))
 (import (owl sys))
-
-;;;
-;;; Entering seccomp 
-;;;
-
-;; a temporary O(n) way to get some space in the heap
-
-;; fixme: allow a faster way to allocate memory
-;; n-megs → _
-(define (ensure-free-heap-space megs)
-   (if (> megs 0)
-      (lets
-         ((my-word-size (get-word-size)) ;; word size in bytes in the current binary (4 or 8)
-          (blocksize 65536)              ;; want this many bytes per node in list
-          (pairsize (* my-word-size 3))  ;; size of cons cell, being [header] [car-field] [cdr-field]
-          (bytes                         ;; want n bytes after vector header and pair node for each block
-            (map (λ (x) 0) 
-               (iota 0 1 
-                  (- blocksize (+ pairsize my-word-size)))))
-          (n-blocks  
-            (ceil (/ (* megs (* 1024 1024)) blocksize))))
-         ;; make a big data structure
-         (map
-            (λ (node)
-               ;; make a freshly allocated byte vector at each node
-               (list->byte-vector bytes))
-            (iota 0 1 n-blocks))
-         ;; leave it as garbage
-         #true)))
-
-;; enter seccomp with at least n-megs of free space in heap, or stop the world (including all other threads and io)
-(define (seccomp n-megs)
-   ;; grow some heap space work working, which is usually necessary given that we can't 
-   ;; get any more memory after entering seccomp
-   (if (and n-megs (> n-megs 0))
-      (ensure-free-heap-space n-megs))
-   (or (sys-prim 10 #false #false #false)
-      (begin
-         (system-stderr "Failed to enter seccomp sandbox. 
-You must be on a newish Linux and have seccomp support enabled in kernel.
-")
-         (halt exit-seccomp-failed))))
-
-
 (import (owl char))
 
 ;; implementation features, used by cond-expand
@@ -193,18 +145,17 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (import (owl base))
 (import (owl date))
 (import (owl codec))
-;(import (owl terminal))
 
 (import (scheme cxr))
 (import (scheme base))
 (import (scheme case-lambda))
 (import (scheme write))
 
-;; push it to libraries for sharing, replacing the old one
-(define *libraries* 
-   (cons 
-      (cons '(owl core) *owl-core*)
-      (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
+
+;(define *libraries* 
+;   (cons 
+;      (cons '(owl core) *owl-core*)
+;      (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
 
 (define-syntax share-bindings
    (syntax-rules (defined)
@@ -227,7 +178,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       time
       time-ms
       halt
-      seccomp
       apply
       call/cc
       call-with-current-continuation
@@ -279,10 +229,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       *owl-core*
       shared-bindings))
      
-;; owl core needed before eval
-
-;; toplevel can be defined later
-
 (define initial-environment
    (bind-toplevel
       (library-import initial-environment-sans-macros
@@ -303,12 +249,9 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
        (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state saved with suspend")
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
-       (seccomp  "-S" "--seccomp"  comment "enter seccomp at startup or exit if it failed")
-       (seccomp-heap     "-H" "--heap"     cook ,string->number default "5"
-         comment "allocate n megabytes of memory at startup if using seccomp")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
-       (interactive "-i" "--interactive" comment "use builtin interactive line editor")
+       ;(interactive "-i" "--interactive" comment "use builtin interactive line editor")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
        (bare #false "--bare" comment "do not add anything to generated code (like threads or UTF-8 decoding)"))))
@@ -316,27 +259,6 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
 (define brief-usage-text "Usage: ol [args] [file] ...")
 
 (define error-usage-text "ol -h helps.")
-
-;; repl-start, thread controller is now runnig and io can be 
-;; performed. check the vm args what should be done and act 
-;; accordingly.
-
-; note, return value is not the owl return value. it comes
-; from thread controller after all threads have finished.
-
-(define (memory-limit-ok? n w)
-   (cond
-      ((< n 1) (print "Too little memory allowed.") #false)
-      ((and (= w 4) (> n 4096)) (print "This is a 32-bit executable, so you cannot use more than 4096Mb of memory.") #false)
-      ((and (= w 8) (> n 65536)) (print "65536 is as high as you can go.") #false)
-      (else #true)))
-
-(define (maybe-set-memory-limit args)
-   (let ((limit (get args 'memlimit #false)))
-      (if limit
-         (if (memory-limit-ok? limit (get-word-size))
-            (set-memory-limit limit)
-            (system-println "Bad memory limit")))))
 
 (define (c-source-name path)
    (cond
@@ -359,7 +281,7 @@ You must be on a newish Linux and have seccomp support enabled in kernel.
       1))
 
 (define about-owl 
-"Owl Lisp -- a functional scheme for world domination
+"Owl Lisp -- a functional scheme
 Copyright (c) 2016 Aki Helin
 Check out https://github.com/aoh/owl-lisp for more information.")
 
@@ -488,11 +410,11 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 
 ;; say hi if interactive mode and fail if cannot do so (the rest are done using 
 ;; repl-prompt. this should too, actually)
-(define (greeting env seccomp?)
+(define (greeting env)
    (if (env-get env '*interactive* #f)
       (or
          (and
-            (print (if seccomp? owl-ohai-seccomp owl-ohai))
+            (print owl-ohai)
             (display "> "))
          (halt 127))))
 
@@ -510,13 +432,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                 (env ;; maybe set debug causing (owl eval) to print intermediate steps
                   (if (getf dict 'debug)
                      (env-set env '*debug* #true)
-                     env))
-                (seccomp?
-                  (if (get dict 'seccomp #false)
-                     (let ((megs (get dict 'seccomp-heap 'bug)))
-                        (seccomp megs) ;; <- process exits unless this succeeds 
-                        #true)
-                     #false)))
+                     env)))
                (cond
                   ((getf dict 'help)
                      (print brief-usage-text)
@@ -545,11 +461,11 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (λ (str)
                         (try-test-string env str)))
                   ((null? others)
-                     (greeting env seccomp?)
+                     (greeting env)
                      (repl-trampoline repl 
                         (-> env
-                           (env-set '*seccomp* seccomp?)
-                           (env-set '*line-editor* (getf dict 'interactive)))))
+                           ;(env-set '*line-editor* (getf dict 'interactive))
+                           )))
                   (else
                      ;; load the given files
                      (define input
