@@ -17,18 +17,18 @@
 
 (define-library (owl fasl)
 
-	(export 
-		fasl-encode 			; obj -> (byte ... 0)
-		fasl-encode-cooked 	; obj cook -> (byte ... 0), with (cook alloc-obj) -> alloc-obj' 
-		fasl-encode-stream   ; obj cook -> (bvec ...) stream
-		fasl-decode				; (byte ...) -> obj, input can be lazy
+   (export 
+      fasl-encode          ; ; obj -> (byte ... 0)
+      fasl-encode-cooked   ; obj cook -> (byte ... 0), with (cook alloc-obj) -> alloc-obj' 
+      fasl-encode-stream   ; obj cook -> (bvec ...) stream
+      fasl-decode          ; (byte ...) -> obj, input can be lazy
       decode-or            ; (byte ...) fail → object | (fail reason)
-		encode					; obj -> (byte ... 0), n-alloc-objs (mainly for bootstrapping)
-		tuple->list				; TEMPORARILY HERE
-		objects-below			; obj -> (obj ...), all allocated objects below obj
+      encode               ; obj -> (byte ... 0), n-alloc-objs (mainly for bootstrapping)
+      tuple->list          ; ; TEMPORARILY HERE
+      objects-below        ; obj -> (obj ...), all allocated objects below obj
       decode-stream        ; ll failval → (ob ...) | (ob .. failval)
       sub-objects          ; obj wanted? -> ((obj . n-occurrences) ...)
-		)
+      )
 
    (import
       (owl defmac)

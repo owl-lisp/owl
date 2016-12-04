@@ -6,7 +6,7 @@
 
 (define-library (owl alpha)
 
-	(export alpha-convert)
+   (export alpha-convert)
 
    (import
       (owl defmac)
@@ -16,8 +16,7 @@
       (owl list)
       (owl list-extra)
       (only (owl syscall) error)
-      (owl ff)
-      )
+      (owl ff))
 
    (begin
       (define (ok exp env) (tuple 'ok exp env))
@@ -97,5 +96,4 @@
          (lets 
             ((exp free 
                (alpha exp empty (gensym exp))))
-            (ok exp env)))
-))
+            (ok exp env)))))
