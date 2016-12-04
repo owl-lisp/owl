@@ -34,7 +34,7 @@
       (owl syscall)
       (owl time) ;; for testing metadata
       (owl symbol)
-      (owl terminal)
+      ;(owl terminal)
       (owl io)
       (owl math)
       (owl list-extra)
@@ -353,24 +353,6 @@
                                  (if (or (primop-of name) (has? op name))
                                     name
                                     #false)))
-                           ;(ff-fold
-                           ;   (λ (env name val)
-                           ;      (tuple-case val
-                           ;         ((defined x)
-                           ;            (cond
-                           ;               ((or (primop-of (ref x 2)) 
-                           ;                  (has? op name))
-                           ;                  ;(print " + keeping " name)
-                           ;                  env)
-                           ;               (else 
-                           ;                  ;(print " - forgetting " name)
-                           ;                  (env-del env name))))
-                           ;         ;((macro x)
-                           ;         ;   (if (has? op name)
-                           ;         ;      env
-                           ;         ;      (env-del env name)))
-                           ;         (else env)))
-                           ;   env env)
                            in))
                      (repl-fail env (list "bad word list: " op)))))
             ((words w)
@@ -859,9 +841,7 @@
       ;; run the repl on a fresh input stream, report errors and catch exit
 
       (define (stdin-sexp-stream env bounced?)
-         (if (env-get env '*line-editor* #false)
-           (λ () (port->readline-sexp-stream stdin #false))
-           (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?))))
+         (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?)))
 
       (define (repl-trampoline repl env)
          (let boing ((repl repl) (env env) (bounced? #false))

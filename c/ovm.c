@@ -16,17 +16,8 @@
 #include <sys/wait.h>
 #include <sys/wait.h>
 #include <termios.h>
-#ifdef __gnu_linux__
-#ifndef NO_SECCOMP
-#include <sys/prctl.h>
-#include <sys/syscall.h>
-/* normal exit() segfaults in seccomp */
-#define EXIT(n) syscall(__NR_exit, n); exit(n)
-#else
-#define EXIT(n) exit(n)
-#endif
-#else
-#define EXIT(n) exit(n)
+#ifndef O_BINARY
+#define O_BINARY 0
 #endif
 
 typedef uintptr_t word;
@@ -36,6 +27,8 @@ typedef int64_t   wdiff;
 #else
 typedef int32_t   wdiff;
 #endif
+
+/*** Macros ***/
 
 #define IPOS                        8 /* offset of immediate payload */
 #define SPOS                        16 /* offset of size bits in header immediate values */
@@ -131,8 +124,6 @@ static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 byte *hp;       /* heap pointer when loading heap */
-static int seccompp;     /* are we in seccomp? */
-static unsigned long seccomp_time; /* virtual time within seccomp sandbox in ms */
 static word *fp;
 int usegc;
 int slice;
@@ -243,17 +234,15 @@ void fix_pointers(word *pos, wdiff delta, word *end) {
    }
 }
 
+/* emulate sbrk with malloc'd memory, becuse sbrk is no longer properly supported */
 /* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend  */
 wdiff adjust_heap(int cells) {
-   /* add new realloc + heap fixer here later */
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + ((cells > 0xffffff) ? 0xffffff : cells); /* limit heap growth speed  */
    if (!usegc) { /* only run when the vm is running (temp) */
       return 0;
    }
-   if (seccompp) /* realloc is not allowed within seccomp */
-      return 0;
    if (((cells > 0) && (new_words*W < nwords*W)) || ((cells < 0) && (new_words*W > nwords*W)))
        return 0; /* don't try to adjust heap if the size_t would overflow in realloc */
    memstart = realloc(memstart, new_words*W);
@@ -293,8 +282,8 @@ static word *gc(int size, word *regs) {
          breaked |= 8; /* will be passed over to mcp at thread switch*/
       }
       nfree -= size*W + MEMPAD;   /* how much really could be snipped off */
-      if (nfree < (heapsize / 6) || nfree < 0) {
-         /* increase heap size if less than 16% is free by ~10% of heap size (growth usually implies more growth) */
+      if (nfree < (heapsize / 5) || nfree < 0) {
+         /* increase heap size if less than 20% is free by ~10% of heap size (growth usually implies more growth) */
          regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data  */
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
@@ -731,7 +720,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
       case 6:
          tcsetattr(0, TCSANOW, &tsettings);
-         EXIT(fixval(a)); /* stop the press */
+         exit(fixval(a)); /* stop the press */
       case 7: /* set memory limit (in mb) */
          max_heap_mb = fixval(a);
          return a;
@@ -739,21 +728,6 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(W);
       case 9: /* get memory limit (in mb) */
          return F(max_heap_mb);
-      case 10: /* enter linux seccomp mode */
-#ifdef __gnu_linux__ 
-#ifndef NO_SECCOMP
-         if (seccompp) /* a true value, but different to signal that we're already in seccomp */
-            return INULL;  
-         seccomp_time = 1000 * time(NULL); /* no time calls are allowed from seccomp, so start emulating a time if success */
-#ifdef PR_SET_SECCOMP
-         if (prctl(PR_SET_SECCOMP,1) != -1) { /* true if no problem going seccomp */
-            seccompp = 1;
-            return ITRUE;
-         }
-#endif
-#endif
-#endif
-         return IFALSE; /* seccomp not supported in current repl */
       /* dirops only to be used via exposed functions */
       case 11: { /* sys-opendir path _ _ -> False | dirobjptr */
          char *path = W + (char *) a; /* skip header */
@@ -947,7 +921,7 @@ word boot(int nargs, char **argv) {
    word *oargs = (word *) INULL;
    word *ptrs;
    word nwords;
-   usegc = seccompp = 0;
+   usegc = 0;
    slice = TICKS; /* default thread slice (n calls per slice) */
    if ((word)heap == (word)NULL) { /* if no preloaded heap, try to load it from first arg */
       if (nargs < 2) exit(1);
@@ -1559,18 +1533,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A0 = (word) (ob + 3);
       ob[2] = INULL; 
       ob[5] = (word) ob;
-      if (seccompp) {
-         unsigned long secs = seccomp_time / 1000;
-         A1 = F(seccomp_time - (secs * 1000));
-         ob[1] = F(secs >> FBITS);
-         ob[4] = F(secs & FMAX);
-         seccomp_time += ((seccomp_time + 10) > seccomp_time) ? 10 : 0; /* virtual 10ms passes */
-      } else {
-         gettimeofday(&tp, NULL);
-         A1 = F(tp.tv_usec / 1000);
-         ob[1] = F(tp.tv_sec >> FBITS);
-         ob[4] = F(tp.tv_sec & FMAX);
-      }
+      gettimeofday(&tp, NULL);
+      A1 = F(tp.tv_usec / 1000);
+      ob[1] = F(tp.tv_sec >> FBITS);
+      ob[4] = F(tp.tv_sec & FMAX);
       NEXT(2); }
    op62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
       A1 = F(ticker & FMAX);
