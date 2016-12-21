@@ -9,7 +9,9 @@
       open-output-file        ;; path → fd | #false
       open-input-file         ;; path → fd | #false
       open-append-file        ;; path → fd | #false
-      open-socket             ;; port → thread-id | #false
+      open-socket             ;; port → fd | #false
+      open-tcp-socket         ;; port → fd | #false
+      open-udp-socket         ;; port → fd | #false
       open-connection         ;; ip port → thread-id | #false
       file-size
       port->fd                ;; port → fixnum
@@ -23,7 +25,6 @@
       ;; stream-oriented blocking (for the writing thread) io
       blocks->port            ;; ll fd → ll' n-bytes-written, don't close fd
       closing-blocks->port    ;; ll fd → ll' n-bytes-written, close fd
-      tcp-socket              ;; port-num → socket | #false
       tcp-client              ;; port → ip tcp-fd | #f #f
       tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
@@ -235,13 +236,24 @@
                      ;(interact sid 5) ;; delay rounds
                      (interact 'iomux (tuple 'read fd))
                      (loop rounds))))))
-                     
-      (define (open-socket port)
-         (let ((sock (sys-prim 3 port #false #false)))
+
+      (define socket-type-tcp 0)
+      (define socket-type-udp 1)
+      
+      (define (open-tcp-socket port)
+         (let ((sock (sys-prim 3 port socket-type-tcp #false)))
             (if sock 
                (fd->port sock)
                #false)))
 
+      (define (open-udp-socket port)
+         (let ((sock (sys-prim 3 port socket-type-udp #false)))
+            (if sock 
+               (fd->port sock)
+               #false)))
+      
+      (define open-socket open-tcp-socket)
+      
       ;;; TCP connections
 
       (define (open-connection ip port)
@@ -315,13 +327,9 @@
                (pair (cons ip cli) (socket-clients sock))
                null)))
 
-      (define (tcp-socket port)
-         (let ((fd (sys-prim 3 port #false #false)))
-            (if fd (fd->port fd) fd)))
-
       ;; port → ((ip . fd) ... . null|#false), CLOSES SOCKET
       (define (tcp-clients port)
-         (let ((sock (tcp-socket port)))
+         (let ((sock (open-tcp-socket port)))
             (if sock
                (λ () (socket-clients sock))
                #false)))

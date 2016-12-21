@@ -35,11 +35,11 @@ bin/vm: c/vm.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o bin/vm c/vm.c
 
 bin/diet-vm: c/vm.c
-	diet $(CC) -DNO_SECCOMP -Os -o bin/diet-vm c/vm.c
+	diet $(CC) -Os -o bin/diet-vm c/vm.c
 	strip bin/diet-vm 
 
 bin/diet-ol: c/diet-ol.c
-	diet $(CC) -DNO_SECCOMP -O2 -o bin/diet-ol c/diet-ol.c
+	diet $(CC) -O2 -o bin/diet-ol c/diet-ol.c
 
 c/vm.c: c/ovm.c
 	# make a vm without a bundled heap
@@ -114,9 +114,11 @@ clean:
 	-rm -f bin/ol bin/vm
 
 # make a standalone binary against dietlibc for relase
-standalone: c/ol.c
-	-rm -f bin/ol
-	diet gcc -O2 -DNO_SECCOMP -o bin/ol c/ol.c
+standalone: c/ol.c c/vm.c
+	diet gcc -O2 -o bin/vm c/vm.c
+	strip --strip-all bin/vm
+	diet gcc -O2 -o bin/ol c/ol.c
+	strip --strip-all bin/ol
 
 fasl-update: fasl/ol.fasl
 	cp fasl/ol.fasl fasl/init.fasl

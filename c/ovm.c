@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <sys/wait.h>
 #include <termios.h>
+
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -663,21 +664,25 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(val); }
       case 2: 
          return close(fixval(a)) ? IFALSE : ITRUE;
-      case 3: { /* 3 = sopen port -> False | fd  */
+      case 3: { /* 3 = sopen port type -> False | fd  */
          int port = fixval(a);
+         int type = fixval(b);
          int s;
          int opt = 1; /* TRUE */
          struct sockaddr_in myaddr;
          myaddr.sin_family = AF_INET;
          myaddr.sin_port = htons(port);
          myaddr.sin_addr.s_addr = INADDR_ANY;
-         s = socket(AF_INET, SOCK_STREAM, 0);
-         if (s < 0) return IFALSE;
-         if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
-             || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
-             || listen(s, SOMAXCONN) != 0) {
-            close(s);
+         s = socket(AF_INET, ((type == 1) ? SOCK_DGRAM : SOCK_STREAM), 0);
+         if (s < 0)
             return IFALSE;
+         if (type != 1) {
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
+                || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
+                || listen(s, SOMAXCONN) != 0) {
+               close(s);
+               return IFALSE;
+            }
          }
          toggle_blocking(s,0);
          return F(s); }
@@ -840,7 +845,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
          return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
-		case 26: {
+      case 26: {
          static struct termios old;
             if (a == ITRUE) {
                tcgetattr(0, &old);
@@ -853,6 +858,22 @@ static word prim_sys(int op, word a, word b, word c) {
             } else  {
                tcsetattr(0, TCSANOW, &tsettings);
             }}
+      case 27: { /* sendmsg sock (port . ipv4) bvec */
+         int sock = fixval(a);
+         int port;
+         struct sockaddr_in peer;
+         byte* data = ((byte *) c) + W;
+         byte *ip;
+         word hdr = *((word *) c);
+         int nbytes =  ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
+         port = fixval(G(b, 1));
+         ip = ((byte *) G(b, 2)) + W;
+         peer.sin_family = AF_INET;
+         peer.sin_port = htons(port);
+         peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
+         if (sendto(sock, data, nbytes, 0, (struct sockaddr *) &peer, sizeof(peer)) == -1)
+            return IFALSE;
+         return ITRUE; }
       default: 
          return IFALSE;
    }
@@ -1042,6 +1063,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
       }
    }
 }
+
 word vm(word *ob, word *args) {
    unsigned char *ip;
    int bank = 0;
@@ -1362,6 +1384,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op33:
       error(33, IFALSE, IFALSE);
    op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
+      /* fixme - this should not be a primitive */
       A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
       NEXT(3); }
    op35: { /* listuple type size lst to */
@@ -1564,6 +1587,15 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    }
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
 }
+
+/* 
+  boot() -> *prog
+  burn_string_list(nargs, argv) -> *args
+  call1(prog, args) -> *res
+  boot(nargs, argv) -> fp, init mem*
+  ...
+  how to work with thread scheduler? special exit value? multiple value exit? syscall?
+*/
 
 int main(int nargs, char **argv) {
    int rval;
