@@ -17,6 +17,7 @@
       chdir
       kill
       getenv
+      setenv
       unlink
       rmdir
       mkdir
@@ -221,5 +222,8 @@
                   (if bvec
                      (bytes->string (vec->list bvec))
                      #false))
-               #false)))))
+               #false)))
 
+      (define (setenv var val)
+        (sys-prim 28 (c-string var) (c-string val) #false))
+      ))

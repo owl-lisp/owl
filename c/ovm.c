@@ -135,6 +135,7 @@ void *realloc(void *ptr, size_t size);
 void *malloc(size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
+int setenv(const char *name, const char *value, int overwrite);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 pid_t fork(void);
@@ -874,7 +875,13 @@ static word prim_sys(int op, word a, word b, word c) {
          if (sendto(sock, data, nbytes, 0, (struct sockaddr *) &peer, sizeof(peer)) == -1)
             return IFALSE;
          return ITRUE; }
-      default: 
+      case 28: { /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string> */
+         char *name = (char *)a;
+         if (!allocp(name)) return IFALSE;
+         char *val = (char *)b;
+         if (!allocp(val)) return IFALSE;
+         return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
+      default:
          return IFALSE;
    }
 }
