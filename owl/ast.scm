@@ -4,7 +4,7 @@
 
 (define-library (owl ast)
 
-	(export call? var? value-of sexp->ast mkcall mklambda mkvarlambda mkvar mkval)
+   (export call? var? value-of sexp->ast mkcall mklambda mkvarlambda mkvar mkval)
 
    (import
       (owl list-extra)

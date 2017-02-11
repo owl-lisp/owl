@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <sys/wait.h>
 #include <termios.h>
+
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -134,6 +135,7 @@ void *realloc(void *ptr, size_t size);
 void *malloc(size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
+int setenv(const char *name, const char *value, int overwrite);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 pid_t fork(void);
@@ -461,7 +463,7 @@ byte *load_heap(char *path) {
    if(stat(path, &st)) exit(1);
    hp = realloc(NULL, st.st_size);
    if (hp == NULL) exit(2);
-   fd = open(path, O_RDONLY | O_BINARY);
+   fd = open(path, O_RDONLY);
    if (fd < 0) exit(3);
    while(pos < st.st_size) {
       int n = read(fd, hp+pos, st.st_size-pos);
@@ -650,7 +652,7 @@ static word prim_sys(int op, word a, word b, word c) {
          struct stat sb;
          if (!(allocp(path) && imm_type(header(a)) == 3))
             return IFALSE;
-         val |= O_BINARY | ((mode & 1) ? O_WRONLY : O_RDONLY) \
+         val |= ((mode & 1) ? O_WRONLY : O_RDONLY) \
                          | ((mode & 2) ? O_TRUNC : 0) \
                          | ((mode & 4) ? O_APPEND : 0) \
                          | ((mode & 8) ? O_CREAT : 0);
@@ -663,21 +665,25 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(val); }
       case 2: 
          return close(fixval(a)) ? IFALSE : ITRUE;
-      case 3: { /* 3 = sopen port -> False | fd  */
+      case 3: { /* 3 = sopen port type -> False | fd  */
          int port = fixval(a);
+         int type = fixval(b);
          int s;
          int opt = 1; /* TRUE */
          struct sockaddr_in myaddr;
          myaddr.sin_family = AF_INET;
          myaddr.sin_port = htons(port);
          myaddr.sin_addr.s_addr = INADDR_ANY;
-         s = socket(AF_INET, SOCK_STREAM, 0);
-         if (s < 0) return IFALSE;
-         if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
-             || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
-             || listen(s, SOMAXCONN) != 0) {
-            close(s);
+         s = socket(AF_INET, ((type == 1) ? SOCK_DGRAM : SOCK_STREAM), 0);
+         if (s < 0)
             return IFALSE;
+         if (type != 1) {
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) \
+                || bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0 \
+                || listen(s, SOMAXCONN) != 0) {
+               close(s);
+               return IFALSE;
+            }
          }
          toggle_blocking(s,0);
          return F(s); }
@@ -840,7 +846,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
          return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
-		case 26: {
+      case 26: {
          static struct termios old;
             if (a == ITRUE) {
                tcgetattr(0, &old);
@@ -853,7 +859,29 @@ static word prim_sys(int op, word a, word b, word c) {
             } else  {
                tcsetattr(0, TCSANOW, &tsettings);
             }}
-      default: 
+      case 27: { /* sendmsg sock (port . ipv4) bvec */
+         int sock = fixval(a);
+         int port;
+         struct sockaddr_in peer;
+         byte* data = ((byte *) c) + W;
+         byte *ip;
+         word hdr = *((word *) c);
+         int nbytes =  ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
+         port = fixval(G(b, 1));
+         ip = ((byte *) G(b, 2)) + W;
+         peer.sin_family = AF_INET;
+         peer.sin_port = htons(port);
+         peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
+         if (sendto(sock, data, nbytes, 0, (struct sockaddr *) &peer, sizeof(peer)) == -1)
+            return IFALSE;
+         return ITRUE; }
+      case 28: { /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string> */
+         char *name = (char *)a;
+         if (!allocp(name)) return IFALSE;
+         char *val = (char *)b;
+         if (!allocp(val)) return IFALSE;
+         return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
+      default:
          return IFALSE;
    }
 }
@@ -989,7 +1017,6 @@ word boot(int nargs, char **argv) {
    toggle_blocking(1,0);
    toggle_blocking(2,0);
    /* clear the pointers */
-   /* fixme, wrong when heap has > 65534 objects */
    ptrs[0] = make_raw_header(nobjs+1,0,0);
    if (file_heap != NULL) free((void *) file_heap);
    return vm(entry, oargs);
@@ -1043,12 +1070,13 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
       }
    }
 }
+
 word vm(word *ob, word *args) {
    unsigned char *ip;
-   int bank = 0; /* ticks deposited at syscall */
-   int ticker = slice; /* any initial value ok */
-   unsigned short acc = 0; /* no support for >255arg functions */
-   int op; /* opcode to execute */
+   int bank = 0;
+   int ticker = slice;
+   unsigned short acc = 0;
+   int op;
    static word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
@@ -1134,7 +1162,7 @@ switch_thread: /* enter mcp if present */
       ob = (word *) R[0]; 
       R[0] = IFALSE; /* remove mcp cont */
       /* R3 marks the syscall to perform */
-      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1); /* fixme - handle also differnet signals via one handler  */
+      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1);
       R[4] = (word) state;
       R[5] = F(breaked);
       R[6] = IFALSE;
@@ -1143,9 +1171,7 @@ switch_thread: /* enter mcp if present */
       goto apply;
    }
 invoke: /* nargs and regs ready, maybe gc and execute ob */
-   if (((word)fp) + 1024*64 >= ((word) memend))
-      //(1)  // always gc
-	{
+   if (((word)fp) + 1024*64 >= ((word) memend)) {
       int p = 0; 
       *fp = make_header(NR+2, 50); /* hdr r_0 .. r_(NR-1) ob */ 
       while(p < NR) { fp[p+1] = R[p]; p++; } 
@@ -1365,6 +1391,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op33:
       error(33, IFALSE, IFALSE);
    op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
+      /* fixme - this should not be a primitive */
       A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
       NEXT(3); }
    op35: { /* listuple type size lst to */
@@ -1459,7 +1486,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             A4 = *ob;
       }
       NEXT(5); }
-   op50: { /* run thunk quantum */ /* fixme: maybe move to sys */
+   op50: { /* run thunk quantum */
       word hdr;
       ob = (word *) A0;
       R[0] = R[3];
@@ -1567,6 +1594,15 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    }
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
 }
+
+/* 
+  boot() -> *prog
+  burn_string_list(nargs, argv) -> *args
+  call1(prog, args) -> *res
+  boot(nargs, argv) -> fp, init mem*
+  ...
+  how to work with thread scheduler? special exit value? multiple value exit? syscall?
+*/
 
 int main(int nargs, char **argv) {
    int rval;

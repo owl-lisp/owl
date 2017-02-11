@@ -12,10 +12,10 @@
 ;; todo: keep all fixnum variables in registers unboxed with a special type, and add guards to saves and calls to tag them lazily. this would remove a lot of payload shifting from math code.
 
 (define-library (owl cgen)
-	(export 
-		compile-to-c            ;; obj extras → #false | c-code-string
-		code->bytes             ;; obj extras → #false | (byte ...)
-	)
+   (export 
+      compile-to-c            ;; obj extras → #false | c-code-string
+      code->bytes             ;; obj extras → #false | (byte ...)
+   )
 
    (import
       (owl list)

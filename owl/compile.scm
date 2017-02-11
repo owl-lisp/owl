@@ -2,14 +2,6 @@
 ;;; Compile AST to a code instruction tree suitable for assembly
 ;;;
 
-; options:
-;  + treat regular lambdas separately
-;     o add variable arity lambda normally
-;       * compiles to a single jump followed by arity error
-;     o case-lambda node 
-;  + case-lambda nodes separately 
-;     o 
-
 (define-library (owl compile)
 
    (export 
@@ -235,7 +227,7 @@
                      (cdr formals)
                      (cons this taken))))))
 
-   ;; fixme: mkt chugs the type to the instruction
+      ;; fixme: mkt chugs the type to the instruction
       (define (rtl-primitive regs op formals args cont)
          (if (eq? op 23) ; generalize this later. mkt is not a safe instruction!
             (if (null? args)

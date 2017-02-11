@@ -4,7 +4,7 @@
 
 (define-library (owl args)
 
-	(export 
+   (export 
       process-arguments    ;; sexp → cl-rules
       format-rules         ;; cl-rules → str
       print-rules          ;; cl-rules → _
@@ -232,7 +232,5 @@
                null rules)))
 
       (define print-rules 
-         (o display format-rules))
-
-))
+         (o display format-rules))))
 

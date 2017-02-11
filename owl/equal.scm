@@ -1,15 +1,15 @@
 (define-library (owl equal)
 
+   (export
+      equal?
+      eqv?)
+
    (import 
       (owl defmac)
       (owl string)
       (owl symbol)
       (owl list)
       (owl math))
-
-   (export
-      equal?
-      eqv?)
 
    (begin
       (define (eq-fields a b eq pos)

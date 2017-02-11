@@ -2,41 +2,41 @@
 ;;; random access lists 
 ;;;
 
-;; todo: the owl version seems nicer and iirc doesn't have the drawback of not being able contain internal nodes as values. switch to it later.
+;; todo: re-evaluate whether to use the commened out version or the current ont
 
 ;; todo: use types from (owl defmac)
 ;; todo: rins, rdel
 
 (define-library (owl rlist)
 
-	(export 
-		rcons  ; O(1), (rcons a rl) -> rl'
-		rcar   ; O(1), (rcar (rcons a rl)) -> a
-		rcdr   ; O(1), (rcdr (rcons a rl)) -> rl'*
-		rnull? ; O(1), plain null?
-		rlist? ; O(1), obj -> bool
-		rget   ; O(log n), (rget rl pos def) -> val | def if outside of rl
-		rset   ; O(log n), (rset rl pos val) -> rl' | error if outside of rl
-		rlen   ; O(log n)
-		rfold	 ; O(n), like fold
-		rfoldr ; O(n), like foldr
-		rmap	 ; O(n), like map
-		riter	 ; O(n), rlist -> lazy list (aka iterator) **
-		riterr ; O(n), ditto backwards 
-		requal?     ; O(n)***
-		rlist->list ; O(n)
-		list->rlist ; O(n log n), temp
-		rlist			; (rlist ...) -> rl
-      rrev        ; O(n log n)
-		) 
-		
-		; *   (equal? rl rl') = #true, but not necessarily (eq? rl rl')
-		; **  you can therefore use all lib-lazy list functions
-		; *** normal equal? will do because the representation is unique
+   (export 
+      rcons  ; O(1), (rcons a rl) -> rl'
+      rcar   ; O(1), (rcar (rcons a rl)) -> a
+      rcdr   ; O(1), (rcdr (rcons a rl)) -> rl'*
+      rnull? ; O(1), plain null?
+      rlist? ; O(1), obj -> bool
+      rget   ; O(log n), (rget rl pos def) -> val | def if outside of rl
+      rset   ; O(log n), (rset rl pos val) -> rl' | error if outside of rl
+      rlen   ; O(log n)
+      rfold ; O(n), like fold
+      rfoldr ; O(n), like foldr
+      rmap ; O(n), like map
+      riter ; O(n), rlist -> lazy list (aka iterator) **
+      riterr ; O(n), ditto backwards 
+      requal?     ; O(n)***
+      rlist->list ; O(n)
+      list->rlist ; O(n log n), temp
+      rlist  ; (rlist ...) -> rl
+            rrev        ; O(n log n)
+   ) 
 
-	; note, taken primitive type 10 for spines, variant 42 for nodes
-	; ie cannot store a node of type 42 into a rlist (which would be a 
-	; major abstraction violation anyway).
+   ; *   (equal? rl rl') = #true, but not necessarily (eq? rl rl')
+   ; **  you can therefore use all lib-lazy list functions
+   ; *** normal equal? will do because the representation is unique
+
+   ; note, taken primitive type 10 for spines, variant 42 for nodes
+   ; ie cannot store a node of type 42 into a rlist (which would be a 
+   ; major abstraction violation anyway).
 
    (import
       (owl defmac)

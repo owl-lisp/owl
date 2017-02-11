@@ -83,51 +83,7 @@
                      (values #false #false)))
                ((= val (get pos)) (loop (+ pos 1) (or first pos)))
                (first (values first (- pos 1)))
-               (else (loop (+ pos 1) first)))))
-
-))
-
-;,r "lib/test.scm"
-;(import-old lib-test)
-;(import-old lib-random)
-;(import-old lib-lazy)
-;(import-old lib-bisect)
-;(define (seed) (lets ((a b (clock))) (* a b)))
-;
-;(compare
-;   (lmap
-;      (lambda (n)
-;         (lets
-;            ((rst (seed))
-;             (rst n-digits (rand rst 10))
-;             (n (band n 255))
-;             (data (list->vector (sort < (random-numbers rst n-digits n))))
-;             (rst goal (rand rst (+ n-digits 5)))
-;             (goal (- goal 2)))
-;            ;(print* (list "data " data ", goal " goal))
-;            (cons (list "length " n)
-;               (cons n (lambda (p) (>= (vec-ref data p) goal))))))
-;      (lnums 0))
-;   (lambda (node) (lets ((n op node)) (bisect op 0 n)))
-;   (lambda (node) (lets ((n op node)) (bisect-unsorted op 0 n))))
-;
-;(compare
-;   (lmap
-;      (lambda (n)
-;         (lets
-;            ((rst (seed))
-;             (rst n-digits (rand rst 10))
-;             (n (band n 1023))
-;             (data (list->vector (sort < (random-numbers rst n-digits n))))
-;             (rst goal (rand rst (+ n-digits 5)))
-;             (goal (- goal 2)))
-;            ;(print* (list "data " data ", goal " goal))
-;            (cons (list "length " n)
-;               (tuple n (lambda (p) (vec-ref data p)) goal))))
-;      (lnums 0))
-;   (lambda (node) (lets ((n op val node) (a b (bisect-range op val 0 n))) (cons a b)))
-;   (lambda (node) (lets ((n op val node) (a b (bisect-range-unsorted op val 0 n))) (cons a b)))
-;)
+               (else (loop (+ pos 1) first)))))))
 
 ; note that bisect is more than just an array search. for example:
 ;

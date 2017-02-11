@@ -300,6 +300,4 @@
                                        (list 17)        ;; force error
                                        tail)))))))))
             (else
-               (error "assemble-code: unknown AST node " obj))))
-
-))
+               (error "assemble-code: unknown AST node " obj))))))
