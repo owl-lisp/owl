@@ -847,18 +847,17 @@ static word prim_sys(int op, word a, word b, word c) {
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
          return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
       case 26: {
-         static struct termios old;
-            if (a == ITRUE) {
-               tcgetattr(0, &old);
-               old.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-               old.c_oflag &= ~OPOST;
-               old.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-               old.c_cflag &= ~(CSIZE | PARENB);
-               old.c_cflag |= CS8;
-               tcsetattr(0, TCSANOW, &old);
-            } else  {
-               tcsetattr(0, TCSANOW, &tsettings);
-            }}
+         if (a == ITRUE) {
+            static struct termios old;
+            tcgetattr(0, &old);
+            old.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+            old.c_oflag &= ~OPOST;
+            old.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+            old.c_cflag &= ~(CSIZE | PARENB);
+            old.c_cflag |= CS8;
+            return (tcsetattr(0, TCSANOW, &old) == 0) ? ITRUE : IFALSE;
+         }
+         return (tcsetattr(0, TCSANOW, &tsettings) == 0) ? ITRUE : IFALSE; }
       case 27: { /* sendmsg sock (port . ipv4) bvec */
          int sock = fixval(a);
          int port;
