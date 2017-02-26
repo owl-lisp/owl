@@ -126,5 +126,5 @@ fasl-update: fasl/ol.fasl
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.scm | less
 
-.PHONY: install uninstall todo test fasltest owl standalone
+.PHONY: all owl install uninstall todo test fasltest random-test owl standalone fasl-update clean simple-ol
 
