@@ -551,7 +551,7 @@ static int prim_refb(word pword, int pos) {
    word *ob = (word *) pword;
    word hdr, hsize;
    if (immediatep(ob))
-      return -1;
+      return IFALSE;
    hdr = *ob;
    hsize = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7); /* bytes - pads */ 
    if (pos >= hsize) 
