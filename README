@@ -1,8 +1,7 @@
 Owl Lisp -- a purely functional scheme
 Copyright (c) 2017 Aki Helin
 
-Master: [![Build status:](https://travis-ci.org/aoh/owl-lisp.svg?branch=master)](https://travis-ci.org/aoh/owl-lisp)
-Develop: [![Build status:](https://travis-ci.org/aoh/owl-lisp.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
+Develop build: [![Build Status](https://travis-ci.org/aoh/owl-lisp.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
 
 OVERVIEW
 ~~~~~~~~
