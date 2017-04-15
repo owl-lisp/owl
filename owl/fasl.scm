@@ -38,6 +38,8 @@
       (owl ff)
       (owl symbol)
       (owl lazy)
+      (only (owl syscall) error)
+      (owl proof)
       (owl list)
       (owl intern)
       (owl rlist))
@@ -365,4 +367,8 @@
 
       (define fasl-decode decode)
 
+      (example
+         (fasl-decode '() 'x) = 'x
+         (fasl-decode (fasl-encode 42) 'x) = 42
+         (fasl-decode (fasl-encode '(1 2)) 'x) = '(1 2))
 ))

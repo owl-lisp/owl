@@ -541,33 +541,32 @@
                         (λ (ob) (eq? tag (ref ob 1))) 
                         ((field accessor) ...) (fieldname ...) ()))))))
 
-		(define-syntax ->
-			(syntax-rules ()
-				((-> a) a)
-				((-> a ... (op arg ...))
-					(op (-> a ...) arg ...))
-				((-> a ... x)
+      (define-syntax ->
+         (syntax-rules ()
+            ((-> a) a)
+            ((-> a ... (op arg ...))
+               (op (-> a ...) arg ...))
+            ((-> a ... x)
                (x (-> a ...)))))
 
-				
-		(define-syntax ->>
-			(syntax-rules ()
-				((->> a) a)
-				((->> a ... (op arg ...))
-					(op arg ... (->> a ...)))
-				((->> a ... x)
-					(x (->> a ...)))))
+      (define-syntax ->>
+         (syntax-rules ()
+            ((->> a) a)
+            ((->> a ... (op arg ...))
+               (op arg ... (->> a ...)))
+            ((->> a ... x)
+               (x (->> a ...)))))
 
-    (define-syntax if-lets
-      (syntax-rules ()
-          ((if-lets () then else)
-            then)
-          ((if-lets ((k ... val) . rest) then else)
-            (lets ((k ... val))
-              (if k
-                (if-lets rest then else)
-                else)))
-          ((if-lets bindings then)
-            (if-lets bindings then #false))))
+      (define-syntax if-lets
+         (syntax-rules ()
+            ((if-lets () then else)
+               then)
+            ((if-lets ((k ... val) . rest) then else)
+               (lets ((k ... val))
+                 (if k
+                   (if-lets rest then else)
+                   else)))
+             ((if-lets bindings then)
+               (if-lets bindings then #false))))
 
 ))

@@ -673,6 +673,21 @@
                   (cons this
                      (remove-alarm (cdr alarms) envelope))))))
 
+      (define (remove-alarm-by-fd alarms fd)
+         (remove
+            (λ (alarm)
+               ;; (timeout . #(thread #(read-timeout fd ms)))
+               (lets
+                  ((msg (cdr alarm))
+                   (from req msg)
+                   (op port ms msg))
+                  (if (eq? port fd)
+                     (print-to stderr " - found it"))
+                  (eq? port fd)))
+            alarms))
+      
+      ;; alarm-mail = #(sender #(read-timeout fd ms))
+      
       (define (wakeup rs ws alarms fd reason)
          (cond
             ((eq? reason 1) ;; data ready to be read
@@ -698,12 +713,12 @@
                   (mail from message)
                   (values rs ws alarms)))
             (else ;; error
-               (print-to stderr "bug: not removing alarm on io error, if there")
                (lets ((rs x (grabelt rs fd))
                       (ws y (grabelt ws fd)))
                   (if x (mail (cdr x) fd))
                   (if y (mail (cdr y) fd))
-                  (values rs ws alarms)))))
+                  (values rs ws
+                     (remove-alarm-by-fd alarms fd))))))
 
       (define (push-alarm alarms time id)
          (if (null? alarms) 

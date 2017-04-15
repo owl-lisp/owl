@@ -2,8 +2,7 @@
 ;;; A simple checksummer
 ;;; 
 
-; rle + crosspollination
-;;
+not currently in use
 
 (define-library (owl checksum)
    (export 
@@ -20,6 +19,7 @@
       (owl string)
       (owl vector)
       (only (owl syscall) error)
+      (owl proof)
       (owl lazy))
 
    (begin
@@ -161,8 +161,8 @@
       ; nbits -> ((byte ...) -> checksum), where 0 <= checksum <= 2^nbits
 
       (define default-checksummer
-         ;make-fletcher ; O(1) construction, pretty much duplicates
-         make-adler     ; slow construction for large n, prettu accurate
+         ;make-fletcher ; O(1) construction, many duplicates
+         make-adler     ; slow construction for large n, pretty accurate
          )
      
       ;; n → (list|vector|string → checksum)
