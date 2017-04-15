@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SUFFIX=""
-MAXJOBS=16
+MAXJOBS=4
 
 waitnjobs() {
    while true
