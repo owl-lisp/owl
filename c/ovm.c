@@ -92,10 +92,8 @@ typedef int32_t   wdiff;
 #define TICKS                       10000 /* # of function calls in a thread quantum  */
 #define allocate(size, to)          to = fp; fp += size;
 #define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
-#define likely(x)                   __builtin_expect((x),1)
-#define unlikely(x)                 __builtin_expect((x),0)
-#define assert(exp,val,code)        if(unlikely(!(exp))) {error(code, val, ITRUE);}
-#define assert_not(exp,val,code)    if(unlikely(exp)) {error(code, val, ITRUE);}
+#define assert(exp,val,code)        if(!(exp)) {error(code, val, ITRUE);}
+#define assert_not(exp,val,code)    if(exp) {error(code, val, ITRUE);}
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
 #define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
@@ -1090,7 +1088,7 @@ word vm(word *ob, word *args) {
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
 
-   if (likely(allocp(ob))) {
+   if (allocp(ob)) {
       word hdr = *ob & 4095; /* cut size out, take just header info */
       if (hdr == make_header(0,TPROC)) { /* proc */
          R[1] = (word) ob; ob = (word *) ob[1];
@@ -1113,7 +1111,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } else if (((hdr >> TPOS) & 63) != TBYTECODE) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
-      if (unlikely(!ticker--)) goto switch_thread;
+      if (!ticker--) goto switch_thread;
       ip = ((unsigned char *) ob) + W;
       goto invoke;
    } else if ((word)ob == IEMPTY && acc > 1) { /* ff application: (False key def) -> def */

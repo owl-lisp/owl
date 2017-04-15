@@ -20,7 +20,7 @@ RFASL=$?
 echo "fasl: $RFASL"
 
 $@ --bare -o $C $LISP
-$CC -o $OBJ $C
+$CC -o $OBJ $C 2>/dev/null
 $OBJ
 RBIN=$?
 echo "binary: $RBIN"
