@@ -1,38 +1,40 @@
+# Owl Lisp
+
 Owl Lisp -- a purely functional scheme
 Copyright (c) 2017 Aki Helin
 
-[![Build Status](https://travis-ci.org/aoh/owl-lisp.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
+Master status: [![Build Status](https://travis-ci.org/aoh/owl-lisp.svg?branch=master)](https://travis-ci.org/aoh/owl-lisp)
+Dev status: [![Build Status](https://travis-ci.org/aoh/owl-lisp.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
 
-OVERVIEW
-~~~~~~~~
+## Overview
 
 Owl Lisp is a functional dialect of the Scheme programming language. It
 is mainly based on the applicative subset of the R7RS standard.
 
 
-REQUIREMENTS
-~~~~~~~~~~~~
+## Requirements
 
 You should have make and gcc or clang installed. 
 
 
-INSTALLATION
-~~~~~~~~~~~~
+## Installation
 
 To install system-wide to /usr
+```
    $ make
    $ sudo make install
+```
 
 Alternatively you can try it out with 
+```
    $ make
    $ cp bin/ol /somewhere/convenient
    $ /somewhere/convenient/ol
    You see a prompt
    > 
+```
 
-
-FILES
-~~~~~~
+## Files
 
    bin/ol      - the owl interpreter/compiler
    c/ovm.c     - the virtual machine / shared owl lisp runtime
@@ -43,8 +45,7 @@ FILES
    c/ol.c      - combined VM and REPL heap image
 
 
-USAGE
-~~~~~
+## Usage
 
 Owl can be used either interactively, or to interpret code from files,
 or compile programs to fasl-images or c-files. The difference between
@@ -61,31 +62,34 @@ Linux, OpenBSD, OSX and can be crosscompiled to Windows executables with
 MinGW.
 
 For example, to build a hello world program:
+```
   $ echo '(lambda (args) (print "Hello, world!"))' > hello.scm
   $ ol -o hello.c hello.scm
   $ gcc -o hello hello.c
   $ ./hello
   Hello, world!
+```
 
 Or simply:
+```
   $ echo '(λ (args) (print "Hello, world!"))' \
      | ol -x c | gcc -x c -o hello - && ./hello
+```
 
 Parts of the compiled programs can be translated to C, instead of being 
 simply fasl-encoded, to increase speed. Using the --native flag compiles 
 most of the bytecode to C, and --usual-suspects compiles typically used 
 functions. To make programs run faster, one can use for example:
 
+```
   $ ol -O2 -o test.c test.scm && gcc -O2 -o test test.c
+```
 
-
-UPDATES AND DOCUMENTATION
-~~~~~~~~~~~~~~~~~~~~~~~~~
+## Updates and Documentation
 
 For further documentation and updates, see:
 
   https://haltp.org/n/owl
 
   https://github.com/aoh/owl-lisp
-
 
