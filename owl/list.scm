@@ -24,6 +24,8 @@
    (import
       (owl defmac)
       (owl primop)
+      (owl proof)
+      (owl syscall)
       (owl boolean))
 
    (begin
@@ -60,7 +62,6 @@
             (else #false)))
 
       ;; fn as bs -> ((fn a b) ...), zip values of lists together with a function
-      ;;    (zip cons '(1 2 3) '(a b c d)) = '((1 . a) (2 . b) (3 . c))
       (define (zip op a b)
          (cond
             ((null? a) null)
@@ -68,16 +69,16 @@
             (else
                (let ((hd (op (car a) (car b))))
                   (cons hd (zip op (cdr a) (cdr b)))))))
-
-         
+      
+      (example (zip cons '(1 2 3) '(a b c d)) = '((1 . a) (2 . b) (3 . c)))
+      
       (define (for st l op)
          (if (null? l)
             st
             (for (op st (car l)) (cdr l) op)))
 
       ;; op state lst -> state', walk over a list from left and compute a value
-      ;;    (fold - 0 '(1 2 3)) = -6
-      ;;    (fold (lambda (a b) (cons b a)) null '(a b c)) = '(c b a)
+      
       (define (fold op state lst) 
          (if (null? lst) 
             state 
@@ -100,12 +101,14 @@
 
       ;; op st lst -> st', compute a value from the right
       ;;    (foldr - 0 '(1 2 3)) = 2
-      ;;    (foldr cons null '(a b c)) = '(a b c)
       (define (foldr op st lst)
          (if (null? lst)
             st
             (op (car lst)
                (foldr op st (cdr lst)))))
+      
+      (example
+         (foldr cons null '(a b c)) = '(a b c))
 
       ;; fn lst -> lst', run a function to all elements of a list
       ;;    (map even? '(1 2 3)) = '(#false #true #false)
