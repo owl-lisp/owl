@@ -142,7 +142,7 @@
                   ((new-id (car opts))
                    (todo (ilist (tuple new-id thunk) (tuple id (λ () (cont new-id))) todo))
                    (state
-                      (for state (cdr opts)
+                      (fold 
                         (λ (state req)
                            (cond
                               ((eq? req 'link)
@@ -155,7 +155,8 @@
                                  (put state new-id qnull))
                               (else
                                  (system-println "fork: bad parameter")
-                                 state))))))
+                                 state)))
+                        state (cdr opts))))
                   (tc tc todo done state)))
 
             ; 5, user thrown error

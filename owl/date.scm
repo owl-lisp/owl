@@ -6,7 +6,8 @@
 (define-library (owl date)
 
    (import
-      (owl base))
+      (owl base)
+      (owl proof))
 
    (export
       date
@@ -207,6 +208,12 @@
          (if (null? tz)
             (date-str-tz s 0)
             (date-str-tz s (hours->secs (car tz)))))
+     
+      ; TZ=GMT date -d @1234567890 
+      (example
+         (date-str 0)            = "00:00:00 1.1.1970 UTC+00:00"
+         (date-str 0 2.5)        = "02:30:00 1.1.1970 UTC+02:30"
+         (date-str 1234567890 0) = "23:31:30 13.2.2009 UTC+00:00")
 
 ))
 

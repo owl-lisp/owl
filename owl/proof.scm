@@ -77,10 +77,14 @@
       ;; equal has to be defined in the context where example is used
       (define-syntax example
          (syntax-rules (equal? =)
-            ((example term-a = term-b)
+            ((example term-a = term-b . rest)
                (let ((a term-a) (b term-b))
                   (if (not (theorem-equal? a b))
-                     (error "example does not hold: " (list (quote term-a) " != " (quote term-b))))))))
+                     (error "example does not hold: " (list (quote term-a) " != " (quote term-b)))
+                     (example . rest))))
+            ((example)
+               #true)))
+                        
                      
 ))
 

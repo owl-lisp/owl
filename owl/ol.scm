@@ -2,7 +2,7 @@
 ;;; ol.scm: an Owl read-eval-print loop.
 ;;;
 
-#| Copyright (c) 2012-2016 Aki Helin
+#| Copyright (c) 2012-2017 Aki Helin
  |
  | Permission is hereby granted, free of charge, to any person obtaining a 
  | copy of this software and associated documentation files (the "Software"),
@@ -128,7 +128,7 @@
             (dump-fasl maybe-world path)
             'saved))))
 
-(import (owl checksum))
+;(import (owl checksum))
 (import (owl sys))
 (import (owl char))
 
@@ -212,7 +212,6 @@
       gensym
       get-word-size
       get-memory-limit
-      checksum
       string->sexp
       read read-ll
       *features*
@@ -320,7 +319,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                band bor bxor
                sort
                ; suffix-array bisect
-               fold foldr for map reverse length zip append unfold
+               fold foldr map reverse length zip append unfold
                lref lset iota
                ;vec-ref vec-len vec-fold vec-foldr
                ;print 

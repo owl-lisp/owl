@@ -294,10 +294,10 @@
 
 (define (run-cartesian-test nums msg)
 	(print msg)
-	(for 1 nums
+	(fold
 		(lambda (x a)
 			(print " * " a)
-			(for 1 math-tests
+			(fold
 				(lambda (x test-node)
 					(tuple-case test-node
 						((unary ta name test)
@@ -306,26 +306,27 @@
 									(error "Funny test failed: " 
 										(list 'test name 'using a)))))
 						((binary ta tb name test)
-							(for 1 nums
+							(fold 
 								(lambda (x b)
 									(if (and (type-ok? ta a) (type-ok? tb b))
 										(if (not (test a b))
 											(error "Funny test failed: " 
-												(list 'test name 'using a b)))))))
+												(list 'test name 'using a b))))) 1 nums))
 						((trinary ta tb tc name test)
-							(for 1 nums
+							(fold
 								(lambda (x b)
-									(for 1 nums
+									(fold 
 										(lambda (x c)
 											(if (and (type-ok? ta a) (type-ok? tb b)
 														(type-ok? tc c))
 												(if (not (test a b c))
 													(error "Funny test failed: " 
 														(list 'test name 
-															'using a b c)))))))))
+															'using a b c))))) 1 nums)) 1 nums))
 						(else
 							(print "run-funny-tests: too funny test: " 
-								test-node))))))))
+								test-node)))) 1 math-tests))
+      1 nums))
 
 
 ;; run tests until an error occurs

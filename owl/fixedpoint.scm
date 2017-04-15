@@ -23,10 +23,11 @@
          (if (null? lst)
             #false   
             (cdr
-               (for (cons (pred (car lst)) (car lst)) (cdr lst)
+               (fold
                   (λ (lead x)
                      (let ((this (pred x)))
-                        (if (< this (car lead)) (cons this x) lead)))))))
+                        (if (< this (car lead)) (cons this x) lead)))
+                  (cons (pred (car lst)) (car lst)) (cdr lst)))))
 
       (define (free-vars exp env)
 

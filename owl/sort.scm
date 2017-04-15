@@ -6,9 +6,11 @@
    (export sort isort quicksort mergesort)
 
    (import 
+      (owl defmac)
       (owl math)
+      (owl syscall)
       (owl list)
-      (owl defmac))
+      (owl proof))
 
    (begin
       ;;;
@@ -104,4 +106,9 @@
             ((null? (cdr lst)) lst)
             (else (mergesort op lst))))
 
+      (example
+         (sort < '(1 4 2)) = '(1 2 4)
+         ;; sort stability test
+         (sort (λ (a b) (< (>> a 1) (>> b 1)))
+            '(2 8 4 9 0 5 1 6 7 3 5)) = '(0 1 2 3 4 5 5 6 7 8 9))
 ))

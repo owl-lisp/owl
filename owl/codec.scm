@@ -1,6 +1,8 @@
 (define-library (owl codec)
 
-  (import (owl base))
+  (import 
+     (owl base)
+     (owl proof))
 
   (export 
     hex-encode     ;; str → str
@@ -58,4 +60,11 @@
       (let ((bs (hex-decode-bytes (string->bytes str))))
          (if bs
             (bytes->string bs)
-            #false)))))
+            #false)))
+
+   (example
+      (hex-decode (hex-encode "")) = ""
+      (hex-decode (hex-encode "foo")) = "foo"
+      (hex-decode (hex-encode "λä.ä")) = "λä.ä")))
+      
+

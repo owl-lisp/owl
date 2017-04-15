@@ -50,9 +50,10 @@
                   ((new-formals free (gensyms free (length formals)))
                    (body free
                      (alpha body
-                        (for env (zip cons formals new-formals)
+                        (fold
                            (λ (env node)
-                              (put env (car node) (cdr node))))
+                              (put env (car node) (cdr node)))
+                            env (zip cons formals new-formals))
                         free)))
                   (values (mklambda new-formals body) free)))
             ((lambda-var fixed? formals body) ;; <- mostly clone branch to be merged later
@@ -60,9 +61,10 @@
                   ((new-formals free (gensyms free (length formals)))
                    (body free
                      (alpha body
-                        (for env (zip cons formals new-formals)
+                        (fold
                            (λ (env node)
-                              (put env (car node) (cdr node))))
+                              (put env (car node) (cdr node)))
+                            env (zip cons formals new-formals))
                         free)))
                   (values (tuple 'lambda-var fixed? new-formals body) free)))
             ((value val)

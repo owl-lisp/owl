@@ -22,6 +22,7 @@
       (owl vector)
       (owl io)
       (owl string)
+      (owl proof)
       (scheme base)
       (owl lazy))
 
@@ -343,10 +344,15 @@
       (hash-bytes->string
          (hmac-sha256-bytes k m)))
 
-
-
-   ;; Switch to 64-bit SHA-2 once it's there
-
    (define sha2 sha256)
+
+
+   (example
+      (sha1 "")     = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+      (sha1 "owl")  = "2c730e3a6d2aad6d914872e45f868d20a543570a"
+      (sha1 "λä.ä") = "726f4307d91f7433472917b27c486c9004b94179"
+      (sha256 "")     = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      (sha256 "owl")  = "10f7127b980b0b06ef157749f8a02cca1c606d22642729dcb2d24dbbf2bf30df"
+      (sha256 "λä.ä") = "e5b21ee5e8532c8f768aa9090ba71ae799016a0904b13ee855cbd58853464234")
 
 ))
