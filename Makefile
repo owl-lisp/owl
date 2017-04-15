@@ -24,7 +24,7 @@ fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
 	ls -la fasl/bootp.fasl
 	# check that the new image passes tests
-	CC=$(CC) tests/run all bin/vm fasl/bootp.fasl
+	CC="$(CC)" tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
 	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
 	
@@ -67,14 +67,14 @@ bin/ol: c/ol.c
 ## running unit tests manually
 
 fasltest: bin/vm fasl/ol.fasl
-	CC=$(CC) tests/run all bin/vm fasl/ol.fasl
+	CC="$(CC)" tests/run all bin/vm fasl/ol.fasl
 
 test: bin/ol
-	CC=$(CC) tests/run all bin/ol
+	CC="$(CC)" tests/run all bin/ol
 
 random-test: bin/vm bin/ol fasl/ol.fasl
-	CC=$(CC) tests/run random bin/vm fasl/ol.fasl
-	CC=$(CC) tests/run random bin/ol
+	CC="$(CC)" tests/run random bin/vm fasl/ol.fasl
+	CC="$(CC)" tests/run random bin/ol
 
 
 ## data 
