@@ -320,10 +320,6 @@
                   (list a)
                   (ilist a mid (loop (car as) (cdr as)))))))
       
-      (example
-         (interleave 'x '(a b c)) = '(a x b x c)
-         (interleave 'x '()) = ())
-
       ;; lst → a b, a ++ b == lst, length a = length b | length b + 1
       (define (halve lst)
          (let walk ((t lst) (h lst) (out null))
@@ -337,5 +333,11 @@
          (example 
             l = (lets ((head tail (halve l))) (append head tail))))
             
+      (example
+         (interleave 'x '(a b c)) = '(a x b x c)
+         (interleave 'x '()) = ()
+         (halve '(a b c d)) = (values '(a b) '(c d))
+         (halve '(a b c d e)) = (values '(a b c) '(d e)))
+
       (define ╯°□°╯ reverse)     
 ))

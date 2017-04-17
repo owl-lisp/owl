@@ -13,10 +13,12 @@
    (import
       (owl math)
       (owl list)
+      (owl proof)
       (owl defmac)
       (owl syscall))
 
    (begin
+      
       (define (lref lst pos)
          (cond
             ((null? lst) (error "lref: out of list" pos))
@@ -47,7 +49,7 @@
             (else
                (lets ((hd tl lst))
                   (cons hd (ledn tl (- pos 1) op))))))
-         
+
       ;; list edit - apply op to value at given pos
       (define (led lst pos op)
          (cond
@@ -56,7 +58,7 @@
             (else
                (lets ((hd tl lst))
                   (cons hd (led tl (- pos 1) op))))))
-
+      
       ;; insert value to list at given position
       (define (lins lst pos val)
          (cond
@@ -66,18 +68,24 @@
                (lets ((hd tl lst))
                   (cons hd (lins tl (- pos 1) val))))))
 
+      (example         
+         (lref '(a b c) 1) = 'b
+         (lset '(a b c) 1 'x) = '(a x c)
+         (ldel '(a b c) 1)  = '(a c)
+         (led '(1 2 3) 1 (λ (x) (* x 10))) =  '(1 20 3)
+         (ledn '(1 2 3) 1 (λ (lst) (cons 'x lst))) = '(1 x 2 3)
+         (lins '(a b c) 1 'x) = '(a x b c))
+      
       (define (length lst)
          (fold (λ (n v) (+ n 1)) 0 lst))
 
       ; take at n (or less) elemts from list l
 
       (define (take l n)
-         (cond	
+         (cond
             ((eq? n 0) null)
             ((null? l) null)
             (else (cons (car l) (take (cdr l) (- n 1))))))
-
-      ; drop n elements (or less) from list l
 
       (define (drop l n)
          (cond
@@ -85,8 +93,13 @@
             ((null? l) l)
             (else (drop (cdr l) (- n 1)))))
 
-      ; fixme, iotas should be unfolds
-
+      (example
+         (length '(a b c)) = 3
+         (take '(a b c) 2) = '(a b)
+         (take '(a) 100) = '(a)
+         (drop '(a b c) 2) = '(c)
+         (drop '(a) 100) = '())
+         
       (define (iota-up p s e)
          (if (< p e)
             (cons p (iota-up (+ p s) s e))
@@ -107,6 +120,10 @@
                null)
             (else 
                (error "bad iota: " (list 'iota from step to)))))
+
+      (example
+         (iota 0 1 5) = '(0 1 2 3 4)
+         (iota 10 -2 0) = '(10 8 6 4 2))
       
       (define (list-tail lst n)
          (if (eq? n 0)
@@ -129,4 +146,8 @@
                (else 
                   (loop (cdr l) (cons (car l) o) (- n 1))))))
 
+      (example
+         (list-tail '(a b c) 1) = '(b c)
+         (repeat 'x 3) = '(x x x)
+         (split '(a b c d) 2) = (values '(a b) '(c d)))
 ))
