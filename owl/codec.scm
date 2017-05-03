@@ -5,8 +5,10 @@
      (owl proof))
 
   (export 
-    hex-encode     ;; str → str
-    hex-decode)    ;; str → str | #false
+    hex-encode-list  ;; (byte ...) → str
+    hex-encode       ;; str → str
+    hex-decode       ;; str → str | #false
+    hex-decode-list) ;; str → (byte ...) | #false
 
   (begin
   
@@ -51,16 +53,20 @@
                               #false))))
                   (else #false))))))
 
-   (define (hex-encode str)
+   (define (hex-encode-list lst)
       (list->string
-         (hex-encode-bytes
-            (string->bytes str))))
+         (hex-encode-bytes lst)))
+   
+   (define (hex-encode str)
+      (hex-encode-list 
+         (string->bytes str)))
 
+   (define (hex-decode-list str)
+      (hex-decode-bytes (string->bytes str)))
+   
    (define (hex-decode str)
-      (let ((bs (hex-decode-bytes (string->bytes str))))
-         (if bs
-            (bytes->string bs)
-            #false)))
+      (maybe bytes->string
+         (hex-decode-list str)))
 
    (example
       (hex-decode (hex-encode "")) = ""
