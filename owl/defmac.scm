@@ -58,6 +58,7 @@
       ;; k v r, k v l r+    -- type-ff-right
       ;; k v l, k v l+ r    -- type-ff-leftc
 
+      maybe
    )
 
    (begin
@@ -569,4 +570,7 @@
              ((if-lets bindings then)
                (if-lets bindings then #false))))
 
+      (define (maybe op arg)
+         (if arg (op arg) arg))
+      
 ))
