@@ -41,7 +41,9 @@
       stdout
       stderr
       fopen
-      fclose)
+      fclose
+      
+      set-terminal-rawness)
 
    (import
       (owl defmac)
@@ -226,4 +228,13 @@
 
       (define (setenv var val)
         (sys-prim 28 (c-string var) (c-string val) #false))
+
+
+      ;;; 
+      ;;; terminal control
+      ;;; 
+      
+      (define (set-terminal-rawness bool)
+         (sys-prim 26 bool #f #f))
+      
       ))
