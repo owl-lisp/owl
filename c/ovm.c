@@ -123,11 +123,11 @@ static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 byte *hp;       /* heap pointer when loading heap */
+byte *file_heap;
 static word *fp;
-int usegc;
 int slice;
 
-word vm(word *ob, word *args);
+word vm(word *ob, word *arg);
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void *malloc(size_t size);
@@ -240,9 +240,6 @@ wdiff adjust_heap(int cells) {
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + ((cells > 0xffffff) ? 0xffffff : cells); /* limit heap growth speed  */
-   if (!usegc) { /* only run when the vm is running (temp) */
-      return 0;
-   }
    if (((cells > 0) && (new_words*W < nwords*W)) || ((cells < 0) && (new_words*W > nwords*W)))
        return 0; /* don't try to adjust heap if the size_t would overflow in realloc */
    memstart = realloc(memstart, new_words*W);
@@ -439,11 +436,11 @@ word *get_obj(word *ptrs, int me) {
 }
 
 /* count number of objects and measure heap size */
-int count_objs(word *words) {
+size_t count_objs(word *words) {
    word *orig_fp = fp;
    word nwords = 0;
    byte *orig_hp = hp;
-   int n = 0;
+   size_t n = 0;
    while(*hp != 0) {
       get_obj(NULL, 0); /* dry run just to count the objects */
       nwords += ((word)fp - (word)orig_fp)/W;
@@ -455,7 +452,21 @@ int count_objs(word *words) {
    return n;
 }
 
-byte *load_heap(char *path) { 
+size_t count_cmdlinearg_words(int nargs, char **argv) {
+   size_t total = 0;
+   while(nargs--) {
+      size_t this = lenn((byte *) *argv, FMAX);
+      if (this == FMAX) 
+         exit(3);
+      total += this;
+      if (total < 0)
+         exit(4);
+      argv++;
+   }
+   return total;
+}
+
+byte *read_heap(char *path) { 
    struct stat st;
    int fd, pos = 0;
    if(stat(path, &st)) exit(1);
@@ -941,31 +952,18 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
 
 word boot(int nargs, char **argv) {
    int this, pos, nobjs;
-   byte *file_heap = NULL;
    word *entry;
    word *oargs = (word *) INULL;
    word *ptrs;
    word nwords;
-   usegc = 0;
    slice = TICKS; /* default thread slice (n calls per slice) */
-   if ((word)heap == (word)NULL) { /* if no preloaded heap, try to load it from first arg */
-      if (nargs < 2) exit(1);
-      file_heap = load_heap(argv[1]);
-      if(*hp == 35) { /* skip hashbang */
-         while(*hp++ != 10);
-      }
-      nargs--; argv++; /* skip vm */
-   } else {
-      hp = (byte *) &heap;
-   }
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
-   memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
-   if (!memstart) {
+   /* get enough space to load the heap and args without triggering gc */
+   memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + MEMPAD + FMAX)*W); 
+   if (!memstart)
       exit(4);
-   }
    memend = memstart + FMAX + INITCELLS - MEMPAD;
    this = nargs-1;
-   usegc = 1;
    while(this >= 0) { /* build an owl string list to oargs at bottom of heap */
       byte *str = (byte *) argv[this];
       byte *pos = str;
@@ -978,8 +976,7 @@ word boot(int nargs, char **argv) {
       }
       size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
       if ((word)fp + size >= (word)memend) {
-         oargs = gc(FMAX, oargs); /* oargs points to topmost pair, may move as a result of gc */
-         fp = oargs + 3;
+         exit(42);
       }
       pads = (size-1)*W - len;
       tmp = fp;
@@ -999,6 +996,8 @@ word boot(int nargs, char **argv) {
    fp = oargs + 3;
    ptrs = fp;
    fp += nobjs+1;
+   //nobjs = count_objs(&nwords);
+   //nwords += count_cmdlinearg_words(nargs, argv);
    pos = 0;
    while(pos < nobjs) { /* or until fasl stream end mark */
       if (fp >= memend) {
@@ -1068,7 +1067,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    }
 }
 
-word vm(word *ob, word *args) {
+word vm(word *ob, word *arg) {
    unsigned char *ip;
    int bank = 0;
    int ticker = slice;
@@ -1077,13 +1076,12 @@ word vm(word *ob, word *args) {
    static word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
-   usegc = 1; /* enble gc (later have if always evabled) */
 
    /* clear blank regs */
    while(acc < NR) { R[acc++] = INULL; }
    R[0] = IFALSE;
    R[3] = IHALT;
-   R[4] = (word) args;
+   R[4] = (word) arg;
    acc = 2; /* boot always calls with 2 args*/
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
@@ -1592,18 +1590,28 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
 }
 
-/* 
-  boot() -> *prog
-  burn_string_list(nargs, argv) -> *args
-  call1(prog, args) -> *res
-  boot(nargs, argv) -> fp, init mem*
-  ...
-  how to work with thread scheduler? special exit value? multiple value exit? syscall?
-*/
+/* find a fasl image source to *hp or exit */
+void find_heap(int nargs, char **argv) {
+   file_heap = NULL;
+   if ((word)heap == (word)NULL) { 
+      /* if no preloaded heap, try to load it from first vm arg */
+      if (nargs < 2) exit(1);
+      file_heap = read_heap(argv[1]);
+      if(*hp == '#') {
+         while(*hp++ != '\n');
+      }
+   } else {
+      hp = (byte *) &heap; /* builtin heap */
+   }
+}
 
 int main(int nargs, char **argv) {
    int rval;
    tcgetattr(0, &tsettings);
+   find_heap(nargs, argv);
+   if(file_heap != NULL) {
+      nargs--; argv++;
+   }
    rval = boot(nargs, argv);
    tcsetattr(0, TCSANOW, &tsettings);
    return rval;
