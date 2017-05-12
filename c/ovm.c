@@ -97,7 +97,7 @@ typedef int32_t   wdiff;
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
 #define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
-#define INITCELLS                   1000
+#define INITCELLS                   100000
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define EXEC switch(op&63) { \
@@ -458,7 +458,7 @@ void get_obj_metrics(word *rwords, int *rnobjs) {
          hp++;
          bytes = get_nat();
          size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
-         while (bytes--) { hp++; };
+         hp += bytes;
          *rnobjs += 1;
          *rwords += size;
          break; }
@@ -480,7 +480,7 @@ size_t count_cmdlinearg_words(int nargs, char **argv) {
       size_t this = lenn((byte *) *argv, FMAX);
       if (this == FMAX) 
          exit(3);
-      total += this;
+      total += (this / W) + 3;
       if (total < 0)
          exit(4);
       argv++;
@@ -970,23 +970,23 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    return (word) ob;
 }
 
-/* Load heap, convert arguments and start VM */
-
 word boot(int nargs, char **argv) {
    int this, pos, nobjs = 0;
    word *entry;
    word *oargs = (word *) INULL;
    word *ptrs;
    word nwords = 0;
-   slice = TICKS; /* default thread slice (n calls per slice) */
-   max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
-   /* get enough space to load the heap and args without triggering gc */
-   memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + MEMPAD + FMAX)*W); 
+   slice = TICKS;
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   heap_metrics(&nwords, &nobjs);
+   nwords += count_cmdlinearg_words(nargs, argv);
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
    if (!memstart)
       exit(4);
-   memend = memstart + FMAX + INITCELLS - MEMPAD;
+   memend = memstart + nwords - MEMPAD;
    this = nargs-1;
-   while(this >= 0) { /* build an owl string list to oargs at bottom of heap */
+   while(this >= 0) {
       byte *str = (byte *) argv[this];
       byte *pos = str;
       int pads;
@@ -997,9 +997,6 @@ word boot(int nargs, char **argv) {
          exit(1);
       }
       size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
-      if ((word)fp + size >= (word)memend) {
-         exit(42);
-      }
       pads = (size-1)*W - len;
       tmp = fp;
       fp += size;
@@ -1013,13 +1010,11 @@ word boot(int nargs, char **argv) {
       fp += 3;
       this--;
    }
-   heap_metrics(&nwords, &nobjs);
-   oargs = gc(nwords+(128*1024), oargs); /* get enough space to load the heap without triggering gc */
    fp = oargs + 3;
    ptrs = fp;
    fp += nobjs+1;
    pos = 0;
-   while(pos < nobjs) { /* or until fasl stream end mark */
+   while(pos < nobjs) {
       if (fp >= memend) {
          exit(1);
       }
@@ -1027,6 +1022,7 @@ word boot(int nargs, char **argv) {
       pos++;
    }
    entry = (word *) ptrs[pos-1]; 
+   /* todo: format ptrs area */
    /* set up signal handler */
    set_signal_handler();
    toggle_blocking(0,0); /* change to nonblocking stdio */
