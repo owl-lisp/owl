@@ -435,21 +435,43 @@ word *get_obj(word *ptrs, int me) {
    return fp;
 }
 
-/* count number of objects and measure heap size */
-size_t count_objs(word *words) {
-   word *orig_fp = fp;
-   word nwords = 0;
-   byte *orig_hp = hp;
-   size_t n = 0;
-   while(*hp != 0) {
-      get_obj(NULL, 0); /* dry run just to count the objects */
-      nwords += ((word)fp - (word)orig_fp)/W;
-      fp = orig_fp;
-      n++;
+void skip_field() {
+   if (0 == *hp)
+      hp += 2;
+   get_nat();
+}
+
+/* dry run fasl decode - just compute sizes */
+void get_obj_metrics(word *rwords, int *rnobjs) {
+   int size;
+   switch(*hp++) {
+      case 1: {
+         hp++;
+         size = get_nat();
+         *rnobjs += 1;
+         *rwords += size;
+         while(size--) 
+            skip_field();
+         break; }
+      case 2: {
+         int bytes;
+         hp++;
+         bytes = get_nat();
+         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         while (bytes--) { hp++; };
+         *rnobjs += 1;
+         *rwords += size;
+         break; }
+      default: exit(42);
    }
-   *words = nwords;
-   hp = orig_hp;
-   return n;
+}
+
+/* count number of objects and measure heap size */
+void heap_metrics(word *rwords, int *rnobjs) {
+   byte *hp_start = hp;
+   while(*hp != 0)
+      get_obj_metrics(rwords, rnobjs);
+   hp = hp_start;
 }
 
 size_t count_cmdlinearg_words(int nargs, char **argv) {
@@ -951,11 +973,11 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
 /* Load heap, convert arguments and start VM */
 
 word boot(int nargs, char **argv) {
-   int this, pos, nobjs;
+   int this, pos, nobjs = 0;
    word *entry;
    word *oargs = (word *) INULL;
    word *ptrs;
-   word nwords;
+   word nwords = 0;
    slice = TICKS; /* default thread slice (n calls per slice) */
    max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
    /* get enough space to load the heap and args without triggering gc */
@@ -991,13 +1013,11 @@ word boot(int nargs, char **argv) {
       fp += 3;
       this--;
    }
-   nobjs = count_objs(&nwords);
+   heap_metrics(&nwords, &nobjs);
    oargs = gc(nwords+(128*1024), oargs); /* get enough space to load the heap without triggering gc */
    fp = oargs + 3;
    ptrs = fp;
    fp += nobjs+1;
-   //nobjs = count_objs(&nwords);
-   //nwords += count_cmdlinearg_words(nargs, argv);
    pos = 0;
    while(pos < nobjs) { /* or until fasl stream end mark */
       if (fp >= memend) {
