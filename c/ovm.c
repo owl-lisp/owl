@@ -1505,12 +1505,6 @@ word *get_obj(word *ptrs, int me) {
    return fp;
 }
 
-void skip_field() {
-   if (0 == *hp)
-      hp += 2;
-   get_nat();
-}
-
 /* dry run fasl decode - just compute sizes */
 void get_obj_metrics(word *rwords, int *rnobjs) {
    int size;
@@ -1520,8 +1514,11 @@ void get_obj_metrics(word *rwords, int *rnobjs) {
          size = get_nat();
          *rnobjs += 1;
          *rwords += size;
-         while(size--) 
-            skip_field();
+         while(size--) {
+            if (0 == *hp)
+               hp += 2;
+            get_nat();
+         }
          break; }
       case 2: {
          int bytes;
@@ -1576,15 +1573,17 @@ byte *read_heap(char *path) {
 }
 
 /* find a fasl image source to *hp or exit */
-void find_heap(int nargs, char **argv) {
+void find_heap(int *nargs, char ***argv) {
    file_heap = NULL;
    if ((word)heap == (word)NULL) { 
       /* if no preloaded heap, try to load it from first vm arg */
-      if (nargs < 2) exit(1);
-      file_heap = read_heap(argv[1]);
+      if (*nargs < 2) exit(1);
+      file_heap = read_heap((*argv)[1]);
       if(*hp == '#') {
          while(*hp++ != '\n');
       }
+      *nargs -= 1;
+      *argv += 1;
    } else {
       hp = (byte *) &heap; /* builtin heap */
    }
@@ -1612,7 +1611,6 @@ void boot(int nargs, char **argv, word **rentry, word **rargs) {
    word *entry;
    word *oargs = (word *) INULL;
    word nwords = 0;
-   slice = TICKS;
    max_heap_mb = (W == 4) ? 4096 : 65535;
    heap_metrics(&nwords, &nobjs);
    nwords += count_cmdlinearg_words(nargs, argv);
@@ -1623,27 +1621,32 @@ void boot(int nargs, char **argv, word **rentry, word **rargs) {
    memend = memstart + nwords - MEMPAD;
    oargs =  burn_args(nargs, argv);
    entry = decode_fasl(nobjs);
-   set_signal_handler();
-   toggle_blocking(0,0); /* change to nonblocking stdio */
-   toggle_blocking(1,0);
-   toggle_blocking(2,0);
    if (file_heap != NULL) free((void *) file_heap);
    *rentry = entry;
    *rargs = oargs;
 }
 
+void setup() {
+   tcgetattr(0, &tsettings);
+   slice = TICKS;
+   set_signal_handler();
+   toggle_blocking(0,0); /* change to nonblocking stdio */
+   toggle_blocking(1,0);
+   toggle_blocking(2,0);
+}
+
+void setdown() {
+   tcsetattr(0, TCSANOW, &tsettings);
+}
+
 int main(int nargs, char **argv) {
    int rval;
-   word *prog;
-   word *args;
-   tcgetattr(0, &tsettings);
-   find_heap(nargs, argv);
-   if(file_heap != NULL) {
-      nargs--; argv++;
-   }
+   word *prog, *args;
+   find_heap(&nargs, &argv);
+   setup();
    boot(nargs, argv, &prog, &args);
    rval = vm(prog, args);
-   tcsetattr(0, TCSANOW, &tsettings);
+   setdown();
    return rval;
 }
 
