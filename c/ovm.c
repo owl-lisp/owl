@@ -311,7 +311,6 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-
 void toggle_blocking(int sock, int blockp) {
    fcntl(sock, F_SETFL, fcntl(sock, F_GETFD)^O_NONBLOCK);
 }
@@ -378,132 +377,6 @@ word strp2owl(byte *sp) {
    return (word)res;
 }
 
-/* Initial FASL image decoding */
-
-word get_nat() {
-   word result = 0;
-   word new, i;
-   do {
-      i = *hp++;
-      new = result << 7;
-      if (result != (new >> 7)) exit(9); /* overflow kills */
-      result = new + (i & 127);
-   } while (i & 128);
-   return result;
-}  
-
-word *get_field(word *ptrs, int pos) {
-   if (0 == *hp) {
-      byte type;
-      word val;
-      hp++;
-      type = *hp++;
-      val = make_immediate(get_nat(), type);
-      *fp++ = val;
-   } else {
-      word diff = get_nat();
-      if (ptrs != NULL) *fp++ = ptrs[pos-diff];
-   }
-   return fp;
-}
-
-word *get_obj(word *ptrs, int me) {
-   int type, size;
-   if(ptrs != NULL) ptrs[me] = (word) fp;
-   switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
-      case 1: {
-         type = *hp++;
-         size = get_nat();
-         *fp++ = make_header(size+1, type); /* +1 to include header in size */
-         while(size--) { fp = get_field(ptrs, me); }
-         break; }
-      case 2: {
-         int bytes, pads;
-         byte *wp;
-         type = *hp++ & 31; /* low 5 bits, the others are pads */
-         bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
-         pads = (size-1)*W - bytes;
-         *fp++ = make_raw_header(size, type, pads);
-         wp = (byte *) fp;
-         while (bytes--) { *wp++ = *hp++; };
-         while (pads--) { *wp++ = 0; };
-         fp = (word *) wp;
-         break; }
-      default: exit(42);
-   }
-   return fp;
-}
-
-void skip_field() {
-   if (0 == *hp)
-      hp += 2;
-   get_nat();
-}
-
-/* dry run fasl decode - just compute sizes */
-void get_obj_metrics(word *rwords, int *rnobjs) {
-   int size;
-   switch(*hp++) {
-      case 1: {
-         hp++;
-         size = get_nat();
-         *rnobjs += 1;
-         *rwords += size;
-         while(size--) 
-            skip_field();
-         break; }
-      case 2: {
-         int bytes;
-         hp++;
-         bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
-         hp += bytes;
-         *rnobjs += 1;
-         *rwords += size;
-         break; }
-      default: exit(42);
-   }
-}
-
-/* count number of objects and measure heap size */
-void heap_metrics(word *rwords, int *rnobjs) {
-   byte *hp_start = hp;
-   while(*hp != 0)
-      get_obj_metrics(rwords, rnobjs);
-   hp = hp_start;
-}
-
-size_t count_cmdlinearg_words(int nargs, char **argv) {
-   size_t total = 0;
-   while(nargs--) {
-      size_t this = lenn((byte *) *argv, FMAX);
-      if (this == FMAX) 
-         exit(3);
-      total += (this / W) + 3;
-      if (total < 0)
-         exit(4);
-      argv++;
-   }
-   return total;
-}
-
-byte *read_heap(char *path) { 
-   struct stat st;
-   int fd, pos = 0;
-   if(stat(path, &st)) exit(1);
-   hp = realloc(NULL, st.st_size);
-   if (hp == NULL) exit(2);
-   fd = open(path, O_RDONLY);
-   if (fd < 0) exit(3);
-   while(pos < st.st_size) {
-      int n = read(fd, hp+pos, st.st_size-pos);
-      if (n < 0) exit(4);
-      pos += n;
-   }
-   close(fd);
-   return hp;
-}
 
 
 /*** Primops called from VM and generated C-code ***/
@@ -968,77 +841,6 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
       fp += 5;
    }
    return (word) ob;
-}
-
-word *burn_args(int nargs, char **argv) {
-   int this;
-   word *oargs = (word *) INULL;
-   this = nargs-1;
-   while(this >= 0) {
-      byte *str = (byte *) argv[this];
-      byte *pos = str;
-      int pads;
-      word *tmp;
-      int len = 0, size;
-      while(*pos++) len++;
-      if (len > FMAX) {
-         exit(1);
-      }
-      size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
-      pads = (size-1)*W - len;
-      tmp = fp;
-      fp += size;
-      *tmp = make_raw_header(size, 3, pads);
-      pos = ((byte *) tmp) + W;
-      while(*str) *pos++ = *str++;
-      *fp = PAIRHDR;
-      fp[1] = (word) tmp;
-      fp[2] = (word) oargs;
-      oargs = fp;
-      fp += 3;
-      this--;
-   }
-   fp = oargs + 3;
-   return oargs;
-}
-
-word boot(int nargs, char **argv) {
-   int pos, nobjs = 0;
-   word *entry;
-   word *oargs = (word *) INULL;
-   word *ptrs;
-   word nwords = 0;
-   slice = TICKS;
-   max_heap_mb = (W == 4) ? 4096 : 65535;
-   heap_metrics(&nwords, &nobjs);
-   nwords += count_cmdlinearg_words(nargs, argv);
-   nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
-   if (!memstart)
-      exit(4);
-   memend = memstart + nwords - MEMPAD;
-   oargs =  burn_args(nargs, argv);
-   ptrs = fp;
-   fp += nobjs+1;
-   pos = 0;
-   while(pos < nobjs) {
-      if (fp >= memend) {
-         exit(1);
-      }
-      fp = get_obj(ptrs, pos);
-      pos++;
-   }
-   entry = (word *) ptrs[pos-1]; 
-   /* todo: format ptrs area */
-   /* set up signal handler */
-   set_signal_handler();
-   toggle_blocking(0,0); /* change to nonblocking stdio */
-   toggle_blocking(1,0);
-   toggle_blocking(2,0);
-   /* clear the pointers */
-   ptrs[0] = make_raw_header(nobjs+1,0,0);
-   if (file_heap != NULL) free((void *) file_heap);
-   return vm(entry, oargs);
 }
 
 void do_poll(word a, word b, word c, word *r1, word *r2) { 
@@ -1613,6 +1415,166 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
 }
 
+
+word *burn_args(int nargs, char **argv) {
+   int this;
+   word *oargs = (word *) INULL;
+   this = nargs-1;
+   while(this >= 0) {
+      byte *str = (byte *) argv[this];
+      byte *pos = str;
+      int pads;
+      word *tmp;
+      int len = 0, size;
+      while(*pos++) len++;
+      if (len > FMAX) {
+         exit(1);
+      }
+      size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
+      pads = (size-1)*W - len;
+      tmp = fp;
+      fp += size;
+      *tmp = make_raw_header(size, 3, pads);
+      pos = ((byte *) tmp) + W;
+      while(*str) *pos++ = *str++;
+      *fp = PAIRHDR;
+      fp[1] = (word) tmp;
+      fp[2] = (word) oargs;
+      oargs = fp;
+      fp += 3;
+      this--;
+   }
+   fp = oargs + 3;
+   return oargs;
+}
+
+/* Initial FASL image decoding */
+
+word get_nat() {
+   word result = 0;
+   word new, i;
+   do {
+      i = *hp++;
+      new = result << 7;
+      if (result != (new >> 7)) exit(9); /* overflow kills */
+      result = new + (i & 127);
+   } while (i & 128);
+   return result;
+}  
+
+word *get_field(word *ptrs, int pos) {
+   if (0 == *hp) {
+      byte type;
+      word val;
+      hp++;
+      type = *hp++;
+      val = make_immediate(get_nat(), type);
+      *fp++ = val;
+   } else {
+      word diff = get_nat();
+      if (ptrs != NULL) *fp++ = ptrs[pos-diff];
+   }
+   return fp;
+}
+
+word *get_obj(word *ptrs, int me) {
+   int type, size;
+   if(ptrs != NULL) ptrs[me] = (word) fp;
+   switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
+      case 1: {
+         type = *hp++;
+         size = get_nat();
+         *fp++ = make_header(size+1, type); /* +1 to include header in size */
+         while(size--) { fp = get_field(ptrs, me); }
+         break; }
+      case 2: {
+         int bytes, pads;
+         byte *wp;
+         type = *hp++ & 31; /* low 5 bits, the others are pads */
+         bytes = get_nat();
+         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         pads = (size-1)*W - bytes;
+         *fp++ = make_raw_header(size, type, pads);
+         wp = (byte *) fp;
+         while (bytes--) { *wp++ = *hp++; };
+         while (pads--) { *wp++ = 0; };
+         fp = (word *) wp;
+         break; }
+      default: exit(42);
+   }
+   return fp;
+}
+
+void skip_field() {
+   if (0 == *hp)
+      hp += 2;
+   get_nat();
+}
+
+/* dry run fasl decode - just compute sizes */
+void get_obj_metrics(word *rwords, int *rnobjs) {
+   int size;
+   switch(*hp++) {
+      case 1: {
+         hp++;
+         size = get_nat();
+         *rnobjs += 1;
+         *rwords += size;
+         while(size--) 
+            skip_field();
+         break; }
+      case 2: {
+         int bytes;
+         hp++;
+         bytes = get_nat();
+         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         hp += bytes;
+         *rnobjs += 1;
+         *rwords += size;
+         break; }
+      default: exit(42);
+   }
+}
+
+/* count number of objects and measure heap size */
+void heap_metrics(word *rwords, int *rnobjs) {
+   byte *hp_start = hp;
+   while(*hp != 0)
+      get_obj_metrics(rwords, rnobjs);
+   hp = hp_start;
+}
+
+size_t count_cmdlinearg_words(int nargs, char **argv) {
+   size_t total = 0;
+   while(nargs--) {
+      size_t this = lenn((byte *) *argv, FMAX);
+      if (this == FMAX) 
+         exit(3);
+      total += (this / W) + 3;
+      if (total < 0)
+         exit(4);
+      argv++;
+   }
+   return total;
+}
+
+byte *read_heap(char *path) { 
+   struct stat st;
+   int fd, pos = 0;
+   if(stat(path, &st)) exit(1);
+   hp = realloc(NULL, st.st_size);
+   if (hp == NULL) exit(2);
+   fd = open(path, O_RDONLY);
+   if (fd < 0) exit(3);
+   while(pos < st.st_size) {
+      int n = read(fd, hp+pos, st.st_size-pos);
+      if (n < 0) exit(4);
+      pos += n;
+   }
+   close(fd);
+   return hp;
+}
+
 /* find a fasl image source to *hp or exit */
 void find_heap(int nargs, char **argv) {
    file_heap = NULL;
@@ -1628,14 +1590,59 @@ void find_heap(int nargs, char **argv) {
    }
 }
 
+word *decode_fasl(int nobjs) {
+   word *ptrs = fp;
+   word *entry;
+   int pos = 0;
+   fp += nobjs+1;
+   while(pos < nobjs) {
+      if (fp >= memend) { /* bug */
+         exit(1);
+      }
+      fp = get_obj(ptrs, pos);
+      pos++;
+   }
+   entry = (word *) ptrs[pos-1]; 
+   ptrs[0] = make_raw_header(nobjs+1,0,0);
+   return entry;
+}
+
+void boot(int nargs, char **argv, word **rentry, word **rargs) {
+   int nobjs = 0;
+   word *entry;
+   word *oargs = (word *) INULL;
+   word nwords = 0;
+   slice = TICKS;
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   heap_metrics(&nwords, &nobjs);
+   nwords += count_cmdlinearg_words(nargs, argv);
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   if (!memstart)
+      exit(4);
+   memend = memstart + nwords - MEMPAD;
+   oargs =  burn_args(nargs, argv);
+   entry = decode_fasl(nobjs);
+   set_signal_handler();
+   toggle_blocking(0,0); /* change to nonblocking stdio */
+   toggle_blocking(1,0);
+   toggle_blocking(2,0);
+   if (file_heap != NULL) free((void *) file_heap);
+   *rentry = entry;
+   *rargs = oargs;
+}
+
 int main(int nargs, char **argv) {
    int rval;
+   word *prog;
+   word *args;
    tcgetattr(0, &tsettings);
    find_heap(nargs, argv);
    if(file_heap != NULL) {
       nargs--; argv++;
    }
-   rval = boot(nargs, argv);
+   boot(nargs, argv, &prog, &args);
+   rval = vm(prog, args);
    tcsetattr(0, TCSANOW, &tsettings);
    return rval;
 }
