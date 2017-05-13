@@ -1506,7 +1506,7 @@ word *get_obj(word *ptrs, int me) {
 }
 
 /* dry run fasl decode - just compute sizes */
-void get_obj_metrics(word *rwords, int *rnobjs) {
+void get_obj_metrics(int *rwords, int *rnobjs) {
    int size;
    switch(*hp++) {
       case 1: {
@@ -1534,7 +1534,7 @@ void get_obj_metrics(word *rwords, int *rnobjs) {
 }
 
 /* count number of objects and measure heap size */
-void heap_metrics(word *rwords, int *rnobjs) {
+void heap_metrics(int *rwords, int *rnobjs) {
    byte *hp_start = hp;
    while(*hp != 0)
       get_obj_metrics(rwords, rnobjs);
@@ -1573,7 +1573,7 @@ byte *read_heap(char *path) {
 }
 
 /* find a fasl image source to *hp or exit */
-void find_heap(int *nargs, char ***argv) {
+void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
    file_heap = NULL;
    if ((word)heap == (word)NULL) { 
       /* if no preloaded heap, try to load it from first vm arg */
@@ -1587,6 +1587,7 @@ void find_heap(int *nargs, char ***argv) {
    } else {
       hp = (byte *) &heap; /* builtin heap */
    }
+   heap_metrics(nwords, nobjs);
 }
 
 word *decode_fasl(int nobjs) {
@@ -1606,33 +1607,25 @@ word *decode_fasl(int nobjs) {
    return entry;
 }
 
-void boot(int nargs, char **argv, word **rentry, word **rargs) {
-   int nobjs = 0;
-   word *entry;
-   word *oargs = (word *) INULL;
-   word nwords = 0;
-   max_heap_mb = (W == 4) ? 4096 : 65535;
-   heap_metrics(&nwords, &nobjs);
-   nwords += count_cmdlinearg_words(nargs, argv);
-   nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
-   if (!memstart)
-      exit(4);
-   memend = memstart + nwords - MEMPAD;
-   oargs =  burn_args(nargs, argv);
-   entry = decode_fasl(nobjs);
+word *load_heap(int nobjs) {
+   word *entry = decode_fasl(nobjs);
    if (file_heap != NULL) free((void *) file_heap);
-   *rentry = entry;
-   *rargs = oargs;
+   return entry;
 }
 
-void setup() {
+void setup(int nargs, char **argv, int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
    slice = TICKS;
    set_signal_handler();
    toggle_blocking(0,0); /* change to nonblocking stdio */
    toggle_blocking(1,0);
    toggle_blocking(2,0);
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   nwords += count_cmdlinearg_words(nargs, argv);
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   if (!memstart) exit(4);
+   memend = memstart + nwords - MEMPAD;
 }
 
 void setdown() {
@@ -1640,11 +1633,12 @@ void setdown() {
 }
 
 int main(int nargs, char **argv) {
-   int rval;
    word *prog, *args;
-   find_heap(&nargs, &argv);
-   setup();
-   boot(nargs, argv, &prog, &args);
+   int rval, nobjs=0, nwords=0;
+   find_heap(&nargs, &argv, &nobjs, &nwords);
+   setup(nargs, argv, nwords, nobjs);
+   args = burn_args(nargs, argv);
+   prog = load_heap(nobjs);
    rval = vm(prog, args);
    setdown();
    return rval;
