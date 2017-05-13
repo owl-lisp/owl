@@ -970,21 +970,9 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    return (word) ob;
 }
 
-word boot(int nargs, char **argv) {
-   int this, pos, nobjs = 0;
-   word *entry;
+word *burn_args(int nargs, char **argv) {
+   int this;
    word *oargs = (word *) INULL;
-   word *ptrs;
-   word nwords = 0;
-   slice = TICKS;
-   max_heap_mb = (W == 4) ? 4096 : 65535;
-   heap_metrics(&nwords, &nobjs);
-   nwords += count_cmdlinearg_words(nargs, argv);
-   nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
-   if (!memstart)
-      exit(4);
-   memend = memstart + nwords - MEMPAD;
    this = nargs-1;
    while(this >= 0) {
       byte *str = (byte *) argv[this];
@@ -1011,6 +999,25 @@ word boot(int nargs, char **argv) {
       this--;
    }
    fp = oargs + 3;
+   return oargs;
+}
+
+word boot(int nargs, char **argv) {
+   int pos, nobjs = 0;
+   word *entry;
+   word *oargs = (word *) INULL;
+   word *ptrs;
+   word nwords = 0;
+   slice = TICKS;
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   heap_metrics(&nwords, &nobjs);
+   nwords += count_cmdlinearg_words(nargs, argv);
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   if (!memstart)
+      exit(4);
+   memend = memstart + nwords - MEMPAD;
+   oargs =  burn_args(nargs, argv);
    ptrs = fp;
    fp += nobjs+1;
    pos = 0;
