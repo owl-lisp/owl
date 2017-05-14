@@ -68,7 +68,7 @@ typedef int32_t   wdiff;
 #define ITRUE                       make_immediate(2,13)
 #define IEMPTY                      make_immediate(3,13) /* empty ff */
 #define IEOF                        make_immediate(4,13)
-#define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
+#define IHALT                       make_immediate(5,13)
 #define TTUPLE                      2
 #define TTHREAD                     31
 #define TFF                         24
@@ -122,6 +122,8 @@ static word *memstart;
 static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
+static word state;       /* IFALSE | previous program state across runs */
+
 byte *hp;       /* heap pointer when loading heap */
 byte *file_heap;
 static word *fp;
@@ -321,7 +323,6 @@ void signal_handler(int signal) {
          breaked |= 2; break;
       case SIGPIPE: break; /* can cause loop when reporting errors */
       default: 
-         // printf("vm: signal %d\n", signal);
          breaked |= 4;
    }
 }
@@ -729,7 +730,6 @@ static word prim_sys(int op, word a, word b, word c) {
             r[1] = F(4);
             r[2] = F(1); */
          } else {
-            //fprintf(stderr, "vm: unexpected process exit status: %d\n", status);
             r = (word *)IFALSE;
          }
          return (word)r; }
@@ -898,7 +898,7 @@ word vm(word *ob, word *arg) {
    int ticker = slice;
    unsigned short acc = 0;
    int op;
-   static word R[NR];
+   word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
 
@@ -943,7 +943,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       acc = 1;
       goto apply;
    } else if ((word)ob == IHALT) {
-      /* a tread or mcp is calling the final continuation  */
+      /* it's the final continuation  */
       ob = (word *) R[0];
       if (allocp(ob)) {
          R[0] = IFALSE;
@@ -957,8 +957,11 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          acc = 4;
          goto apply;
       }
-      return fixval(R[3]);
-   } /* <- add a way to call the new vm prim table also here? */
+      if (acc == 2) { /* update state main program exits with 2 values */
+         state = R[4];
+      }
+      return R[3];
+   }
    error(257, ob, INULL); /* not callable */
 
 switch_thread: /* enter mcp if present */
@@ -1616,6 +1619,7 @@ word *load_heap(int nobjs) {
 void setup(int nargs, char **argv, int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
    slice = TICKS;
+   state = IFALSE;
    set_signal_handler();
    toggle_blocking(0,0); /* change to nonblocking stdio */
    toggle_blocking(1,0);
@@ -1641,6 +1645,11 @@ int main(int nargs, char **argv) {
    prog = load_heap(nobjs);
    rval = vm(prog, args);
    setdown();
-   return rval;
+   if(fixnump(rval)) {
+      int n = fixval(rval);
+      return (0 <= n && n < 128) ? n : 126;
+   } else {
+      return 127;
+   }
 }
 
