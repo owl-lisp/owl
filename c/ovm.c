@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <stdio.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -124,11 +125,9 @@ static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 static word state;       /* IFALSE | previous program state across runs */
 
-byte *hp;       /* heap pointer when loading heap */
-byte *file_heap;
+byte *hp;
 static word *fp;
-int slice;
-
+byte *file_heap;
 word vm(word *ob, word *arg);
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
@@ -142,10 +141,9 @@ pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 int chdir(const char *path);
 int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
-
+int execv(const char *path, char *const argv[]);
 struct termios tsettings;
 
-int execv(const char *path, char *const argv[]);
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -310,7 +308,6 @@ static word *gc(int size, word *regs) {
    return regs;
 }
 
-
 /*** OS Interaction and Helpers ***/
 
 void toggle_blocking(int sock, int blockp) {
@@ -377,8 +374,6 @@ word strp2owl(byte *sp) {
    bytecopy(sp, ((byte *)res)+W, len);
    return (word)res;
 }
-
-
 
 /*** Primops called from VM and generated C-code ***/
 
@@ -659,10 +654,9 @@ static word prim_sys(int op, word a, word b, word c) {
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)fliptag(a));
          return ITRUE;
-      case 14: { /* set-ticks n _ _ -> old */
-         word old = F(slice); 
-         slice = fixval(a);
-         return old; }
+      case 14: { /* unused */
+         exit(42);
+         break; }
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
          word *buff = (word *) b;
@@ -816,7 +810,6 @@ static word prim_lraw(word wptr, int type, word revp) {
    return (word)raw;
 }
 
-
 static word prim_mkff(word t, word l, word k, word v, word r) {
    word *ob = fp;
    ob[1] = k;
@@ -895,7 +888,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
 word vm(word *ob, word *arg) {
    unsigned char *ip;
    int bank = 0;
-   int ticker = slice;
+   int ticker = TICKS;
    unsigned short acc = 0;
    int op;
    word R[NR];
@@ -957,7 +950,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          acc = 4;
          goto apply;
       }
-      if (acc == 2) { /* update state main program exits with 2 values */
+      if (acc == 2) { /* update state when main program exits with 2 values */
          state = R[4];
       }
       return R[3];
@@ -1418,7 +1411,6 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
 }
 
-
 word *burn_args(int nargs, char **argv) {
    int this;
    word *oargs = (word *) INULL;
@@ -1618,7 +1610,6 @@ word *load_heap(int nobjs) {
 
 void setup(int nargs, char **argv, int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
-   slice = TICKS;
    state = IFALSE;
    set_signal_handler();
    toggle_blocking(0,0); /* change to nonblocking stdio */
@@ -1634,6 +1625,28 @@ void setup(int nargs, char **argv, int nwords, int nobjs) {
 
 void setdown() {
    tcsetattr(0, TCSANOW, &tsettings);
+}
+
+/* library mode init */
+void init() {
+   int nobjs=0, nwords=0;
+   hp = (byte *) &heap; /* builtin heap */
+   state = IFALSE;
+   heap_metrics(&nwords, &nobjs);
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   if (!memstart) exit(4);
+   memend = memstart + nwords - MEMPAD;
+   state = (word) load_heap(nobjs);
+}
+
+int libtest(int n){
+   word rval;
+   printf("libcall n %d\n", n);
+   rval = vm((word *)state, (word *)F(n));
+   printf(" - returned fixval %d\n", (int) fixval(rval));
+   return fixval(rval);
 }
 
 int main(int nargs, char **argv) {
@@ -1652,4 +1665,5 @@ int main(int nargs, char **argv) {
       return 127;
    }
 }
+
 
