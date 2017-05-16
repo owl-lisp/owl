@@ -120,7 +120,9 @@
                (let loop ((st st))
                   (let ((val (read-dir dfd)))
                      (if (eof? val)
-                        st
+                        (begin
+                           (close-dir dfd)
+                           st)
                         (loop (op st val)))))
                #false)))
 
