@@ -954,8 +954,16 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          state = R[4];
       }
       return R[3];
+   } else {
+      word *state, pos = 1;
+      allocate(acc+1, state);
+      *state = make_header(acc+1, TTUPLE);
+      while(pos <= acc) {
+         state[pos] = R[pos+2]; /* first arg at R3*/
+         pos++;
+      }
+      error(0, ob, state); /* not callable */
    }
-   error(257, ob, INULL); /* not callable */
 
 switch_thread: /* enter mcp if present */
    if (R[0] == IFALSE) { /* no mcp, ignore */ 
