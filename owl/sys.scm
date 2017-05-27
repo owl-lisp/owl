@@ -41,7 +41,9 @@
       stdout
       stderr
       fopen
-      fclose)
+      fclose
+      
+      set-terminal-rawness)
 
    (import
       (owl defmac)
@@ -118,7 +120,9 @@
                (let loop ((st st))
                   (let ((val (read-dir dfd)))
                      (if (eof? val)
-                        st
+                        (begin
+                           (close-dir dfd)
+                           st)
                         (loop (op st val)))))
                #false)))
 
@@ -226,4 +230,13 @@
 
       (define (setenv var val)
         (sys-prim 28 (c-string var) (c-string val) #false))
+
+
+      ;;; 
+      ;;; terminal control
+      ;;; 
+      
+      (define (set-terminal-rawness bool)
+         (sys-prim 26 bool #f #f))
+      
       ))

@@ -76,15 +76,26 @@
       
       ;; equal has to be defined in the context where example is used
       (define-syntax example
-         (syntax-rules (equal? =)
+         (syntax-rules (theorem-equal? = + receive)
             ((example term-a = term-b . rest)
-               (let ((a term-a) (b term-b))
-                  (if (not (theorem-equal? a b))
-                     (error "example does not hold: " (list (quote term-a) " != " (quote term-b)))
-                     (example . rest))))
+               (let ((eva (lambda () term-a))
+                     (evb (lambda () term-b)))
+                  (receive (eva)
+                     (lambda as
+                        (receive (evb)
+                           (lambda bs
+                              (if (not (theorem-equal? as bs))
+                                 (error "example does not hold: " (list (quote term-a) " != " (quote term-b)))
+                                 (example . rest))))))))
             ((example)
                #true)))
-                        
+
+      (example 1 = 1)
+     
+      (example (cons 1 2) = '(1 . 2))
+       
+      (example (values 1 2) = (values 1 2))
+      
                      
 ))
 

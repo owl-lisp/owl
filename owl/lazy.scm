@@ -10,7 +10,7 @@
    (export 
       lfold lfoldr lmap lappend    ; main usage patterns
       lfor liota liter lnums
-      lzip ltake llast llen
+      lzip ltake lsplit llast llen
       lcar lcdr
       lkeep lremove
       ldrop llref ledit
@@ -27,9 +27,11 @@
       (owl defmac)
       (owl list)
       (owl list-extra)
+      (owl proof)
       (only (owl syscall) error))
 
    (begin
+      
       ;; convert an application to a thunk
       (define-syntax delay
          (syntax-rules ()
@@ -61,7 +63,7 @@
                   (if (null? tl) (car l) (llast tl))))
             ((null? l) (error "llast: empty list: " l))
             (else (llast (l)))))
-
+         
       ;; l → hd l' | error
       (define (uncons l d)
          (cond
@@ -218,6 +220,21 @@
             (else
                (λ () (ltake (l) n)))))
 
+      (define (lsplit l n) 
+         (let loop ((l l) (o null) (n n))
+            (cond
+               ((eq? n 0) 
+                  (values (reverse o) l))
+               ((pair? l)
+                  (loop (cdr l) (cons (car l) o) (- n 1)))
+               ((null? l)
+                  (loop l o 0))
+               (else
+                  (loop (l) o n)))))
+
+      (example 
+         (lsplit '(1 2 3 4) 2) = (values '(1 2) '(3 4)))
+            
       (define (lkeep p l) 
          (cond
             ((null? l) l)

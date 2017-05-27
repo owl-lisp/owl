@@ -217,11 +217,21 @@
                (cons (bxor a b)
                   (list-xor as bs))))))
 
+   (define (any->bytes x)
+      (cond
+         ((string? x)
+            (string->bytes x))
+         ((vector? x)
+            (vector->list x))
+         (else
+            ;; may be a lazy list or list
+            x)))
+      
    (define (make-hmac hasher blocksize)
       (lambda (key msg)
          (lets
-            ((key (string->bytes key)) ;; we want to UTF-8 encode it
-             (msg (string->bytes msg)) ;; ditto
+            ((key (any->bytes key)) ;; we want to UTF-8 encode it
+             (msg (any->bytes msg)) ;; ditto
              (key (if (> (length key) blocksize) (hasher key) key))
              (key
                (append key

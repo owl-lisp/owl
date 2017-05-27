@@ -231,10 +231,12 @@
                      or return arity error where first is function))
                 (else
                    `(wrong number of returned values ,(tuple->list b))))))
+          ((eq? opcode 0)
+             `("error: bad call: operator " ,a ", args w/ cont " ,b))
           ((eq? opcode 52)
-            `(trying to get car of a non-pair ,a))
+            `("error: car on non-pair " ,a))
           ((eq? opcode 53)
-            `(trying to get cdr of a non-pair ,a))
+            `("error: cdr on non-pair " ,a))
           (else
             `("error: instruction" ,(primop-name opcode) "reported error: " ,a " " ,b))))
 

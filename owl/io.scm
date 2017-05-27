@@ -31,6 +31,7 @@
    
       file->vector            ;; vector io, may be moved elsewhere later
       file->list              ;; list io, may be moved elsewhere later
+      file->byte-stream       ;; path → #false | (byte ...)
       vector->file
       write-vector            ;; vec port
       port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk 

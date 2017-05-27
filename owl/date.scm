@@ -14,11 +14,14 @@
       leap-year?  ;; y → bool
       valid-date? ;; d m y → bool
       next-date   ;; d m y → d' m' y'
+      next-date-with-week   ;; d m y wd wn → d' m' y' wd' wn'
       week-info   ;; d m y → week weekday
       day-names-fi
       day-names-en
       date-str    ;; secs [tz-offset-hours] -> str
       date-str-tz ;; secs tz-offset-hours -> str
+      year-start-day
+      year-start-week-info
       minute hour day week year leap-year)
 
    (begin
@@ -65,6 +68,7 @@
                   (values 1 (+ month 1) year)))
             (else
                (values (+ day 1) month year))))
+      
 
       ;; date is valid *and* date computations work for it
       (define (valid-date? d m y)
@@ -136,7 +140,7 @@
               ;; whole week fits the year
               (values week day))
             ((< (+ md (days-to-thursday day)) 32)
-              ;; partial, but switch happens before thursday
+              ;; partial week, but switch happens before thursday
               (values week day))
             (else
               ;; subsequent thursday falls to next year
@@ -157,6 +161,19 @@
                         (loop rd rm (+ week 1) day reset?))
                       (loop rd rm week day reset?)))))))
 
+      (define (next-date-with-week day month year week-day week-num)
+         (lets ((d m y (next-date day month year)))
+            (if (eq? week-day 7)
+               (if (< week-num 52)
+                  (values d m y 1 (+ week-num 1))
+                  (lets ((wn wd (week-info d m y)))
+                     (values d m y wd wn)))
+               (values d m y (+ week-day 1) week-num))))
+      
+      (example
+         (next-date-with-week 31 12 1971 5 1) = (values 1 1 1972 6 1)
+         (next-date-with-week 27 12 1970 7 52) = (values 28 12 1970 1 53))
+      
       ;;;
       ;;; UNIXish time
       ;;;

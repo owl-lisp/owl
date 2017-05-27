@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <stdio.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -68,7 +69,7 @@ typedef int32_t   wdiff;
 #define ITRUE                       make_immediate(2,13)
 #define IEMPTY                      make_immediate(3,13) /* empty ff */
 #define IEOF                        make_immediate(4,13)
-#define IHALT                       INULL /* FIXME: adde a distinct IHALT */ 
+#define IHALT                       make_immediate(5,13)
 #define TTUPLE                      2
 #define TTHREAD                     31
 #define TFF                         24
@@ -97,7 +98,7 @@ typedef int32_t   wdiff;
 #define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
 #define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
 #define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
-#define INITCELLS                   1000
+#define INITCELLS                   100000
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
 #define EXEC switch(op&63) { \
@@ -122,12 +123,12 @@ static word *memstart;
 static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
-byte *hp;       /* heap pointer when loading heap */
-static word *fp;
-int usegc;
-int slice;
+static word state;       /* IFALSE | previous program state across runs */
 
-word vm(word *ob, word *args);
+byte *hp;
+static word *fp;
+byte *file_heap;
+word vm(word *ob, word *arg);
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
 void *malloc(size_t size);
@@ -140,10 +141,9 @@ pid_t fork(void);
 pid_t waitpid(pid_t pid, int *status, int options);
 int chdir(const char *path);
 int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
-
+int execv(const char *path, char *const argv[]);
 struct termios tsettings;
 
-int execv(const char *path, char *const argv[]);
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -240,9 +240,6 @@ wdiff adjust_heap(int cells) {
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + ((cells > 0xffffff) ? 0xffffff : cells); /* limit heap growth speed  */
-   if (!usegc) { /* only run when the vm is running (temp) */
-      return 0;
-   }
    if (((cells > 0) && (new_words*W < nwords*W)) || ((cells < 0) && (new_words*W > nwords*W)))
        return 0; /* don't try to adjust heap if the size_t would overflow in realloc */
    memstart = realloc(memstart, new_words*W);
@@ -311,9 +308,7 @@ static word *gc(int size, word *regs) {
    return regs;
 }
 
-
 /*** OS Interaction and Helpers ***/
-
 
 void toggle_blocking(int sock, int blockp) {
    fcntl(sock, F_SETFL, fcntl(sock, F_GETFD)^O_NONBLOCK);
@@ -325,7 +320,6 @@ void signal_handler(int signal) {
          breaked |= 2; break;
       case SIGPIPE: break; /* can cause loop when reporting errors */
       default: 
-         // printf("vm: signal %d\n", signal);
          breaked |= 4;
    }
 }
@@ -380,98 +374,6 @@ word strp2owl(byte *sp) {
    bytecopy(sp, ((byte *)res)+W, len);
    return (word)res;
 }
-
-/* Initial FASL image decoding */
-
-word get_nat() {
-   word result = 0;
-   word new, i;
-   do {
-      i = *hp++;
-      new = result << 7;
-      if (result != (new >> 7)) exit(9); /* overflow kills */
-      result = new + (i & 127);
-   } while (i & 128);
-   return result;
-}  
-
-word *get_field(word *ptrs, int pos) {
-   if (0 == *hp) {
-      byte type;
-      word val;
-      hp++;
-      type = *hp++;
-      val = make_immediate(get_nat(), type);
-      *fp++ = val;
-   } else {
-      word diff = get_nat();
-      if (ptrs != NULL) *fp++ = ptrs[pos-diff];
-   }
-   return fp;
-}
-
-word *get_obj(word *ptrs, int me) {
-   int type, size;
-   if(ptrs != NULL) ptrs[me] = (word) fp;
-   switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
-      case 1: {
-         type = *hp++;
-         size = get_nat();
-         *fp++ = make_header(size+1, type); /* +1 to include header in size */
-         while(size--) { fp = get_field(ptrs, me); }
-         break; }
-      case 2: {
-         int bytes, pads;
-         byte *wp;
-         type = *hp++ & 31; /* low 5 bits, the others are pads */
-         bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
-         pads = (size-1)*W - bytes;
-         *fp++ = make_raw_header(size, type, pads);
-         wp = (byte *) fp;
-         while (bytes--) { *wp++ = *hp++; };
-         while (pads--) { *wp++ = 0; };
-         fp = (word *) wp;
-         break; }
-      default: exit(42);
-   }
-   return fp;
-}
-
-/* count number of objects and measure heap size */
-int count_objs(word *words) {
-   word *orig_fp = fp;
-   word nwords = 0;
-   byte *orig_hp = hp;
-   int n = 0;
-   while(*hp != 0) {
-      get_obj(NULL, 0); /* dry run just to count the objects */
-      nwords += ((word)fp - (word)orig_fp)/W;
-      fp = orig_fp;
-      n++;
-   }
-   *words = nwords;
-   hp = orig_hp;
-   return n;
-}
-
-byte *load_heap(char *path) { 
-   struct stat st;
-   int fd, pos = 0;
-   if(stat(path, &st)) exit(1);
-   hp = realloc(NULL, st.st_size);
-   if (hp == NULL) exit(2);
-   fd = open(path, O_RDONLY);
-   if (fd < 0) exit(3);
-   while(pos < st.st_size) {
-      int n = read(fd, hp+pos, st.st_size-pos);
-      if (n < 0) exit(4);
-      pos += n;
-   }
-   close(fd);
-   return hp;
-}
-
 
 /*** Primops called from VM and generated C-code ***/
 
@@ -752,10 +654,9 @@ static word prim_sys(int op, word a, word b, word c) {
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)fliptag(a));
          return ITRUE;
-      case 14: { /* set-ticks n _ _ -> old */
-         word old = F(slice); 
-         slice = fixval(a);
-         return old; }
+      case 14: { /* unused */
+         exit(42);
+         break; }
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
          word *buff = (word *) b;
@@ -823,7 +724,6 @@ static word prim_sys(int op, word a, word b, word c) {
             r[1] = F(4);
             r[2] = F(1); */
          } else {
-            //fprintf(stderr, "vm: unexpected process exit status: %d\n", status);
             r = (word *)IFALSE;
          }
          return (word)r; }
@@ -910,7 +810,6 @@ static word prim_lraw(word wptr, int type, word revp) {
    return (word)raw;
 }
 
-
 static word prim_mkff(word t, word l, word k, word v, word r) {
    word *ob = fp;
    ob[1] = k;
@@ -935,88 +834,6 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
       fp += 5;
    }
    return (word) ob;
-}
-
-/* Load heap, convert arguments and start VM */
-
-word boot(int nargs, char **argv) {
-   int this, pos, nobjs;
-   byte *file_heap = NULL;
-   word *entry;
-   word *oargs = (word *) INULL;
-   word *ptrs;
-   word nwords;
-   usegc = 0;
-   slice = TICKS; /* default thread slice (n calls per slice) */
-   if ((word)heap == (word)NULL) { /* if no preloaded heap, try to load it from first arg */
-      if (nargs < 2) exit(1);
-      file_heap = load_heap(argv[1]);
-      if(*hp == 35) { /* skip hashbang */
-         while(*hp++ != 10);
-      }
-      nargs--; argv++; /* skip vm */
-   } else {
-      hp = (byte *) &heap;
-   }
-   max_heap_mb = (W == 4) ? 4096 : 65535; /* can be set at runtime */
-   memstart = genstart = fp = (word *) realloc(NULL, (INITCELLS + FMAX + MEMPAD)*W); /* at least one argument string always fits */
-   if (!memstart) {
-      exit(4);
-   }
-   memend = memstart + FMAX + INITCELLS - MEMPAD;
-   this = nargs-1;
-   usegc = 1;
-   while(this >= 0) { /* build an owl string list to oargs at bottom of heap */
-      byte *str = (byte *) argv[this];
-      byte *pos = str;
-      int pads;
-      word *tmp;
-      int len = 0, size;
-      while(*pos++) len++;
-      if (len > FMAX) {
-         exit(1);
-      }
-      size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
-      if ((word)fp + size >= (word)memend) {
-         oargs = gc(FMAX, oargs); /* oargs points to topmost pair, may move as a result of gc */
-         fp = oargs + 3;
-      }
-      pads = (size-1)*W - len;
-      tmp = fp;
-      fp += size;
-      *tmp = make_raw_header(size, 3, pads);
-      pos = ((byte *) tmp) + W;
-      while(*str) *pos++ = *str++;
-      *fp = PAIRHDR;
-      fp[1] = (word) tmp;
-      fp[2] = (word) oargs;
-      oargs = fp;
-      fp += 3;
-      this--;
-   }
-   nobjs = count_objs(&nwords);
-   oargs = gc(nwords+(128*1024), oargs); /* get enough space to load the heap without triggering gc */
-   fp = oargs + 3;
-   ptrs = fp;
-   fp += nobjs+1;
-   pos = 0;
-   while(pos < nobjs) { /* or until fasl stream end mark */
-      if (fp >= memend) {
-         exit(1);
-      }
-      fp = get_obj(ptrs, pos);
-      pos++;
-   }
-   entry = (word *) ptrs[pos-1]; 
-   /* set up signal handler */
-   set_signal_handler();
-   toggle_blocking(0,0); /* change to nonblocking stdio */
-   toggle_blocking(1,0);
-   toggle_blocking(2,0);
-   /* clear the pointers */
-   ptrs[0] = make_raw_header(nobjs+1,0,0);
-   if (file_heap != NULL) free((void *) file_heap);
-   return vm(entry, oargs);
 }
 
 void do_poll(word a, word b, word c, word *r1, word *r2) { 
@@ -1068,22 +885,21 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    }
 }
 
-word vm(word *ob, word *args) {
+word vm(word *ob, word *arg) {
    unsigned char *ip;
    int bank = 0;
-   int ticker = slice;
+   int ticker = TICKS;
    unsigned short acc = 0;
    int op;
-   static word R[NR];
+   word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
-   usegc = 1; /* enble gc (later have if always evabled) */
 
    /* clear blank regs */
    while(acc < NR) { R[acc++] = INULL; }
    R[0] = IFALSE;
    R[3] = IHALT;
-   R[4] = (word) args;
+   R[4] = (word) arg;
    acc = 2; /* boot always calls with 2 args*/
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
@@ -1120,7 +936,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       acc = 1;
       goto apply;
    } else if ((word)ob == IHALT) {
-      /* a tread or mcp is calling the final continuation  */
+      /* it's the final continuation  */
       ob = (word *) R[0];
       if (allocp(ob)) {
          R[0] = IFALSE;
@@ -1134,9 +950,20 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          acc = 4;
          goto apply;
       }
-      return fixval(R[3]);
-   } /* <- add a way to call the new vm prim table also here? */
-   error(257, ob, INULL); /* not callable */
+      if (acc == 2) { /* update state when main program exits with 2 values */
+         state = R[4];
+      }
+      return R[3];
+   } else {
+      word *state, pos = 1;
+      allocate(acc+1, state);
+      *state = make_header(acc+1, TTUPLE);
+      while(pos <= acc) {
+         state[pos] = R[pos+2]; /* first arg at R3*/
+         pos++;
+      }
+      error(0, ob, state); /* not callable */
+   }
 
 switch_thread: /* enter mcp if present */
    if (R[0] == IFALSE) { /* no mcp, ignore */ 
@@ -1592,20 +1419,249 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
 }
 
-/* 
-  boot() -> *prog
-  burn_string_list(nargs, argv) -> *args
-  call1(prog, args) -> *res
-  boot(nargs, argv) -> fp, init mem*
-  ...
-  how to work with thread scheduler? special exit value? multiple value exit? syscall?
-*/
+word *burn_args(int nargs, char **argv) {
+   int this;
+   word *oargs = (word *) INULL;
+   this = nargs-1;
+   while(this >= 0) {
+      byte *str = (byte *) argv[this];
+      byte *pos = str;
+      int pads;
+      word *tmp;
+      int len = 0, size;
+      while(*pos++) len++;
+      if (len > FMAX) {
+         exit(1);
+      }
+      size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
+      pads = (size-1)*W - len;
+      tmp = fp;
+      fp += size;
+      *tmp = make_raw_header(size, 3, pads);
+      pos = ((byte *) tmp) + W;
+      while(*str) *pos++ = *str++;
+      *fp = PAIRHDR;
+      fp[1] = (word) tmp;
+      fp[2] = (word) oargs;
+      oargs = fp;
+      fp += 3;
+      this--;
+   }
+   fp = oargs + 3;
+   return oargs;
+}
+
+/* Initial FASL image decoding */
+
+word get_nat() {
+   word result = 0;
+   word new, i;
+   do {
+      i = *hp++;
+      new = result << 7;
+      if (result != (new >> 7)) exit(9); /* overflow kills */
+      result = new + (i & 127);
+   } while (i & 128);
+   return result;
+}  
+
+word *get_field(word *ptrs, int pos) {
+   if (0 == *hp) {
+      byte type;
+      word val;
+      hp++;
+      type = *hp++;
+      val = make_immediate(get_nat(), type);
+      *fp++ = val;
+   } else {
+      word diff = get_nat();
+      if (ptrs != NULL) *fp++ = ptrs[pos-diff];
+   }
+   return fp;
+}
+
+word *get_obj(word *ptrs, int me) {
+   int type, size;
+   if(ptrs != NULL) ptrs[me] = (word) fp;
+   switch(*hp++) { /* todo: adding type information here would reduce fasl and executable size */
+      case 1: {
+         type = *hp++;
+         size = get_nat();
+         *fp++ = make_header(size+1, type); /* +1 to include header in size */
+         while(size--) { fp = get_field(ptrs, me); }
+         break; }
+      case 2: {
+         int bytes, pads;
+         byte *wp;
+         type = *hp++ & 31; /* low 5 bits, the others are pads */
+         bytes = get_nat();
+         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         pads = (size-1)*W - bytes;
+         *fp++ = make_raw_header(size, type, pads);
+         wp = (byte *) fp;
+         while (bytes--) { *wp++ = *hp++; };
+         while (pads--) { *wp++ = 0; };
+         fp = (word *) wp;
+         break; }
+      default: exit(42);
+   }
+   return fp;
+}
+
+/* dry run fasl decode - just compute sizes */
+void get_obj_metrics(int *rwords, int *rnobjs) {
+   int size;
+   switch(*hp++) {
+      case 1: {
+         hp++;
+         size = get_nat();
+         *rnobjs += 1;
+         *rwords += size;
+         while(size--) {
+            if (0 == *hp)
+               hp += 2;
+            get_nat();
+         }
+         break; }
+      case 2: {
+         int bytes;
+         hp++;
+         bytes = get_nat();
+         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         hp += bytes;
+         *rnobjs += 1;
+         *rwords += size;
+         break; }
+      default: exit(42);
+   }
+}
+
+/* count number of objects and measure heap size */
+void heap_metrics(int *rwords, int *rnobjs) {
+   byte *hp_start = hp;
+   while(*hp != 0)
+      get_obj_metrics(rwords, rnobjs);
+   hp = hp_start;
+}
+
+size_t count_cmdlinearg_words(int nargs, char **argv) {
+   size_t total = 0;
+   while(nargs--) {
+      size_t this = lenn((byte *) *argv, FMAX);
+      if (this == FMAX) 
+         exit(3);
+      total += (this / W) + 3;
+      argv++;
+   }
+   return total;
+}
+
+byte *read_heap(char *path) { 
+   struct stat st;
+   int fd, pos = 0;
+   if(stat(path, &st)) exit(1);
+   hp = realloc(NULL, st.st_size);
+   if (hp == NULL) exit(2);
+   fd = open(path, O_RDONLY);
+   if (fd < 0) exit(3);
+   while(pos < st.st_size) {
+      int n = read(fd, hp+pos, st.st_size-pos);
+      if (n < 0) exit(4);
+      pos += n;
+   }
+   close(fd);
+   return hp;
+}
+
+/* find a fasl image source to *hp or exit */
+void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
+   file_heap = NULL;
+   if ((word)heap == (word)NULL) { 
+      /* if no preloaded heap, try to load it from first vm arg */
+      if (*nargs < 2) exit(1);
+      file_heap = read_heap((*argv)[1]);
+      if(*hp == '#') {
+         while(*hp++ != '\n');
+      }
+      *nargs -= 1;
+      *argv += 1;
+   } else {
+      hp = (byte *) &heap; /* builtin heap */
+   }
+   heap_metrics(nwords, nobjs);
+}
+
+word *decode_fasl(int nobjs) {
+   word *ptrs = fp;
+   word *entry;
+   int pos = 0;
+   fp += nobjs+1;
+   while(pos < nobjs) {
+      if (fp >= memend) { /* bug */
+         exit(1);
+      }
+      fp = get_obj(ptrs, pos);
+      pos++;
+   }
+   entry = (word *) ptrs[pos-1]; 
+   ptrs[0] = make_raw_header(nobjs+1,0,0);
+   return entry;
+}
+
+word *load_heap(int nobjs) {
+   word *entry = decode_fasl(nobjs);
+   if (file_heap != NULL) free((void *) file_heap);
+   return entry;
+}
+
+void setup(int nargs, char **argv, int nwords, int nobjs) {
+   tcgetattr(0, &tsettings);
+   state = IFALSE;
+   set_signal_handler();
+   toggle_blocking(0,0); /* change to nonblocking stdio */
+   toggle_blocking(1,0);
+   toggle_blocking(2,0);
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   nwords += count_cmdlinearg_words(nargs, argv);
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   if (!memstart) exit(4);
+   memend = memstart + nwords - MEMPAD;
+}
+
+void setdown() {
+   tcsetattr(0, TCSANOW, &tsettings);
+}
+
+/* library mode init */
+void init() {
+   int nobjs=0, nwords=0;
+   hp = (byte *) &heap; /* builtin heap */
+   state = IFALSE;
+   heap_metrics(&nwords, &nobjs);
+   max_heap_mb = (W == 4) ? 4096 : 65535;
+   nwords += nobjs + INITCELLS;
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   if (!memstart) exit(4);
+   memend = memstart + nwords - MEMPAD;
+   state = (word) load_heap(nobjs);
+}
 
 int main(int nargs, char **argv) {
-   int rval;
-   tcgetattr(0, &tsettings);
-   rval = boot(nargs, argv);
-   tcsetattr(0, TCSANOW, &tsettings);
-   return rval;
+   word *prog, *args;
+   int rval, nobjs=0, nwords=0;
+   find_heap(&nargs, &argv, &nobjs, &nwords);
+   setup(nargs, argv, nwords, nobjs);
+   args = burn_args(nargs, argv);
+   prog = load_heap(nobjs);
+   rval = vm(prog, args);
+   setdown();
+   if(fixnump(rval)) {
+      int n = fixval(rval);
+      return (0 <= n && n < 128) ? n : 126;
+   } else {
+      return 127;
+   }
 }
+
 

@@ -60,7 +60,7 @@
 
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.14a")
+(define *owl-version* "0.1.14")
 (define max-object-size #xffff)
 
 (define owl-ohai "You see a prompt.")
@@ -237,6 +237,12 @@
 
 ;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux
 
+(define (path->string path)
+   (let ((data (file->vector path)))
+      (if data
+         (bytes->string (vector->list data))
+         #false)))
+
 (define command-line-rules
    (cl-rules
      `((help     "-h" "--help")
@@ -250,6 +256,9 @@
        (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
+       (custom-runtime  "-R" "--runtime" 
+          cook ,path->string
+          comment "use a custom runtime in C compilation")
        ;(interactive "-i" "--interactive" comment "use builtin interactive line editor")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
@@ -359,7 +368,8 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                               (cond
                                  ((>= opt 2) val) ;; compile everything to native extended primops for -O2
                                  ((= opt 1) usual-suspects) ;; compile some if -O1
-                                 (else #false)))) ;; otherwise use bytecode and plain vm
+                                 (else #false))) ;; otherwise use bytecode and plain vm
+                           (getf opts 'custom-runtime))
                            0)
                      (begin
                         (print "The last value should be a function of one value (the command line arguments), but it is instead " val)
