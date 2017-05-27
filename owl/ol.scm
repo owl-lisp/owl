@@ -60,7 +60,7 @@
 
 ;; shared parameters, librarize later or remove if possible
 
-(define *owl-version* "0.1.14a")
+(define *owl-version* "0.1.14")
 (define max-object-size #xffff)
 
 (define owl-ohai "You see a prompt.")
