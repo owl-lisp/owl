@@ -1551,8 +1551,6 @@ size_t count_cmdlinearg_words(int nargs, char **argv) {
       if (this == FMAX) 
          exit(3);
       total += (this / W) + 3;
-      if (total < 0)
-         exit(4);
       argv++;
    }
    return total;
@@ -1647,14 +1645,6 @@ void init() {
    if (!memstart) exit(4);
    memend = memstart + nwords - MEMPAD;
    state = (word) load_heap(nobjs);
-}
-
-int libtest(int n){
-   word rval;
-   printf("libcall n %d\n", n);
-   rval = vm((word *)state, (word *)F(n));
-   printf(" - returned fixval %d\n", (int) fixval(rval));
-   return fixval(rval);
 }
 
 int main(int nargs, char **argv) {
