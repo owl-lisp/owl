@@ -226,13 +226,13 @@
                      (if (cdr val)
                         (print (cdr val)))
                      (if (not (display "> "))
-                        (halt 127)))
+                        (halt 125)))
                   (begin
                      (maybe-show-metadata env val)
                      ((writer-to (env-get env name-tag empty)) 
                         stdout val)
                      (if (not (display "\n> "))
-                        (halt 127)))))))
+                        (halt 125)))))))
             
       (define syntax-error-mark (list 'syntax-error))
 

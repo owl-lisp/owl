@@ -1658,7 +1658,7 @@ int main(int nargs, char **argv) {
    setdown();
    if(fixnump(rval)) {
       int n = fixval(rval);
-      return (0 <= n && n < 128) ? n : 126;
+      return (0 <= n && n < 127) ? n : 127;
    } else {
       return 127;
    }

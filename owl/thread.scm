@@ -132,7 +132,7 @@
             (λ (id a b c todo done state tc)
                ;(system-println "mcp: syscall 3 -- vm error")
                ;; set crashed exit value proposal 
-               (let ((state (put state return-value-tag 127)))
+               (let ((state (put state return-value-tag 126)))
                   (drop-delivering todo done state id 
                      (tuple id (tuple 'crashed a b c)) tc)))
             

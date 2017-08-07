@@ -1,3 +1,3 @@
-vm error exit 127 should be 127
-normal nonzer exit 1 should be 1
+vm error exit 126 should be 126
+normal nonzero exit 1 should be 1
 ok exit 0 should be 0

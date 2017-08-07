@@ -280,8 +280,8 @@
       (tuple-case outcome
          ((ok val env)
             ;; be silent when all is ok
-            ;; exit with 127 and have error message go to stderr when the run crashes
-            (try (λ () (val args)) 127))
+            ;; exit with 126 and have error message go to stderr when the run crashes
+            (try (λ () (val args)) 126))
          ((error reason env)
             (print-repl-error
                (list "ol: cannot run" path "because there was an error during loading:" reason))
@@ -387,7 +387,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (try-load-state path args)
    (let ((val (load-fasl path #false)))
       (if (function? val)
-         (try (λ () (val (cons path args))) 127)
+         (try (λ () (val (cons path args))) 126)
          (begin
             (print "failed to load dump from " path)
             1))))
@@ -397,7 +397,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
    (tuple-case (repl-string env str)
       ((ok val env)
          (exit-owl
-            (if (print val) 0 127)))
+            (if (print val) 0 126)))
       ((error reason partial-env)
          (print-repl-error 
             (list "An error occurred while evaluating:" str reason))
@@ -405,7 +405,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       (else
          (exit-owl 2))))
 
-;; exit with 0 if value is non-false, 1 if it's false, 127 if error
+;; exit with 0 if value is non-false, 1 if it's false, 126 if error
 (define (try-test-string env str)
    (tuple-case (repl-string env str)
       ((ok val env)
@@ -413,9 +413,9 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       ((error reason partial-env)
          (print-repl-error 
             (list "An error occurred while evaluating:" str reason))
-         (exit-owl 127))
+         (exit-owl 126))
       (else
-         (exit-owl 127))))
+         (exit-owl 126))))
 
 ;; say hi if interactive mode and fail if cannot do so (the rest are done using 
 ;; repl-prompt. this should too, actually)
@@ -425,7 +425,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          (and
             (print owl-ohai)
             (display "> "))
-         (halt 127))))
+         (halt 126))))
 
 ;; todo: this should probly be wrapped in a separate try to catch them all
 ; ... → program rval going to exit-owl
