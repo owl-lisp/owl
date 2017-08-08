@@ -1633,27 +1633,13 @@ void setdown() {
    tcsetattr(0, TCSANOW, &tsettings);
 }
 
-/* library mode init */
-void init() {
-   int nobjs=0, nwords=0;
-   hp = (byte *) &heap; /* builtin heap */
-   state = IFALSE;
-   heap_metrics(&nwords, &nobjs);
-   max_heap_mb = (W == 4) ? 4096 : 65535;
-   nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
-   if (!memstart) exit(4);
-   memend = memstart + nwords - MEMPAD;
-   state = (word) load_heap(nobjs);
-}
-
 int main(int nargs, char **argv) {
    word *prog, *args;
    int rval, nobjs=0, nwords=0;
    find_heap(&nargs, &argv, &nobjs, &nwords);
    setup(nargs, argv, nwords, nobjs);
-   args = burn_args(nargs, argv);
    prog = load_heap(nobjs);
+   args = burn_args(nargs, argv);
    rval = vm(prog, args);
    setdown();
    if(fixnump(rval)) {

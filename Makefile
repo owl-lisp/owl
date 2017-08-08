@@ -126,5 +126,11 @@ fasl-update: fasl/ol.fasl
 todo: bin/vm 
 	bin/vm fasl/ol.fasl -n owl/*.scm | less
 
+bin/libtest: bin/vm fasl/ol.fasl libtest.scm c/lib.c
+	bin/vm fasl/ol.fasl --bare -o libtest.c libtest.scm
+	sed --in-place -e 's/int main/int ignore/' libtest.c
+	cat c/lib.c >> libtest.c
+	cc -o bin/libtest libtest.c
+
 .PHONY: all owl install uninstall todo test fasltest random-test owl standalone fasl-update clean simple-ol
 
