@@ -3,7 +3,8 @@
    (λ (bvec)
       (values 
          state
-         (library-test (+ state 1)))))
+         (library-test 
+            (vec-fold + state bvec)))))
 
 (library-test 0) 
 

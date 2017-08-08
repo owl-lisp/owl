@@ -34,7 +34,7 @@ word library_call(size_t len, char *ptr) {
    bvec = fp;
    fp += size;
    printf("libary call from state %d\n", state);
-   *bvec = make_raw_header(size, 3, pads);
+   *bvec = make_raw_header(size, TBVEC, pads);
    pos = ((byte *) bvec) + W;
    while(len--) *pos++ = *ptr++;
    res = vm(program_state, bvec);
@@ -48,9 +48,9 @@ word library_call(size_t len, char *ptr) {
 
 int main(int nargs, char **argv) {
    init();
-   char foo[] = {1, 2, 3};
-   char bar[] = {4, 5};
-   char baz[] = {6, 7, 8, 9};
+   char foo[] = {1, 2, 3}; //  0
+   char bar[] = {4, 5}; // 6
+   char baz[] = {6, 7, 8, 9}; // 15
    library_call(3, &foo);
    library_call(2, &bar);
    library_call(4, &baz);
