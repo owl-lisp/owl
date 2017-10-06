@@ -4,8 +4,6 @@
 # and run randomized tests in the meantime.
 # you probably don't want to run this.
 
-renice +20 $$
-
 DELAY=60        # sleep n seconds between test runs
 TESTMINS=15     # minutes of random unit tests 
 THEOREMS=5000   # iterations of theorem test
@@ -18,11 +16,13 @@ MD5=md5sum
 echo "" | $MD5 | grep -q 68b329da9893e34099c7d8ad5cb9c940 || MD5="md5"
 ME=$($MD5 < bin/builder)
 
-echo "My version is $ME"
+die() {
+   echo "$@"
+   exit 1
+}
 
 fail() {
-   echo "error: $@"
-   exit 1
+   die "ERROR: $@"
 }
 
 check_exe() {
@@ -49,6 +49,18 @@ thisgit() {
    git log | head -n 1 | sed -e 's/.* \(......\).*/\1.../'
 }
 
+confirm_or_exit() {
+   echo "$@"
+   read -p "yes/no? " RESPONSE
+   echo $RESPONSE | grep -Eqi "^y(es)?$" || die "taking that as a no"
+}
+
+confirm_or_exit "Owl is built with make. This script starts continuous builds and related tool tests at $WORK. Is this what you are trying to do?"
+
+echo "My version is $ME"
+
+renice +20 $$
+
 echo "Checking deps:"
 for DEP in nc $MD5 mailx
 do
@@ -70,8 +82,7 @@ esac
 date | notify "Builder.sh started on $(hostname)"
 date | notify_irc "builder started on $(hostname) ($(uname), $(uname -m), $(echo $ME | dd bs=1 count=5 2>/dev/null))"
 
-test -d $WORK || fail "work directory '$WORK' doesn't exist"
-
+mkdir -p $WORK || die "cannot have $WORK"
 cd $WORK
 
 echo "*** GETTING SOURCES ***"
@@ -118,6 +129,7 @@ do
    echo "*** BUILDING SIDE PROJECTS ***"
    for project in $RELATEDPROJECTS
    do
+      mkdir -p $HOME/ram
       cd $HOME/ram
       echo " - fresh $project build"
       cd $project
