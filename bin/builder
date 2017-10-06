@@ -32,7 +32,7 @@ check_exe() {
 
 notify() {
    echo "MAIL: $@"
-	mailx -S "from=Note <$(whoami)@$(hostname --long)>" -S smtp=$SMTP -s "$(echo $@)" $EMAIL
+   heirloom-mailx -S "from=Note <$(whoami)@$(hostname --long)>" -S smtp=$SMTP -s "$(echo $@)" $EMAIL
 }
 
 notify_irc() {
@@ -55,14 +55,18 @@ confirm_or_exit() {
    echo $RESPONSE | grep -Eqi "^y(es)?$" || die "taking that as a no"
 }
 
-confirm_or_exit "Owl is built with make. This script starts continuous builds and related tool tests at $WORK. Is this what you are trying to do?"
+# check that user knows what this script does and really wants to run it 
+# unless --really is given as first argument
+
+test "$1" = "--really" \
+   || confirm_or_exit "Owl is built with make. This script starts continuous builds and related tool tests at $WORK. Is this what you are trying to do?"
 
 echo "My version is $ME"
 
 renice +20 $$
 
 echo "Checking deps:"
-for DEP in nc $MD5 mailx
+for DEP in nc $MD5 heirloom-mailx
 do
    check_exe $DEP
 done
@@ -105,7 +109,7 @@ do
 	git pull
 	NEWME=$($MD5 < bin/builder)
 	echo "old me $ME, new me $NEWME"
-	test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/builder; }
+	test "$ME" = "$NEWME" || { notify_irc "I sense bin/builder has changed."; cd "$MYDIR"; git pull; exec bin/builder --really; }
 	make clean >/dev/null 2>&1
 	VERSION=$(thisgit)
 	echo building owl
