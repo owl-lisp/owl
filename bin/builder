@@ -94,6 +94,7 @@ for project in owl-lisp $RELATEDPROJECTS
 do
    echo " - $project"
    test -d $project || git clone https://github.com/aoh/$project.git
+   cd $project && git checkout develop || echo "no develop branch for $project"
 done
 
 while true
