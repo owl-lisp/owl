@@ -334,8 +334,6 @@
 
       (define (make-compiler extras)
          (λ (entry path opts native . custom-runtime) ; <- this is the usual compile-owl 
-            (if (null? custom-runtime)
-               (print-to stderr "custom runtime not provided"))
             (lets
                ((path (get opts 'output "-")) ; <- path argument deprecated
                 (format 
