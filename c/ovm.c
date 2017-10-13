@@ -565,7 +565,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(val); }
       case 2: 
          return close(fixval(a)) ? IFALSE : ITRUE;
-      case 3: { /* 3 = sopen port type -> False | fd  */
+      case 3: { /* 3 = sopen port 0=tcp|1=udp -> False | fd  */
          int port = fixval(a);
          int type = fixval(b);
          int s;
@@ -584,8 +584,13 @@ static word prim_sys(int op, word a, word b, word c) {
                close(s);
                return IFALSE;
             }
+            toggle_blocking(s,0);
+         } else {
+            if (bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0) {
+               close(s);
+               return IFALSE;
+            }
          }
-         toggle_blocking(s,0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = fixval(a);
@@ -634,7 +639,19 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(W);
       case 9: /* get memory limit (in mb) */
          return F(max_heap_mb);
-      /* dirops only to be used via exposed functions */
+      case 10: { /* receive-udp-packet sock → bvec | #false */
+         struct sockaddr si_other;
+         size_t slen = sizeof(si_other);
+         word *bvec;
+         int recvd;
+         int maxbytes = 0xffff;
+         if (memend - fp <= 2 + (maxbytes / W))
+            return IFALSE;
+         recvd = recvfrom(fixval(a), (char *) (fp + 1), MAXOBJ, 0, (struct sockaddr *) &si_other, &slen);
+         if (recvd < 0) 
+            return IFALSE;
+         bvec = mkbvec(recvd, TBVEC);
+         return (word) bvec; }
       case 11: { /* sys-opendir path _ _ -> False | dirobjptr */
          char *path = W + (char *) a; /* skip header */
          DIR *dirp = opendir(path);
