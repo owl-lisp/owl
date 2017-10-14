@@ -354,7 +354,7 @@ void set_signal_handler() {
 }
 
 /* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
-static word *mkbvec(int len, int type) {
+static word *mkbvec(size_t len, int type) {
    int nwords = (len/W) + ((len % W) ? 2 : 1);
    int pads = (nwords-1)*W - len;
    word *ob = fp;
@@ -584,13 +584,13 @@ static word prim_sys(int op, word a, word b, word c) {
                close(s);
                return IFALSE;
             }
-            toggle_blocking(s,0);
          } else {
             if (bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0) {
                close(s);
                return IFALSE;
             }
          }
+         toggle_blocking(s,0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = fixval(a);
@@ -639,10 +639,12 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(W);
       case 9: /* get memory limit (in mb) */
          return F(max_heap_mb);
-      case 10: { /* receive-udp-packet sock → bvec | #false */
-         struct sockaddr si_other;
+      case 10: { /* receive-udp-packet sock → (ip-bvec . payload-bvec)| #false */
+         struct sockaddr_in si_other;
          size_t slen = sizeof(si_other);
          word *bvec;
+         word *ipa;
+         word res;
          int recvd;
          int maxbytes = 0xffff;
          if (memend - fp <= 2 + (maxbytes / W))
@@ -651,7 +653,14 @@ static word prim_sys(int op, word a, word b, word c) {
          if (recvd < 0) 
             return IFALSE;
          bvec = mkbvec(recvd, TBVEC);
-         return (word) bvec; }
+         ipa = mkbvec(4, TBVEC);
+         bytecopy((byte *) &si_other.sin_addr, ((byte *) ipa)+W, 4);
+         res = (word) fp;
+         fp[0] = PAIRHDR;
+         fp[1] = (word) ipa;
+         fp[2] = (word) bvec;
+         fp += 3;
+         return res; }
       case 11: { /* sys-opendir path _ _ -> False | dirobjptr */
          char *path = W + (char *) a; /* skip header */
          DIR *dirp = opendir(path);
