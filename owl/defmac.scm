@@ -41,7 +41,8 @@
       type-rlist-spine
       type-rlist-node
       type-port 
-      type-socket
+      type-tcp-socket
+      type-udp-socket
       type-tcp-client
       type-string
       type-string-wide
@@ -488,9 +489,6 @@
       (define type-ff-red           26)
       (define type-ff-red-r         27)
 
-      ; + type-ff-red, type-ff-right
-
-      ; 8 - black ff leaf
       ;; IMMEDIATE
       (define type-fix+              0)
       (define type-fix-             32)
@@ -501,7 +499,8 @@
       (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
       (define type-port             12)
-      (define type-socket           44)
+      (define type-tcp-socket       44) ;; port | 1<<5
+      (define type-udp-socket       76) ;; port | 2<<5
       (define type-tcp-client       62)
 
 
