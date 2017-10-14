@@ -28,7 +28,12 @@
       tcp-client              ;; port → ip tcp-fd | #f #f
       tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
-   
+      
+      ;; datagram-oriented IO
+      udp-packets             ;; port → null | ((ip . bvec) ...)
+      wait-udp-packet         ;; port → (ip . bvec), blocks
+      check-udp-packet        ;; port → #false | (ip . bvec), does not block
+
       file->vector            ;; vector io, may be moved elsewhere later
       file->list              ;; list io, may be moved elsewhere later
       file->byte-stream       ;; path → #false | (byte ...)
@@ -252,6 +257,30 @@
             (if sock 
                (fd->port sock)
                #false)))
+
+      ;; port → (ip . bvec) | #false, nonblocking
+      (define (check-udp-packet port)
+         (sys-prim 10 port #f #f))
+     
+      ;; port → (ip . bvec), blocks thread
+      (define (wait-udp-packet port)
+         (let ((res (check-udp-packet port)))
+            (or res 
+               (begin
+                  ;(interact sid socket-read-delay)
+                  (interact 'iomux (tuple 'read port))
+                  (wait-udp-packet port)))))
+     
+      ;; port → null | ((ip . bvec) ...)
+      (define (udp-packets port)
+         (let ((sock (open-udp-socket port)))
+            (if sock
+               (λ ()
+                  (let loop ((sock sock))
+                     (pair 
+                        (wait-udp-packet sock)
+                        (loop sock))))
+               null)))
       
       (define open-socket open-tcp-socket)
       
