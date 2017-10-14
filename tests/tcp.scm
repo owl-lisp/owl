@@ -30,8 +30,8 @@
 
 (define cli (open-connection (vector 127 0 0 1) port))
 
-(if cli
-  (print "client connected"))
+(if (not cli)
+  (print "client not connected"))
 
 (print-to cli "SLARTIBARTFAST")
 
