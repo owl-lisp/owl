@@ -1,0 +1,31 @@
+todo
+ + UDP support
+   + receiving
+     - blocking not checked yet in repl owl/io.scm:266
+   + sending
+     - sending primop missing c/ovm.c:/receive-udp/
+     - sending not defined at owl/io.scm:266
+   + add tests after sending and receiving are there
+ + Library usage
+   + minimum viable version + use in radamsa
+ + type tags
+   - better documentation of descriptor format to owl/defmac.scm:/ALLOCA/
+ + mutability
+   + add a thread-based functional mutable object store library
+ + interaction
+   + owl proof <-> metadata collection
+ + R7RS
+   + increase compatibility
+ + debugging
+   + error messages
+     + burn some info about functions to bytecode in interpreted mode
+ + optimization
+   + partial evaluation 
+   + known small function inlining 
+     + primop inlining should be handled this way
+ + GC
+   - allocate large byte vectors via a separate function
+   + allow and ignore pointers outside of heap?
+ + multiple runtime owl
+   + take first step towards this direction via library mode of compiled programs
+   + rewrite vs incremental?
