@@ -377,7 +377,7 @@ word strp2owl(byte *sp) {
 
 /*** Primops called from VM and generated C-code ***/
 
-static word prim_connect(word *host, word port) {
+static word prim_connect(word *host, word port, word type) {
    int sock;
    byte *ip = ((unsigned char *) host) + W;
    unsigned long ipfull;
@@ -385,7 +385,7 @@ static word prim_connect(word *host, word port) {
    port = fixval(port);
    if (!allocp(host))  /* bad host type */
       return IFALSE;
-   if ((sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+   if ((sock = socket(PF_INET, ((fixval(type) == 1) ? SOCK_DGRAM : SOCK_STREAM), 0)) == -1)
       return IFALSE;
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port);
@@ -1242,7 +1242,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       error(33, IFALSE, IFALSE);
    op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
       /* fixme - this should not be a primitive */
-      A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
+      A2 = prim_connect((word *) A0, A1, F(0));
       NEXT(3); }
    op35: { /* listuple type size lst to */
       word type = fixval(R[*ip]);

@@ -3,6 +3,8 @@ todo
    + receiving
      - blocking not checked yet in repl owl/io.scm:266
    + sending
+     - move prim_connect to sysops
+     - add an argument for socket type selection (stream/dgram)
      - sending primop missing c/ovm.c:/receive-udp/
      - sending not defined at owl/io.scm:266
    + add tests after sending and receiving are there
@@ -23,6 +25,12 @@ todo
    + partial evaluation 
    + known small function inlining 
      + primop inlining should be handled this way
+ + regex
+   + non-extended regexps could be compiled differently
+ + benchmarking
+   + add a continuous benchmarking system
+   + start collecting data
+   + add a full gc 
  + GC
    - allocate large byte vectors via a separate function
    + allow and ignore pointers outside of heap?
