@@ -291,7 +291,7 @@
             ((not (eq? (type port) type-fix+))
                #false)
             ((and (eq? (type ip) type-vector-raw) (eq? 4 (sizeb ip))) ;; silly old formats
-               (let ((fd (_connect ip port)))
+               (let ((fd (sys-prim 29 ip port socket-type-tcp)))
                   (if fd
                      (fd->port fd)
                      #false)))
@@ -366,7 +366,7 @@
 
       ;; ip port (bvec ...) → #true n-written | #false error-sym
       (define (tcp-send ip port ll)
-         (let ((fd (_connect ip port)))
+         (let ((fd (sys-prim 29 ip port socket-type-tcp)))
             (if fd
                (lets ((ll n (closing-blocks->port ll fd)))
                   (if (null? ll)

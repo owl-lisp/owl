@@ -3,7 +3,6 @@ todo
    + receiving
      - blocking not checked yet in repl owl/io.scm:266
    + sending
-     - move prim_connect to sysops
      - add an argument for socket type selection (stream/dgram)
      - sending primop missing c/ovm.c:/receive-udp/
      - sending not defined at owl/io.scm:266

@@ -804,6 +804,8 @@ static word prim_sys(int op, word a, word b, word c) {
          char *val = (char *)b;
          if (!allocp(val)) return IFALSE;
          return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
+      case 29:
+         return prim_connect((word *) a, b, fixval(c));
       default:
          return IFALSE;
    }
@@ -1240,10 +1242,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op33:
       error(33, IFALSE, IFALSE);
-   op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
-      /* fixme - this should not be a primitive */
-      A2 = prim_connect((word *) A0, A1, F(0));
-      NEXT(3); }
+   op34: /* unused */
+      error(256, F(34), IFALSE); 
    op35: { /* listuple type size lst to */
       word type = fixval(R[*ip]);
       word size = fixval(A1);
@@ -1262,7 +1262,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word *ob = (word *) R[ip[0]];
       R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
       NEXT(2); }
-   op37:
+   op37: /* unused */
       error(256, F(37), IFALSE);
    op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
       word res = fixval(A0) + fixval(A1);
