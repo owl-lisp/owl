@@ -383,9 +383,12 @@ static word prim_connect(word *host, word port, word type) {
    unsigned long ipfull;
    struct sockaddr_in addr;
    port = fixval(port);
-   if (!allocp(host))  /* bad host type */
+   char udp = (fixval(type) == 1);
+   if ((sock = socket(PF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0))) == -1)
       return IFALSE;
-   if ((sock = socket(PF_INET, ((fixval(type) == 1) ? SOCK_DGRAM : SOCK_STREAM), 0)) == -1)
+   if (udp)
+      return F(sock);
+   if (!allocp(host))  /* bad host type */
       return IFALSE;
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port);
@@ -570,11 +573,12 @@ static word prim_sys(int op, word a, word b, word c) {
          int type = fixval(b);
          int s;
          int opt = 1; /* TRUE */
+         char udp = (type == 1);
          struct sockaddr_in myaddr;
          myaddr.sin_family = AF_INET;
          myaddr.sin_port = htons(port);
          myaddr.sin_addr.s_addr = INADDR_ANY;
-         s = socket(AF_INET, ((type == 1) ? SOCK_DGRAM : SOCK_STREAM), 0);
+         s = socket(AF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0));
          if (s < 0)
             return IFALSE;
          if (type != 1) {
@@ -641,7 +645,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return F(max_heap_mb);
       case 10: { /* receive-udp-packet sock → (ip-bvec . payload-bvec)| #false */
          struct sockaddr_in si_other;
-         size_t slen = sizeof(si_other);
+         socklen_t slen = sizeof(si_other);
          word *bvec;
          word *ipa;
          word res;
@@ -805,7 +809,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (!allocp(val)) return IFALSE;
          return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
       case 29:
-         return prim_connect((word *) a, b, fixval(c));
+         return prim_connect((word *) a, b, c);
       default:
          return IFALSE;
    }

@@ -31,8 +31,10 @@
       
       ;; datagram-oriented IO
       udp-packets             ;; port → null | ((ip . bvec) ...)
+      udp-client-socket       ;; temp
       wait-udp-packet         ;; port → (ip . bvec), blocks
       check-udp-packet        ;; port → #false | (ip . bvec), does not block
+      send-udp-packet         ;; sock ip port bvec → bool 
 
       file->vector            ;; vector io, may be moved elsewhere later
       file->list              ;; list io, may be moved elsewhere later
@@ -261,7 +263,10 @@
       ;; port → (ip . bvec) | #false, nonblocking
       (define (check-udp-packet port)
          (sys-prim 10 port #f #f))
-     
+    
+      (define (send-udp-packet sock ip port payload)
+         (sys-prim 27 sock (cons port ip) payload))
+         
       ;; port → (ip . bvec), blocks thread
       (define (wait-udp-packet port)
          (let ((res (check-udp-packet port)))
@@ -299,6 +304,9 @@
                ;; note: could try to autoconvert formats to be a bit more user friendly
                #false)))
 
+      (define (udp-client-socket)
+         (sys-prim 29 #f #f socket-type-udp))
+         
       ;; deprecated
       (define (flush-port fd)
          ;(mail fd 'flush)
