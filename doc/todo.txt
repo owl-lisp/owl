@@ -3,10 +3,10 @@ todo
    + receiving
      - blocking not checked yet in repl owl/io.scm:266
    + sending
-     - add an argument for socket type selection (stream/dgram)
-     - sending primop missing c/ovm.c:/receive-udp/
-     - sending not defined at owl/io.scm:266
-   + add tests after sending and receiving are there
+     - packet size limit reporting not there yet
+ + sockets
+   - remove old separate client & server socket creation functions
+   - add lower level socket, bind, connect etc calls
  + Library usage
    + minimum viable version + use in radamsa
  + type tags
