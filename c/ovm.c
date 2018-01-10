@@ -79,9 +79,10 @@ typedef int32_t   wdiff;
 #define TBYTECODE                   16
 #define TPROC                       17
 #define TCLOS                       18
-#define cont(n)                     V((word)n&(~1))
-#define flagged(n)                  (n&1)
-#define flag(n)                     (((word)n)^1)
+#define FLAG                        1
+#define cont(n)                     V((word)n&(~FLAG))
+#define flagged(n)                  (n&FLAG)
+#define flag(n)                     (((word)n)^FLAG)
 #define A0                          R[*ip]               
 #define A1                          R[ip[1]]
 #define A2                          R[ip[2]]
@@ -151,7 +152,7 @@ static __inline__ void rev(word pos) {
    word val = V(pos);
    word next = cont(val);
    *(word *) pos = next;
-   cont(val) = (val&1)^(pos|1);
+   cont(val) = (val&FLAG)^(pos|FLAG);
 }
 
 static __inline__ word *chase(word *pos) {
@@ -192,11 +193,8 @@ static word *compact() {
       if (flagged(*old)) {
          word h;
          *new = *old;
-         while (flagged(*new)) {
+         while (flagged(*new)) { // unthread
             rev((word) new);
-            if (immediatep(*new) && flagged(*new)) {
-               *new = flag(*new);
-            }
          }
          h = hdrsize(*new);
          if (old == new) {
