@@ -42,7 +42,8 @@
       vector->file
       write-vector            ;; vec port
       port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk 
-      port->byte-stream       ;; fd → (byte ...) | thunk 
+      port->byte-stream       ;; fd → (byte ...) | thunk
+      port->tail-byte-stream  ;; fd → (byte ...) | thunk 
       byte-stream->port       ;; bs fd → bool
       port->block-stream      ;; fd → (bvec ...)
       block-stream->port      ;; (bvec ...) fd → bool
@@ -564,19 +565,33 @@
                (stream-chunk buff next
                   (cons (refb buff pos) tail)))))
 
-      (define (port->block-stream fd)
+      (define (block-stream fd tail?)
          (λ ()
            (let ((block (get-block fd stream-block-size)))
               (cond
                  ((eof? block)
-                    (close-port fd)
-                    null)
+                    (if tail?
+                       (begin
+                          ;; read does not block at eof, so wait explicitly
+                          (wait 100)
+                          (block-stream fd #true))
+                       (begin
+                          (close-port fd)
+                          null)))
                  ((not block)
                     null)
                  (else
                     (cons block 
-                       (port->block-stream fd)))))))
+                       (block-stream fd tail?)))))))
 
+      ;; stream blocks close at eof
+      (define (port->block-stream fd)
+         (block-stream fd #true))
+     
+      ;; stream blocks, wait for more at eof
+      (define (port->tail-block-stream fd)
+         (block-stream fd #false))
+      
       ;; include metadata symbols
       (define (port->meta-block-stream fd)
          (let loop ((block? #false))
@@ -597,7 +612,13 @@
          (ledit
             (λ (block ll)
                (stream-chunk block (- (sizeb block) 1) ll))
-            (port->block-stream fd)))
+            (block-stream fd #f)))
+      
+      (define (port->tail-byte-stream fd)
+         (ledit
+            (λ (block ll)
+               (stream-chunk block (- (sizeb block) 1) ll))
+            (block-stream fd #t)))
 
       (define (port->meta-byte-stream fd)
          (ledit
