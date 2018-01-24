@@ -1244,8 +1244,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op33:
       error(33, IFALSE, IFALSE);
-   op34: /* unused */
-      error(256, F(34), IFALSE); 
+   op34: /* jmp-nargs a hi li */
+      if (acc != *ip) {
+         ip += (ip[1] << 8) | ip[2];
+      }
+      NEXT(3); 
    op35: { /* listuple type size lst to */
       word type = fixval(R[*ip]);
       word size = fixval(A1);

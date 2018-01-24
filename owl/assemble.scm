@@ -285,7 +285,7 @@
                            (error "too much bytecode: " len))
                         (bytes->bytecode
                            (if fixed?
-                              (ilist 25 arity 
+                              (ilist 34 arity 
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
                                  (append bytes

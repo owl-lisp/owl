@@ -459,7 +459,7 @@
                               (values 
                                  (list "ob=(word *)R[3];R[3]=R[" res "];acc=1;") ; the goto apply is automatic
                                  null regs)))))) ;; <- always end compiling (another branch may continue here)
-               (cons 25 ;; fixed jump-arity n hi8 lo8 
+               (cons 34 ;; fixed jump-arity n hi8 lo8 
                   (λ (bs regs fail)
                      (lets 
                         ((arity hi8 lo8 bs (get3 (cdr bs)))
@@ -470,7 +470,7 @@
                               bs regs
                               (drop bs jump-len) regs
                               ) regs))))
-               ;(cons (bor 25 64) ;; jump-variable-arity n 
+               ;(cons 25 ;; jump-variable-arity n 
                ;   (λ (bs regs fail)
                ;      (lets 
                ;         ((arity hi8 lo8 bs (get3 (cdr bs)))
