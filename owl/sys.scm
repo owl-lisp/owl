@@ -24,7 +24,8 @@
       lseek
       directory?
       file?
-      seek-pos 
+      seek-current
+      seek-set
       seek-end
       sighup
       signint
@@ -211,7 +212,10 @@
       (define (seek-end fd)
          (lseek fd 0 seek/end))
 
-      (define (seek-pos fd pos)
+      (define (seek-current fd)
+         (lseek fd 0 seek/cur))
+
+      (define (seek-set fd pos)
          (lseek fd pos seek/set))
 
       ;;;
