@@ -66,7 +66,8 @@
       get-block         ;; fd n → bvec | eof | #false
       write-really      ;; 
       try-get-block     ;; fd n block? → bvec | eof | #false=error | #true=block
-      lines             ;; fd → null | ll of string, read error is just null, each [\r]\n removed
+      byte-stream->lines ;; (byte ...) → null | ll of string, read error is just null, each [\r]\n removed
+      lines              ;; fd → null | ll of string, read error is just null, each [\r]\n removed
 
       system-print system-println system-stderr
       fasl-save         ;; obj path → done?
@@ -565,6 +566,9 @@
                (stream-chunk buff next
                   (cons (refb buff pos) tail)))))
 
+      (define (sleep ms)
+         (interact 'iomux (tuple 'alarm ms)))
+
       (define (block-stream fd tail?)
          (λ ()
            (let ((block (get-block fd stream-block-size)))
@@ -573,7 +577,7 @@
                     (if tail?
                        (begin
                           ;; read does not block at eof, so wait explicitly
-                          (wait 100)
+                          (sleep 1000)
                           (block-stream fd #true))
                        (begin
                           (close-port fd)
@@ -654,10 +658,9 @@
                      (loop bs 0 out)))
                (else
                   (loop (bs) n out)))))
-
-      (define (lines fd)
-         (let loop ((ll (utf8-decoder (port->byte-stream fd) (λ (self line ll) null))) 
-                    (out null))
+      
+      (define (byte-stream->lines ll)
+         (let loop ((ll ll) (out null))
             (cond
                ((pair? ll)
                   (lets ((byte ll ll))
@@ -678,6 +681,12 @@
                (else
                   (λ ()
                     (loop (ll) out))))))
+     
+      (define (lines fd)
+         (byte-stream->lines
+            (utf8-decoder 
+               (port->byte-stream fd)
+               (λ (self line ll) null))))
 
       (define (file->byte-stream path)
          (let ((fd (open-input-file path)))
@@ -866,9 +875,6 @@
       (define (start-muxer . id)
          (fork-server (if (null? id) 'iomux (car id))
             (λ () (muxer null null null))))
-
-      (define (sleep ms)
-         (interact 'iomux (tuple 'alarm ms)))
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
