@@ -27,6 +27,7 @@
 (define-library (owl regex)
    (export
       get-sexp-regex
+      get-replace-regex
       string->regex
       string->replace-regex
       string->complete-match-regex
