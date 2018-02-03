@@ -58,8 +58,16 @@
          (hex-encode-bytes lst)))
    
    (define (hex-encode str)
-      (hex-encode-list 
-         (string->bytes str)))
+      (cond
+         ((string? str)
+            (hex-encode-list 
+               (string->bytes str)))
+         ((pair? str)
+            (hex-encode-list str))
+         ((null? str)
+            "")
+         (else
+            (error "hex-encode: " str))))
 
    (define (hex-decode-list str)
       (hex-decode-bytes (string->bytes str)))
