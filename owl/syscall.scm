@@ -3,7 +3,7 @@
    (export
       syscall error interact fork accept-mail wait-mail check-mail
       exit-owl release-thread catch-thread set-signal-action
-      single-thread? kill mail fork-linked-server fork-server
+      single-thread? kill link mail fork-linked-server fork-server
       return-mails fork-server fork-linked fork-named exit-thread exit-owl
       poll-mail-from start-profiling stop-profiling running-threads par*
       par por* por)
@@ -148,4 +148,8 @@
 
       (define (stop-profiling)
          (syscall 21 #true #true))
+      
+      (define (link id)
+         (syscall 23 id id))
+         
 ))

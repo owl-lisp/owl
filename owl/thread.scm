@@ -77,7 +77,7 @@
             (if (null? subs)
                (begin
                   ;; no threads were waiting for something that is being removed, so tell stderr about it
-                  ;(print*-to stderr "VM: thread " id " exited due to " msg)
+                  ;(print*-to stderr "VM: thread " id " exited")
                   (tc tc todo done (del state id)))
                (deliver-messages todo done 
                   (del (fupd state link-tag (del (get state link-tag empty) id)) id)
@@ -300,6 +300,20 @@
                (lets
                   ((por-state (tuple cont opts c)))
                   (tc tc (cons (tuple id por-state) todo) done state)))
+            
+            ; 23, link thread
+            (λ (id cont target c todo done state tc)
+               (lets 
+                  ((links (get state link-tag empty))
+                   (followers (get links target null))
+                   (links
+                     (if (has? followers id)
+                        links
+                        (put links target (cons id followers)))))
+                  (tc tc 
+                     (cons (tuple id (λ () (cont target))) todo)
+                     done
+                     (put state link-tag links))))
       ))
 
       ;; todo: add deadlock detection here (and other bad terminal waits)
