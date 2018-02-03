@@ -10,7 +10,7 @@
 
 (write-vector foo fd)
 
-(print "start -> " (seek-pos fd 0))
+(print "start -> " (seek-set fd 0))
 
 (write-vector #(100 101 102) fd)
 
@@ -18,7 +18,7 @@
 
 (write-vector #(10 11 12) fd)
 
-(print "take five -> " (seek-pos fd 5))
+(print "take five -> " (seek-set fd 5))
 
 (write-vector #(55 66 77) fd)
 
