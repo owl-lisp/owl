@@ -46,6 +46,12 @@ c/vm.c: c/ovm.c
 	echo "unsigned char *heap = 0;" > c/vm.c
 	cat c/ovm.c >> c/vm.c
 
+manual.md: doc/manual.md owl/*.scm scheme/*.scm
+	cat doc/manual.md > manual.md
+	bin/find-documentation.sh >> manual.md
+
+manual.pdf: manual.md
+	pandoc --latex-engine xelatex -o manual.pdf manual.md
 
 ## building standalone image out of the fixed point fasl image
 
