@@ -1,3 +1,16 @@
+;;; The digest library provides functions for computing cryptographic signatures.  
+;;; Currently SHA1 and SHA256 digests and corresponding message authentication codes
+;;; are supported. 
+;;; 
+;;; The hash functions also have `hasher-raw` and `hasher-bytes` -variants, which 
+;;; return the state words and raw signature bytes correspondingly.
+;;;
+;;; ```
+;;;   (sha1 data)   → hash-string
+;;;   (sha256 data) → hash-string
+;;;   (hmac-sha1   key message) → hash-string
+;;;   (hmac-sha256 key message) → hash-string
+;;; ```
 
 (define-library (owl digest)
    
@@ -246,6 +259,7 @@
    (define hmac-sha1-bytes
       (make-hmac sha1-bytes sha1-blocksize))
 
+   ;; (hmac-sha1 key message) → "result", compute SHA1-based message authentication code
    (define (hmac-sha1 k m)
       (hash-bytes->string
          (hmac-sha1-bytes k m)))
