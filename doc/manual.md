@@ -6,53 +6,130 @@ geometry: "left=3cm,right=3cm,top=2cm,bottom=2cm"
 output: pdf_document
 ---
 
-# Owl Lisp
-
-Owl Lisp is a simple programming language. This document describes 
-the language, available libraries and implementation issues. Owl is
-essentially R7RS version of Scheme with multithreading and no mutable 
-data structures. This is a standalone document, so no prior knowledge 
-of Scheme or similar languages is required. 
-
-
-## Why another Lisp?
-
-  * History, advanced compiler course vs toy languages
-
-  * Lisp, different 
-
-  * Forth etc
- 
-  * Standalone complex
-
-  * Goals
+Owl Lisp is a simple purely functional programming language. This 
+document describes the language, its implementation and available 
+libraries. The language is essentially R7RS Scheme, apart from mutable
+data structures and reliance on multithreading for some essential language
+features. This is inteded to be a standalone document, so 
+no prior experience of Scheme or other Lisps is required. 
 
 
-## Status
+# Lisp
 
-Owl is currently useful for writing some relatively small programs. It 
-is easy to get up and running in various environments due to very few 
-requirements, and it can be used to make standalone programs easily in 
-any environment in which it itself can run. However, lack of foreign 
-function interfaces, poor error messages and lack of documentation 
-likely make it difficult to use for many purposes. This document attempts 
-to fix the last issue.
-
-
-  
-## Language reference
-
-As with Scheme, the guiding principle of Owl is to strive for simplicity 
-and elegance...
+Lisp (or LISP) is an acronym of LISt Processor. It was invented 
+by John McCarthy at MIT in 1958. The initial intention was to define a 
+purely mathematical notation for algorithms. The publication describing 
+Lisp contained a definition of how it is to be computed, in Lisp itself. 
+This `eval` function was soon implemented on a computer, turning the language 
+from a purely theoretical to a practical programming language.
 
 
+## Why Another Lisp?
 
-### Requirements
+These days compiler construction and parsing are usually taught towards 
+the end of computer science curriculum, if at all. This is probably 
+due to the complexity of modern programming languages and environments.  
+Parsers and compilers, the typical building blocks of programming language 
+implementations, seem like dark magic only a few select pupils and 
+devout lone programmers are fit to approach. 
+
+This has not always been the case. In a few programming language families it 
+has been customary to start, not end, studies by building a small version 
+of the language you are studying. This approach favored 
+languages which had a small core of features, on top of which you could build the rest 
+of the system. Forth and Lisp are common examples of such languages.
+
+The goal of Owl Lisp has not at any point been to become han ultimate Lisp and
+take over the world. Ïn fact, this has been an anti-goal. The goal has 
+been to remain simple while incrementally growing only features required 
+to enable building the kinds of programs it is actually used for. While 
+this is a somewhat circular definition, it has worked surprisingly well.
+Owl is shaped by minimalism and practical applications, not by what seem 
+like cool and powerful language features. 
+
+
+## Owl vs Scheme
+
+Scheme is a modern lexically scoped multi-paradigm language. One of the 
+original goals was to also study the actor model of computation. The 
+actors were eventually removed, because in single threaded operation they 
+ended up being effectively equivalent with lambda-defined functions. 
+
+Owl takes a step back towards the actor model by allowing concurrect 
+execution of functions and passing messages between them. The operation 
+is mainly modeled after Erlang.
+
+Another difference is in the multi-paradigm area. Owl does not try to 
+be able to support also imperative programming. All variable bindings 
+are made by lambdas, all bindings are permanent, and no data structure 
+can ever change. The core language is therefore closer to λ-calculus. 
+
+
+## Introduction
+
+Languages such as Latin and English are called natural languages. They 
+have developed and evolve organically without strict rules or meanings. 
+It would be impossible to pin down all rules how they operate. There are 
+also artificial languages which do operate according to fixed rules. 
+The rules specify what can be considered to be a valid expression in the 
+language, and usually also what can be done to it without altering 
+the meaning. Such languages are called *formal languages*. Programming 
+languages belong to the latter category.
+
+Lisp is a particular family of programming languages. A key feature of 
+programming languages is that you can write a program to compute anything. 
+Such programming languages are called *universal*. It is not difficult
+to make a universal language - in fact it's quite hard not to!
+
+The definition of a programming language can be thought to consist of two parts, *syntax* and 
+*semantics*. Since we typically want to write programs as text, we need 
+some rules to define how sequences of letters are to be interpreted as 
+something in the programming language. Once we are in the world of the 
+proramming language, and not just reading a sequence of letters, we need 
+to attach some meaning and action to what we just read. This is the semantics
+part. 
+
+The Lisp family of programming languages has a peculiar feature not typically 
+seen in programming languages: it is homoiconic. This means, that the syntax
+of the programs is the same as the syntax used to represent data elsewhere. 
+This makes it extremely easy to write programs which themselves modify or 
+create programs. 
+
+Lisp programs can be developed either by typing the program into one or 
+more files and running, or by interactively working with a read-eval-print 
+loop (REPL). A Lisp REPL will repeatedly read one expression from the user, 
+evaluate expression and finally print out the textual representation of 
+the result. 
+
+
+## Simplified Core
+
+
+## Common Data Types
+
+...
+
+## Macros
+
+...
+
+## Multithreading
+
+...
+
+## Modules
+
+
+# Implementation 
+
+...
+
+## Requirements
 
 You should have make and gcc or clang installed. 
 
 
-### Installation
+## Installation
 
 To install system-wide to /usr
 ```
@@ -70,7 +147,7 @@ Alternatively you can try it out with
 ```
 
 
-### Files
+## Files
 
    bin/ol      - the owl interpreter/compiler
    c/ovm.c     - the virtual machine / shared owl lisp runtime
@@ -81,7 +158,7 @@ Alternatively you can try it out with
    c/ol.c      - combined VM and REPL heap image
 
 
-### Usage
+## Usage
 
 Owl can be used either interactively, or to interpret code from files,
 or compile programs to fasl-images or c-files. The difference between
