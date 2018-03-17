@@ -145,7 +145,6 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struc
 int execv(const char *path, char *const argv[]);
 struct termios tsettings;
 
-
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
 static __inline__ void rev(word pos) {
@@ -309,7 +308,9 @@ static word *gc(int size, word *regs) {
 /*** OS Interaction and Helpers ***/
 
 void toggle_blocking(int sock, int blockp) {
-   fcntl(sock, F_SETFL, fcntl(sock, F_GETFD)^O_NONBLOCK);
+   fcntl(sock, F_SETFL, 
+      (fcntl(sock, F_GETFD) & (!O_NONBLOCK)) 
+         | (blockp ? 0 : O_NONBLOCK));
 }
 
 void signal_handler(int signal) {
@@ -532,6 +533,13 @@ static word prim_set(word wptr, word pos, word val) {
    return (word) new;
 }
 
+void setdown() {
+   toggle_blocking(0,1); /* return to blocking mode */
+   toggle_blocking(1,1);
+   toggle_blocking(2,1);
+   tcsetattr(0, TCSANOW, &tsettings); /* return stdio settings */
+}
+
 /* system- and io primops */
 static word prim_sys(int op, word a, word b, word c) {
    switch(op) {
@@ -632,7 +640,7 @@ static word prim_sys(int op, word a, word b, word c) {
             return IEOF;
          return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
       case 6:
-         tcsetattr(0, TCSANOW, &tsettings);
+         setdown();
          exit(fixval(a)); /* stop the press */
       case 7: /* set memory limit (in mb) */
          max_heap_mb = fixval(a);
@@ -1660,9 +1668,6 @@ void setup(int nargs, char **argv, int nwords, int nobjs) {
    memend = memstart + nwords - MEMPAD;
 }
 
-void setdown() {
-   tcsetattr(0, TCSANOW, &tsettings);
-}
 
 int main(int nargs, char **argv) {
    word *prog, *args;
