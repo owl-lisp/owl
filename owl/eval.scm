@@ -1,3 +1,13 @@
+;;; This library exports some read-eval-print-loop functions, such as evaluate. 
+;;; It is typically called through eval. The `*toplevel*` variable is updated 
+;;; after each definition, so it can be used to evaluate a term in the corresponding
+;;; environment.
+;;; 
+;;; ```
+;;;   (eval (list '+ 1 2) *toplevel*) → 3
+;;;   (eval '(/ 1 0) *toplevel*) → #false
+;;; ```
+
 ;; todo: use a failure continuation or make the failure handling otherwise more systematic
 ;; todo: should (?) be factored to eval, repl and library handling
 ;; todo: add lib-http and allow including remote resources

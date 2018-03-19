@@ -1,6 +1,18 @@
+;;; This library implements serialization of objects to byte 
+;;; lists, and parsing of the byte lists to corresponding 
+;;; objects. The format is used internally for storing memory 
+;;; images to disk. Files with .fasl suffix used in booting 
+;;; up Owl are just fasl-encoded functions.
 ;;;
-;;; Object serialization and reconstruction
-;;;
+;;; ``` 
+;;;   (fasl-encode 42) → '(0 0 42)
+;;;   (fasl-encode 42) → '(0 0 42)
+;;;   (fasl-encode 1/4+i) → '(1 42 2 0 0 1 0 0 4 1 43 2 1 0 0 1 0)
+;;;   (fasl-encode (lambda (x) x)) →  '(2 16 7 34 2 0 2 24 4 17 0)
+;;;   (fasl-decode '(0 0 0 0) 'bad) → 'bad
+;;;   ((fasl-decode (fasl-encode prime?) 'bad) 13337) → #true
+;;;   (eq? 'foo (fasl-decode (fasl-encode 'foo) #false)) → #true
+;;; ``` 
 
 ; protocol
 ;	<obj> = 0 <type> <value> 				-- immediate object

@@ -1,6 +1,19 @@
+;;; A typical way to make data structures for holding key-value in 
+;;; Lisp systems is to make an association list. An association list 
+;;; is a list of pairs, where the car holds the key, and cdr holds the 
+;;; value. Owl has finite functions, or ffs, which behave like association
+;;; lists, but they do not slow down linearly as they get full.
 ;;;
-;;; Finite functions (or red-black key-value maps)
+;;; Finite functions are internally represented as red-black trees. 
+;;; `#empty` or `@()` can be used to refer to an empty finite function.
+;;; `put` adds or rewrites the value of a key, `get` fetches the value 
+;;; or returns the third argument if one is not found, `del` ...
+
 ;;;
+;;;
+;;; ```
+;;;   <examples>
+;;; ```
 
 ;; fixme: ff unit tests went missing at some point. add with lib-compare vs naive alists.
 ;; fixme: ffc[ad]r are no longer needed as primitives
