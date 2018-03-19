@@ -1,4 +1,4 @@
-;;; 
+;;;
 ;;; A simple checksummer
 ;;; 
 

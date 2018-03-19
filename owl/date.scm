@@ -1,3 +1,18 @@
+;;; This library attempts to implement date processing functions. Dates 
+;;; are typically represented as seconds or milliseconds since UNIX Epoch 1.1.1970. 
+;;; These are generally a good way to work with time, apart from assuming 
+;;; that an absolute time exists at all. Sometimes it is however necessary 
+;;; to convert time stamps to human readable form, which means splitting 
+;;; the time according to various more and less sensible rules. 
+;;;
+;;; ```
+;;;    (time)                → current time in seconds since epoch
+;;;    (time-ms)             → current time in milliseconds since epoch
+;;;    (date-str 0)          → "00:00:00 1.1.1970 UTC+00:00"
+;;;    (date-str (time) 2.5) → "20:49:08 19.3.2018 UTC+02:30"
+;;;    (date 0)              → 1 1 1970 0 0 0 ; as multiple values
+;;;    (leap-year? 2018)     → #false
+;;; ```
 
 ;; todo: check how far before 1970 these hold
 ;; todo: --rfc-2822
