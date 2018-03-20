@@ -1,3 +1,17 @@
+;;; It is sometimes useful to get symbols, which do not occur elsewhere.
+;;; This is typically needed in the compiler, but it may also be needed 
+;;; elsewhere. Gensyms in Owl are just regular symbols, which do not 
+;;; occur in a given expression. This requires walking through the whole
+;;; expression. To avoid having to walk the original expression in many 
+;;; cases when gensyms are needed, they work in a way that ensures that 
+;;; the gensym of the gensym of an expression also does not occur in the 
+;;; original expression.
+;;;
+;;; ```
+;;;   (gensym '(lambda (x) x)) → g1
+;;;   (gensym 'g1) → g2
+;;;   (gensym 'g100000) → 'g100001
+;;; ```
 
 (define-library (owl gensym)
 
