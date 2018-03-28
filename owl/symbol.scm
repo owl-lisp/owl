@@ -22,6 +22,6 @@
                   ((string=? str "")
                      "||") ;; make empty symbols less invisible
                   ((m/ / str) ;; fixme: doesn't quote internal |:s yet
-                     (string-append (string-append "|" str) "|"))
+                     (string-append "|" str "|"))
                   (else str)))
             (error "Not a symbol: " x)))))
