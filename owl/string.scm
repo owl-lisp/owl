@@ -305,7 +305,9 @@
                (string-eq-walk (str-iter a) (str-iter b))
                #false)))
 
-      (define string-append str-app)
+      (define (string-append . str)
+	(fold str-app "" str))
+
       (define string->list string->runes)
       (define list->string runes->string)
 
