@@ -478,10 +478,10 @@
 
 
       ;;;
-      ;;; Addition and substraction generics 
+      ;;; Addition and subtraction generics
       ;;;
 
-      (define (add a b)
+      (define (addi a b)
          (case (type a)
             (type-fix+ ; a signed fixnum
                (case (type b)
@@ -550,7 +550,6 @@
             (else 
                (big-bad-args '- a b))))
 
-         
 
 
       ;;;
@@ -865,13 +864,13 @@
       ; a + (b << ex*16)
       (define (add-ext a b ex)
          (cond
-            ((eq? ex 0) (if (null? a) (bigen b) (add a b)))
+            ((eq? ex 0) (if (null? a) (bigen b) (addi a b)))
             ((null? a)
                (ncons 0
                   (add-ext null b (subi ex 1))))
             ((eq? (type a) type-fix+) (add-ext (ncons a null) b ex))
             ((eq? (type ex) type-fix+)
-               (lets 
+               (lets
                   ((ex u (fx- ex 1))
                    (d ds a))
                   (ncons d (add-ext ds b ex))))
@@ -889,7 +888,7 @@
             (lets ((digit (ncar a))
                 (head (ncons 0 (mul-simple (ncdr a) b)))
                 (this (mult-num-big digit b 0)))
-               (add head this))))
+               (addi head this))))
 
       ; downgrade to fixnum if length 1
       (define (fix n)
@@ -951,11 +950,11 @@
                          ; 3F(O(n/2)) + 2O(n/2)
                         ((z2 (kara ah bh))
                          (z0 (kara at bt))
-                         (z1a 
-                           (lets ((a (add ah at)) (b (add bh bt)))
+                         (z1a
+                           (lets ((a (addi ah at)) (b (addi bh bt)))
                               (kara a b)))
                          ; 2O(n)
-                         (z1 (subi z1a (add z2 z0)))
+                         (z1 (subi z1a (addi z2 z0)))
                          ; two more below
                          (x (if (eq? z1 0) z0 (add-ext z0 z1 atl))))
                         (if (eq? z2 0)
@@ -1029,11 +1028,6 @@
       (define (denominator n)
          (if (eq? (type n) type-rational)
             (ncdr n)  ;; always positive
-            1))
-
-      (define (numerator n)
-         (if (eq? (type n) type-rational)
-            (ncar n)  ;; has the sign if negative
             1))
 
       (define (<= a b)
@@ -1122,7 +1116,7 @@
                               (if (eq? n 0)
                                  0
                                  (shift-local-down (ncar a) *pre-max-fixnum* (subi n 1)))
-                              (let ((aa (ncar a)) (bb (add b-lead 1)))
+                              (let ((aa (ncar a)) (bb (addi b-lead 1)))
                                  ; increment b to ensure b'000.. > b....
                                  (cond
                                     ((lesser? aa bb)
@@ -1132,10 +1126,10 @@
                         ; divisor is larger
                         0))
                   ((null? nb)
-                     (div-shift (ncdr a) b (add n *fixnum-bits*)))
+                     (div-shift (ncdr a) b (addi n *fixnum-bits*)))
                   (else
                      (div-shift (ncdr a) (ncdr b) n))))))
-               
+
       (define (nat-quotrem-finish a b out)
          (let ((next (subi a b)))
             (if (negative? next)
@@ -1152,7 +1146,7 @@
                      (nat-quotrem-finish a b out))
                   (else
                      (let ((this (<< b s)))
-                        (loop (subi a this) (add out (<< 1 s)))))))))
+                        (loop (subi a this) (addi out (<< 1 s)))))))))
 
       (define (div-big->negative a b)
          (lets ((q r (nat-quotrem a b)))
@@ -1203,10 +1197,10 @@
                      (dr
                         (let ((d (subi d 1))) ; int- (of was -*max-fixnum*), fix- or fix+
                            (if (negative? d)
-                              (values (ncons (add d *first-bignum*) tl) #true) ; borrow
+                              (values (ncons (addi d *first-bignum*) tl) #true) ; borrow
                               (values (ncons d tl) #false))))
                      ((eq? (type d) type-fix-) ; borrow
-                        (values (ncons (add d *first-bignum*) tl) #true))
+                        (values (ncons (addi d *first-bignum*) tl) #true))
                      (else
                         (values (ncons d tl) #false)))))))
 
@@ -1576,7 +1570,7 @@
                ((eq? bv 0) (<< av n))
                ((eq? (band av (car a)) 0) ; a even
                   (if (eq? (band bv (car b)) 0) ; a and b even
-                     (lazy-gcd (gcd-drop a) (gcd-drop b) (add n 1))
+                     (lazy-gcd (gcd-drop a) (gcd-drop b) (addi n 1))
                      (lazy-gcd (gcd-drop a) b n)))
                ((eq? (band bv (car b)) 0) ; a is odd, u is even
                   (lazy-gcd a (gcd-drop b) n))
