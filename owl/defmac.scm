@@ -474,7 +474,6 @@
       (define type-ff-black-leaf     8)
       (define type-symbol            4)
       (define type-tuple             2)
-      (define type-symbol            4)
       (define type-rlist-node       14)
       (define type-rlist-spine      10)
       (define type-string            3)

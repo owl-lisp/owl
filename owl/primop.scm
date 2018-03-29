@@ -251,12 +251,6 @@
       ;; make bytecode and intern it (to improve sharing, not mandatory)
       (define (bytes->bytecode bytes)
          (raw bytes type-bytecode #false))
-      
-      (define (app a b)
-         (if (eq? a '())
-            b
-            (cons (car a)
-               (app (cdr a) b))))
 
       ;; construct the arity check, just return #false on errors, since we don't have any IO or error throwing yet
       (define (bytecode-function fixed? arity bytes)

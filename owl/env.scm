@@ -201,8 +201,6 @@
          
       (define env-fold ff-fold)
 
-      (define env-del del)
-
       (define (tuple->list t)
         (let loop ((pos 1))
           (if (eq? pos (size t))

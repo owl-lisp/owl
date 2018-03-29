@@ -526,16 +526,6 @@
                   ;(print "file->vector: cannot open " path)
                   #false))))
 
-      (define (file->list path) ; path -> vec | #false
-         (let ((port (maybe-open-file path)))
-            (if port
-               (let ((data (read-blocks->list port null)))
-                  (maybe-close-port port)
-                  data)
-               (begin
-                  ;(print "file->vector: cannot open " path)
-                  #false))))
-
       ;; write each leaf chunk separately (note, no raw type testing here -> can fail)
       (define (write-vector vec port)
          (let loop ((ll (vec-leaves vec)))
