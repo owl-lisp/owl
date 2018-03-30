@@ -231,7 +231,7 @@ void fix_pointers(word *pos, wdiff delta, word *end) {
    }
 }
 
-/* emulate sbrk with malloc'd memory, becuse sbrk is no longer properly supported */
+/* emulate sbrk with malloc'd memory, because sbrk is no longer properly supported */
 /* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend  */
 wdiff adjust_heap(int cells) {
    word *old = memstart;
@@ -713,7 +713,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int nargs = llen((word *)b);
          char **args = malloc((nargs+1) * sizeof(char *));
          char **argp = args;
-         if (args == NULL) 
+         if (args == NULL)
             return IFALSE;
          while(nargs--) {
             *argp++ = ((char *) ((word *) b)[1]) + W;
@@ -724,6 +724,7 @@ static word prim_sys(int op, word a, word b, word c) {
          toggle_blocking(1,1); /* warning, other file descriptors will stay in nonblocking mode */
          toggle_blocking(2,1);
          execv(path, args); /* may return -1 and set errno */
+         free(args);
          toggle_blocking(0,0); /* exec failed, back to nonblocking io for owl */
          toggle_blocking(1,0);
          toggle_blocking(2,0);
@@ -774,7 +775,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return (unlink(((char *)a)+W) == 0) ? ITRUE : IFALSE;
       case 23:  /* rmdir path → bool */
          return (rmdir(((char *)a)+W) == 0) ? ITRUE : IFALSE;
-      case 24:  /* rmdir path → bool */
+      case 24:  /* mkdir path → bool */
          return (mkdir((((char *)a)+W), fixval(b)) == 0) ? ITRUE : IFALSE;
       case 25: {
          int whence = fixval(c);
@@ -1685,5 +1686,3 @@ int main(int nargs, char **argv) {
       return 127;
    }
 }
-
-
