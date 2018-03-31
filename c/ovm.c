@@ -307,10 +307,13 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-void toggle_blocking(int sock, int blockp) {
-   fcntl(sock, F_SETFL, 
-      (fcntl(sock, F_GETFD) & (!O_NONBLOCK)) 
-         | (blockp ? 0 : O_NONBLOCK));
+void toggle_blocking(int fd, int blockp) {
+   int fl0 = fcntl(fd, F_GETFL);
+   if (fl0 != -1) {
+      int fl1 = (fl0 & ~O_NONBLOCK) | (blockp ? 0 : O_NONBLOCK);
+      if (fl0 != fl1)
+         fcntl(fd, F_SETFL, fl1);
+   }
 }
 
 void signal_handler(int signal) {
