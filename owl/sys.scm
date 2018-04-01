@@ -13,6 +13,7 @@
       dir->list-all
       exec
       fork
+      pipe
       wait
       chdir
       kill
@@ -43,7 +44,7 @@
       stderr
       fopen
       fclose
-      
+      dupfd
       set-terminal-rawness)
 
    (import
@@ -73,6 +74,10 @@
             ((c-string path) => 
                (λ (raw) (sys-prim 1 raw mode #false)))
             (else #false)))
+
+      ;; → (fixed ? fd == new-fd : fd >= new-fd) | #false
+      (define (dupfd old-fd new-fd fixed)
+         (sys-prim 30 old-fd new-fd fixed))
 
 
       ;;;
@@ -161,6 +166,10 @@
             (if (and path (all (λ (x) x) args))
                (sys-prim 17 path args #false)
                (cons path args))))
+
+      ;; → #false on failure, else '(read-fd . write-fd)
+      (define (pipe)
+         (sys-prim 31 #false #false #false))
 
       ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
       (define (fork)

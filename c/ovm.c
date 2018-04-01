@@ -820,6 +820,24 @@ static word prim_sys(int op, word a, word b, word c) {
          return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
       case 29:
          return prim_connect((word *) a, b, c);
+      case 30: { /* dupfd old-fd new-fd fixed → new-fd | #false */
+         int fd0 = fixval(a), fd1 = fixval(b);
+         fd1 = c != IFALSE ? dup2(fd0, fd1) : fcntl(fd0, F_DUPFD, fd1);
+         if (fd1 == -1)
+            return IFALSE;
+         return F(fd1); }
+      case 31: { /* pipe → (read-fd . write-fd) | #false */
+         int fd[2];
+         word *pair;
+         if (pipe(fd) != 0)
+            return IFALSE;
+         toggle_blocking(fd[0], 0);
+         toggle_blocking(fd[1], 0);
+         allocate(3, pair);
+         pair[0] = PAIRHDR;
+         pair[1] = F(fd[0]);
+         pair[2] = F(fd[1]);
+         return (word)pair; }
       default:
          return IFALSE;
    }
