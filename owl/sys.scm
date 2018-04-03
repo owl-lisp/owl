@@ -19,6 +19,7 @@
       kill
       getenv
       setenv
+      unsetenv
       unlink
       rmdir
       mkdir
@@ -104,7 +105,7 @@
             (if fd
                (begin (fclose fd) #true)
                #false)))
-         
+
       ;; unsafe-dirfd → #false | eof | bvec
       (define (read-dir obj)
          (sys-prim 12 obj #false #false))
@@ -146,7 +147,7 @@
          (dir-fold 
             (λ (seen this) (cons this seen))
              null path))
-       
+
       (define (chdir path)
          (let ((path (c-string path)))
             (and path
@@ -204,7 +205,7 @@
 
       (define (unlink path)
          (sys-prim 22 path #false #false))
-      
+
       (define (rmdir path)
          (sys-prim 23 path #false #false))
 
@@ -242,14 +243,16 @@
                #false)))
 
       (define (setenv var val)
-        (sys-prim 28 (c-string var) (c-string val) #false))
+         (sys-prim 28 (c-string var) (and val (c-string val)) #false))
 
+      (define (unsetenv var)
+         (setenv var #false))
 
-      ;;; 
+      ;;;
       ;;; terminal control
-      ;;; 
-      
+      ;;;
+
       (define (set-terminal-rawness bool)
          (sys-prim 26 bool #f #f))
-      
+
       ))

@@ -1,5 +1,6 @@
 (import (owl sys))
 
-(print (getenv "FOO"))
 (setenv "FOO" "BAR")
+(print (getenv "FOO"))
+(unsetenv "FOO")
 (print (getenv "FOO"))
