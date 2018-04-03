@@ -8,21 +8,37 @@ output: pdf_document
 
 Owl Lisp is a simple purely functional programming language. This 
 document describes the language, its implementation and available 
-libraries. The language is essentially R7RS Scheme, apart from mutable
-data structures and reliance on multithreading for some essential language
-features. This is inteded to be a standalone document, so 
-no prior experience of Scheme or other Lisps is required. 
+libraries. The language is essentially R7RS Scheme, apart from having 
+only immmutable data structures and relying on multithreading for 
+some core operations. 
 
+# History of Lisp
 
-# Lisp
+Lisp (or LISP) is short for LISt Processor. It was initially a 
+mathematical formalism intended for reasoning about computations. Lisp
+was invented by John McCarthy at MIT in 1958. The initial description of 
+the language contained a definition of the semantics of the language in 
+terms of itself. This evaluation function was soon implemented on a 
+computer, turning Lisp from theory to practice.
 
-Lisp (or LISP) is an acronym of LISt Processor. It was invented 
-by John McCarthy at MIT in 1958. The initial intention was to define a 
-purely mathematical notation for algorithms. The publication describing 
-Lisp contained a definition of how it is to be computed, in Lisp itself. 
-This `eval` function was soon implemented on a computer, turning the language 
-from a purely theoretical to a practical programming language.
+Since then different dialects of Lisp have evolved into many different directions. 
+One of the main features connecting the dialects has been the syntax 
+   - or to be more precise, lack of it.
+Most data in Lisp can be displayed textually in a simple format. 
+Instead of having a syntax for the programming language and one for representing this data, 
+   Lisp uses the same for both.
+Lisp programs are just lists.
 
+Common Lisp is one of the major current dialects. 
+It is used by several commercial applications.
+Scheme is another modern version of Lisp.
+It attempts to define a small core of constructs
+   out of which many kinds of programming primitives can be built.   
+
+Owl is essentially a small step from the multi-paradigm world of Scheme
+   into a purely functional one. 
+Scheme programs are usually mainly functional
+   with some mutations sprinkled sparingly where needed. 
 
 ## Why Another Lisp?
 
