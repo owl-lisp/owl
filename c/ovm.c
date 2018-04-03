@@ -71,6 +71,7 @@ typedef int32_t   wdiff;
 #define IEOF                        make_immediate(4,13)
 #define IHALT                       make_immediate(5,13)
 #define TTUPLE                      2
+#define TPORT                       12
 #define TTHREAD                     31
 #define TFF                         24
 #define FFRIGHT                     1
@@ -193,7 +194,7 @@ static word *compact() {
       if (flagged(*old)) {
          word h;
          *new = *old;
-         while (flagged(*new)) { // unthread
+         while (flagged(*new)) { /* unthread */
             rev((word) new);
          }
          h = hdrsize(*new);
@@ -239,7 +240,7 @@ wdiff adjust_heap(int cells) {
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + ((cells > 0xffffff) ? 0xffffff : cells); /* limit heap growth speed  */
    if (((cells > 0) && (new_words*W < nwords*W)) || ((cells < 0) && (new_words*W > nwords*W)))
-       return 0; /* don't try to adjust heap if the size_t would overflow in realloc */
+      return 0; /* don't try to adjust heap, if the size_t would overflow in realloc */
    memstart = realloc(memstart, new_words*W);
    if (memstart == old) { /* whee, no heap slide \o/ */
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
@@ -360,8 +361,8 @@ void set_signal_handler() {
 static word *mkbvec(size_t len, int type) {
    int nwords = (len/W) + ((len % W) ? 2 : 1);
    int pads = (nwords-1)*W - len;
-   word *ob = fp;
-   fp += nwords;
+   word *ob;
+   allocate(nwords, ob);
    *ob = make_raw_header(nwords, type, pads);
    return ob;
 }
@@ -385,8 +386,8 @@ static word prim_connect(word *host, word port, word type) {
    byte *ip = ((unsigned char *) host) + W;
    unsigned long ipfull;
    struct sockaddr_in addr;
-   port = fixval(port);
    char udp = (fixval(type) == 1);
+   port = fixval(port);
    if ((sock = socket(PF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0))) == -1)
       return IFALSE;
    if (udp)
@@ -446,7 +447,7 @@ static word prim_cast(word *ob, int type) {
       allocate(size, new);
       res = new;
       /* (hdr & 0b...11111111111111111111100000000111) | tttttttt000 */
-      //*new++ = (hdr&(~2040))|(type<<TPOS);
+      /* *new++ = (hdr&(~2040))|(type<<TPOS); */
       *new++ = (hdr&(~252))|(type<<TPOS); /* <- hardcoded ...111100000011 */
       wordcopy(ob,new,size-1);
       return (word)res;
@@ -465,15 +466,17 @@ static int prim_refb(word pword, int pos) {
    return F(((byte *) ob)[pos+W]);
 }
 
-static word prim_ref(word pword, word pos)  {
+static word prim_ref(word pword, word pos) {
    word *ob = (word *) pword;
    word hdr, size;
    pos = fixval(pos);
-   if(immediatep(ob)) { return IFALSE; }
+   if (immediatep(ob))
+      return IFALSE;
    hdr = *ob;
    if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */ 
       size = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
-      if (pos >= size) { return IFALSE; }
+      if (pos >= size)
+         return IFALSE;
       return F(((byte *) ob)[pos+W]);
    }
    size = hdrsize(hdr);
@@ -483,19 +486,18 @@ static word prim_ref(word pword, word pos)  {
 }
 
 static int64_t cnum(word a) {
-   if(allocp(a)) {
-     int64_t x = 0;
-     int shift = 0;
-     word *p = (word *) a;
-     while(a != INULL) {
+   if (allocp(a)) {
+      int64_t x = 0;
+      int shift = 0;
+      word *p = (word *)a;
+      while (a != INULL) {
          x |= F(p[1]) << shift;
          shift += FBITS;
-         p = (word *) p[2];
-     }
-     return x;
-   } else {
-      return fixval(a);
+         p = (word *)p[2];
+      }
+      return x;
    }
+   return fixval(a);
 }
 
 static word onum(int64_t a) {
@@ -504,16 +506,16 @@ static word onum(int64_t a) {
          exit(42);
       return FN(0-a);
    } else if (a > FMAX) {
-      word *r = fp;
+      word *r;
       if (a >= ((int64_t)1 << FBITS*2)) 
          exit(42);
+      allocate(6, r);
       r[0] = make_header(3, 40);
       r[4] = F(a>>FBITS);
       r[2] = (word) (r + 3);
       r[3] = make_header(3, 40);
       r[1] = F(a&FMAX);
       r[5] = INULL;
-      fp += 6;
       return (word) r;
    }
    return F(a);
@@ -525,9 +527,11 @@ static word prim_set(word wptr, word pos, word val) {
    word *new;
    int p = 0;
    pos = fixval(pos);
-   if(immediatep(ob)) { return IFALSE; }
+   if (immediatep(ob))
+      return IFALSE;
    hdr = *ob;
-   if (rawp(hdr) || hdrsize(hdr) < pos) { return IFALSE; }
+   if (rawp(hdr) || hdrsize(hdr) < pos)
+      return IFALSE;
    hdr = hdrsize(hdr);
    allocate(hdr, new);
    while(p <= hdr) {
@@ -554,7 +558,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (immediatep(buff)) return IFALSE;
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
-         wrote = write(fd, ((byte *)buff)+W, len);
+         wrote = write(fd, buff + 1, len);
          if (wrote > 0) return F(wrote);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
@@ -576,8 +580,8 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          toggle_blocking(val,0);
          return F(val); }
-      case 2: 
-         return close(fixval(a)) ? IFALSE : ITRUE;
+      case 2:
+         return BOOL(close(fixval(a)) == 0);
       case 3: { /* 3 = sopen port 0=tcp|1=udp -> False | fd  */
          int port = fixval(a);
          int type = fixval(b);
@@ -631,7 +635,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *res;
          int n, nwords = (max/W) + 2;
          allocate(nwords, res);
-         n = read(fd, ((byte *) res) + W, max);
+         n = read(fd, res + 1, max);
          if (n > 0) { /* got some bytes */
             word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
             int pads = (read_nwords-1)*W - n;
@@ -658,7 +662,7 @@ static word prim_sys(int op, word a, word b, word c) {
          socklen_t slen = sizeof(si_other);
          word *bvec;
          word *ipa;
-         word res;
+         word *pair;
          int recvd;
          int maxbytes = 0xffff;
          if (memend - fp <= 2 + (maxbytes / W))
@@ -669,12 +673,11 @@ static word prim_sys(int op, word a, word b, word c) {
          bvec = mkbvec(recvd, TBVEC);
          ipa = mkbvec(4, TBVEC);
          bytecopy((byte *) &si_other.sin_addr, ((byte *) ipa)+W, 4);
-         res = (word) fp;
-         fp[0] = PAIRHDR;
-         fp[1] = (word) ipa;
-         fp[2] = (word) bvec;
-         fp += 3;
-         return res; }
+         allocate(3, pair);
+         pair[0] = PAIRHDR;
+         pair[1] = (word)ipa;
+         pair[2] = (word)bvec;
+         return (word)pair; }
       case 11: { /* sys-opendir path _ _ -> False | dirobjptr */
          char *path = W + (char *) a; /* skip header */
          DIR *dirp = opendir(path);
@@ -704,14 +707,12 @@ static word prim_sys(int op, word a, word b, word c) {
          if (immediatep(buff)) return IFALSE;
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
-         wrote = send(fd, ((byte *)buff)+W, len, 0);
+         wrote = send(fd, buff + 1, len, 0);
          if (wrote > 0) return F(wrote);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
-      case 16: { /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
-         char *name = (char *)a;
-         if (!allocp(name)) return IFALSE;
-         return strp2owl((byte *)getenv(name + W)); }
+      case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
+         return allocp(a) ? strp2owl((byte *)getenv((char *)a + W)) : IFALSE;
       case 17: { /* exec[v] path argl ret */
          char *path = ((char *) a) + W;
          int nargs = llen((word *)b);
@@ -746,8 +747,7 @@ static word prim_sys(int op, word a, word b, word c) {
          pid_t pid = (a == IFALSE) ? -1 : fixval(a);
          int status;
          word *r = (word *) b;
-         //pid = waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED);
-         pid = waitpid(pid, &status, WNOHANG|WUNTRACED);
+         pid = waitpid(pid, &status, WNOHANG|WUNTRACED); /* |WCONTINUED */
          if (pid == -1) 
             return IFALSE; /* error */
          if (pid == 0)
@@ -768,24 +768,21 @@ static word prim_sys(int op, word a, word b, word c) {
             r = (word *)IFALSE;
          }
          return (word)r; }
-      case 20: { /* chdir path res */
-         char *path = ((char *)a) + W;
-         if (chdir(path) < 0)
-            return IFALSE;
-         return ITRUE; }
-      case 21: /* kill pid signal → fixnum */
-         return (kill(fixval(a), fixval(b)) < 0) ? IFALSE : ITRUE;
-      case 22:  /* unlink path → bool */
-         return (unlink(((char *)a)+W) == 0) ? ITRUE : IFALSE;
-      case 23:  /* rmdir path → bool */
-         return (rmdir(((char *)a)+W) == 0) ? ITRUE : IFALSE;
-      case 24:  /* mkdir path → bool */
-         return (mkdir((((char *)a)+W), fixval(b)) == 0) ? ITRUE : IFALSE;
+      case 20: /* chdir path → bool */
+         return BOOL(allocp(a) && chdir((char *)a + W) == 0);
+      case 21: /* kill pid signal → bool */
+         return BOOL(kill(fixval(a), fixval(b)) == 0);
+      case 22: /* unlink path → bool */
+         return BOOL(allocp(a) && unlink((char *)a + W) == 0);
+      case 23: /* rmdir path → bool */
+         return BOOL(allocp(a) && rmdir((char *)a + W) == 0);
+      case 24: /* mkdir path → bool */
+         return BOOL(allocp(a) && mkdir(((char *)a + W), fixval(b)) == 0);
       case 25: {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
          return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
-      case 26: {
+      case 26:
          if (a == ITRUE) {
             static struct termios old;
             tcgetattr(0, &old);
@@ -794,9 +791,9 @@ static word prim_sys(int op, word a, word b, word c) {
             old.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
             old.c_cflag &= ~(CSIZE | PARENB);
             old.c_cflag |= CS8;
-            return (tcsetattr(0, TCSANOW, &old) == 0) ? ITRUE : IFALSE;
+            return BOOL(tcsetattr(0, TCSANOW, &old) == 0);
          }
-         return (tcsetattr(0, TCSANOW, &tsettings) == 0) ? ITRUE : IFALSE; }
+         return BOOL(tcsetattr(0, TCSANOW, &tsettings) == 0);
       case 27: { /* sendmsg sock (port . ipv4) bvec */
          int sock = fixval(a);
          int port;
@@ -810,9 +807,7 @@ static word prim_sys(int op, word a, word b, word c) {
          peer.sin_family = AF_INET;
          peer.sin_port = htons(port);
          peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
-         if (sendto(sock, data, nbytes, 0, (struct sockaddr *) &peer, sizeof(peer)) == -1)
-            return IFALSE;
-         return ITRUE; }
+         return BOOL(sendto(sock, data, nbytes, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
       case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
          if (allocp(a)) {
             const char *name = (const char *)a + W;
@@ -937,11 +932,11 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
       int fd; /* something active, wake the first thing */
       for(fd=0;;fd++) {
          if (FD_ISSET(fd, &rs)) {
-            *r1 = make_immediate(fd, 12); *r2 = F(1); break;
+            *r1 = make_immediate(fd, TPORT); *r2 = F(1); break;
          } else if (FD_ISSET(fd, &ws)) {
-             *r1= make_immediate(fd, 12); *r2 = F(2); break;
+            *r1 = make_immediate(fd, TPORT); *r2 = F(2); break;
          } else if (FD_ISSET(fd, &es)) {
-            *r1 = make_immediate(fd, 12); *r2 = F(3); break;
+            *r1 = make_immediate(fd, TPORT); *r2 = F(3); break;
          }
       }
    }
@@ -1077,7 +1072,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       op = *ip<<8 | ip[1];
       goto super_dispatch;
    }
-  
+
    op0: op = (*ip << 8) | ip[1]; goto super_dispatch;
    op1: {word *ob = (word *)R[*ip]; R[ip[2]] = ob[ip[1]]; NEXT(3);}
    op2: ob = (word*) R[*ip]; acc = ip[1]; goto apply;
@@ -1304,7 +1299,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
       word res = fixval(A0) + fixval(A1);
       word low = res & FMAX;
-      A3 = (res & (1 << FBITS)) ? ITRUE : IFALSE;
+      A3 = BOOL(res & (1 << FBITS));
       A2 = F(low);
       NEXT(4); }
    op39: { /* fx* a b l h */
@@ -1498,8 +1493,7 @@ word *burn_args(int nargs, char **argv) {
       }
       size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
       pads = (size-1)*W - len;
-      tmp = fp;
-      fp += size;
+      allocate(size, tmp);
       *tmp = make_raw_header(size, 3, pads);
       pos = ((byte *) tmp) + W;
       while(*str) *pos++ = *str++;
@@ -1655,10 +1649,10 @@ void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
 }
 
 word *decode_fasl(int nobjs) {
-   word *ptrs = fp;
+   word *ptrs;
    word *entry;
    int pos = 0;
-   fp += nobjs+1;
+   allocate(nobjs + 1, ptrs);
    while(pos < nobjs) {
       if (fp >= memend) { /* bug */
          exit(1);
@@ -1702,10 +1696,10 @@ int main(int nargs, char **argv) {
    args = burn_args(nargs, argv);
    rval = vm(prog, args);
    setdown();
-   if(fixnump(rval)) {
+   if (fixnump(rval)) {
       int n = fixval(rval);
-      return (0 <= n && n < 127) ? n : 127;
-   } else {
-      return 127;
+      if (!(n & ~127))
+         return n;
    }
+   return 127;
 }
