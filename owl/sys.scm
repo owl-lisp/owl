@@ -242,7 +242,7 @@
                #false)))
 
       (define (setenv var val)
-        (sys-prim 28 (c-string var) (c-string val) #false))
+         (sys-prim 28 (c-string var) (and val (c-string val)) #false))
 
 
       ;;; 

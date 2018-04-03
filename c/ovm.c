@@ -136,6 +136,7 @@ void *malloc(size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
 int setenv(const char *name, const char *value, int overwrite);
+int unsetenv(const char *);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 pid_t fork(void);
@@ -812,12 +813,13 @@ static word prim_sys(int op, word a, word b, word c) {
          if (sendto(sock, data, nbytes, 0, (struct sockaddr *) &peer, sizeof(peer)) == -1)
             return IFALSE;
          return ITRUE; }
-      case 28: { /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string> */
-         char *name = (char *)a;
-         if (!allocp(name)) return IFALSE;
-         char *val = (char *)b;
-         if (!allocp(val)) return IFALSE;
-         return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
+      case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
+         if (allocp(a)) {
+            const char *name = (const char *)a + W;
+            if ((allocp(b) ? setenv(name, (const char *)b + W, 1) : unsetenv(name)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
       case 29:
          return prim_connect((word *) a, b, c);
       case 30: { /* dupfd old-fd new-fd fixed → new-fd | #false */
