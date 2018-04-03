@@ -11,7 +11,7 @@
       (mail from msg)
       (echoer)))
 
-(fork-server echo echoer)
+(fork echo echoer)
 
 (let loop ((n 1))
    (cond

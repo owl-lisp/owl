@@ -46,7 +46,7 @@
                   (wait rounds)
                   (loop wanted rst)))))))
 
-(fork-server 'fini
+(fork 'fini
    (λ ()
       (print (ref (wait-mail) 2)) ; omit the id to make output equal in all cases
       (for-each (λ (id) (mail id 'halt)) 
@@ -55,7 +55,7 @@
 (fold
    (λ (rst id)
       (lets ((rst n (rand rst #xffffffff)))
-         (fork-server id
+         (fork id
             (λ () (spammer (seed->rands n))))
          rst))
    (seed->rands seed)

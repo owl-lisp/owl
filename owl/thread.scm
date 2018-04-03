@@ -47,11 +47,12 @@
                   (values (fupd state to (qsnoc envelope st)) #false))
                ((not st) ;; no current state, start the server + leave first mail
                   ;(print-to stderr "No inbox for " to " for mail from " (ref envelope 1))
-                  ;(values
-                  ;   (put state to (qcons envelope qnull))
-                  ;   (tuple to to))
+                  (values
+                     (put state to (qcons envelope qnull))
+                     #false)
                   ;; drop  mail to non-receptive thread 
-                  (values state #false))
+                  ;(values state #false)
+                  )
                (else ;; activate the state function
                   (values 
                      (fupd state to qnull) ;; leave an inbox

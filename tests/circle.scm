@@ -11,7 +11,7 @@
 (print* (list "Starting " n " threads."))
 
 ;; first one is special	
-(fork-server 1
+(fork 1
 	(lambda ()	
 		(let ((msg (ref (wait-mail) 2)))
 			(mail 2 "pass this around")
@@ -22,11 +22,11 @@
 (let loop ((id (- n 1)) (next n))
 	(if (> id 1)
 		(begin
-			(fork-server id (forwarder next))
+			(fork id (forwarder next))
 			(loop (- id 1) id))))
 
 ;; last one sends to first
-(fork-server n (forwarder 1))
+(fork n (forwarder 1))
 
 (print "Sending message.")
 

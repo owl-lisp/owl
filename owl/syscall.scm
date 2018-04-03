@@ -127,12 +127,12 @@
                   ;; got spam, keep waiting
                   (loop (check-mail) (cons envp spam) rounds)))))
          
-
-      (define (fork thunk)
-         ; the tuple is fresh and therefore a proper although rather 
-         ; nondescriptive thread name
-         (fork-named (tuple 'anonimas) thunk))
-
+      (define fork
+         (case-lambda
+            ((id thunk)
+               (fork-named id thunk))
+            ((thunk)
+               (fork-named (tuple 'anonimas) thunk))))
 
       ; Message passing (aka mailing) is asynchronous, and at least 
       ; in a one-core environment order-preserving. interact is like 

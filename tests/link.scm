@@ -1,4 +1,4 @@
-(fork-server 'crasher
+(fork 'crasher
    (λ ()
       (wait-mail) ;; wait for a message before crashing
       (/ 1 0)))
