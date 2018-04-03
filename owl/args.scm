@@ -4,7 +4,7 @@
 
 (define-library (owl args)
 
-   (export 
+   (export
       process-arguments    ;; sexp → cl-rules
       format-rules         ;; cl-rules → str
       print-rules          ;; cl-rules → _
@@ -96,7 +96,7 @@
             (if (lesser? s 1)
                #false
                (eq? 45 (refb str 0)))))
-         
+
       (define (walk rules args dict others)
          (cond 
             ((null? args)
@@ -187,7 +187,7 @@
                   (else
                      (error "cl-rule: i do not get this: " lst))))))
 
-      ;	(name short long comment default (cook) (predicate) (mandatory?) (single?) (terminal?))
+      ; (name short long comment default (cook) (predicate) (mandatory?) (single?) (terminal?))
       (define (cl-rules lst)
          (map
             (λ (lst)
@@ -233,4 +233,3 @@
 
       (define print-rules 
          (o display format-rules))))
-
