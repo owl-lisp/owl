@@ -2,5 +2,5 @@
 
 (setenv "FOO" "BAR")
 (print (getenv "FOO"))
-(setenv "FOO" #false)
+(unsetenv "FOO")
 (print (getenv "FOO"))
