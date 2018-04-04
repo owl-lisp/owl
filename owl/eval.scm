@@ -15,7 +15,7 @@
 
 (define-library (owl eval)
 
-   (export 
+   (export
       repl-file 
       repl-port
       repl-string 
@@ -28,7 +28,7 @@
       evaluate
       *owl-core*)
 
-   (import 
+   (import
       (owl defmac)
       (owl list)
       (owl primop)
@@ -199,7 +199,7 @@
       ; -> (ok value env), (error reason env)
 
       (define repl-op?
-         (let ((pattern (list 'unquote symbol?)))	
+         (let ((pattern (list 'unquote symbol?)))
             (λ (exp) (match pattern exp))))
 
       (define (mark-loaded env path)
@@ -243,7 +243,7 @@
                         stdout val)
                      (if (not (display "\n> "))
                         (halt 125)))))))
-            
+
       (define syntax-error-mark (list 'syntax-error))
 
       ;; fixme: the input data stream is iirc raw bytes, as is parser error position, but that one is unicode-aware
@@ -268,7 +268,7 @@
                      "(end of input)")
                   (else
                      (loop datap next))))))
-         
+
       (define (syntax-fail pos info lst) 
          (list syntax-error-mark info 
             (list ">>> " (find-line lst pos) " <<<")))
@@ -285,7 +285,7 @@
       ;; load and save path to *loaded*
 
       (define (repl-load repl path in env)
-         (lets 	
+         (lets
             ((exps ;; find the file to read
                (or 
                   (file->exp-stream path "" sexp-parser syntax-fail)
@@ -335,7 +335,7 @@
    ,quit             - exit owl")
 
       (define (repl-op repl op in env)
-         (case op	
+         (case op
             ((help)
                (prompt env (repl-message repl-ops-help))
                (repl env in))
@@ -602,7 +602,7 @@
                         (values 'error reason)))
                   (values 'not-found (library-name->path iset))))
             (values 'error (list "Bad library name:" iset))))
-           
+
       (define (any->string obj)
          (list->string (render obj null)))
 
@@ -847,7 +847,7 @@
                (else
                   (loop env (in) last)))))
 
-               
+
       ;; run the repl on a fresh input stream, report errors and catch exit
 
       (define (stdin-sexp-stream env bounced?)
@@ -889,7 +889,7 @@
             (if (eq? fd stdin)
                (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail #false))
                (fd->exp-stream fd "> " sexp-parser syntax-fail #false))))
-         
+
       (define (repl-file env path)
          (let ((fd (if (equal? path "-") stdin (open-input-file path))))
             (if fd

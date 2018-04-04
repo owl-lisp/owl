@@ -50,7 +50,7 @@
       char-ci=?          ; cp cp → bool (temp)
       )
 
-   (import 
+   (import
       (owl iff)
       (only (owl syscall) error)
       (owl unicode)
@@ -162,10 +162,6 @@
          (ilist #\\ #\x
             (append (render-number cp null 16) 
                (cons #\; tl))))
-            
-     ;; move these elsewhere
-     ;(define (number->string n base)
-     ;   (list->string (render-number n null base)))
 
       (define (maybe-hexencode char tl)
          (cond
@@ -175,7 +171,7 @@
                (hexencode char tl))
             (else 
                #false)))
-     
+
       ;; quote just ":s for now
       (define (encode-quoted-point p tl)
          (cond
@@ -306,7 +302,7 @@
                #false)))
 
       (define (string-append . str)
-	(fold str-app "" str))
+         (fold str-app "" str))
 
       (define string->list string->runes)
       (define list->string runes->string)
@@ -361,7 +357,7 @@
                (else
                   (walk (cons (car in) rout) (cdr in)))))
          (walk null lst))
-      
+
       (define (str-replace str pat val)
          (runes->string
             (replace-all
@@ -466,7 +462,6 @@
                   (cons codepoint tl)
                   (encode-point codepoint tl)))
             (str-iter str)))
-                  
+
       (define (make-string n char)
          (list->string (repeat char n)))))
-
