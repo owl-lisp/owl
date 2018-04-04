@@ -40,13 +40,6 @@ is normally deduced from the file suffix given in -o, and is thus not usually ne
 .B -O0, -O1, -O2
 Write plain bytecode, compile some common functions to C or everything possible. These only make sense when compiling to C.
 .TP
-.B \-S, \-\-seccomp
-Enter seccomp sandbox mode at startup. This is an experimental Linux-only feature intended 
-to be used for evaluating untrusted code.
-.TP
-.B \-H, \-\-heap n
-Make sure there are at least n megabytes of heap space available before entering SECCOMP sandbox.
-.TP
 .B \-l, \-\-load path
 Resume execution of program state saved with \fIsuspend\fR.
 .SH EXAMPLES
