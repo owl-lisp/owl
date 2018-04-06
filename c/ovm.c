@@ -35,7 +35,7 @@ typedef int32_t   wdiff;
 #define IPOS                        8 /* offset of immediate payload */
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header */
-#define V(ob)                       *((word *) (ob))
+#define V(ob)                       *((word *)(ob))
 #define W                           sizeof(word)
 #define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
@@ -44,26 +44,26 @@ typedef int32_t   wdiff;
 #define RAWBIT                      2048
 #define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
-#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | (RAWBIT|2) | ((p) << 8))
+#define make_raw_header(s, t, p)    (((s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
 #define F(val)                      (((val) << IPOS) | 2)
 #define FN(val)                     (((val) << IPOS) | 32)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> IPOS)
-#define fixnump(desc)               (((desc)&255) == 2)
-#define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
+#define fixnump(desc)               (((desc) & 255) == 2)
+#define fliptag(ptr)                ((word)(ptr) ^ 2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
 #define imm_val(x)                  ((x) >> IPOS)
-#define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
-#define immediatep(x)               (((word)x)&2)
+#define hdrsize(x)                  (((word)(x) >> SPOS) & MAXOBJ)
+#define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
-#define rawp(hdr)                   ((hdr)&RAWBIT)
+#define rawp(hdr)                   ((hdr) & RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
 #define PAIRHDR                     make_header(3,1)
 #define NUMHDR                      make_header(3,40) /* <- on the way to 40, see type-int+ in defmac.scm */
-#define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
+#define pairp(ob)                   (allocp(ob) && V(ob) == PAIRHDR)
 #define INULL                       make_immediate(0,13)
 #define IFALSE                      make_immediate(1,13)
 #define ITRUE                       make_immediate(2,13)
@@ -81,9 +81,10 @@ typedef int32_t   wdiff;
 #define TPROC                       17
 #define TCLOS                       18
 #define FLAG                        1
-#define cont(n)                     V((word)n&(~FLAG))
-#define flagged(n)                  (n&FLAG)
-#define flag(n)                     (((word)n)^FLAG)
+#define cont(n)                     V((word)(n) & ~FLAG)
+#define flag(n)                     ((word)(n) ^ FLAG)
+#define flagged(n)                  ((word)(n) & FLAG)
+#define flagged_or_raw(n)           ((word)(n) & (RAWBIT | FLAG))
 #define A0                          R[*ip]
 #define A1                          R[ip[1]]
 #define A2                          R[ip[2]]
@@ -91,15 +92,13 @@ typedef int32_t   wdiff;
 #define A4                          R[ip[4]]
 #define A5                          R[ip[5]]
 #define G(ptr,n)                    ((word *)(ptr))[n]
-#define flagged_or_raw(hdr)         (hdr&(RAWBIT|1))
-#define TICKS                       10000 /* # of function calls in a thread quantum  */
+#define TICKS                       10000 /* # of function calls in a thread quantum */
 #define allocate(size, to)          (to = fp, fp += size)
-#define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
+#define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word)a; R[6] = (word)b; goto invoke_mcp;
 #define assert(exp,val,code)        if(!(exp)) {error(code, val, ITRUE);}
 #define assert_not(exp,val,code)    if(exp) {error(code, val, ITRUE);}
-#define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
-#define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
-#define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
+#define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
+#define MINGEN                      1024 * 32 /* minimum generation size before doing full GC */
 #define INITCELLS                   100000
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
@@ -152,7 +151,7 @@ static __inline__ void rev(word pos) {
    word val = V(pos);
    word next = cont(val);
    V(pos) = next;
-   cont(val) = (val&FLAG)^(pos|FLAG);
+   cont(val) = (pos | FLAG) ^ (val & FLAG);
 }
 
 static __inline__ word *chase(word *pos) {
@@ -783,7 +782,7 @@ static word prim_sys(int op, word a, word b, word c) {
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
          return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
       case 26:
-         if (a == ITRUE) {
+         if (a != IFALSE) {
             static struct termios old;
             tcgetattr(0, &old);
             old.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
@@ -1211,7 +1210,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          if (op & 64) /* add empty extra arg list */
             R[acc + 3] = INULL;
       } else if ((op & 64) && acc > needed) {
-         word tail = INULL;  /* todo: no call overflow handling yet */
+         word tail = INULL; /* todo: no call overflow handling yet */
          while (acc > needed) {
             fp[0] = PAIRHDR;
             fp[1] = R[acc + 2];
@@ -1349,7 +1348,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
                   *new++ = *node++; }
       fp = new;
       NEXT(2); }
-   op47:  /* ref t o r */ /* fixme: deprecate this later */
+   op47: /* ref t o r */ /* fixme: deprecate this later */
       A2 = prim_ref(A0, A1);
       NEXT(3);
    op48: { /* refb t o r */ /* todo: merge with ref, though 0-based  */
