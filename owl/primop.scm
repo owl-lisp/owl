@@ -30,7 +30,7 @@
       
       _poll2
       ;; vm interface
-      vm bytes->bytecode bytecode-function
+      vm bytes->bytecode
       )
 
    (import
@@ -38,9 +38,12 @@
 
    (begin
 
+      (define (bytes->bytecode bytes)
+         (raw bytes type-bytecode #false))
+
       (define eq? 
-         (cast #(25 3 0 6 54 4 5 6 24 6 17)
-            (type (lambda (x) x))))
+         (bytes->bytecode 
+            '(25 3 0 6 54 4 5 6 24 6 17)))
 
       (define (app a b)
          (if (eq? a '())
@@ -48,29 +51,21 @@
             (cons (car a) (app (cdr a) b))))
 
       ;; l -> fixnum | #false if too long
-      (define (fx-length l)
+      (define (len l)
          (let loop ((l l) (n 0))
             (if (eq? l '())
                n
                (lets ((n o (fx+ n 1)))
                   (if o #false (loop (cdr l) n))))))
 
-      (define (len lst)
-         (let loop ((lst lst) (n 0))
-            (if (eq? lst '())
-               n
-               (lets ((n _ (fx+ n 1)))
-                  (loop (cdr lst) n)))))
-
       (define (func lst) 
          (lets 
             ((arity (car lst))
              (lst (cdr lst))
              (len (len lst)))
-            (raw
+            (bytes->bytecode
                (cons 25 (cons arity (cons 0 (cons len 
-                  (app lst (list 17)))))) ;; fail if arity mismatch
-               type-bytecode #false)))
+                  (app lst (list 17))))))))) ;; fail if arity mismatch
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
@@ -120,7 +115,7 @@
          (if (eq? n 0)
             n
             (lets ((n _ (fx- n 1)))
-               (set-ticker 0)
+               (set-ticker 0) ;; allow other threads to run
                (wait n))))
 
       ;; from cps
@@ -168,8 +163,8 @@
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
       (define fx<< (func '(4 59 4 5 6 7 24 7)))
       
-      (define apply (raw '(20) type-bytecode #false)) ;; <- no arity, just call 20
-      (define apply-cont (raw (list (fxbor 20 64)) type-bytecode #false))
+      (define apply (bytes->bytecode '(20))) ;; <- no arity, just call 20
+      (define apply-cont (bytes->bytecode (list (fxbor 20 64))))
 
       (define primops-2
          (list
@@ -194,17 +189,16 @@
             (tuple 'set-ticker   62 1 1 set-ticker)
             (tuple 'sys-prim     63 4 1 sys-prim)))
 
-      ;; no append yet
       (define primops 
-         (let loop ((in primops-1) (out primops-2))
-            (if (null? in)
-               out
-               (loop (cdr in) (cons (car in) out)))))
+         (app primops-1
+              primops-2))
 
       ;; special things exposed by the vm
       (define (set-memory-limit n) (sys-prim 7 n n n))
       (define (get-word-size) (sys-prim 8 #false #false #false))
       (define (get-memory-limit) (sys-prim 9 #false #false #false))
+      
+      ;; todo: add get-heap-metrics
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n n n))
@@ -245,27 +239,6 @@
                         (ref (car primops) 1))
                      (else
                         (loop (cdr primops))))))))
-
-      ;; TODO: these → (owl vm), and  convert assble to use it
-      ;; make bytecode and intern it (to improve sharing, not mandatory)
-      (define (bytes->bytecode bytes)
-         (raw bytes type-bytecode #false))
-
-      ;; construct the arity check, just return #false on errors, since we don't have any IO or error throwing yet
-      (define (bytecode-function fixed? arity bytes)
-         (let ((l (fx-length bytes)))
-            (if l
-               (lets 
-                  ((hi lo (fx>> (fx-length bytes) 8)))
-                  (if (eq? hi (fxband hi 255))
-                     (bytes->bytecode
-                        (ilist ;; arity check
-                           (if fixed? 25 89) 
-                           arity hi lo
-                           ;; given bytecode
-                           (app bytes (list 17))))
-                     #false))
-               #false)))
 
       ;; silly runtime exception, error not defined yet here
       (define (check-equal a b)
