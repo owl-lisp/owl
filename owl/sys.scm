@@ -19,7 +19,13 @@
       getenv
       setenv
       unsetenv
+      umask
+      getcwd
       chdir
+      readlink
+      symlink
+      link
+      rename
       unlink
       rmdir
       mkdir
@@ -181,8 +187,26 @@
       ;;; Filesystem operation
       ;;;
 
+      (define (umask mask)
+         (sys-prim 37 mask #false #false))
+
+      (define (getcwd)
+         (sys-prim 36 #false #false #false))
+
       (define (chdir path)
          (sys-prim 20 (c-string path) #false #false))
+
+      (define (readlink path)
+         (sys-prim 35 (c-string path) #false #false))
+
+      (define (symlink src dst)
+         (sys-prim 34 (c-string src) (c-string dst) #false))
+
+      (define (link src dst)
+         (sys-prim 33 (c-string src) (c-string dst) #false))
+
+      (define (rename src dst)
+         (sys-prim 32 (c-string src) (c-string dst) #false))
 
       (define (unlink path)
          (sys-prim 22 path #false #false))
