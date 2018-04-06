@@ -15,17 +15,17 @@
       fork
       pipe
       wait
-      chdir
       kill
       getenv
       setenv
       unsetenv
+      chdir
       unlink
       rmdir
       mkdir
-      lseek
       directory?
       file?
+      lseek
       seek-current
       seek-set
       seek-end
@@ -71,15 +71,11 @@
          (sys-prim 2 fd #false #false))
 
       (define (fopen path mode)
-         (cond
-            ((c-string path) => 
-               (λ (raw) (sys-prim 1 raw mode #false)))
-            (else #false)))
+         (sys-prim 1 (c-string path) mode #false))
 
       ;; → (fixed ? fd == new-fd : fd >= new-fd) | #false
       (define (dupfd old-fd new-fd fixed)
          (sys-prim 30 old-fd new-fd fixed))
-
 
       ;;;
       ;;; Unsafe operations not to be exported
@@ -87,24 +83,7 @@
 
       ;; string → #false | unsafe-dirptr
       (define (open-dir path)
-         (let ((cs (c-string path)))
-            (if (and cs (<= (string-length cs) #xffff))
-               (sys-prim 11 cs #false #false)
-               #false)))
-
-      (define (directory? path)
-         (if (string? path)
-            (let ((dfd (open-dir path)))
-               (if dfd
-                  (begin (fclose dfd) #true)
-                  #false))
-            #false))
-
-      (define (file? path)
-         (let ((fd (fopen path 0)))
-            (if fd
-               (begin (fclose fd) #true)
-               #false)))
+         (sys-prim 11 (c-string path) #false #false))
 
       ;; unsafe-dirfd → #false | eof | bvec
       (define (read-dir obj)
@@ -114,9 +93,9 @@
       (define (close-dir obj)
          (sys-prim 13 obj #false #false))
 
-      ;;; 
+      ;;;
       ;;; Safe derived operations
-      ;;; 
+      ;;;
 
       ;; dir elements are #false or fake strings, which have the type of small raw ASCII 
       ;; strings, but may in fact contain anything the OS happens to allow in a file name.
@@ -135,27 +114,22 @@
 
       ;; no dotfiles
       (define (dir->list path)
-         (dir-fold 
-            (λ (seen this) 
+         (dir-fold
+            (λ (seen this)
                (if (eq? #\. (refb this 0))
                   seen
                   (cons this seen)))
-             null path))
+            null path))
 
       ;; everything reported by OS
       (define (dir->list-all path)
-         (dir-fold 
+         (dir-fold
             (λ (seen this) (cons this seen))
-             null path))
+            null path))
 
-      (define (chdir path)
-         (let ((path (c-string path)))
-            (and path
-               (sys-prim 20 path #false #false))))
-
-      ;;; 
+      ;;;
       ;;; Processes
-      ;;; 
+      ;;;
 
       ;; path (arg0 ...), arg0 customarily being path
       ;; returns only if exec fails
@@ -183,7 +157,7 @@
                ((eq? res #true)
                   (interact 'iomux (tuple 'alarm 100))
                   (wait pid))
-               (else 
+               (else
                   ;; pair of (<exittype> . <result>)
                   res))))
 
@@ -203,6 +177,13 @@
       (define (kill pid signal)
          (sys-prim 21 pid signal #false))
 
+      ;;;
+      ;;; Filesystem operation
+      ;;;
+
+      (define (chdir path)
+         (sys-prim 20 (c-string path) #false #false))
+
       (define (unlink path)
          (sys-prim 22 path #false #false))
 
@@ -211,6 +192,14 @@
 
       (define (mkdir path mode)
          (sys-prim 24 path mode #false))
+
+      (define (directory? path)
+         (let ((dh (open-dir path)))
+            (and dh (begin (close-dir dh) #true))))
+
+      (define (file? path)
+         (let ((fd (fopen path 0)))
+            (and fd (begin (fclose fd) #true))))
 
       (define seek/set 0) ;; set position to pos
       (define seek/cur 1) ;; increment position by pos
@@ -234,13 +223,8 @@
 
       ;; str → bvec | F
       (define (getenv str)
-         (let ((str (c-string str)))
-            (if str 
-               (let ((bvec (sys-prim 16 str #false #false)))
-                  (if bvec
-                     (bytes->string (vec->list bvec))
-                     #false))
-               #false)))
+         (let ((bvec (sys-prim 16 (c-string str) #false #false)))
+            (and bvec (bytes->string (vector->list bvec)))))
 
       (define (setenv var val)
          (sys-prim 28 (c-string var) (and val (c-string val)) #false))
