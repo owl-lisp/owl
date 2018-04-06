@@ -42,6 +42,7 @@ typedef int32_t   wdiff;
 #define FMAX                        ((1<<FBITS)-1) /* maximum fixnum (and most negative fixnum) */
 #define MAXOBJ                      0xffff         /* max words in tuple including header */
 #define RAWBIT                      2048
+#define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
 #define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
 #define make_raw_header(s, t, p)    (((s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
@@ -356,7 +357,7 @@ void set_signal_handler() {
 
 /* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
 static word *mkbvec(size_t len, int type) {
-   int nwords = (len/W) + ((len % W) ? 2 : 1);
+   int nwords = OBJWORDS(len);
    int pads = (nwords-1)*W - len;
    word *ob;
    allocate(nwords, ob);
@@ -635,7 +636,7 @@ static word prim_sys(int op, word a, word b, word c) {
          allocate(nwords, res);
          n = read(fd, res + 1, max);
          if (n > 0) { /* got some bytes */
-            word read_nwords = n / W + (n % W ? 2 : 1);
+            word read_nwords = OBJWORDS(n);
             int pads = (read_nwords-1)*W - n;
             fp = res + read_nwords;
             *res = make_raw_header(read_nwords, TBVEC, pads);
@@ -852,7 +853,7 @@ static word prim_lraw(word wptr, int type, word revp) {
    }
    if ((word) ob != INULL) return IFALSE;
    if (len > FMAX) return IFALSE;
-   nwords = (len/W) + ((len % W) ? 2 : 1);
+   nwords = OBJWORDS(len);
    allocate(nwords, raw);
    pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
    *raw = make_raw_header(nwords, type, pads);
@@ -1496,7 +1497,7 @@ word *burn_args(int nargs, char **argv) {
          len++;
       if (len > FMAX)
          exit(1);
-      size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
+      size = OBJWORDS(len);
       pads = (size-1)*W - len;
       allocate(size, tmp);
       *tmp = make_raw_header(size, 3, pads);
@@ -1557,7 +1558,7 @@ word *get_obj(word *ptrs, int me) {
          byte *wp;
          type = *hp++ & 31; /* low 5 bits, the others are pads */
          bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         size = OBJWORDS(bytes);
          pads = (size-1)*W - bytes;
          *fp++ = make_raw_header(size, type, pads);
          wp = (byte *) fp;
@@ -1574,7 +1575,7 @@ word *get_obj(word *ptrs, int me) {
 void get_obj_metrics(int *rwords, int *rnobjs) {
    int size;
    switch(*hp++) {
-      case 1: {
+      case 1:
          hp++;
          size = get_nat();
          *rnobjs += 1;
@@ -1584,17 +1585,16 @@ void get_obj_metrics(int *rwords, int *rnobjs) {
                hp += 2;
             get_nat();
          }
-         break; }
-      case 2: {
-         int bytes;
+         break;
+      case 2:
          hp++;
-         bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
-         hp += bytes;
+         size = get_nat();
          *rnobjs += 1;
-         *rwords += size;
-         break; }
-      default: exit(42);
+         *rwords += OBJWORDS(size);
+         hp += size;
+         break;
+      default:
+         exit(42);
    }
 }
 
