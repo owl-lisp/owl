@@ -68,22 +68,39 @@
 
    (begin
 
-      ;; standard io ports
       (define stdin  (fd->port 0))
       (define stdout (fd->port 1))
       (define stderr (fd->port 2))
 
-      ;; use type 12 for fds 
-
+      ;; owl value → value processable in vm (mainly string conversion)
+      (define (sys-arg x)
+         (cond
+            ((string? x)
+               (c-string x))
+            (else 
+               x)))
+     
+      ;; call fixed arity prim-sys instruction with converted arguments
+      (define sys
+         (case-lambda 
+            ((op)
+               (sys-prim op #f #f #f))
+            ((op a)
+               (sys-prim op (sys-arg a) #f #f))
+            ((op a b)
+               (sys-prim op (sys-arg a) (sys-arg b) #f))
+            ((op a b c)
+               (sys-prim op (sys-arg a) (sys-arg b) (sys-arg c)))))
+      
       (define (fclose fd)
-         (sys-prim 2 fd #false #false))
+         (sys 2 fd))
 
       (define (fopen path mode)
-         (sys-prim 1 (c-string path) mode #false))
+         (sys 1 path mode))
 
       ;; → (fixed ? fd == new-fd : fd >= new-fd) | #false
       (define (dupfd old-fd new-fd fixed)
-         (sys-prim 30 old-fd new-fd fixed))
+         (sys 30 old-fd new-fd fixed))
 
       ;;;
       ;;; Unsafe operations not to be exported
@@ -91,15 +108,15 @@
 
       ;; string → #false | unsafe-dirptr
       (define (open-dir path)
-         (sys-prim 11 (c-string path) #false #false))
+         (sys 11 path))
 
       ;; unsafe-dirfd → #false | eof | bvec
       (define (read-dir obj)
-         (sys-prim 12 obj #false #false))
+         (sys 12 obj))
 
       ;; _ → #true
       (define (close-dir obj)
-         (sys-prim 13 obj #false #false))
+         (sys 13 obj))
 
       ;;;
       ;;; Safe derived operations
@@ -142,24 +159,23 @@
       ;; path (arg0 ...), arg0 customarily being path
       ;; returns only if exec fails
 
+      ;; list conversion might also be worth doing in sys-arg instead
       (define (exec path args)
-         (lets
-            ((path (c-string path))
-             (args (map c-string args)))
-            (if (and path (all (λ (x) x) args))
-               (sys-prim 17 path args #false)
-               (cons path args))))
+         (lets ((args (map c-string args)))
+            (if (all (λ (x) x) args)
+               (sys 17 path args)
+               #false)))
 
       ;; → #false on failure, else '(read-fd . write-fd)
       (define (pipe)
-         (sys-prim 31 #false #false #false))
+         (sys 31))
 
       ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
       (define (fork)
-         (sys-prim 18 #false #false #false))
+         (sys 18))
 
       (define (wait pid)
-         (let ((res (sys-prim 19 pid (cons #false #false) #false)))
+         (let ((res (sys 19 pid (cons #false #false))))
             (cond
                ((not res) res)
                ((eq? res #true)
@@ -183,41 +199,41 @@
 
       ;; pid signal → success?
       (define (kill pid signal)
-         (sys-prim 21 pid signal #false))
+         (sys 21 pid signal))
 
       ;;;
       ;;; Filesystem operation
       ;;;
 
       (define (umask mask)
-         (sys-prim 37 mask #false #false))
+         (sys 37 mask))
 
       (define (getcwd)
-         (sys-prim 36 #false #false #false))
+         (sys 36))
 
       (define (chdir path)
-         (sys-prim 20 (c-string path) #false #false))
+         (sys 20 path))
 
       (define (readlink path)
-         (sys-prim 35 (c-string path) #false #false))
+         (sys 35 path))
 
       (define (symlink src dst)
-         (sys-prim 34 (c-string src) (c-string dst) #false))
+         (sys 34 src dst))
 
       (define (link src dst)
-         (sys-prim 33 (c-string src) (c-string dst) #false))
+         (sys 33 src dst))
 
       (define (rename src dst)
-         (sys-prim 32 (c-string src) (c-string dst) #false))
+         (sys 32 src dst))
 
       (define (unlink path)
-         (sys-prim 22 path #false #false))
+         (sys 22 path))
 
       (define (rmdir path)
-         (sys-prim 23 path #false #false))
+         (sys 23 path))
 
       (define (mknod path type mode dev)
-         (sys-prim 24 (c-string path) (cons type mode) dev))
+         (sys 24 path (cons type mode) dev))
 
       (define (mkdir path mode)
          (mknod path 4 mode 0))
@@ -238,7 +254,7 @@
       (define seek/end 2) ;; set position to file end + pos
 
       (define (lseek fd pos whence)
-         (sys-prim 25 fd pos whence))
+         (sys 25 fd pos whence))
 
       (define (seek-end fd)
          (lseek fd 0 seek/end))
@@ -255,11 +271,11 @@
 
       ;; str → bvec | F
       (define (getenv str)
-         (let ((bvec (sys-prim 16 (c-string str) #false #false)))
+         (let ((bvec (sys 16 str)))
             (and bvec (bytes->string (vector->list bvec)))))
 
       (define (setenv var val)
-         (sys-prim 28 (c-string var) (and val (c-string val)) #false))
+         (sys 28 var val))
 
       (define (unsetenv var)
          (setenv var #false))
@@ -269,6 +285,7 @@
       ;;;
 
       (define (set-terminal-rawness bool)
-         (sys-prim 26 bool #f #f))
+         (sys 26 bool))
+))
 
-      ))
+
