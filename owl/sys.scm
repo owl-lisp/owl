@@ -28,7 +28,9 @@
       rename
       unlink
       rmdir
+      mknod
       mkdir
+      mkfifo
       directory?
       file?
       lseek
@@ -214,8 +216,14 @@
       (define (rmdir path)
          (sys-prim 23 path #false #false))
 
+      (define (mknod path type mode dev)
+         (sys-prim 24 (c-string path) (cons type mode) dev))
+
       (define (mkdir path mode)
-         (sys-prim 24 path mode #false))
+         (mknod path 4 mode 0))
+
+      (define (mkfifo path mode)
+         (mknod path 0 mode 0))
 
       (define (directory? path)
          (let ((dh (open-dir path)))
