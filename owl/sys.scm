@@ -1,10 +1,5 @@
-;;;
-;;; Extra IO etc exposed via the sys-prim
-;;;
-
-;; Adding some extra system primops to see how much could be added while 
-;; still keeping the generated .c code portable, win32 being the main 
-;; reason for worry.
+;;; Owl sys library exports various operating system calls and helper 
+;;; functions for using them.
 
 (define-library (owl sys)
    (export
@@ -168,12 +163,18 @@
 
       ;; → #false on failure, else '(read-fd . write-fd)
       (define (pipe)
-         (sys 31))
+         (let ((fdpair (sys 31)))
+            (if fdpair
+               (cons (fd->port (car fdpair))
+                     (fd->port (cdr fdpair)))
+               #false)))
 
+      ;; warning, easily collides with owl fork
       ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
       (define (fork)
          (sys 18))
 
+      ;; warning, easily collides with owl wait
       (define (wait pid)
          (let ((res (sys 19 pid (cons #false #false))))
             (cond
