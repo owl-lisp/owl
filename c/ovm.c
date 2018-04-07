@@ -72,6 +72,7 @@ typedef int32_t   wdiff;
 #define IEOF                        make_immediate(4,13)
 #define IHALT                       make_immediate(5,13)
 #define TTUPLE                      2
+#define TSTRING                     3
 #define TPORT                       12
 #define TTHREAD                     31
 #define TFF                         24
@@ -566,7 +567,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int mode = fixval(b);
          int val = 0;
          struct stat sb;
-         if (!(allocp(path) && imm_type(header(a)) == 3))
+         if (!allocp(a) || imm_type(header(a)) != TSTRING)
             return IFALSE;
          val |= (mode & 1 ? O_WRONLY : O_RDONLY) \
               | (mode & 2 ? O_TRUNC : 0) \
@@ -691,7 +692,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (!dire) return IEOF; /* eof at end of dir stream */
          len = lenn((byte *)dire->d_name, FMAX+1);
          if (len == FMAX+1) return IFALSE; /* false for errors, like too long file names */
-         res = mkbvec(len, 3); /* make a fake raw string (OS may not use valid UTF-8) */
+         res = mkbvec(len, TSTRING); /* make a fake raw-string (OS may not use valid UTF-8) */
          bytecopy((byte *)&dire->d_name, (byte *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
          return (word)res; }
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
@@ -835,6 +836,33 @@ static word prim_sys(int op, word a, word b, word c) {
          pair[1] = F(fd[0]);
          pair[2] = F(fd[1]);
          return (word)pair; }
+      case 32: /* rename src dst → bool */
+         return BOOL(allocp(a) && allocp(b) && rename((char *)a + W, (char *)b + W) == 0);
+      case 33: /* link src dst → bool */
+         return BOOL(allocp(a) && allocp(b) && link((char *)a + W, (char *)b + W) == 0);
+      case 34: /* symlink src dst → bool */
+         return BOOL(allocp(a) && allocp(b) && symlink((char *)a + W, (char *)b + W) == 0);
+      case 35: /* readlink path → raw-sting | #false */
+         if (allocp(a)) {
+            size_t len = memend - fp;
+            size_t max = len > MAXOBJ ? (MAXOBJ - 1) * W + 1 : (len - 1) * W;
+            /* the last byte is temporarily used to check, if the string fits */
+            len = readlink((const char *)a + W, (char *)fp + W, max);
+            if (len != (size_t)-1 && len != max)
+               return (word)mkbvec(len, TSTRING);
+         }
+         return IFALSE;
+      case 36: /* getcwd → raw-sting | #false */
+         {
+            size_t len = memend - fp;
+            size_t max = len > MAXOBJ ? (MAXOBJ - 1) * W + 1 : (len - 1) * W;
+            /* the last byte is temporarily used for the terminating '\0' */
+            if (getcwd((char *)fp + W, max) != NULL)
+               return (word)mkbvec(lenn((byte *)fp + W, max - 1), TSTRING);
+         }
+         return IFALSE;
+      case 37: /* umask mask → mask */
+         return F(umask(fixval(a)));
       default:
          return IFALSE;
    }
@@ -1500,7 +1528,7 @@ word *burn_args(int nargs, char **argv) {
       size = OBJWORDS(len);
       pads = (size-1)*W - len;
       allocate(size, tmp);
-      *tmp = make_raw_header(size, 3, pads);
+      *tmp = make_raw_header(size, TSTRING, pads);
       pos = ((byte *) tmp) + W;
       while (*str)
          *pos++ = *str++;
