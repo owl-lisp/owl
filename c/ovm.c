@@ -777,8 +777,15 @@ static word prim_sys(int op, word a, word b, word c) {
          return BOOL(allocp(a) && unlink((char *)a + W) == 0);
       case 23: /* rmdir path → bool */
          return BOOL(allocp(a) && rmdir((char *)a + W) == 0);
-      case 24: /* mkdir path → bool */
-         return BOOL(allocp(a) && mkdir((char *)a + W, fixval(b)) == 0);
+      case 24: /* mknod path (type . mode) dev → bool */
+         if (allocp(a) && pairp(b)) {
+            const mode_t nods[4] = { S_IFIFO, S_IFCHR, S_IFBLK, S_IFREG };
+            const char *path = (const char *)a + W;
+            const mode_t type = fixval(G(b, 1)), mode = fixval(G(b, 2));
+            if ((type & ~3 ? mkdir(path, mode) : mknod(path, nods[type] | mode, fixval(c))) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
       case 25: {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
