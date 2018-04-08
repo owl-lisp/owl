@@ -13,17 +13,20 @@
 (define sub (fork))
 
 (define (child infd outfd)
-   (let loop ()
-      (let ((data (vector->list (get-block infd #xffff))))
-         (write-bytes outfd (cons 42 data))
-         (loop))))
+   (write-bytes outfd
+      (cons 42 
+         (vector->list (get-block infd #xffff)))))
 
-(define (main in out)
+(define (main sub in out)
    (let ((data (string->bytes (date-str (time)))))
       (write-bytes out data)
       (if (equal? (list->vector (cons 42 data))
                   (get-block in #xffff))
-         (print "Subprocess echo with star ok")
+         (begin
+            (print "Subprocess echo with star ok")
+            (print "Closing parent end of port " (close-port out))
+            (print "Waiting child: " (waitpid sub)))
+            
          (print "Echo failed"))))
    
 (cond
@@ -31,7 +34,7 @@
       (child (car p2) (cdr p1)))
    ((number? sub)
       (print "Subprocess forked")
-      (main  (car p1) (cdr p2)))
+      (main sub (car p1) (cdr p2)))
    (else 
       (print "Fork failed")))
    

@@ -10,6 +10,7 @@
       fork
       pipe
       wait
+      waitpid
       kill
       getenv
       setenv
@@ -175,16 +176,18 @@
          (sys 18))
 
       ;; warning, easily collides with owl wait
-      (define (wait pid)
+      (define (waitpid pid)
          (let ((res (sys 19 pid (cons #false #false))))
             (cond
                ((not res) res)
                ((eq? res #true)
                   (interact 'iomux (tuple 'alarm 100))
-                  (wait pid))
+                  (waitpid pid))
                (else
                   ;; pair of (<exittype> . <result>)
                   res))))
+      
+      (define wait waitpid)
 
       (define sighup   1)      ; hangup from controlling terminal or proces
       (define signint  2)      ; interrupt (keyboard)
