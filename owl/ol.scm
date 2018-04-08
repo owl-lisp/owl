@@ -23,11 +23,7 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
-;; check that (owl defmac) is indeed from last generation
-
 (define build-start (time-ms))
-
-; (import (owl defmac))
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
@@ -41,121 +37,75 @@
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run build-start)
+,forget-all-but (quote *vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run build-start)
 
-;;;
-;;; Time for a new REPL
-;;;
-
-;; this should later be just a sequence of imports followed by a fasl dump
+;; --------------------------------------------------------------------------------
 
 (import (owl core))     ;; get special forms, primops and define-syntax
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
 (define *interactive* #false) ;; be verbose 
-(define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
+(define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
-(import (owl syscall))
-(import (owl primop))
-
-;; shared parameters, librarize later or remove if possible
-
 (define *owl-version* "0.1.14")
 (define max-object-size #xffff)
 
-(define owl-ohai "You see a prompt.")
-(define owl-ohai-resume "Welcome back.")
-
-(import (owl boolean))
-(import (owl list))
-(import (owl ff))
-(import (only (owl iff)))
-(import (owl math))
-(import (owl list-extra))
-(import (owl sort))
-(import (owl lazy))
-(import (only (owl unicode) encode-point))
-(import (owl string))
-(import (owl vector))
-(import (owl symbol))
-(import (owl tuple))
-(import (owl function))
-(import (owl equal))
-(import (owl render))
-(import (owl intern))
-(import (owl io))
-(import (owl parse))
-(import (owl regex))
-(import (owl sexp))
-(import (only (owl math-extra)))
-(import (only (owl rlist)))
-(import (only (owl queue)))
-
-;; extremely old data structure being used between compler steps.
-;; replace later.
-(define (ok? x) (eq? (ref x 1) 'ok))
-(define (ok exp env) (tuple 'ok exp env))
-(define (fail reason) (tuple 'fail reason))
-
-(import (owl env))
-(import (owl gensym))
-(import (owl bisect))
-(import (owl macro))
-(import (owl ast))
-(import (owl fixedpoint))
-(import (owl cps))
-(import (owl alpha))
-(import (owl thread))
-(import (owl assemble))
-(import (owl closure))
-(import (owl compile))
-(import (owl suffix))
-(import (owl time))
-(import (owl random))
-(import (owl args))
-(import (owl cgen))
-(import (only (owl dump) make-compiler dump-fasl load-fasl))
-
-(define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
-   (make-compiler *vm-special-ops*))
-
-; path -> 'loaded | 'saved
-(define (suspend path)
-   (let ((maybe-world (syscall 16 #true #true)))
-      (if (eq? maybe-world 'resumed)
-         owl-ohai-resume
-         (begin
-            (dump-fasl maybe-world path)
-            'saved))))
-
-;(import (owl checksum))
-(import (owl sys))
-(import (owl char))
-
-;; implementation features, used by cond-expand
-(define *features*
-   (cons 
-      (string->symbol (string-append "owl-lisp-" *owl-version*))
-      '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
-      ;;          ^
-      ;;          '-- to be a fairly large subset of at least, so adding this
-
-(import (owl eval))
-(import (owl digest))
-(import (owl base))
-(import (owl date))
-(import (owl codec))
-
-(import (scheme cxr))
-(import (scheme base))
-(import (scheme case-lambda))
-(import (scheme write))
-
-
-;(define *libraries* 
-;   (cons 
-;      (cons '(owl core) *owl-core*)
-;      (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
+(import 
+   (owl syscall)
+   (owl primop)
+   (owl boolean)
+   (owl list)
+   (owl ff)
+   (only (owl iff))
+   (owl math)
+   (owl list-extra)
+   (owl sort)
+   (owl lazy)
+   (only (owl unicode) encode-point)
+   (owl string)
+   (owl vector)
+   (owl symbol)
+   (owl tuple)
+   (owl function)
+   (owl equal)
+   (owl render)
+   (owl intern)
+   (owl io)
+   (owl parse)
+   (owl regex)
+   (owl sexp)
+   (only (owl math-extra))
+   (only (owl rlist))
+   (only (owl queue))
+   (owl env)
+   (owl gensym)
+   (owl bisect)
+   (owl macro)
+   (owl ast)
+   (owl fixedpoint)
+   (owl cps)
+   (owl alpha)
+   (owl thread)
+   (owl assemble)
+   (owl closure)
+   (owl compile)
+   (owl suffix)
+   (owl time)
+   (owl random)
+   (owl args)
+   (owl cgen)
+   (only (owl dump) make-compiler dump-fasl load-fasl suspend)
+   (owl sys)
+   (owl char)
+   (owl eval)
+   (owl digest)
+   (owl base)
+   (owl date)
+   (owl codec)
+   (scheme cxr)
+   (scheme base)
+   (scheme case-lambda)
+   (scheme write))
 
 (define-syntax share-bindings
    (syntax-rules (defined)
@@ -166,7 +116,12 @@
                (tuple 'defined (mkval this)))
             (share-bindings . rest)))))
 
-;; todo: share the modules instead later
+;; implementation features, used by cond-expand
+(define *features*
+   (cons 
+      (string->symbol (string-append "owl-lisp-" *owl-version*))
+      '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
+
 (define shared-misc
    (share-bindings
       run syscall error
@@ -219,7 +174,6 @@
       *libraries*      ;; all currently loaded libraries
       ))
 
-
 (define shared-bindings shared-misc)
 
 (define initial-environment-sans-macros
@@ -234,8 +188,6 @@
          '((owl base))
          (λ (reason) (error "bootstrap import error: " reason))
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
-
-;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux
 
 (define (path->string path)
    (let ((data (file->vector path)))
@@ -290,58 +242,31 @@
 
 (define about-owl 
 "Owl Lisp -- a functional scheme
-Copyright (c) 2016 Aki Helin
+Copyright (c) Aki Helin
 Check out https://github.com/aoh/owl-lisp for more information.")
 
 
-(define-library (owl usuals)
-
-   (export usual-suspects)
-   ; make sure the same bindings are visible that will be at the toplevel
-
-   (import
-      (owl defmac)
-      (owl suffix)
-      (owl math)
-      (owl random)
-      (owl bisect)
-      (owl thread)
-      (owl list)
-      (owl list-extra)
-      (owl syscall)
-      (owl vector)
-      (owl sort)
-      (owl equal)
-      (owl ff)
-      (owl lazy)
-      (owl sexp))
-
-   (begin
-      ; commonly needed functions 
-      (define usual-suspects
-         (list
-               put get del ff-fold fupd
-               - + * /
-               div gcd ediv
-               << < <= = >= > >> 
-               equal? has? mem
-               band bor bxor
-               sort
-               ; suffix-array bisect
-               fold foldr map reverse length zip append unfold
-               lref lset iota
-               ;vec-ref vec-len vec-fold vec-foldr
-               ;print 
-               mail interact 
-               take keep remove 
-               thread-controller
-               ;sexp-parser 
-               uncons lfold lmap
-               rand seed->rands
-               ))))
-
-(import (owl usuals))
-
+(define usual-suspects
+   (list
+         put get del ff-fold fupd
+         - + * /
+         div gcd ediv
+         << < <= = >= > >> 
+         equal? has? mem
+         band bor bxor
+         sort
+         ; suffix-array bisect
+         fold foldr map reverse length zip append unfold
+         lref lset iota
+         ;vec-ref vec-len vec-fold vec-foldr
+         ;print 
+         mail interact 
+         take keep remove 
+         thread-controller
+         ;sexp-parser 
+         uncons lfold lmap
+         rand seed->rands
+         ))
 
 ;; handles $ ol -c stuff
 (define (repl-compile compiler env path opts)
@@ -417,6 +342,8 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       (else
          (exit-owl 126))))
 
+(define owl-ohai "You see a prompt.")
+
 ;; say hi if interactive mode and fail if cannot do so (the rest are done using 
 ;; repl-prompt. this should too, actually)
 (define (greeting env)
@@ -487,25 +414,16 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                            1)))))))
       2))
 
-
-
-; *owl* points to owl root directory
-; initally read from binary path (argv [0] )
-
 (define (directory-of path)
    (runes->string
       (reverse
          (drop-while 
-            (lambda (x) (not (eq? x 47)))
+            (λ (x) (not (eq? x #\/)))
             (reverse
-               (string->bytes path))))))
+               (string->runes path))))))
 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; Dump a new repl image
-;;;
+(define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
+   (make-compiler *vm-special-ops*))
 
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
@@ -522,13 +440,13 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (list
                         (tuple 'init
                            (λ () 
-                              (fork-server 'repl
+                              (fork 'repl
                                  (λ () 
                                     ;; get basic io running
                                     (start-base-threads)
 
                                     ;; repl needs symbol etc interning, which is handled by this thread
-                                    (fork-server 'intern interner-thunk)
+                                    (fork 'intern interner-thunk)
 
                                     ;; set a signal handler which stop evaluation instead of owl 
                                     ;; if a repl eval thread is running
@@ -554,16 +472,6 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                                 )))))))))
                      null)))))))
 
-;; todo: dumping with fasl option should only dump the fasl and only fasl
-
-
-;;;
-;;; Dump the new repl
-;;;
-
-;; note, one one could use the compiler of the currently running system, but using 
-;; the rebuilt one here to make changes possible in 1 instead of 2 build cycles.
-;; (this may be changed later)
 
 (define command-line-rules
    (cl-rules
@@ -577,10 +485,6 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       ((equal? str "some") usual-suspects)
       ((equal? str "all") all)
       (else (print "Bad native selection: " str))))
-
-;;;
-;;; Step 3 - profit
-;;;
 
 (print "Code loaded at " (- (time-ms) build-start) "ms.")
 

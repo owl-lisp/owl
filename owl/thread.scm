@@ -465,7 +465,7 @@
       (define (try thunk fail-val)
          ; run the compiler chain in a new task
          (let ((id (list 'thread)))
-            (fork-linked-server id thunk)
+            (fork-linked id thunk)
             (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) id))) 2)
                ((finished result not used)
                   result)

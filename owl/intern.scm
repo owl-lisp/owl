@@ -263,7 +263,7 @@
                   (error "bad interner request: " msg)))))
 
       (define (start-dummy-interner)
-         (fork-server 'intern dummy-interner))
+         (fork 'intern dummy-interner))
 
       ;; make a thunk to be forked as the thread
       ;; (sym ...)  ((bcode . value) ...) → thunk
@@ -274,7 +274,7 @@
             (λ () (interner sym-root code-root))))
 
       (define (start-symbol-interner initial-symbols)
-         (fork-server 'intern
+         (fork 'intern
             (initialize-interner initial-symbols null)))
 
 ))

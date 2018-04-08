@@ -8,13 +8,15 @@
    (export 
       make-compiler    ; ((make-compiler extra-insts) entry path opts native) 
       dump-fasl 
-      load-fasl)
+      load-fasl
+      suspend)
 
    (import 
       (owl defmac)
       (owl fasl)
       (owl list)
       (owl sort)
+      (owl syscall)
       (owl ff)
       (owl symbol)
       (owl vector)
@@ -327,6 +329,17 @@
             (if (string? path)
                (cook-format (s/^.*\.([a-z]+)$/\1/ path))
                #false)))
+
+      (define owl-ohai-resume "Welcome back.")
+      
+      ; path -> 'loaded | 'saved
+      (define (suspend path)
+         (let ((maybe-world (syscall 16 #true #true)))
+            (if (eq? maybe-world 'resumed)
+               owl-ohai-resume
+               (begin
+                  (dump-fasl maybe-world path)
+                  'saved))))
 
 
       ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
