@@ -87,6 +87,8 @@ typedef int32_t   wdiff;
 #define flag(n)                     ((word)(n) ^ FLAG)
 #define flagged(n)                  ((word)(n) & FLAG)
 #define flagged_or_raw(n)           ((word)(n) & (RAWBIT | FLAG))
+#define TBIT                        0x1000
+#define teardown_needed(hdr)        ((word)(hdr) & TBIT)
 #define A0                          R[*ip]
 #define A1                          R[ip[1]]
 #define A2                          R[ip[2]]
@@ -191,12 +193,13 @@ static word *compact() {
    word *old = new;
    word *end = memend - 1;
    while (((word)old) < ((word)end)) {
-      if (flagged(*old)) {
+      word val = *old;
+      if (flagged(val)) {
          word h;
-         *new = *old;
-         while (flagged(*new)) { /* unthread */
+         *new = val;
+         do { /* unthread */
             rev((word) new);
-         }
+         } while (flagged(*new));
          h = hdrsize(*new);
          if (old == new) {
             old += h;
@@ -207,7 +210,10 @@ static word *compact() {
             new++;
          }
       } else {
-         old += hdrsize(*old);
+         if (teardown_needed(val)) {
+            printf("gc: would teardown\n");
+         }
+         old += hdrsize(val);
       }
    }
    return new;
@@ -439,16 +445,14 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
 
 static word prim_cast(word *ob, int type) {
    if (immediatep((word)ob)) {
-      return make_immediate(imm_val((word)ob), type);
+      return make_immediate(imm_val((word)ob), type & 63);
    } else { /* make a clone of more desired type */
       word hdr = *ob++;
       int size = hdrsize(hdr);
       word *new, *res; /* <- could also write directly using *fp++ */
       allocate(size, new);
       res = new;
-      /* (hdr & 0b...11111111111111111111100000000111) | tttttttt000 */
-      /* *new++ = (hdr&(~2040))|(type<<TPOS); */
-      *new++ = (hdr&(~252))|(type<<TPOS); /* <- hardcoded ...111100000011 */
+      *new++ = (hdr&(~252))|((type&1087)<<TPOS); /* clear type, allow setting teardown in new one */
       wordcopy(ob,new,size-1);
       return (word)res;
    }
@@ -1220,7 +1224,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       goto invoke; }
    op22: { /* cast o t r */
       word *ob = (word *) R[*ip];
-      word type = fixval(A1) & 63;
+      word type = fixval(A1);
       A2 = prim_cast(ob, type);
       NEXT(3); }
    op23: { /* mkt t s f1 .. fs r */

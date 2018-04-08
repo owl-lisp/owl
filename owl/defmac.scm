@@ -449,12 +449,13 @@
       ; object headers are further
       ;
       ;                                    .----> immediate
-      ;  [ssssssss ssssssss ????rppp tttttt10]
-      ;   '---------------| '--||'-| '----|
-      ;                   |    ||  |      '-----> object type
-      ;                   |    ||  '------------> number of padding (unused) bytes at end of object if raw (0-(wordsize-1))
-      ;                   |    |'---------------> rawness bit (raw objects have no decriptors in them)
-      ;                   |    '----------------> your tags here! e.g. tag for closing file descriptors in gc
+      ;  [ssssssss ssssssss ???trppp tttttt10]
+      ;   '---------------| '-|||'-| '----|
+      ;                   |   |||  |      '-----> object type
+      ;                   |   |||  '------------> number of padding (unused) bytes at end of object if raw (0-(wordsize-1))
+      ;                   |   ||'---------------> rawness bit (raw objects have no decriptors in them)
+      ;                   |   |'----------------> teardown bit - something needs to be done if freed by gc
+      ;                   |   '-----------------> your tags here! e.g. tag for closing file descriptors in gc
       ;                   '---------------------> object size in words
       ;  
       ;; note - there are 6 type bits, but one is currently wasted in old header position
