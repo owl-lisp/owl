@@ -482,6 +482,8 @@
       (define type-string-dispatch  21)
       (define type-thread-state     31)
       (define type-record            5)
+      (define type-int+             40)
+      (define type-int-             41)
 
       ;; transitional trees or future ffs
       (define type-ff               24)
@@ -492,8 +494,6 @@
       ;; IMMEDIATE
       (define type-fix+              0)
       (define type-fix-             32)
-      (define type-int+             40)
-      (define type-int-             41)
       (define type-rational         42)
       (define type-complex          43) ;; 3 free below
       (define type-eof              20) ;; moved from 4, clashing with symbols
