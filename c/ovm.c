@@ -14,7 +14,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <sys/wait.h>
 #include <termios.h>
 #include <stdio.h>
 
@@ -47,7 +46,6 @@ typedef int32_t   wdiff;
 #define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
 #define make_raw_header(s, t, p)    (((s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
 #define F(val)                      (((val) << IPOS) | 2)
-#define FN(val)                     (((val) << IPOS) | 32)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
@@ -64,6 +62,7 @@ typedef int32_t   wdiff;
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
 #define PAIRHDR                     make_header(3,1)
 #define NUMHDR                      make_header(3,40) /* <- on the way to 40, see type-int+ in defmac.scm */
+#define NUMNHDR                     make_header(3, 41)
 #define pairp(ob)                   (allocp(ob) && V(ob) == PAIRHDR)
 #define INULL                       make_immediate(0,13)
 #define IFALSE                      make_immediate(1,13)
@@ -71,10 +70,12 @@ typedef int32_t   wdiff;
 #define IEMPTY                      make_immediate(3,13) /* empty ff */
 #define IEOF                        make_immediate(4,13)
 #define IHALT                       make_immediate(5,13)
+#define TNUM                        0
 #define TTUPLE                      2
 #define TSTRING                     3
 #define TPORT                       12
 #define TTHREAD                     31
+#define TNUMN                       32
 #define TFF                         24
 #define FFRIGHT                     1
 #define FFRED                       2
@@ -490,39 +491,51 @@ static word prim_ref(word pword, word pos) {
 }
 
 static int64_t cnum(word a) {
+   uint64_t x;
    if (allocp(a)) {
-      int64_t x = 0;
-      int shift = 0;
       word *p = (word *)a;
-      while (a != INULL) {
-         x |= F(p[1]) << shift;
+      unsigned int shift = 0;
+      x = 0;
+      do {
+         x |= fixval(p[1]) << shift;
          shift += FBITS;
          p = (word *)p[2];
-      }
-      return x;
+      } while (allocp(p));
+      return header(a) == NUMNHDR ? -x : x;
    }
-   return fixval(a);
+   x = fixval(a);
+   return imm_type(a) == TNUMN ? -x : x;
 }
 
 static word onum(int64_t a) {
+   uint64_t x = a;
+   word h = NUMHDR, t = TNUM;
    if (a < 0) {
-      if (a < 0-FMAX)
-         exit(42);
-      return FN(0-a);
-   } else if (a > FMAX) {
-      word *r;
-      if (a >= (int64_t)1 << FBITS * 2)
-         exit(42);
-      allocate(6, r);
-      r[0] = make_header(3, 40);
-      r[4] = F(a>>FBITS);
-      r[2] = (word) (r + 3);
-      r[3] = make_header(3, 40);
-      r[1] = F(a&FMAX);
-      r[5] = INULL;
-      return (word) r;
+      h = NUMNHDR;
+      t = TNUMN;
+      x = -a;
    }
-   return F(a);
+   if (x > FMAX) {
+      word *p, l = INULL, v = x >> (2 * FBITS);
+      if (v != 0) {
+         allocate(3, p);
+         p[0] = NUMHDR;
+         p[1] = F(v);
+         p[2] = INULL;
+         l = (word)p;
+      }
+      allocate(3, p);
+      p[0] = NUMHDR;
+      p[1] = F((x >> FBITS) & FMAX);
+      p[2] = l;
+      l = (word)p;
+      allocate(3, p);
+      p[0] = h;
+      p[1] = F(x & FMAX);
+      p[2] = l;
+      return (word)p;
+   }
+   return make_immediate(x, t);
 }
 
 static word prim_set(word wptr, word pos, word val) {
@@ -558,12 +571,12 @@ static word prim_sys(int op, word a, word b, word c) {
       case 0: { /* 0 fsend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
          word *buff = (word *) b;
-         int wrote, size, len = fixval(c);
+         int wrote, size, len = cnum(c);
          if (immediatep(buff)) return IFALSE;
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = write(fd, buff + 1, len);
-         if (wrote > 0) return F(wrote);
+         if (wrote > 0) return onum(wrote);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 1: { /* 1 = fopen <str> <mode> <to> */
@@ -635,7 +648,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return (word)pair; }
       case 5: { /* fread fd max -> obj | eof | F (read error) | T (would block) */
          word fd = fixval(a);
-         word max = fixval(b);
+         word max = cnum(b);
          word *res;
          int n, nwords = (max/W) + 2;
          allocate(nwords, res);
@@ -708,12 +721,12 @@ static word prim_sys(int op, word a, word b, word c) {
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
          word *buff = (word *) b;
-         int wrote, size, len = fixval(c);
+         int wrote, size, len = cnum(c);
          if (immediatep(buff)) return IFALSE;
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = send(fd, buff + 1, len, 0);
-         if (wrote > 0) return F(wrote);
+         if (wrote > 0) return onum(wrote);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
@@ -745,11 +758,9 @@ static word prim_sys(int op, word a, word b, word c) {
             return IFALSE;
          if (pid == 0) /* we're in child, return true */
             return ITRUE;
-         if ((int)pid > FMAX)
-            exit(5);
-         return F(pid&FMAX); }
+         return onum(pid); }
       case 19: { /* wait <pid> <respair> _ */
-         pid_t pid = (a == IFALSE) ? -1 : fixval(a);
+         pid_t pid = a != IFALSE ? cnum(a) : -1;
          int status;
          word *r = (word *) b;
          pid = waitpid(pid, &status, WNOHANG|WUNTRACED); /* |WCONTINUED */
@@ -776,7 +787,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 20: /* chdir path → bool */
          return BOOL(allocp(a) && chdir((char *)a + W) == 0);
       case 21: /* kill pid signal → bool */
-         return BOOL(kill(fixval(a), fixval(b)) == 0);
+         return BOOL(kill(cnum(a), fixval(b)) == 0);
       case 22: /* unlink path → bool */
          return BOOL(allocp(a) && unlink((char *)a + W) == 0);
       case 23: /* rmdir path → bool */
@@ -786,7 +797,7 @@ static word prim_sys(int op, word a, word b, word c) {
             const mode_t nods[4] = { S_IFIFO, S_IFCHR, S_IFBLK, S_IFREG };
             const char *path = (const char *)a + W;
             const mode_t type = fixval(G(b, 1)), mode = fixval(G(b, 2));
-            if ((type & ~3 ? mkdir(path, mode) : mknod(path, nods[type] | mode, fixval(c))) == 0)
+            if ((type & ~3 ? mkdir(path, mode) : mknod(path, nods[type] | mode, cnum(c))) == 0)
                return ITRUE;
          }
          return IFALSE;
