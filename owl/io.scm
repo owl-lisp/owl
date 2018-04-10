@@ -83,7 +83,7 @@
       (owl queue)
       (owl string)
       (owl list-extra)
-      (owl sys)
+      (prefix (owl sys) sys-)
       (owl ff)
       (owl equal)
       (owl vector)
@@ -174,7 +174,7 @@
          (let ((fd (fopen path append-mode)))
             (if fd 
                (let ((port (fd->port fd)))
-                  (seek-end port)
+                  (sys-seek-end port)
                   port)
                #false)))
 
@@ -863,7 +863,8 @@
                            (muxer rs ws (cdr alarms)))))))))
             
       (define (start-muxer . id)
-         (fork-server (if (null? id) 'iomux (car id))
+         (fork
+            (if (null? id) 'iomux (car id))
             (λ () (muxer null null null))))
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
@@ -874,7 +875,7 @@
       (define (file-size path)
          (let ((port (open-input-file path)))
             (if port
-               (let ((end (seek-end port)))
+               (let ((end (sys-seek-end port)))
                   (close-port port)
                   end)
                port)))

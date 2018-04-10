@@ -144,10 +144,6 @@
       exit-thread
       number->string
       fork
-      fork-named
-      fork-linked
-      fork-server
-      fork-linked-server
       exit-owl
       single-thread?
       set-ticker

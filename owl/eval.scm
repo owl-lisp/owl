@@ -127,7 +127,8 @@
       ; run the code in its own thread
       (define (evaluate-as exp env task)
          ; run the compiler chain in a new task
-         (fork-linked task
+         (link task)
+         (fork task
             (λ ()
                (call/cc
                   (λ (exit)

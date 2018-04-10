@@ -3,8 +3,8 @@
    (export
       syscall error interact fork accept-mail wait-mail check-mail
       exit-owl release-thread catch-thread set-signal-action
-      single-thread? kill link mail fork-linked-server fork-server
-      return-mails fork-server fork-linked fork-named exit-thread exit-owl
+      single-thread? kill link mail
+      return-mails fork-named exit-thread exit-owl
       poll-mail-from start-profiling stop-profiling running-threads par*
       par por* por)
 
@@ -24,20 +24,11 @@
       (define (fork-named name thunk)
          (syscall 4 (list name) thunk))
 
-      (define (fork-linked name thunk)
-         (syscall 4 (list name 'link) thunk))
-
-      (define (fork-server name handler)
-         (syscall 4 (list name 'mailbox) handler))
-
       (define (error reason info)
          (syscall 5 reason info))
 
       (define (return-mails rmails)
          (syscall 6 rmails rmails))
-
-      (define (fork-linked-server name handler)
-         (syscall 4 (list name 'mailbox 'link) handler))
 
       (define (running-threads)
          (syscall 8 #false #false))
@@ -134,6 +125,10 @@
             ((thunk)
                (fork-named (tuple 'anonimas) thunk))))
 
+      ;; (thread (op . args)) → id
+      ;; (wait-thread (thread (op . args)) [default]) → value
+      ;; thread scheduler should keep the exit value
+      
       ; Message passing (aka mailing) is asynchronous, and at least 
       ; in a one-core environment order-preserving. interact is like 
       ; mail, but it blocks the thread until the desired response 
