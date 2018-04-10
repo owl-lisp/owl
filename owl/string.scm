@@ -313,19 +313,19 @@
                (list->string (list . things)))))
 
       (define (c-string str) ; -> bvec | #false
-         (if (eq? (type str) type-string)
+         (raw
+            (str-foldr
             ;; do not re-encode raw strings. these are normally ASCII strings 
             ;; which would not need encoding anyway, but explicitly bypass it 
             ;; to allow these strings to contain *invalid string data*. This 
             ;; allows bad non UTF-8 strings coming for example from command 
             ;; line arguments (like paths having invalid encoding) to be used 
             ;; for opening files.
-            (raw (str-foldr cons '(0) str) type-string #false)
-            (let ((bs (str-foldr encode-point '(0) str)))
-               ; check that the UTF-8 encoded version fits one raw chunk (64KB)
-               (if (<= (length bs) #xffff) 
-                  (raw bs type-string #false)
-                  #false))))
+               (if (eq? (type str) type-string)
+                  cons
+                  encode-point)
+               '(0) str)
+            type-string #false))
 
       (define null-terminate c-string)
 
