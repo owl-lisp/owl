@@ -40,6 +40,7 @@ typedef int32_t   wdiff;
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
 #define FMAX                        ((1<<FBITS)-1) /* maximum fixnum (and most negative fixnum) */
 #define MAXOBJ                      0xffff         /* max words in tuple including header */
+#define MAXPAYL                     ((MAXOBJ - 1) * W) /* maximum payload in an allocated object */
 #define RAWBIT                      2048
 #define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
 #define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
@@ -219,8 +220,8 @@ static word *compact() {
    return new;
 }
 
-void fix_pointers(word *pos, wdiff delta, word *end) {
-   while(1) {
+void fix_pointers(word *pos, wdiff delta) {
+   for (;;) {
       word hdr = *pos;
       int n = hdrsize(hdr);
       if (hdr == 0) return; /* end marker reached. only dragons beyond this point.*/
@@ -254,7 +255,7 @@ wdiff adjust_heap(int cells) {
    } else if (memstart) { /* d'oh! we need to O(n) all the pointers... */
       wdiff delta = (word)memstart - (word)old;
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
-      fix_pointers(memstart, delta, memend);
+      fix_pointers(memstart, delta);
       return delta;
    } else {
       breaked |= 8; /* will be passed over to mcp at thread switch*/
@@ -346,7 +347,7 @@ unsigned int lenn(byte *pos, unsigned int max) { /* added here, strnlen was miss
 /* list length, no overflow or valid termination checks */
 int llen(word *ptr) {
    int len = 0;
-   while(allocp(ptr) && *ptr == PAIRHDR) {
+   while(pairp(ptr)) {
       len++;
       ptr = (word *) ptr[2];
    }
@@ -367,20 +368,26 @@ static word *mkbvec(size_t len, int type) {
    int nwords = OBJWORDS(len);
    int pads = (nwords-1)*W - len;
    word *ob;
+   byte *end;
    allocate(nwords, ob);
+   end = (byte *)ob + W + len;
    *ob = make_raw_header(nwords, type, pads);
+   while (pads--)
+      *end++ = 0; /* clear the padding bytes */
    return ob;
 }
 
 /* map a null or C-string to False, Null or owl-string, false being null or too large string */
 word strp2owl(byte *sp) {
-   int len;
    word *res;
-   if (!sp) return IFALSE;
-   len = lenn(sp, FMAX+1);
-   if (len == FMAX+1) return INULL; /* can't touch this */
-   res = mkbvec(len, TBVEC); /* make a bvec instead of a string since we don't know the encoding */
-   bytecopy(sp, ((byte *)res)+W, len);
+   unsigned int len;
+   if (sp == NULL)
+      return IFALSE;
+   len = lenn(sp, MAXPAYL + 1);
+   if (len == MAXPAYL + 1)
+      return INULL; /* can't touch this */
+   res = mkbvec(len, TSTRING); /* make a raw-string since we don't know the encoding */
+   bytecopy(sp, (byte *)res + W, len);
    return (word)res;
 }
 
@@ -515,23 +522,18 @@ static word onum(int64_t a) {
       x = -a;
    }
    if (x > FMAX) {
-      word *p, l = INULL, v = x >> (2 * FBITS);
-      if (v != 0) {
+      word *p = (word *)INULL;
+      unsigned int shift = (63 / FBITS) * FBITS;
+      while (!(x & ((uint64_t)FMAX << shift)))
+         shift -= FBITS;
+      do {
+         fp[0] = NUMHDR;
+         fp[1] = F((x >> shift) & FMAX);
+         fp[2] = (word)p;
+         shift -= FBITS;
          allocate(3, p);
-         p[0] = NUMHDR;
-         p[1] = F(v);
-         p[2] = INULL;
-         l = (word)p;
-      }
-      allocate(3, p);
-      p[0] = NUMHDR;
-      p[1] = F((x >> FBITS) & FMAX);
-      p[2] = l;
-      l = (word)p;
-      allocate(3, p);
+      } while (shift + FBITS);
       p[0] = h;
-      p[1] = F(x & FMAX);
-      p[2] = l;
       return (word)p;
    }
    return make_immediate(x, t);
@@ -631,19 +633,16 @@ static word prim_sys(int op, word a, word b, word c) {
          struct sockaddr_in addr;
          socklen_t len = sizeof(addr);
          int fd;
-         word *pair;
-         byte *ipa;
+         word *ipa, *pair;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
          toggle_blocking(fd,0);
-         ipa = (byte *) &addr.sin_addr;
-         *fp = make_raw_header(2, TBVEC, 4%W);
-         bytecopy(ipa, ((byte *) fp) + W, 4);
-         fp[2] = PAIRHDR;
-         fp[3] = (word) fp;
-         fp[4] = F(fd);
-         pair = fp+2;
-         fp += 5;
+         ipa = mkbvec(4, TBVEC);
+         bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
+         allocate(3, pair);
+         pair[0] = PAIRHDR;
+         pair[1] = (word)ipa;
+         pair[2] = F(fd);
          return (word)pair; }
       case 5: { /* fread fd max -> obj | eof | F (read error) | T (would block) */
          word fd = fixval(a);
@@ -700,17 +699,17 @@ static word prim_sys(int op, word a, word b, word c) {
                return onum((intptr_t)dirp);
          }
          return IFALSE;
-      case 12: { /* sys-readdir dirp _ _ -> bvec | eof | False */
-         DIR *dirp = (DIR *)(intptr_t)cnum(a);
-         word *res;
-         unsigned int len;
-         struct dirent *dire = readdir(dirp);
-         if (!dire) return IEOF; /* eof at end of dir stream */
-         len = lenn((byte *)dire->d_name, FMAX+1);
-         if (len == FMAX+1) return IFALSE; /* false for errors, like too long file names */
-         res = mkbvec(len, TSTRING); /* make a fake raw-string (OS may not use valid UTF-8) */
-         bytecopy((byte *)&dire->d_name, (byte *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
-         return (word)res; }
+      case 12: /* read-dir dirp → raw-string | eof | #f */
+         /*if (allocp(a))*/ {
+            struct dirent *ent;
+            errno = 0;
+            ent = readdir((DIR *)(intptr_t)cnum(a));
+            if (ent != NULL)
+               return strp2owl((byte *)&ent->d_name); /* make a raw-string (OS may not use valid UTF-8) */
+            if (errno == 0)
+               return IEOF;
+         }
+         return IFALSE;
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)(intptr_t)cnum(a));
          return ITRUE;
@@ -866,7 +865,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 35: /* readlink path → raw-sting | #false */
          if (allocp(a)) {
             size_t len = memend - fp;
-            size_t max = len > MAXOBJ ? (MAXOBJ - 1) * W + 1 : (len - 1) * W;
+            size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
             /* the last byte is temporarily used to check, if the string fits */
             len = readlink((const char *)a + W, (char *)fp + W, max);
             if (len != (size_t)-1 && len != max)
@@ -876,7 +875,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 36: /* getcwd → raw-sting | #false */
          {
             size_t len = memend - fp;
-            size_t max = len > MAXOBJ ? (MAXOBJ - 1) * W + 1 : (len - 1) * W;
+            size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
             /* the last byte is temporarily used for the terminating '\0' */
             if (getcwd((char *)fp + W, max) != NULL)
                return (word)mkbvec(lenn((byte *)fp + W, max - 1), TSTRING);
@@ -891,28 +890,18 @@ static word prim_sys(int op, word a, word b, word c) {
 
 static word prim_lraw(word wptr, int type, word revp) {
    word *lst = (word *) wptr;
-   int nwords, len = 0, pads;
+   int len = 0;
    byte *pos;
    word *raw, *ob;
    if (revp != IFALSE) { exit(1); } /* <- to be removed */
-   ob = lst;
-   while (allocp(ob) && *ob == PAIRHDR) {
+   for (ob = lst; pairp(ob); ob = (word *)ob[2])
       len++;
-      ob = (word *) ob[2];
-   }
-   if ((word) ob != INULL) return IFALSE;
-   if (len > FMAX) return IFALSE;
-   nwords = OBJWORDS(len);
-   allocate(nwords, raw);
-   pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
-   *raw = make_raw_header(nwords, type, pads);
-   ob = lst;
+   if ((word)ob != INULL || len > MAXPAYL)
+      return IFALSE;
+   raw = mkbvec(len, type);
    pos = ((byte *) raw) + W;
-   while ((word) ob != INULL) {
+   for (ob = lst; pairp(ob); ob = (word *)ob[2])
       *pos++ = fixval(ob[1])&255;
-      ob = (word *) ob[2];
-   }
-   while(pads--) { *pos++ = 0; } /* clear the padding bytes */
    return (word)raw;
 }
 
@@ -1212,7 +1201,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          }
          lst = (word *) R[reg+1];
       }
-      while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
+      while(pairp(lst)) { /* unwind argument list */
          /* FIXME: unwind only up to last register and add limited rewinding to arity check */
          if (reg > 128) { /* dummy handling for now */
             exit(3);
@@ -1340,7 +1329,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = (word) ob;
       *ob++ = make_header(size+1, type);
       while(size--) {
-         assert((allocp(lst) && *lst == PAIRHDR), lst, 35);
+         assert(pairp(lst), lst, 35);
          *ob++ = lst[1];
          lst = (word *) lst[2];
       }
@@ -1535,30 +1524,12 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
 word *burn_args(int nargs, char **argv) {
    int this;
    word *oargs = (word *) INULL;
-   this = nargs-1;
-   while(this >= 0) {
-      byte *str = (byte *) argv[this];
-      byte *pos = str;
-      int pads;
-      word *tmp;
-      int len = 0, size;
-      while (*pos++)
-         len++;
-      if (len > FMAX)
-         exit(1);
-      size = OBJWORDS(len);
-      pads = (size-1)*W - len;
-      allocate(size, tmp);
-      *tmp = make_raw_header(size, TSTRING, pads);
-      pos = ((byte *) tmp) + W;
-      while (*str)
-         *pos++ = *str++;
+   for (this = nargs - 1; this >= 0; --this) {
+      word tmp = strp2owl((byte *)argv[this]);
       *fp = PAIRHDR;
-      fp[1] = (word) tmp;
+      fp[1] = tmp;
       fp[2] = (word) oargs;
-      oargs = fp;
-      fp += 3;
-      this--;
+      allocate(3, oargs);
    }
    return oargs;
 }
@@ -1658,10 +1629,10 @@ void heap_metrics(int *rwords, int *rnobjs) {
 size_t count_cmdlinearg_words(int nargs, char **argv) {
    size_t total = 0;
    while(nargs--) {
-      size_t this = lenn((byte *) *argv, FMAX);
-      if (this == FMAX)
+      size_t this = lenn((byte *)*argv, MAXPAYL + 1);
+      if (this == MAXPAYL + 1)
          exit(3);
-      total += (this / W) + 3;
+      total += OBJWORDS(this) + 3;
       argv++;
    }
    return total;

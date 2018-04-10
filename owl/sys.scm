@@ -273,10 +273,8 @@
       ;;; Environment variables
       ;;;
 
-      ;; str → bvec | F
       (define (getenv str)
-         (let ((bvec (sys 16 str)))
-            (and bvec (bytes->string (vector->list bvec)))))
+         (sys 16 str))
 
       (define (setenv var val)
          (sys 28 var val))
