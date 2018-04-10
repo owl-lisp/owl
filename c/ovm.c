@@ -49,7 +49,6 @@ typedef int32_t   wdiff;
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
-#define fliptag(ptr)                ((word)(ptr) ^ 2) /* make a pointer look like some (usually bad) immediate object */
 #define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
@@ -500,7 +499,7 @@ static int64_t cnum(word a) {
          x |= fixval(p[1]) << shift;
          shift += FBITS;
          p = (word *)p[2];
-      } while (allocp(p));
+      } while (shift < 64 && allocp(p));
       return header(a) == NUMNHDR ? -x : x;
    }
    x = fixval(a);
@@ -698,11 +697,11 @@ static word prim_sys(int op, word a, word b, word c) {
          if (allocp(a)) {
             DIR *dirp = opendir((const char *)a + W);
             if (dirp != NULL)
-               return fliptag(dirp);
+               return onum((intptr_t)dirp);
          }
          return IFALSE;
       case 12: { /* sys-readdir dirp _ _ -> bvec | eof | False */
-         DIR *dirp = (DIR *)fliptag(a);
+         DIR *dirp = (DIR *)(intptr_t)cnum(a);
          word *res;
          unsigned int len;
          struct dirent *dire = readdir(dirp);
@@ -713,7 +712,7 @@ static word prim_sys(int op, word a, word b, word c) {
          bytecopy((byte *)&dire->d_name, (byte *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
          return (word)res; }
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
-         closedir((DIR *)fliptag(a));
+         closedir((DIR *)(intptr_t)cnum(a));
          return ITRUE;
       case 14: { /* unused */
          exit(42);
