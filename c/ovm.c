@@ -23,11 +23,7 @@
 
 typedef uintptr_t word;
 typedef uint8_t   byte;
-#ifdef _LP64
-typedef int64_t   wdiff;
-#else
-typedef int32_t   wdiff;
-#endif
+typedef intptr_t wdiff;
 
 /*** Macros ***/
 
@@ -35,7 +31,7 @@ typedef int32_t   wdiff;
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       *((word *)(ob))
-#define W                           sizeof(word)
+#define W                           ((unsigned int)sizeof(word))
 #define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
 #define FMAX                        ((1<<FBITS)-1) /* maximum fixnum (and most negative fixnum) */
@@ -242,7 +238,7 @@ void fix_pointers(word *pos, wdiff delta) {
 
 /* emulate sbrk with malloc'd memory, because sbrk is no longer properly supported */
 /* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend */
-wdiff adjust_heap(int cells) {
+wdiff adjust_heap(wdiff cells) {
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + (cells > 0xffffff ? 0xffffff : cells); /* limit heap growth speed */
@@ -268,7 +264,7 @@ wdiff adjust_heap(int cells) {
 static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
-   int nfree;
+   wdiff nfree;
    fp = regs + hdrsize(*regs);
    root = fp+1;
    *root = (word) regs;
@@ -294,8 +290,8 @@ static word *gc(int size, word *regs) {
          }
       } else if (nfree > (heapsize/3)) {
          /* decrease heap size if more than 33% is free by 10% of the free space */
-         int dec = -(nfree/10);
-         int new = nfree - dec;
+         wdiff dec = -(nfree / 10);
+         wdiff new = nfree - dec;
          if (new > size*W*2 + MEMPAD) {
             regs[hdrsize(*regs)] = 0; /* as above */
             regs = (word *) ((word)regs + adjust_heap(dec+MEMPAD*W));
@@ -465,7 +461,7 @@ static word prim_cast(word *ob, int type) {
    }
 }
 
-static int prim_refb(word pword, int pos) {
+static int prim_refb(word pword, unsigned int pos) {
    word *ob = (word *) pword;
    word hdr, hsize;
    if (immediatep(ob))
@@ -541,9 +537,8 @@ static word onum(int64_t a) {
 
 static word prim_set(word wptr, word pos, word val) {
    word *ob = (word *) wptr;
-   word hdr;
+   word hdr, p;
    word *new;
-   int p = 0;
    pos = fixval(pos);
    if (immediatep(ob))
       return IFALSE;
@@ -552,10 +547,8 @@ static word prim_set(word wptr, word pos, word val) {
       return IFALSE;
    hdr = hdrsize(hdr);
    allocate(hdr, new);
-   while(p <= hdr) {
+   for (p = 0; p <= hdr; ++p)
       new[p] = (pos == p && p) ? val : ob[p];
-      p++;
-   }
    return (word) new;
 }
 
@@ -679,14 +672,12 @@ static word prim_sys(int op, word a, word b, word c) {
          word *ipa;
          word *pair;
          int recvd;
-         if (memend - fp <= MAXOBJ / W + 2)
-            return IFALSE;
-         recvd = recvfrom(fixval(a), fp + 1, MAXOBJ, 0, (struct sockaddr *)&si_other, &slen);
+         recvd = recvfrom(fixval(a), fp + 1, 65528, 0, (struct sockaddr *)&si_other, &slen);
          if (recvd < 0)
             return IFALSE;
          bvec = mkbvec(recvd, TBVEC);
          ipa = mkbvec(4, TBVEC);
-         bytecopy((byte *) &si_other.sin_addr, ((byte *) ipa)+W, 4);
+         bytecopy((byte *)&si_other.sin_addr, (byte *)ipa + W, 4);
          allocate(3, pair);
          pair[0] = PAIRHDR;
          pair[1] = (word)ipa;
@@ -890,9 +881,9 @@ static word prim_sys(int op, word a, word b, word c) {
 
 static word prim_lraw(word wptr, int type, word revp) {
    word *lst = (word *) wptr;
-   int len = 0;
    byte *pos;
    word *raw, *ob;
+   unsigned int len = 0;
    if (revp != IFALSE) { exit(1); } /* <- to be removed */
    for (ob = lst; pairp(ob); ob = (word *)ob[2])
       len++;
@@ -900,8 +891,8 @@ static word prim_lraw(word wptr, int type, word revp) {
       return IFALSE;
    raw = mkbvec(len, type);
    pos = ((byte *) raw) + W;
-   for (ob = lst; pairp(ob); ob = (word *)ob[2])
-      *pos++ = fixval(ob[1])&255;
+   for (ob = lst; (word)ob != INULL; ob = (word *)ob[2])
+      *pos++ = fixval(ob[1]) & 255;
    return (word)raw;
 }
 
@@ -982,8 +973,8 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
 
 word vm(word *ob, word *arg) {
    unsigned char *ip;
-   int bank = 0;
-   int ticker = TICKS;
+   unsigned int bank = 0;
+   unsigned int ticker = TICKS;
    unsigned short acc = 0;
    int op;
    word R[NR];
