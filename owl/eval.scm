@@ -96,7 +96,7 @@
             ;; note that these could now come straight from primops
             '(cons car cdr eq? type type-old size cast fetch ref sys-prim refb
               pick mk mkr sys fxbor fxbxor fread _fopen fclose fsend lraw
-              raw _sopen accept mkt bind set lesser? call-native
+              raw2 raw _sopen accept mkt bind set lesser? call-native
               mkred mkblack ff-bind ff-toggle ffcar ffcdr red? listuple
               fxband fx+ fxqr fx* fx- fx<< fx>> ncons ncar ncdr raw-mode
               iomux clock time sizeb getev type-byte)))

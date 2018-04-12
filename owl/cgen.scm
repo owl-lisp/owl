@@ -152,7 +152,7 @@
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-lraw bs regs fail) 
          (lets ((lr tr fr to bs (get4 (cdr bs))))
-            (values (list "R["to"]=prim_lraw(R["lr"],fixval(R["tr"]),R["fr"]);") bs    
+            (values (list "R["to"]=prim_lraw(R["lr"],fixval(R["tr"]));") bs
                (del regs to)))) ; <- lraw can fail
 
       ;; ref ob pos to
