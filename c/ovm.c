@@ -1450,9 +1450,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
-   op60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
-      A3 = prim_lraw(A0, fixval(A1));
-      NEXT(4);
+   op60: /* unused */
+      error(256, F(60), IFALSE);
    op61: /* clock <secs> <ticks> */ { /* fixme: sys */
       struct timeval tp;
       word *ob;

@@ -228,7 +228,7 @@
 
       (define (make-chunk rcps len ascii?)
          (if ascii?
-            (let ((str (raw2 (reverse rcps) type-string)))
+            (let ((str (raw (reverse rcps) type-string)))
                (if str
                   str
                   (error "Failed to make string: " rcps)))
@@ -313,7 +313,7 @@
                (list->string (list . things)))))
 
       (define (c-string str) ; -> bvec | #false
-         (raw2
+         (raw
             (str-foldr
             ;; do not re-encode raw strings. these are normally ASCII strings 
             ;; which would not need encoding anyway, but explicitly bypass it 

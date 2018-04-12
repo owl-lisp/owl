@@ -39,7 +39,7 @@
    (begin
 
       (define (bytes->bytecode bytes)
-         (raw2 bytes type-bytecode))
+         (raw bytes type-bytecode))
 
       (define eq? 
          (bytes->bytecode 
@@ -133,7 +133,6 @@
             ;;; input arity includes a continuation
             (tuple 'sys          27 4 1 sys)
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
-            (tuple 'raw2         37 2 1 raw)   ;; make raw object, and *add padding byte count to type variant*
             (tuple 'raw          37 2 1 raw)   ;; make raw object, and *add padding byte count to type variant*
             (tuple 'cons         51 2 1 cons)
             (tuple 'car          52 1 1 car)
