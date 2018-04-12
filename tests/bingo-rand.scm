@@ -46,8 +46,8 @@
                   (wait rounds)
                   (loop wanted rst)))))))
 
-(fork 'fini
-   (λ ()
+(thread 'fini
+   (begin
       (print (ref (wait-mail) 2)) ; omit the id to make output equal in all cases
       (for-each (λ (id) (mail id 'halt)) 
       (drop-mails))))
@@ -55,8 +55,8 @@
 (fold
    (λ (rst id)
       (lets ((rst n (rand rst #xffffffff)))
-         (fork id
-            (λ () (spammer (seed->rands n))))
+         (thread id
+            (spammer (seed->rands n)))
          rst))
    (seed->rands seed)
    (iota 0 1 n))

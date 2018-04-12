@@ -1,12 +1,13 @@
 (define-library (owl syscall)
 
    (export
-      syscall error interact fork accept-mail wait-mail check-mail
+      syscall error interact accept-mail wait-mail check-mail
       exit-owl release-thread catch-thread set-signal-action
       single-thread? kill link mail
       return-mails fork-named exit-thread exit-owl
       poll-mail-from start-profiling stop-profiling running-threads par*
-      par por* por)
+      par por* por
+      thread thunk->thread)
 
    (import 
       (owl defmac)
@@ -118,13 +119,23 @@
                   ;; got spam, keep waiting
                   (loop (check-mail) (cons envp spam) rounds)))))
          
-      (define fork
+      (define thunk->thread 
          (case-lambda
             ((id thunk)
                (fork-named id thunk))
             ((thunk)
+               ;; get a fresh name unless otherwise specified
                (fork-named (tuple 'anonimas) thunk))))
 
+      (define fork thunk->thread)
+      
+      (define-syntax thread
+         (syntax-rules (quote)
+            ((thread id val)
+               (thunk->thread id (lambda () val)))
+            ((thread val)
+               (thunk->thread (lambda () val)))))
+                  
       ;; (thread (op . args)) → id
       ;; (wait-thread (thread (op . args)) [default]) → value
       ;; thread scheduler should keep the exit value

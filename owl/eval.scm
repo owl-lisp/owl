@@ -128,19 +128,18 @@
       (define (evaluate-as exp env task)
          ; run the compiler chain in a new task
          (link task)
-         (fork task
-            (λ ()
-               (call/cc
-                  (λ (exit)
-                     (fold
-                        (λ (state next)
-                           (if (ok? state)
-                              (begin
-                                 (debug env " * " (ref state 2))
-                                 (next (ref state 2) (ref state 3)))
-                              (exit state)))
-                        (ok exp env)
-                        compiler-passes)))))
+         (thread task
+            (call/cc
+               (λ (exit)
+                  (fold
+                     (λ (state next)
+                        (if (ok? state)
+                           (begin
+                              (debug env " * " (ref state 2))
+                              (next (ref state 2) (ref state 3)))
+                           (exit state)))
+                     (ok exp env)
+                     compiler-passes))))
          ; grab the result
          (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) task))) 2)
             ((finished result not used)

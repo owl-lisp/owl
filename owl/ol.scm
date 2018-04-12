@@ -436,13 +436,13 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (list
                         (tuple 'init
                            (λ () 
-                              (fork 'repl
-                                 (λ () 
+                              (thread 'repl
+                                 (begin
                                     ;; get basic io running
                                     (start-base-threads)
 
                                     ;; repl needs symbol etc interning, which is handled by this thread
-                                    (fork 'intern interner-thunk)
+                                    (thunk->thread 'intern interner-thunk)
 
                                     ;; set a signal handler which stop evaluation instead of owl 
                                     ;; if a repl eval thread is running

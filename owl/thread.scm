@@ -466,7 +466,7 @@
          ; run the compiler chain in a new task
          (let ((id (list 'thread)))
             (link id)
-            (fork id thunk)
+            (thunk->thread id thunk)
             (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) id))) 2)
                ((finished result not used)
                   result)

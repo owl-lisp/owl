@@ -1,5 +1,5 @@
-(fork 'crasher
-   (λ ()
+(thread 'crasher
+   (begin
       (wait-mail) ;; wait for a message before crashing
       (/ 1 0)))
 

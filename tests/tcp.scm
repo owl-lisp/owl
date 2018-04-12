@@ -18,7 +18,7 @@
          (let ((clis (tcp-clients port)))
             (if clis
                (begin
-                  (fork name (lambda () (tcp-echo clis)))
+                  (thread name (tcp-echo clis))
                   port)
                (loop (+ port 1))))
          #false)))

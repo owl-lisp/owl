@@ -11,7 +11,7 @@
       (mail from msg)
       (echoer)))
 
-(fork echo echoer)
+(thunk->thread echo echoer)
 
 (begin
    ;; send 0-99 mails and leave the responses to inbox

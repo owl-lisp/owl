@@ -1,15 +1,14 @@
 (import (owl io))
 
-(fork
-   (λ ()
-      (lfold
-         (λ (nth packet)
-            (print packet)
-            (if (= nth 3)
-               (halt 0)
-               (+ nth 1)))
-         1
-         (udp-packets 31337))))
+(thread
+   (lfold
+      (λ (nth packet)
+         (print packet)
+         (if (= nth 3)
+            (halt 0)
+            (+ nth 1)))
+      1
+      (udp-packets 31337)))
 
 (sleep 100)
 

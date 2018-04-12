@@ -863,9 +863,9 @@
                            (muxer rs ws (cdr alarms)))))))))
             
       (define (start-muxer . id)
-         (fork
+         (thread
             (if (null? id) 'iomux (car id))
-            (λ () (muxer null null null))))
+            (muxer null null null)))
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
