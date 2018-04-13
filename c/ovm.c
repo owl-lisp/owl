@@ -868,6 +868,46 @@ static word prim_sys(int op, word a, word b, word c) {
          return IFALSE;
       case 37: /* umask mask → mask */
          return F(umask(fixval(a)));
+      case 38: /* stat fd|path follow → list */
+         if (immediatep(a) || stringp(a)) {
+            struct stat st;
+            int flg = b != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fstatat(AT_FDCWD, (char *)a + W, &st, flg) : fstat(fixval(a), &st)) == 0) {
+               word lst = INULL;
+               lst = cons(onum(st.st_blocks, 1), lst);
+               lst = cons(onum(st.st_blksize, 1), lst);
+               lst = cons(onum(st.st_ctim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_mtim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_atim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_size, 1), lst);
+               lst = cons(onum(st.st_rdev, 0), lst);
+               lst = cons(onum(st.st_gid, 0), lst);
+               lst = cons(onum(st.st_uid, 0), lst);
+               lst = cons(onum(st.st_nlink, 0), lst);
+               lst = cons(onum(st.st_mode, 0), lst);
+               lst = cons(onum(st.st_ino, 0), lst);
+               lst = cons(onum(st.st_dev, 1), lst);
+               return lst;
+            }
+         }
+         return INULL;
+      case 39: /* chmod fd|path mode follow → bool */
+         if ((immediatep(a) || stringp(a)) && fixnump(b)) {
+            mode_t mod = fixval(b);
+            int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fchmodat(AT_FDCWD, (char *)a + W, mod, flg) : fchmod(fixval(a), mod)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
+      case 40: /* chown fd|path (uid . gid) follow → bool */
+         if ((immediatep(a) || stringp(a)) && pairp(b)) {
+            uid_t uid = cnum(G(b, 1));
+            gid_t gid = cnum(G(b, 2));
+            int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fchownat(AT_FDCWD, (char *)a + W, uid, gid, flg) : fchown(fixval(a), uid, gid)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
       default:
          return IFALSE;
    }
