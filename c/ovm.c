@@ -519,10 +519,10 @@ static int64_t cnum(word a) {
    return imm_type(a) == TNUMN ? -x : x;
 }
 
-static word onum(int64_t a) {
+static word onum(int64_t a, int s) {
    uint64_t x = a;
    word h = NUMHDR, t = TNUM;
-   if (a < 0) {
+   if (s && a < 0) {
       h = NUMNHDR;
       t = TNUMN;
       x = -a;
@@ -577,7 +577,7 @@ static word prim_sys(int op, word a, word b, word c) {
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = write(fd, buff + 1, len);
-         if (wrote > 0) return onum(wrote);
+         if (wrote > 0) return onum(wrote, 0);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 1: { /* 1 = fopen <str> <mode> <to> */
@@ -685,7 +685,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (allocp(a)) {
             DIR *dirp = opendir((const char *)a + W);
             if (dirp != NULL)
-               return onum((intptr_t)dirp);
+               return onum((intptr_t)dirp, 1);
          }
          return IFALSE;
       case 12: /* read-dir dirp → raw-string | eof | #f */
@@ -713,7 +713,7 @@ static word prim_sys(int op, word a, word b, word c) {
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = send(fd, buff + 1, len, 0);
-         if (wrote > 0) return onum(wrote);
+         if (wrote > 0) return onum(wrote, 0);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
@@ -745,7 +745,7 @@ static word prim_sys(int op, word a, word b, word c) {
             return IFALSE;
          if (pid == 0) /* we're in child, return true */
             return ITRUE;
-         return onum(pid); }
+         return onum(pid, 1); }
       case 19: { /* wait <pid> <respair> _ */
          pid_t pid = a != IFALSE ? cnum(a) : -1;
          int status;
@@ -791,7 +791,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 25: {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
-         return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
+         return p != -1 ? onum(p, 1) : IFALSE; }
       case 26:
          if (a != IFALSE) {
             static struct termios old;
