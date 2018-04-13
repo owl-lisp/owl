@@ -80,6 +80,7 @@ typedef intptr_t wdiff;
 #define TBYTECODE                   16
 #define TPROC                       17
 #define TCLOS                       18
+#define stringp(ob)                 (allocp(ob) && (V(ob) & make_header(0, 63)) == make_header(0, TSTRING))
 #define FLAG                        1
 #define cont(n)                     V((word)(n) & ~FLAG)
 #define flag(n)                     ((word)(n) ^ FLAG)
@@ -585,7 +586,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int mode = fixval(b);
          int val = 0;
          struct stat sb;
-         if (!allocp(a) || imm_type(header(a)) != TSTRING)
+         if (!stringp(a))
             return IFALSE;
          val |= (mode & 1 ? O_WRONLY : O_RDONLY) \
               | (mode & 2 ? O_TRUNC : 0) \
@@ -682,7 +683,7 @@ static word prim_sys(int op, word a, word b, word c) {
          bytecopy((byte *)&si_other.sin_addr, (byte *)ipa + W, 4);
          return cons((word)ipa, (word)bvec); }
       case 11: /* open-dir path → dirobjptr | #false */
-         if (allocp(a)) {
+         if (stringp(a)) {
             DIR *dirp = opendir((const char *)a + W);
             if (dirp != NULL)
                return onum((intptr_t)dirp, 1);
@@ -717,7 +718,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
-         return allocp(a) ? strp2owl((byte *)getenv((char *)a + W)) : IFALSE;
+         return stringp(a) ? strp2owl((byte *)getenv((char *)a + W)) : IFALSE;
       case 17: { /* exec[v] path argl ret */
          char *path = ((char *) a) + W;
          int nargs = llen((word *)b);
@@ -772,15 +773,15 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          return (word)r; }
       case 20: /* chdir path → bool */
-         return BOOL(allocp(a) && chdir((char *)a + W) == 0);
+         return BOOL(stringp(a) && chdir((char *)a + W) == 0);
       case 21: /* kill pid signal → bool */
          return BOOL(kill(cnum(a), fixval(b)) == 0);
       case 22: /* unlink path → bool */
-         return BOOL(allocp(a) && unlink((char *)a + W) == 0);
+         return BOOL(stringp(a) && unlink((char *)a + W) == 0);
       case 23: /* rmdir path → bool */
-         return BOOL(allocp(a) && rmdir((char *)a + W) == 0);
+         return BOOL(stringp(a) && rmdir((char *)a + W) == 0);
       case 24: /* mknod path (type . mode) dev → bool */
-         if (allocp(a) && pairp(b)) {
+         if (stringp(a) && pairp(b)) {
             const mode_t nods[4] = { S_IFIFO, S_IFCHR, S_IFBLK, S_IFREG };
             const char *path = (const char *)a + W;
             const mode_t type = fixval(G(b, 1)), mode = fixval(G(b, 2));
@@ -819,9 +820,9 @@ static word prim_sys(int op, word a, word b, word c) {
          peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
          return BOOL(sendto(sock, data, nbytes, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
       case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
-         if (allocp(a)) {
+         if (stringp(a) && (b == IFALSE || stringp(b))) {
             const char *name = (const char *)a + W;
-            if ((allocp(b) ? setenv(name, (const char *)b + W, 1) : unsetenv(name)) == 0)
+            if ((b != IFALSE ? setenv(name, (const char *)b + W, 1) : unsetenv(name)) == 0)
                return ITRUE;
          }
          return IFALSE;
@@ -841,13 +842,13 @@ static word prim_sys(int op, word a, word b, word c) {
          toggle_blocking(fd[1], 0);
          return cons(F(fd[0]), F(fd[1])); }
       case 32: /* rename src dst → bool */
-         return BOOL(allocp(a) && allocp(b) && rename((char *)a + W, (char *)b + W) == 0);
+         return BOOL(stringp(a) && stringp(b) && rename((char *)a + W, (char *)b + W) == 0);
       case 33: /* link src dst → bool */
-         return BOOL(allocp(a) && allocp(b) && link((char *)a + W, (char *)b + W) == 0);
+         return BOOL(stringp(a) && stringp(b) && link((char *)a + W, (char *)b + W) == 0);
       case 34: /* symlink src dst → bool */
-         return BOOL(allocp(a) && allocp(b) && symlink((char *)a + W, (char *)b + W) == 0);
+         return BOOL(stringp(a) && stringp(b) && symlink((char *)a + W, (char *)b + W) == 0);
       case 35: /* readlink path → raw-sting | #false */
-         if (allocp(a)) {
+         if (stringp(a)) {
             size_t len = memend - fp;
             size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
             /* the last byte is temporarily used to check, if the string fits */
