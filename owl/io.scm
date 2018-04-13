@@ -121,7 +121,7 @@
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) type-vector-raw #false))
+         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
          (cond
@@ -393,11 +393,11 @@
       (define (printer lst len out fd)
          (cond
             ((eq? len output-buffer-size)
-               (and 
-                  (write-really (raw (reverse out) type-vector-raw #false) fd)
+               (and
+                  (write-really (raw (reverse out) type-vector-raw) fd)
                   (printer lst 0 null fd)))
             ((null? lst)
-               (write-really (raw (reverse out) type-vector-raw #false) fd))
+               (write-really (raw (reverse out) type-vector-raw) fd))
             (else
                ;; avoid dependency on generic math in IO
                (lets ((len _ (fx+ len 1)))

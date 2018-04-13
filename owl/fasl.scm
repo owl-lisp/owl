@@ -323,7 +323,7 @@
                             (ll size (get-nat ll fail 0))
                             (foo (if (> size 65535) (fail "bad raw object size")))
                             (ll rbytes (get-bytes ll size fail null))
-                            (obj (raw (reverse rbytes) type #false)))
+                            (obj (raw (reverse rbytes) type)))
                            (decoder ll (rcons obj got) fail)))
                      ((eq? kind 0) ;; fasl stream end marker 
                         ;; object done
@@ -334,7 +334,7 @@
                             (ll size (get-nat ll fail 0))
                             (foo (if (> size 65535) (fail "bad raw object size")))
                             (ll rbytes (get-bytes ll size fail null))
-                            (obj (raw (reverse rbytes) type #false)))
+                            (obj (raw (reverse rbytes) type)))
                            (decoder ll (rcons obj got) fail)))
                      (else
                         (fail (list "unknown object tag: " kind))))))

@@ -199,8 +199,8 @@
                            "report this as an issue if this happens for a real program."))
                      ((compile-to-c (car obs) extras) =>
                         (λ (src)
-                           (lets 
-                              ((wrapper (raw (list 0 (>> code 8) (band code 255)) type-bytecode #false)))
+                           (lets
+                              ((wrapper (raw (list 0 (>> code 8) (band code 255)) type-bytecode)))
                               (loop (+ code 1) (cdr obs)
                                  (cons (cons (car obs) (tuple code wrapper src)) out)))))
                      (else
@@ -253,7 +253,7 @@
                (let ((bytes (map (λ (p) (refb bc p)) (iota 0 1 (sizeb bc)))))
                   (if (eq? (cadr bytes) 0)
                      (error "bug: vm speciazation instruction probably referencing code from current vm: " bytes))
-                  (raw bytes type-bytecode #false))))) ; <- reallocate it
+                  (raw bytes type-bytecode))))) ; <- reallocate it
 
       (define (original-sources native-ops extras)
          (ff-fold

@@ -872,12 +872,11 @@ static word prim_sys(int op, word a, word b, word c) {
    }
 }
 
-static word prim_lraw(word wptr, int type, word revp) {
+static word prim_lraw(word wptr, int type) {
    word *lst = (word *) wptr;
    byte *pos;
    word *raw, *ob;
    unsigned int len = 0;
-   if (revp != IFALSE) { exit(1); } /* <- to be removed */
    for (ob = lst; pairp(ob); ob = (word *)ob[2])
       len++;
    if ((word)ob != INULL || len > MAXPAYL)
@@ -1314,8 +1313,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word *ob = (word *) R[ip[0]];
       R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
       NEXT(2); }
-   op37: /* unused */
-      error(256, F(37), IFALSE);
+   op37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
+      A2 = prim_lraw(A0, fixval(A1));
+      NEXT(3);
    op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
       word res = fixval(A0) + fixval(A1);
       word low = res & FMAX;
@@ -1450,9 +1450,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
-   op60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
-      A3 = prim_lraw(A0, fixval(A1), A2);
-      NEXT(4);
+   op60: /* unused */
+      error(256, F(60), IFALSE);
    op61: /* clock <secs> <ticks> */ { /* fixme: sys */
       struct timeval tp;
       word *ob;

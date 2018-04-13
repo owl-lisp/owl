@@ -87,11 +87,11 @@
                (make-transformer
                   '(define-syntax syntax-rules add quote)
                   '(
-                     ((define-syntax keyword 
+                     ((define-syntax keyword
                         (syntax-rules literals (pattern template) ...))
                   ()
-                  (quote syntax-operation add #false 
-                        (keyword literals (pattern ...) 
+                  (quote syntax-operation add #false
+                        (keyword literals (pattern ...)
                         (template ...)))))))
             ;; note that these could now come straight from primops
             '(cons car cdr eq? type type-old size cast fetch ref sys-prim refb

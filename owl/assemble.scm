@@ -264,7 +264,7 @@
 
       ;; make bytecode and intern it (to improve sharing, not mandatory)
       (define (bytes->bytecode bytes)
-         (interact 'intern (raw bytes type-bytecode #false)))
+         (interact 'intern (raw bytes type-bytecode)))
 
       ; code rtl object -> executable code
       ;; todo: exit via fail cont

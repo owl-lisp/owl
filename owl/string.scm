@@ -228,7 +228,7 @@
 
       (define (make-chunk rcps len ascii?)
          (if ascii?
-            (let ((str (raw (reverse rcps) type-string #false)))
+            (let ((str (raw (reverse rcps) type-string)))
                (if str
                   str
                   (error "Failed to make string: " rcps)))
@@ -325,7 +325,7 @@
                   cons
                   encode-point)
                '(0) str)
-            type-string #false))
+            type-string))
 
       (define null-terminate c-string)
 
