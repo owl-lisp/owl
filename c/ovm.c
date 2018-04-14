@@ -17,8 +17,10 @@
 #include <termios.h>
 #include <stdio.h>
 
-#ifndef O_BINARY
-#define O_BINARY 0
+#ifdef __APPLE__
+#define st_atim st_atimespec
+#define st_mtim st_mtimespec
+#define st_ctim st_ctimespec
 #endif
 
 typedef uintptr_t word;
