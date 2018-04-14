@@ -5,8 +5,11 @@
 
 (print "start -> " (file->vector "tmp/app"))
 
+(print "1st size -> " (cdr (assq 'size (stat "tmp/app" #f))))
+
 (let ((port (open-append-file "tmp/app")))
    (print-to port "aaa")
+   (print "2nd size -> " (cdr (assq 'size (stat port #f))))
    (close-port port))
 
 (print "*** + append aaa\\n -> " (file->vector "tmp/app"))

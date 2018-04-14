@@ -29,6 +29,9 @@
       mkfifo
       directory?
       file?
+      stat
+      chmod
+      chown
       lseek
       seek-current
       seek-set
@@ -75,7 +78,7 @@
                (c-string x))
             (else 
                x)))
-     
+
       ;; call fixed arity prim-sys instruction with converted arguments
       (define sys
          (case-lambda 
@@ -87,7 +90,7 @@
                (sys-prim op (sys-arg a) (sys-arg b) #f))
             ((op a b c)
                (sys-prim op (sys-arg a) (sys-arg b) (sys-arg c)))))
-      
+
       (define (fclose fd)
          (sys 2 fd))
 
@@ -186,7 +189,7 @@
                (else
                   ;; pair of (<exittype> . <result>)
                   res))))
-      
+
       (define wait waitpid)
 
       (define sighup   1)      ; hangup from controlling terminal or proces
@@ -253,6 +256,17 @@
          (let ((fd (fopen path 0)))
             (and fd (begin (fclose fd) #true))))
 
+      (define (stat arg follow)
+         (zip cons
+            '(dev ino mode nlink uid gid rdev size atim mtim ctim blksize blocks)
+            (sys 38 arg follow)))
+
+      (define (chmod arg mode follow)
+         (sys 39 arg mode follow))
+
+      (define (chown arg uid gid follow)
+         (sys 40 arg (cons uid gid) follow))
+
       (define seek/set 0) ;; set position to pos
       (define seek/cur 1) ;; increment position by pos
       (define seek/end 2) ;; set position to file end + pos
@@ -289,5 +303,3 @@
       (define (set-terminal-rawness bool)
          (sys 26 bool))
 ))
-
-

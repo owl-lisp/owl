@@ -17,8 +17,10 @@
 #include <termios.h>
 #include <stdio.h>
 
-#ifndef O_BINARY
-#define O_BINARY 0
+#ifdef __APPLE__
+#define st_atim st_atimespec
+#define st_mtim st_mtimespec
+#define st_ctim st_ctimespec
 #endif
 
 typedef uintptr_t word;
@@ -80,6 +82,7 @@ typedef intptr_t wdiff;
 #define TBYTECODE                   16
 #define TPROC                       17
 #define TCLOS                       18
+#define stringp(ob)                 (allocp(ob) && (V(ob) & make_header(0, 63)) == make_header(0, TSTRING))
 #define FLAG                        1
 #define cont(n)                     V((word)(n) & ~FLAG)
 #define flag(n)                     ((word)(n) ^ FLAG)
@@ -519,10 +522,10 @@ static int64_t cnum(word a) {
    return imm_type(a) == TNUMN ? -x : x;
 }
 
-static word onum(int64_t a) {
+static word onum(int64_t a, int s) {
    uint64_t x = a;
    word h = NUMHDR, t = TNUM;
-   if (a < 0) {
+   if (s && a < 0) {
       h = NUMNHDR;
       t = TNUMN;
       x = -a;
@@ -577,7 +580,7 @@ static word prim_sys(int op, word a, word b, word c) {
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = write(fd, buff + 1, len);
-         if (wrote > 0) return onum(wrote);
+         if (wrote > 0) return onum(wrote, 0);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 1: { /* 1 = fopen <str> <mode> <to> */
@@ -585,7 +588,7 @@ static word prim_sys(int op, word a, word b, word c) {
          int mode = fixval(b);
          int val = 0;
          struct stat sb;
-         if (!allocp(a) || imm_type(header(a)) != TSTRING)
+         if (!stringp(a))
             return IFALSE;
          val |= (mode & 1 ? O_WRONLY : O_RDONLY) \
               | (mode & 2 ? O_TRUNC : 0) \
@@ -682,10 +685,10 @@ static word prim_sys(int op, word a, word b, word c) {
          bytecopy((byte *)&si_other.sin_addr, (byte *)ipa + W, 4);
          return cons((word)ipa, (word)bvec); }
       case 11: /* open-dir path → dirobjptr | #false */
-         if (allocp(a)) {
+         if (stringp(a)) {
             DIR *dirp = opendir((const char *)a + W);
             if (dirp != NULL)
-               return onum((intptr_t)dirp);
+               return onum((intptr_t)dirp, 1);
          }
          return IFALSE;
       case 12: /* read-dir dirp → raw-string | eof | #f */
@@ -713,11 +716,11 @@ static word prim_sys(int op, word a, word b, word c) {
          size = (hdrsize(*buff)-1)*W;
          if (len > size) return IFALSE;
          wrote = send(fd, buff + 1, len, 0);
-         if (wrote > 0) return onum(wrote);
+         if (wrote > 0) return onum(wrote, 0);
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
-         return allocp(a) ? strp2owl((byte *)getenv((char *)a + W)) : IFALSE;
+         return stringp(a) ? strp2owl((byte *)getenv((char *)a + W)) : IFALSE;
       case 17: { /* exec[v] path argl ret */
          char *path = ((char *) a) + W;
          int nargs = llen((word *)b);
@@ -745,7 +748,7 @@ static word prim_sys(int op, word a, word b, word c) {
             return IFALSE;
          if (pid == 0) /* we're in child, return true */
             return ITRUE;
-         return onum(pid); }
+         return onum(pid, 1); }
       case 19: { /* wait <pid> <respair> _ */
          pid_t pid = a != IFALSE ? cnum(a) : -1;
          int status;
@@ -772,15 +775,15 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          return (word)r; }
       case 20: /* chdir path → bool */
-         return BOOL(allocp(a) && chdir((char *)a + W) == 0);
+         return BOOL(stringp(a) && chdir((char *)a + W) == 0);
       case 21: /* kill pid signal → bool */
          return BOOL(kill(cnum(a), fixval(b)) == 0);
       case 22: /* unlink path → bool */
-         return BOOL(allocp(a) && unlink((char *)a + W) == 0);
+         return BOOL(stringp(a) && unlink((char *)a + W) == 0);
       case 23: /* rmdir path → bool */
-         return BOOL(allocp(a) && rmdir((char *)a + W) == 0);
+         return BOOL(stringp(a) && rmdir((char *)a + W) == 0);
       case 24: /* mknod path (type . mode) dev → bool */
-         if (allocp(a) && pairp(b)) {
+         if (stringp(a) && pairp(b)) {
             const mode_t nods[4] = { S_IFIFO, S_IFCHR, S_IFBLK, S_IFREG };
             const char *path = (const char *)a + W;
             const mode_t type = fixval(G(b, 1)), mode = fixval(G(b, 2));
@@ -791,7 +794,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 25: {
          int whence = fixval(c);
          off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
-         return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
+         return p != -1 ? onum(p, 1) : IFALSE; }
       case 26:
          if (a != IFALSE) {
             static struct termios old;
@@ -819,9 +822,9 @@ static word prim_sys(int op, word a, word b, word c) {
          peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
          return BOOL(sendto(sock, data, nbytes, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
       case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
-         if (allocp(a)) {
+         if (stringp(a) && (b == IFALSE || stringp(b))) {
             const char *name = (const char *)a + W;
-            if ((allocp(b) ? setenv(name, (const char *)b + W, 1) : unsetenv(name)) == 0)
+            if ((b != IFALSE ? setenv(name, (const char *)b + W, 1) : unsetenv(name)) == 0)
                return ITRUE;
          }
          return IFALSE;
@@ -841,13 +844,13 @@ static word prim_sys(int op, word a, word b, word c) {
          toggle_blocking(fd[1], 0);
          return cons(F(fd[0]), F(fd[1])); }
       case 32: /* rename src dst → bool */
-         return BOOL(allocp(a) && allocp(b) && rename((char *)a + W, (char *)b + W) == 0);
+         return BOOL(stringp(a) && stringp(b) && rename((char *)a + W, (char *)b + W) == 0);
       case 33: /* link src dst → bool */
-         return BOOL(allocp(a) && allocp(b) && link((char *)a + W, (char *)b + W) == 0);
+         return BOOL(stringp(a) && stringp(b) && link((char *)a + W, (char *)b + W) == 0);
       case 34: /* symlink src dst → bool */
-         return BOOL(allocp(a) && allocp(b) && symlink((char *)a + W, (char *)b + W) == 0);
+         return BOOL(stringp(a) && stringp(b) && symlink((char *)a + W, (char *)b + W) == 0);
       case 35: /* readlink path → raw-sting | #false */
-         if (allocp(a)) {
+         if (stringp(a)) {
             size_t len = memend - fp;
             size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
             /* the last byte is temporarily used to check, if the string fits */
@@ -867,6 +870,46 @@ static word prim_sys(int op, word a, word b, word c) {
          return IFALSE;
       case 37: /* umask mask → mask */
          return F(umask(fixval(a)));
+      case 38: /* stat fd|path follow → list */
+         if (immediatep(a) || stringp(a)) {
+            struct stat st;
+            int flg = b != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fstatat(AT_FDCWD, (char *)a + W, &st, flg) : fstat(fixval(a), &st)) == 0) {
+               word lst = INULL;
+               lst = cons(onum(st.st_blocks, 1), lst);
+               lst = cons(onum(st.st_blksize, 1), lst);
+               lst = cons(onum(st.st_ctim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_mtim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_atim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_size, 1), lst);
+               lst = cons(onum(st.st_rdev, 0), lst);
+               lst = cons(onum(st.st_gid, 0), lst);
+               lst = cons(onum(st.st_uid, 0), lst);
+               lst = cons(onum(st.st_nlink, 0), lst);
+               lst = cons(onum(st.st_mode, 0), lst);
+               lst = cons(onum(st.st_ino, 0), lst);
+               lst = cons(onum(st.st_dev, 1), lst);
+               return lst;
+            }
+         }
+         return INULL;
+      case 39: /* chmod fd|path mode follow → bool */
+         if ((immediatep(a) || stringp(a)) && fixnump(b)) {
+            mode_t mod = fixval(b);
+            int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fchmodat(AT_FDCWD, (char *)a + W, mod, flg) : fchmod(fixval(a), mod)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
+      case 40: /* chown fd|path (uid . gid) follow → bool */
+         if ((immediatep(a) || stringp(a)) && pairp(b)) {
+            uid_t uid = cnum(G(b, 1));
+            gid_t gid = cnum(G(b, 2));
+            int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fchownat(AT_FDCWD, (char *)a + W, uid, gid, flg) : fchown(fixval(a), uid, gid)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
       default:
          return IFALSE;
    }
