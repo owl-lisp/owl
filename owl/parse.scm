@@ -24,6 +24,7 @@
       get-greedy+
       get-greedy-repeat
       try-parse         ; parser x ll x path|#false x errmsg|#false x fail-val
+      try-parse-prefix  ;
       peek
       fd->exp-stream
       file->exp-stream
@@ -395,5 +396,19 @@
                         maybe-error-msg data pos)
                      (print-syntax-error maybe-error-msg data (- pos 1)))) ; is the one from preceding newlines?
                fail-val)
-            0))))
+            0))
 
+      (define (try-parse-prefix parser data maybe-path maybe-error-msg fail-val)
+         (parser data    
+            (λ (data fail val pos)
+               (cons val data))
+            (λ (pos reason)
+               ; print error if maybe-error-msg is given
+               (if maybe-error-msg
+                  (if (or maybe-path (has-newline? data))
+                     (print-row-syntax-error 
+                        (or maybe-path "input") 
+                        maybe-error-msg data pos)
+                     (print-syntax-error maybe-error-msg data (- pos 1)))) ; is the one from preceding newlines?
+               #false)
+            0))))
