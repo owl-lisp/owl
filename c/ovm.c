@@ -123,6 +123,8 @@ typedef intptr_t wdiff;
 
 /*** Globals and Prototypes ***/
 
+extern char **environ;
+
 /* memstart <= genstart <= memend */
 static word *genstart;
 static word *memstart;
@@ -705,9 +707,24 @@ static word prim_sys(int op, word a, word b, word c) {
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)(intptr_t)cnum(a));
          return ITRUE;
-      case 14: { /* unused */
-         exit(42);
-         break; }
+      case 14: { /* get-environment-variables → alist */
+         char **envp;
+         word lst = INULL;
+         for (envp = environ; *envp != NULL; ++envp) {
+            word *name;
+            byte *var, *p = (byte *)fp + W;
+            unsigned int len = 0;
+            for (var = (byte *)*envp; *var != '\0'; ++var) {
+               if (*var == '=') {
+                  ++var;
+                  break;
+               }
+               p[len++] = *var;
+            }
+            name = mkbvec(len, TSTRING);
+            lst = cons(cons((word)name, strp2owl(var)), lst);
+         }
+         return lst; }
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
          word *buff = (word *) b;
