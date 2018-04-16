@@ -22,12 +22,12 @@ fasl/boot.fasl: fasl/init.fasl
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm tests/*.scm tests/*.sh
 	# selfcompile boot.fasl until a fixed point is reached
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
-	ls -la fasl/bootp.fasl
+	ls -l fasl/bootp.fasl
 	# check that the new image passes tests
 	CC="$(CC)" sh tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
-	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
-	
+	cmp -s fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
+
 
 ## building just the virtual machine to run fasl images
 
@@ -133,4 +133,3 @@ todo: bin/vm
 	bin/vm fasl/ol.fasl -n owl/*.scm | less
 
 .PHONY: all owl install uninstall todo test fasltest random-test owl standalone fasl-update clean simple-ol
-
