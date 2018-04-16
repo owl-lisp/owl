@@ -105,6 +105,7 @@
    (scheme cxr)
    (scheme base)
    (scheme case-lambda)
+   (scheme process-context)
    (scheme write))
 
 (define-syntax share-bindings
@@ -177,7 +178,7 @@
       (λ (env pair) (env-put-raw env (car pair) (cdr pair)))
       *owl-core*
       shared-bindings))
-     
+
 (define initial-environment
    (bind-toplevel
       (library-import initial-environment-sans-macros
@@ -312,7 +313,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          (begin
             (print "failed to load dump from " path)
             1))))
-  
+
 ;; -> vm exit with 0 on success, n>0 on error
 (define (try-repl-string env str)
    (tuple-case (repl-string env str)
@@ -503,4 +504,3 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      heap-entry))
                (print "Output written at " (- (time-ms) build-start) "ms.")
                0)))))
-
