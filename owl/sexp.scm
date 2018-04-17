@@ -57,8 +57,9 @@
             (let-parses 
                ((head (get-rune-if symbol-lead-char?))
                 (tail (get-greedy* (get-rune-if symbol-char?)))
-                (next (peek get-byte))
-                (foo (assert (lambda (b) (not (symbol-char? b))) next))) ; avoid useless backtracking
+                ;(next (peek get-byte))
+                ;(foo (assert (lambda (b) (not (symbol-char? b))) next))
+                )
                (string->uninterned-symbol (runes->string (cons head tail))))
             (let-parses
                ((skip (get-imm #\|))
