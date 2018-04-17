@@ -34,6 +34,8 @@
       lunfold
       delay force
       avg
+      lnull?
+      lpair?                  ; ll → (head . ll-tail) | #false
       )
 
    (import
@@ -357,6 +359,15 @@
 
       (define (lcdr ll) (if (pair? ll) (cdr ll) (lcdr (ll))))
 
+      (define (lpair? ll)
+         (cond
+            ((null? ll) #false)
+            ((pair? ll) ll)
+            (else (lpair? ll))))
+     
+      (define (lnull? ll)
+         (eq? #false (lpair? ll)))
+       
 ))
 
 
