@@ -22,12 +22,13 @@
       get-kleene+
       get-greedy*
       get-greedy+
-      ;get-greedy-repeat
+      get-greedy-repeat
       try-parse         ; parser x ll x path|#false x errmsg|#false x fail-val
-      ;try-parse-prefix  ;
-      ;peek
+      try-parse-prefix  ;
+      peek
       fd->exp-stream
-      file->exp-stream)
+      file->exp-stream
+      null-stream?)
 
    (import
       (owl defmac)
@@ -44,42 +45,35 @@
       (owl syscall))
 
    (begin
-      
       ; (parser ll ok fail pos)
       ;      -> (ok ll' fail' val pos)
-      ;      -> (fail ll' rev-bytes reason)
+      ;      -> (fail fail-pos fail-msg')
+      (define (null-stream? ll)
+         (cond
+            ((null? ll) #true)
+            ((pair? ll) #false)
+            (else (null-stream? (ll)))))
 
       (define eof-error "end of input")
 
-      (define (try data parser)
-         (parser 
-            (string->list data)
-            (λ (ll fail val rev)
-               (print "Parsed " data " → " val ", tail " ll))
-            (λ (ll rev why)
-               (print "Failed to parse " data " because " why ", data " (reverse rev) " + " ll))
-            null))
-               
-      (define (get-byte ll ok fail rp)
+      (define (get-byte ll ok fail pos)
          (cond
-            ((null? ll) (fail ll rp eof-error)) ; will always be the largest value 
-            ((pair? ll) (ok (cdr ll) fail (car ll) (cons (car ll) rp)))
-            (else (get-byte (ll) ok fail rp))))
+            ((null? ll) (fail pos eof-error)) ; will always be the largest value 
+            ((pair? ll) (ok (cdr ll) fail (car ll) (+ pos 1)))
+            (else (get-byte (ll) ok fail pos))))
 
       ; read nothing, succeed with val
       (define (get-epsilon val)
          (λ (ll ok fail pos)
             (ok ll fail val pos)))
 
-      (try "foo" (get-epsilon 42))
-      
       ;; todo: in addition to assert would be useful to have compute (returns the value) and check <predicate> 
       (define (assert pred val) ; fixme: should have a error message to throw when no luck
-         (λ (ll ok fail rb)
+         (λ (ll ok fail pos)
             (let ((res (pred val)))
                (if res
-                  (ok ll fail val rb)
-                  (fail ll rb "parser assert blocked")))))
+                  (ok ll fail val pos)
+                  (fail pos "parser assert blocked")))))
 
       (define-syntax let-parses
          (syntax-rules (verify eval)
@@ -95,32 +89,25 @@
             ((let-parses 42 sc ft lst pos ((verify term msg) . r) body)
                (if term
                   (let-parses 42 sc ft lst pos r body)
-                  (ft lst pos msg)))
+                  (ft pos msg)))
             ((let-parses ((a . b) ...) body)
                (λ (ll ok fail pos)
                   (let-parses 42 ok fail ll pos ((a . b) ...) body)))))
 
-      (try "foo"
-         (let-parses
-            ((x get-byte)
-             (y get-byte))
-            (cons x y)))
-      
       ;; testing a slower one to check assertions
       (define (get-byte-if pred)
          (let-parses
             ((b get-byte)
-             (verify (pred b) (list 'not b)))
+             (verify (pred b) "bad byte")
+             ;(_ (assert pred b))
+             )
             b))
 
-      (try "ax" (let-parses ((a (get-byte-if (λ (x) (= x #\a))))) a))
-      (try "bx" (let-parses ((a (get-byte-if (λ (x) (= x #\a))))) a))
-         
-      '(define peek-mark "loltron")
-      '(define (peek-val? x) (if (pair? x) (eq? (car x) peek-mark) #false))
+      (define peek-mark "loltron")
+      (define (peek-val? x) (if (pair? x) (eq? (car x) peek-mark) #false))
 
       ; make sure the next thing is *not* accepted by parser (unfortunate name, change later)
-      '(define (peek parser) ; fixme, add error message
+      (define (peek parser) ; fixme, add error message
          (λ (lst ok fail pos)
             (parser lst 
                (λ (lst fail val pos)
@@ -134,57 +121,46 @@
       (define (get-imm n)
          (let-parses
             ((a get-byte)
-             (verify (eq? a n) (list 'expected n)))
+             (verify (eq? a n) '(expected n)))
             a))
 
-      (try "ax" (let-parses ((a (get-imm #\a))) a))
-      (try "bx" (let-parses ((a (get-imm #\a))) a))
-      
       (define (get-one-of bytes)
-         (get-byte-if 
-            (λ (x) (has? bytes x))))
+         (get-byte-if (λ (x) (has? bytes x))))
 
       (define (get-word str val)
          (let ((bytes (string->bytes str)))
             (λ (lst ok fail pos)
-               (let loop ((want bytes) (got pos) (lst lst))
-                  (cond
-                     ((null? want)
-                        (ok lst fail val pos))
-                     ((null? lst)
-                        (fail lst got ""))
-                     ((pair? lst)
-                        (if (eq? (car lst) (car want))
-                           (loop (cdr want) (cons (car want) got) (cdr lst))
-                           (fail lst got "")))
-                     (else
-                           (loop want got (lst))))))))
-      
-      (try "abcd" (let-parses ((a (get-word "abc" 'foo))) a))
-      (try "aabcd" (let-parses ((a (get-imm #\a)) (b (get-imm #\b))) (cons a b)))
-           
+               (let loop ((bytes bytes) (lst lst) (fail fail) (pos pos))
+                  (if (null? bytes)
+                     (ok lst fail val pos)
+                     (get-byte lst
+                        (λ (lst fail byte pos)
+                           (if (eq? byte (car bytes))
+                              (loop (cdr bytes) lst fail pos)
+                              (fail pos (list "expected next '" (runes->string bytes) "'"))))
+                        fail pos))))))
+     
       ;; fixme: not correct yet
       (define (get-word-ci str val)
-         (error "fixme" str))
+         (let ((bytes (string->bytes str)))
+            (λ (lst ok fail pos)
+               (let loop ((bytes bytes) (lst lst) (fail fail) (pos pos))
+                  (if (null? bytes)
+                     (ok lst fail val pos)
+                     (get-byte lst
+                        (λ (lst fail byte pos)
+                           (if (char-ci=? byte (car bytes))
+                              (loop (cdr bytes) lst fail pos)
+                              (fail pos (list "expected next '" (runes->string bytes) "'"))))
+                        fail pos))))))
 
       (define (get-either a b)
-         (λ (lst ok fail rb)
+         (λ (lst ok fail pos)
             (a lst ok
-               (λ (ll rfail why)
-                  (let ((lst (append (reverse rfail) ll))) ;; backtrack
-                     (b lst ok 
-                        (λ (ll rfail why)
-                           ;; could choose better of the errors here
-                           (fail (append (reverse rfail) ll) rb why))
-                        null)))
-               null))) ;; → backtrack point
+               (λ (fa fai)
+                  (b lst ok (λ (fb fbi) (if (< fa fb) (fail fb fbi) (fail fa fai))) pos))
+               pos)))
 
-      (try "adcd" 
-         (let-parses 
-            ((a (get-imm #\a)) 
-             (x (get-either (get-imm #\b) (get-imm #\c))))
-            (cons a x)))
-      
       (define (get-kleene* par)
          (get-either
             (let-parses
@@ -192,12 +168,6 @@
                (cons hd tl))
             (get-epsilon null)))
 
-      (try "aaaaaaaaaaaaaaaab"
-         (let-parses
-            ((as (get-kleene* (get-imm #\a)))
-             (x (get-imm #\x)))
-            (cons as x)))
-      
       ; get all of successful parses of parser not allowing backtracking
       ; intention being that "aaaaa" has quite a few combinations of (kleene+ a), 
       ; and when describing something like lexical structure, which is usually 
@@ -205,7 +175,7 @@
       ; unexpected exponential slowdowns on parse errors when using simple 
       ; parsing combinators like these in lib-parse.
 
-      '(define (get-greedy parser zero-ok?)
+      (define (get-greedy parser zero-ok?)
          (λ (lst ok fail pos)
             (let loop ((lst lst) (rvals null) (pos pos))
                (parser lst
@@ -217,10 +187,10 @@
                         (fail fpos freason))) ; could fail differently when zero and requested at least one
                   pos))))
 
-      '(define (get-greedy* parser) (get-greedy parser #true))
-      '(define (get-greedy+ parser) (get-greedy parser #false))
+      (define (get-greedy* parser) (get-greedy parser #true))
+      (define (get-greedy+ parser) (get-greedy parser #false))
 
-      '(define (get-greedy-repeat n parser)
+      (define (get-greedy-repeat n parser)
          (λ (lst ok fail pos)
             (let loop ((lst lst) (rvals null) (pos pos) (n n))
                (if (eq? n 0)
@@ -229,16 +199,12 @@
                      (λ (lst fail val pos)
                         (loop lst (cons val rvals) pos (- n 1)))
                      fail pos)))))
-      
+
       (define (get-kleene+ what)
          (let-parses
             ((hd what)
              (tl (get-kleene* what)))
             (cons hd tl)))
-     
-      ;; temp 
-      (define get-greedy* get-kleene*)
-      (define get-greedy+ get-kleene+)
 
       (define-syntax get-any-of
          (syntax-rules ()
@@ -359,6 +325,11 @@
                               (list (fail pos info data)))))
                      0)))))
 
+
+   ; (parser ll ok fail pos)
+   ;      -> (ok ll' fail' val pos)
+   ;      -> (fail fail-pos fail-msg')
+
       (define (file->exp-stream path prompt parse fail)
          (let ((fd (open-input-file path)))
             (if fd
@@ -411,18 +382,34 @@
       (define (try-parse parser data maybe-path maybe-error-msg fail-val)
          (parser data    
             (λ (data fail val pos)
-               (let ((x (lpair? data)))
-                  (if x
-                     (fail x pos "trailing garbage")
-                     val)))
-            (λ (ll pos reason)
+               (if (null-ll? data)
+                  ; all successfully parsed
+                  val
+                  ; something unparsed. backtrack.
+                  (fail pos "out of data")))
+            (λ (pos reason)
                ; print error if maybe-error-msg is given
-               ;(if maybe-error-msg
-               ;   (if (or maybe-path (has-newline? data))
-               ;      (print-row-syntax-error 
-               ;         (or maybe-path "input") 
-               ;         maybe-error-msg data pos)
-               ;      (print-syntax-error maybe-error-msg data (- pos 1)))) ; is the one from preceding newlines?
+               (if maybe-error-msg
+                  (if (or maybe-path (has-newline? data))
+                     (print-row-syntax-error 
+                        (or maybe-path "input") 
+                        maybe-error-msg data pos)
+                     (print-syntax-error maybe-error-msg data (- pos 1)))) ; is the one from preceding newlines?
                fail-val)
             0))
-      ))
+
+      (define (try-parse-prefix parser data maybe-path maybe-error-msg fail-val)
+         (parser data    
+            (λ (data fail val pos)
+               (cons val data))
+            (λ (pos reason)
+               ; print error if maybe-error-msg is given
+               (if maybe-error-msg
+                  (if (or maybe-path (has-newline? data))
+                     (print-row-syntax-error 
+                        (or maybe-path "input") 
+                        maybe-error-msg data pos)
+                     (print-syntax-error maybe-error-msg data (- pos 1)))) ; is the one from preceding newlines?
+               #false)
+            0))))
+
