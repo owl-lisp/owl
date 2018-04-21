@@ -21,7 +21,7 @@
 
    (import
       (owl defmac)
-      (owl parse-ng)
+      (owl parse)
       (only (owl syscall) error)
       (owl io)
       (owl ff)

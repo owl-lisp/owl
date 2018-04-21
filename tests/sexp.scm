@@ -5,14 +5,9 @@
 
 2+3i
 
-
-,load "owl/lazy.scm"
-,load "owl/parse-ng.scm"
-,load "owl/sexp.scm"
-
 (import 
    (owl sexp)
-   (owl parse-ng))
+   (owl parse))
 
 (define foo
    (open-input-file "tests/sexp.scm"))

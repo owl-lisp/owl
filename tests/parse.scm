@@ -1,5 +1,5 @@
 (import
-   (owl parse-ng))
+   (owl parse))
    
 (define (enlist x)
    (if (string? x)

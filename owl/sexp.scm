@@ -14,7 +14,7 @@
 
    (import
       (owl defmac)
-      (owl parse-ng)
+      (owl parse)
       (owl math)
       (owl string)
       (owl list)

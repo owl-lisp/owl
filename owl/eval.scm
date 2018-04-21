@@ -51,7 +51,7 @@
       (owl render)
       (owl string)
       (owl sexp)
-      (owl parse-ng)
+      (owl parse)
       (owl function)
       (owl equal)
       (scheme base)
