@@ -72,7 +72,7 @@
    (owl render)
    (owl intern)
    (owl io)
-   (owl parse)
+   ;(owl parse)
    (owl regex)
    (owl sexp)
    (only (owl math-extra))
@@ -261,7 +261,6 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          mail interact 
          take keep remove 
          thread-controller
-         ;sexp-parser 
          uncons lfold lmap
          rand seed->rands
          ))

@@ -7,7 +7,7 @@
       x))
 
 (define (try data parser want-value want-tail)
-   (print "testing " data)
+   (print "testing '" data "' = " want-value)
    (lets
       ((input (string->list data))
        (res (parse-head parser input #f)))
@@ -105,5 +105,45 @@
        (as3 (plus (imm #\a))))
       (list as1 as2 as3))
    '((#\a #\a) (#\a) (#\a))
+   "x")
+
+(define get-num
+   (let-parses
+      ((digits
+         (plus
+            (byte-between 47 58))))
+      (fold
+         (λ (n t) (+ (* n 10) (- t 48)))
+         0 digits)))
+
+(try "1234x"
+   get-num
+   1234
+   "x")
+
+(define ws
+   (star
+      (byte-if
+         (λ (x) (has? '(#\space #\tab #\newline #\return) x)))))
+
+(define get-exp
+   (let-parses
+      ((drop ws)
+       (exp get-num))
+      exp))
+
+(define get-list
+   (let-parses
+      ((drop ws)
+       (left (imm #\{))
+       (ns 
+          (star get-exp))
+       (drop ws)
+       (right (imm #\})))
+      ns))
+      
+(try "           {  11 22   33 44 }x"
+   get-list
+   (list 11 22 33 44)
    "x")
 

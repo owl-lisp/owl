@@ -363,7 +363,7 @@
          (cond
             ((null? ll) #false)
             ((pair? ll) ll)
-            (else (lpair? ll))))
+            (else (lpair? (ll)))))
      
       (define (lnull? ll)
          (eq? #false (lpair? ll)))

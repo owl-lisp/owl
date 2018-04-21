@@ -1,12 +1,14 @@
-testing x
-testing x
-testing x
-testing xxxa
-testing ababax
-testing abax
-testing ax
-testing adxy
-testing ax
-testing abc
-testing abc
-testing aaaax
+testing 'x' = 42
+testing 'x' = 120
+testing 'x' = #false
+testing 'xxxa' = xxx
+testing 'ababax' = (ab ab)
+testing 'abax' = (ab)
+testing 'ax' = #false
+testing 'adxy' = ad
+testing 'ax' = *a
+testing 'abc' = #false
+testing 'abc' = 97
+testing 'aaaax' = ((97 97) (97) (97))
+testing '1234x' = 1234
+testing '           {  11 22   33 44 }x' = (11 22 33 44)

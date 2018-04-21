@@ -51,7 +51,7 @@
       (owl render)
       (owl string)
       (owl sexp)
-      (owl parse)
+      (owl parse-ng)
       (owl function)
       (owl equal)
       (scheme base)
@@ -257,9 +257,7 @@
                (else (loop (cdr lst) (+ pos 1))))))
 
       (define (find-line data error-pos)
-         ;(print " - find-line")
          (let loop ((data data) (pos 0))
-            ;(print* (list "data " data " pos " pos  " error-pos " error-pos))
             (lets ((next datap (next-newline-distance data)))
                (cond
                   ((<= error-pos next)
@@ -288,14 +286,12 @@
          (lets
             ((exps ;; find the file to read
                (or 
-                  (file->exp-stream path "" sexp-parser syntax-fail)
+                  (file->exp-stream path "" sexp-parser syntax-fail #f)
                   (file->exp-stream
                      (string-append (env-get env '*owl* "NA") path)
-                     "" sexp-parser syntax-fail))))
+                     "" sexp-parser syntax-fail #f))))
             (if exps
                (begin
-                  ;(if (env-get env '*interactive* #false)
-                  ;   (print " + " path))
                   (lets
                      ((current-prompt (env-get env '*interactive* #false)) ; <- switch prompt during loading
                       (load-env 
@@ -845,13 +841,14 @@
                               ((fail reason) 
                                  (repl-fail env reason)))))))
                (else
+                  ;; prompt here
                   (loop env (in) last)))))
 
 
       ;; run the repl on a fresh input stream, report errors and catch exit
 
       (define (stdin-sexp-stream env bounced?)
-         (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail bounced?)))
+         (λ () (fd->exp-stream stdin #false sexp-parser syntax-fail bounced?)))
 
       (define (repl-trampoline repl env)
          (let boing ((repl repl) (env env) (bounced? #false))
@@ -861,7 +858,7 @@
                   (if bounced? 
                      (begin ;; we may need to reprint a prompt here
                         (if (env-get env '*interactive* #false) 
-                           (display "> "))  ;; reprint prompt
+                           (display "* "))  ;; reprint prompt
                         stdin)
                      stdin))
                 (env (bind-toplevel env)))
@@ -887,8 +884,8 @@
       (define (repl-port env fd)
          (repl env
             (if (eq? fd stdin)
-               (λ () (fd->exp-stream stdin "> " sexp-parser syntax-fail #false))
-               (fd->exp-stream fd "> " sexp-parser syntax-fail #false))))
+               (λ () (fd->exp-stream stdin #false sexp-parser syntax-fail #false))
+               (fd->exp-stream fd #false sexp-parser syntax-fail #false))))
 
       (define (repl-file env path)
          (let ((fd (if (equal? path "-") stdin (open-input-file path))))
@@ -898,7 +895,7 @@
 
       (define (repl-string env str)
          (lets ((exps (try-parse (get-kleene+ sexp-parser) (str-iter str) #false syntax-fail #false)))
-            ;; list of sexps
             (if exps
                (repl env exps)
                (tuple 'error "not parseable" env))))))
+

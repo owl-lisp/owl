@@ -1,4 +1,3 @@
-;; todo: remove implicit UTF-8 conversion from parser and move to a separate pass
 
 (define-library (owl sexp)
    
@@ -6,15 +5,16 @@
       sexp-parser 
       read-exps-from
       list->number
-      get-sexps       ;; greedy* get-sexp
+      get-sexps         ;; greedy* get-sexp
+      get-padded-sexps  ;; whitespace at either end
       string->sexp
       vector->sexps
       list->sexps
       read read-ll)
 
    (import
-      (owl parse)
       (owl defmac)
+      (owl parse-ng)
       (owl math)
       (owl string)
       (owl list)
@@ -102,7 +102,7 @@
             0 digits))
 
       (define get-sign
-         (get-any-of (get-imm 43) (get-imm 45) (get-epsilon 43)))
+         (any (get-imm 43) (get-imm 45) (get-epsilon 43)))
         
       (define bases
          (list->ff
@@ -114,7 +114,7 @@
 
       ; fixme, # and cooked later
       (define get-base 
-         (get-any-of
+         (any
             (let-parses
                ((skip (get-imm #\#))
                 (char (get-byte-if (λ (x) (getf bases x)))))
@@ -228,7 +228,7 @@
                skip)))
 
       (define get-a-whitespace
-         (get-any-of
+         (any
             ;get-hashbang   ;; actually probably better to make it a symbol as above
             (get-byte-if (lambda (x) (has? '(9 10 32 13) x)))
             (let-parses
@@ -312,7 +312,7 @@
             (list (get quotations type #false) value)))
      
       (define get-named-char
-         (get-any-of
+         (any
             (get-word "null" 0)
             (get-word "alarm" 7)
             (get-word "backspace" 8)
@@ -333,12 +333,12 @@
 
       ;; most of these are to go via type definitions later
       (define get-funny-word
-         (get-any-of
+         (any
             (get-word "..." '...)
             (let-parses
                ((skip (get-imm #\#))
                 (val
-                  (get-any-of
+                  (any
                      (get-word "true" #true)    ;; get the longer ones first if present
                      (get-word "false" #false)
                      (get-word "empty" #empty)
@@ -398,14 +398,15 @@
             ((skip (get-imm #\@))
              (fields 
                (get-list-of get-any))
-             (foo (assert ff-able? fields)))
+             (verify (ff-able? fields) '(bad ff)))
             (lst->ff (intern-symbols fields))))
 
+      
       (define (get-sexp)
          (let-parses
             ((skip maybe-whitespace)
              (val
-               (get-any-of
+               (any
                   ;get-hashbang
                   get-number         ;; more than a simple integer
                   get-sexp-regex     ;; must be before symbols, which also may start with /
@@ -426,13 +427,20 @@
 
       (define sexp-parser 
          (let-parses
-            ((sexp (get-sexp))
-             (foo maybe-whitespace))
+            ((foo maybe-whitespace)
+             (sexp (get-sexp))) ;; do not read trailing whitespace to avoid blocking when parsing a stream
             (intern-symbols sexp)))
 
       (define get-sexps
          (get-greedy* sexp-parser))
-
+     
+      ;; whitespace at either end 
+      (define get-padded-sexps
+         (let-parses
+            ((data get-sexps)
+             (ws maybe-whitespace))
+            data))
+      
       ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
       (define (read-exps-from data done fail)
          (lets/cc ret  ;; <- not needed if fail is already a cont
@@ -465,11 +473,11 @@
       (define (vector->sexps vec fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
          (let ((lst (vector->list vec)))
-            (try-parse get-sexps lst #false errmsg #false)))
+            (try-parse get-padded-sexps lst #false errmsg #false)))
 
       (define (list->sexps lst fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
-         (try-parse get-sexps lst #false errmsg #false))
+         (try-parse get-padded-sexps lst #false errmsg #false))
      
       (define (read-port port)
          (fd->exp-stream port #false sexp-parser #false #false))
@@ -482,7 +490,7 @@
                   ((port? thing)
                      (read-port thing))
                   ((string? thing)
-                     (try-parse get-sexps (str-iter thing) #false #false #false))
+                     (try-parse get-padded-sexps (str-iter thing) #false #false #false))
                   (else
                      (error "read needs a port or a string, but got " thing))))))
 

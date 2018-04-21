@@ -16,7 +16,20 @@
       any
       star
       plus
-      parse-head)
+      byte-between
+      parse-head
+      backtrack
+      try-parse
+      word
+
+      ;; old compat names      
+      get-imm get-byte get-kleene+ get-kleene* get-epsilon get-byte-between get-either
+      get-byte-if get-rune get-rune-if get-greedy* get-greedy+ get-word
+     
+      ;; old ones
+      fd->exp-stream
+      file->exp-stream
+      )
       
    (import
       (owl defmac)
@@ -30,6 +43,7 @@
      
    (begin 
       
+        
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
       
@@ -87,7 +101,23 @@
                 r 
                 (λ (l r val)
                    ((star-vals a (cons val vals)) l r ok)))))
-       
+     
+      (define (word s val)
+         (let ((bytes (string->bytes s)))
+            (λ (l r ok)
+               (let loop ((l l) (r r) (left bytes))
+                  (cond
+                     ((null? left)
+                        (ok l r val))
+                     ((null? r)
+                        (backtrack l r eof-error))
+                     ((pair? r)
+                        (if (eq? (car r) (car left))
+                           (loop (cons (car r) l) (cdr r) (cdr left))
+                           (backtrack l r "bad byte")))
+                     (else
+                        (loop l (r) left)))))))
+         
       (define (star a)
          (star-vals a null))
       
@@ -129,43 +159,102 @@
             a))
                
       ; #b10xxxxxx
-      (define get-extension-byte 
+      (define extension-byte 
          (let-parses
             ((b byte)
              (verify (eq? #b10000000 (fxband b #b11000000)) "Bad extension byte"))
             b))
       
-      (define (get-between lo hi)
-         (let-parses
-            ((a byte)
-             (verify (lesser? lo a))
-             (verify (lesser? a hi)))
-            a))
+      (define (byte-between lo hi)
+         (byte-if
+            (λ (x)
+               (and (lesser? lo x)
+                    (lesser? x hi)))))
             
       (define rune
          (any
             (byte-if (λ (x) (lesser? x 128)))
             (let-parses
-               ((a (get-between 127 224))
+               ((a (byte-between 127 224))
                 (verify (not (eq? a #b11000000)) "blank leading 2-byte char") ;; would be non-minimal
-                (b get-extension-byte))
+                (b extension-byte))
                (two-byte-point a b))
             (let-parses
-               ((a (get-between 223 240))
+               ((a (byte-between 223 240))
                 (verify (not (eq? a #b11100000)) "blank leading 3-byte char") ;; would be non-minimal
-                (b get-extension-byte) (c get-extension-byte))
+                (b extension-byte) (c extension-byte))
                (three-byte-point a b c))
             (let-parses
-               ((a (get-between 239 280))
+               ((a (byte-between 239 280))
                 (verify (not (eq? a #b11110000)) "blank leading 4-byte char") ;; would be non-minimal
-                (b get-extension-byte) (c get-extension-byte) (d get-extension-byte))
+                (b extension-byte) (c extension-byte) (d extension-byte))
                (four-byte-point a b c d))))
       
-       
+     
+      (define (rune-if pred)
+         (let-parses
+            ((val rune)
+             (verify (pred val) "bad rune"))
+            val))
+        
       (define (parser-succ l r v)
          (values l r v))
            
       (define (parse-head parser ll def)
          (lets ((l r val (parser null ll parser-succ)))
-            (if l (cons val r) def)))))
+            (if l (cons val r) def)))
+     
+      ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
+      ;   ... → l|#f r result|error
+      ;; prompt removed from here - it belongs elsewhere
+      (define (fd->exp-stream fd prompt parser fail re-entry?)
+         (let loop ((ll (port->byte-stream fd)))
+            (lets
+               ((lp r val 
+                   (parser null ll parser-succ)))
+               (cond
+                  (lp ;; something parsed successfully
+                     (pair val (loop r)))
+                  ((null? r) ;; end of input
+                     ;; typically there is whitespace, so this does not happen
+                     null)
+                  (else
+                     ;; error handling being converted
+                     ;(print-to stderr "fd->exp-stream: syntax error")
+                     null)))))
+      
+      (define (file->exp-stream path prompt parser fail re-entry?)
+         ;(print "file->exp-stream: trying to open " path)
+         (let ((fd (open-input-file path)))
+            ;(print "file->exp-stream: got fd " fd)
+            (if fd
+               (fd->exp-stream  fd prompt parser fail re-entry?)
+               #false)))
+      
+      (define get-imm imm)
+      (define get-byte byte)
+      (define get-byte-if byte-if)
+      (define get-rune rune)
+      (define get-rune-if rune-if)
+      (define get-kleene+ plus)
+      (define get-kleene* star)
+      (define get-greedy+ plus) ;; temp
+      (define get-greedy* star) ;; temp
+      (define get-epsilon ε)
+      (define get-byte-between byte-between)
+      (define get-either either)
+      (define get-word word)
+       
+      (define (try-parse parser data maybe-path maybe-error-msg fail-fn) 
+         (lets ((l r val (parser null data parser-succ)))
+            (cond
+               ((not l)
+                  (fail-fn 0 null))
+               ((lpair? r) =>
+                  (λ (r)
+                     (backtrack l r "trailing garbage")))
+               (else
+                  ;; full match
+                  val))))
+))
       

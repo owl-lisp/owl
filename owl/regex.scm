@@ -10,20 +10,6 @@
 ;;; spec: http://pubs.opengroup.org/onlinepubs/007908799/xbd/re.html
 ;;; syntax ref of portable scheme regexps (Dorai Sitaram): http://evalwhen.com/pregexp/index-Z-H-3.html#node_sec_3
 
-;; todo: c/regex/ : str → head|F tail, c/regex/g : str → (part ...)
-;; todo: it would be nice to be able to call an arbitrary function on the matched area easily (for example to be used in radamsa)
-;; fixme: some variable and function names are now misleading
-;; todo: later return an ast instead of the function from parser to allow some postprocessing
-;; todo: add regexp flags (as implicit cloisters? (starting with case [i]nsensitive)) as postprocessing steps for the ast
-;; todo: merge runs of known letters to a node using match-list like for submatches
-;; todo: merge mergeable repetitions of equal asts
-;; todo: lookbehind is missing
-;; todo: add state to parsing to capture flags, greediness etc
-;; todo: s/<from>/<to>/r = repeat at the match position while match
-;; todo: s/<from>/<to>/R = repeat from beginning while match
-;; todo: check handling of non-fixnum code points in the regex string itself (likely fails but no time to test atm)
-
-
 (define-library (owl regex)
    (export
       get-sexp-regex
@@ -35,7 +21,7 @@
 
    (import
       (owl defmac)
-      (owl parse)
+      (owl parse-ng)
       (only (owl syscall) error)
       (owl io)
       (owl ff)
@@ -491,13 +477,11 @@
 
       (define (rex-matches rex thing)
          (let loop ((ll (iter thing)) (out null))
-            (print (list 'loop ll out))
             (cond
                ((null? ll)
                   (reverse out))
                ((pair? ll)
                   (let ((res (rex-match-prefix rex ll)))
-                    (print 'res res)
                      (if res
                         (lets ((ls buff ms res))
                            (loop ls (cons (runes->string (reverse buff)) out)))
@@ -607,7 +591,7 @@
 
       (define get-dot  ;; .
          (let-parses ((foo (get-imm 46))) dot))
-      
+
       (define get-fini ;; $
          (let-parses ((foo (get-imm 36))) fini))
 
@@ -669,7 +653,7 @@
          (let-parses
             ((skip (get-imm 92)) ; \
              (val
-               (get-any-of
+               (any
                   (imm-val #\d accept-digit)       ;; \d = [0-9]
                   (imm-val #\D accept-nondigit)    ;; \D = [^0-9]
                   (imm-val #\. accept-dot)         ;; \. = .
@@ -756,7 +740,7 @@
 
       ;; todo: what is the quotation used for 32-bit \xhhhhhhhh?
       (define parse-quoted-char-body
-         (get-any-of
+         (any
             ;; the usual quotations
             (imm-val 97  7)   ;; \a = 7
             (imm-val 98  8)   ;; \b = 8
@@ -852,7 +836,7 @@
       (define (get-catn get-regex)
          (let-parses
             ((regex ;; parse a single regexp thing
-               (get-any-of
+               (any
                   get-dot
                   get-fini
                   ;; todo: merge the parenthetical ones later
@@ -903,14 +887,14 @@
                   get-quoted-char
                   get-plain-char))
              (repetition
-               (get-any-of
+               (any
                   get-star
                   get-plus
                   get-quest
                   get-range
                   (get-epsilon i)))
              (tail 
-               (get-any-of
+               (any
                   (let-parses ;; join tail of exp with implicit catenation
                      ((tl (get-catn get-regex)))
                      (λ (head) (rex-and head tl)))
@@ -994,7 +978,7 @@
             (make-full-match rex)))
 
       (define get-sexp-regex
-         (get-any-of
+         (any
             get-replace-regex
             get-matcher-regex
             get-cutter-regex
@@ -1017,4 +1001,5 @@
       ;; POSIX (ERE)
       (define string->regex
          string->extended-regexp)
+
 ))

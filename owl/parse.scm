@@ -18,6 +18,7 @@
       get-word-ci       ; placeholder
       get-either
       get-any-of
+      any               ; compat
       get-kleene*
       get-kleene+
       get-greedy*
@@ -331,9 +332,11 @@
    ;      -> (fail fail-pos fail-msg')
 
       (define (file->exp-stream path prompt parse fail)
+         (print "trying to open " path)
          (let ((fd (open-input-file path)))
+            (print " -> fd " fd)
             (if fd
-               (fd->exp-stream fd prompt parse fail #false)
+               (fd->exp-stream fd #f parse #f #f)
                #false)))
 
       (define (print-syntax-error reason bytes posn)
@@ -398,6 +401,11 @@
                fail-val)
             0))
 
+      (define-syntax any
+         (syntax-rules (get-any-of)
+            ((any . args)
+               (get-any-of . args))))
+      
       (define (try-parse-prefix parser data maybe-path maybe-error-msg fail-val)
          (parser data    
             (λ (data fail val pos)
