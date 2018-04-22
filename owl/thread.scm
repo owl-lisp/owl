@@ -8,8 +8,6 @@
 ;; send requests via the thread scheduler to other threads or 
 ;; the underlying system.
 
-;; todo: make it a bug to send mail to a thread having no inbox.
-
 (define-library (owl thread)
 
    (export 
@@ -462,6 +460,7 @@
          (thread-controller thread-controller threads
             null (list->ff state-alist)))
 
+      ; todo: get a fail-func instead
       (define (try thunk fail-val)
          ; run the compiler chain in a new task
          (let ((id (list 'thread)))

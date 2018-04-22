@@ -2,6 +2,8 @@
 ;;; owl cfg parsing combinators and macros
 ;;;
 
+;; todo: reintroduce a better fail-func
+
 (define-library (owl parse)
       
    (export
