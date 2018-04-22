@@ -1,6 +1,6 @@
 (import
    (owl parse))
-   
+
 (define (enlist x)
    (if (string? x)
       (string->list x)
@@ -146,4 +146,25 @@
    get-list
    (list 11 22 33 44)
    "x")
+
+(try "aaax"
+   (seq
+      (star (imm #\a))
+      (imm #\a))
+   '((#\a #\a) "a")
+   "x")
+   
+(try "aaax"
+   (seq
+      (greedy-star (imm #\a))
+      (imm #\a))
+   #false #false)
+
+(try "aabcx"
+   (seq
+      (greedy-star (either (imm #\a) (imm #\b)))
+      (imm #\c))
+   '((#\a #\a #\b) "c")
+   "x")
+
 

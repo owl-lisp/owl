@@ -16,6 +16,8 @@
       any
       star
       plus
+      greedy-star
+      greedy-plus
       byte-between
       parse-head
       backtrack
@@ -102,26 +104,25 @@
                 (λ (l r val)
                    ((star-vals a (cons val vals)) l r ok)))))
      
-      (define (word s val)
-         (let ((bytes (string->bytes s)))
-            (λ (l r ok)
-               (let loop ((l l) (r r) (left bytes))
-                  (cond
-                     ((null? left)
-                        (ok l r val))
-                     ((null? r)
-                        (backtrack l r eof-error))
-                     ((pair? r)
-                        (if (eq? (car r) (car left))
-                           (loop (cons (car r) l) (cdr r) (cdr left))
-                           (backtrack l r "bad byte")))
-                     (else
-                        (loop l (r) left)))))))
-         
       (define (star a)
          (star-vals a null))
-      
-       (define-syntax let-parses
+
+      (define (drop l x)
+         (if (eq? (car l) x)
+            (cdr l)
+            (cons (car l) (drop (cdr l) x))))
+
+      (define (greedy-star-vals a vals)
+         (λ (l r ok)
+            (let ((bt (λ (l r why) (ok  l r (reverse vals)))))
+               (a
+                  (cons bt l)
+                  r
+                  (λ (l r val)
+                     ((greedy-star-vals a (cons val vals))
+                        (drop l bt) r ok))))))
+
+      (define-syntax let-parses
          (syntax-rules (verify eval)
             ((let-parses 42 l r ok ((val (eval term)) . rest) body)
                (let ((val term))
@@ -139,6 +140,33 @@
             ((let-parses ((a . b) ...) body)
                (λ (l r ok)
                   (let-parses 42 l r ok ((a . b) ...) body)))))
+      
+      (define (greedy-star a)
+         (greedy-star-vals a null) )
+
+      (define (greedy-plus a)
+         (let-parses
+            ((first a)
+             (rest (greedy-star a)))
+            (cons first rest)))
+      
+      (define (word s val)
+         (let ((bytes (string->bytes s)))
+            (λ (l r ok)
+               (let loop ((l l) (r r) (left bytes))
+                  (cond
+                     ((null? left)
+                        (ok l r val))
+                     ((null? r)
+                        (backtrack l r eof-error))
+                     ((pair? r)
+                        (if (eq? (car r) (car left))
+                           (loop (cons (car r) l) (cdr r) (cdr left))
+                           (backtrack l r "bad byte")))
+                     (else
+                        (loop l (r) left)))))))
+         
+       
       
       (define-syntax any
          (syntax-rules ()
@@ -238,8 +266,8 @@
       (define get-rune-if rune-if)
       (define get-kleene+ plus)
       (define get-kleene* star)
-      (define get-greedy+ plus) ;; temp
-      (define get-greedy* star) ;; temp
+      (define get-greedy+ greedy-plus)
+      (define get-greedy* greedy-star)
       (define get-epsilon ε)
       (define get-byte-between byte-between)
       (define get-either either)
