@@ -286,10 +286,10 @@
          (lets
             ((exps ;; find the file to read
                (or 
-                  (file->exp-stream path "" sexp-parser syntax-fail #f)
+                  (file->exp-stream path sexp-parser syntax-fail)
                   (file->exp-stream
                      (string-append (env-get env '*owl* "NA") path)
-                     "" sexp-parser syntax-fail #f))))
+                     sexp-parser syntax-fail))))
             (if exps
                (begin
                   (lets
@@ -848,7 +848,7 @@
       ;; run the repl on a fresh input stream, report errors and catch exit
 
       (define (stdin-sexp-stream env bounced?)
-         (λ () (fd->exp-stream stdin #false sexp-parser syntax-fail bounced?)))
+         (λ () (fd->exp-stream stdin sexp-parser syntax-fail)))
 
       (define (repl-trampoline repl env)
          (let boing ((repl repl) (env env) (bounced? #false))
@@ -884,8 +884,8 @@
       (define (repl-port env fd)
          (repl env
             (if (eq? fd stdin)
-               (λ () (fd->exp-stream stdin #false sexp-parser syntax-fail #false))
-               (fd->exp-stream fd #false sexp-parser syntax-fail #false))))
+               (λ () (fd->exp-stream stdin sexp-parser syntax-fail))
+               (fd->exp-stream fd sexp-parser syntax-fail))))
 
       (define (repl-file env path)
          (let ((fd (if (equal? path "-") stdin (open-input-file path))))

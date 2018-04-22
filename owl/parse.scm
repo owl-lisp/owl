@@ -235,7 +235,7 @@
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
       ;; prompt removed from here - it belongs elsewhere
-      (define (fd->exp-stream fd prompt parser fail re-entry?)
+      (define (fd->exp-stream fd parser fail)
          (let loop ((ll (port->byte-stream fd)))
             (lets
                ((lp r val 
@@ -251,12 +251,12 @@
                      ;(print-to stderr "fd->exp-stream: syntax error")
                      null)))))
       
-      (define (file->exp-stream path prompt parser fail re-entry?)
+      (define (file->exp-stream path parser fail)
          ;(print "file->exp-stream: trying to open " path)
          (let ((fd (open-input-file path)))
             ;(print "file->exp-stream: got fd " fd)
             (if fd
-               (fd->exp-stream  fd prompt parser fail re-entry?)
+               (fd->exp-stream fd parser fail)
                #false)))
       
       (define get-imm imm)
@@ -277,7 +277,9 @@
          (lets ((l r val (parser null data parser-succ)))
             (cond
                ((not l)
-                  (fail-fn 0 null))
+                  (if fail-fn
+                     (fail-fn 0 null)
+                     #false))
                ((lpair? r) =>
                   (λ (r)
                      (backtrack l r "trailing garbage")))
