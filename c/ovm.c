@@ -927,6 +927,20 @@ static word prim_sys(int op, word a, word b, word c) {
                return ITRUE;
          }
          return IFALSE;
+      case 41: { /* peek mem nbytes → num */
+         word ptr = (word) cnum(a);
+         if (fixval(b) == 1)
+            return onum(*((uint8_t *)ptr), 0);
+         if (fixval(b) == 2)
+            return onum(*((uint16_t *)ptr), 0);
+         if (fixval(b) == 4)
+            return onum(*((uint32_t *)ptr), 0);
+         if (fixval(b) == 8)
+            return onum(*((uint64_t *)ptr), 0);
+         return IFALSE;
+         }
+      case 42: 
+         return onum((word) environ, 0);
       default:
          return IFALSE;
    }
@@ -1552,14 +1566,6 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
    return 1; /* no mcp to handle error (fail in it?), so nonzero exit */
 }
 
-word *burn_args(int nargs, char **argv) {
-   int this;
-   word oargs = INULL;
-   for (this = nargs - 1; this >= 0; --this)
-      oargs = cons(strp2owl((byte *)argv[this]), oargs);
-   return (word *)oargs;
-}
-
 /* Initial FASL image decoding */
 
 word get_nat() {
@@ -1652,18 +1658,6 @@ void heap_metrics(int *rwords, int *rnobjs) {
    hp = hp_start;
 }
 
-size_t count_cmdlinearg_words(int nargs, char **argv) {
-   size_t total = 0;
-   while(nargs--) {
-      size_t this = lenn((byte *)*argv, MAXPAYL + 1);
-      if (this == MAXPAYL + 1)
-         exit(3);
-      total += OBJWORDS(this) + 3;
-      argv++;
-   }
-   return total;
-}
-
 byte *read_heap(char *path) {
    struct stat st;
    int fd, pos = 0;
@@ -1730,13 +1724,11 @@ void setup(int nargs, char **argv, int nwords, int nobjs) {
    toggle_blocking(1,0);
    toggle_blocking(2,0);
    max_heap_mb = (W == 4) ? 4096 : 65535;
-   nwords += count_cmdlinearg_words(nargs, argv);
    nwords += nobjs + INITCELLS;
    memstart = genstart = fp = realloc(NULL, (nwords + MEMPAD) * W);
    if (!memstart) exit(4);
    memend = memstart + nwords - MEMPAD;
 }
-
 
 int main(int nargs, char **argv) {
    word *prog, *args;
@@ -1744,7 +1736,7 @@ int main(int nargs, char **argv) {
    find_heap(&nargs, &argv, &nobjs, &nwords);
    setup(nargs, argv, nwords, nobjs);
    prog = load_heap(nobjs);
-   args = burn_args(nargs, argv);
+   args = (word *) onum((word) argv, 0);
    rval = vm(prog, args);
    setdown();
    if (fixnump(rval)) {

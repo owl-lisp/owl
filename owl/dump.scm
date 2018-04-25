@@ -29,6 +29,7 @@
       (owl render)
       (owl lazy)
       (owl cgen)
+      (owl sys)
       (only (owl syscall) error mail exit-owl)
       (only (owl env) signal-halt signal-tag)
       (only (owl unicode) utf8-decode)
@@ -341,6 +342,9 @@
                   (dump-fasl maybe-world path)
                   'saved))))
 
+      (define (with-args func)
+         (λ (argv-pointer)
+            (func (mem-strings argv-pointer))))
 
       ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
       ; dump entry object to path, or stdout if path is "-"
@@ -370,13 +374,6 @@
                      (entry (codes-of entry))
                      entry))
 
-                ;; fixme: allow a compiler arg to convert this point fully to native to get also the thread scheduler compiled
-                ;(extra-native ;; choose 10% of most frequently linked code unless compiling a fasl image
-                ;  (cond
-                ;     ((eq? format 'fasl) null) ; fasl -> no natives
-                ;     ((eq? entry native) null)  ; everything native anyway
-                ;     (else (most-linked-code entry 10)))) ; pick most linked 10% (testing)
-
                 (native-ops ;; choose which bytecode vectors to add as extended vm instructions
                   (choose-native-ops (if (get opts 'native #false) entry native) extras))
 
@@ -391,6 +388,9 @@
                      entry
                      (with-decoded-args entry)))
 
+                (entry ;; pull command line args to owl from **argv
+                     (with-args entry))
+                  
                 (native-cook ;; make a function to possibly rewrite bytecode during save (usually to native code wrappers)
                    (make-native-cook native-ops extras))
 

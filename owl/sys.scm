@@ -53,7 +53,13 @@
       fopen
       fclose
       dupfd
-      set-terminal-rawness)
+      set-terminal-rawness
+      mem-string      ;; pointer to null terminated string → raw string
+      mem-strings     ;; **string → (raw-string ...)
+      ;peek-word       ;; these are mainly for internal (owl sys) use
+      ;peek-byte       ;;
+      get-environment
+      )
 
    (import
       (owl defmac)
@@ -74,10 +80,10 @@
       ;; owl value → value processable in vm (mainly string conversion)
       (define (sys-arg x)
          (cond
-            ((string? x)
+            ((string? x) 
+               ;; strings should generally be null-terminated
                (c-string x))
-            (else 
-               x)))
+            (else x)))
 
       ;; call fixed arity prim-sys instruction with converted arguments
       (define sys
@@ -90,7 +96,42 @@
                (sys-prim op (sys-arg a) (sys-arg b) #f))
             ((op a b c)
                (sys-prim op (sys-arg a) (sys-arg b) (sys-arg c)))))
-
+      
+      (define (n-byte-machine)
+         (sys 8))
+      
+      (define (peek-byte ptr)
+         (sys 41 ptr 1))
+      
+      (define (peek-word ptr)
+         (sys 41 ptr (n-byte-machine)))
+            
+      (define (mem-string-bytes ptr)
+         (let ((this (peek-byte ptr)))
+            (if (eq? this 0)
+               null
+               (cons this (mem-string-bytes (+ ptr 1))))))
+       
+      (define (raw-string x)
+         (raw x type-string))
+      
+      (define (mem-string ptr)
+         (raw-string
+            (mem-string-bytes ptr)))
+       
+      (define (mem-array-map ptr func)
+         (let ((nb (n-byte-machine)))
+            (let loop ((ptr ptr))
+               (let ((next (peek-word ptr)))
+                  (if (eq? next 0)
+                     null
+                     (cons 
+                        (func next)
+                        (loop (+ ptr nb))))))))
+      
+      (define (mem-strings ptr)
+         (mem-array-map ptr mem-string))
+      
       (define (fclose fd)
          (sys 2 fd))
 
@@ -158,7 +199,7 @@
       ;; path (arg0 ...), arg0 customarily being path
       ;; returns only if exec fails
 
-      ;; list conversion might also be worth doing in sys-arg instead
+      ;; list->tuple + internal conversion might also be worth doing in sys-arg instead
       (define (exec path args)
          (lets ((args (map c-string args)))
             (if (all (λ (x) x) args)
@@ -286,7 +327,7 @@
       ;;;
       ;;; Environment variables
       ;;;
-
+      
       (define (getenv str)
          (sys 16 str))
 
@@ -295,7 +336,29 @@
 
       (define (unsetenv var)
          (setenv var #false))
-
+      
+      (define (get-environment-pointer)
+         (sys 42))
+       
+      (define (split-env-value bytes)
+         (let loop ((l null) (r bytes))
+            (cond
+               ((null? r)
+                  (values (reverse l) null))
+               ((eq? (car r) #\=)
+                  (values (reverse l) (cdr r)))
+               (else
+                  (loop (cons (car r) l) (cdr r))))))
+                  
+      (define (get-environment)
+         (mem-array-map 
+            (get-environment-pointer) 
+            (λ (ptr)
+               (lets ((k v (split-env-value (mem-string-bytes ptr))))
+                  (cons
+                     (raw-string k)
+                     (raw-string v))))))
+      
       ;;;
       ;;; terminal control
       ;;;
