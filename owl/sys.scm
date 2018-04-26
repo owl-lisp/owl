@@ -116,18 +116,22 @@
          (raw x type-string))
       
       (define (mem-string ptr)
-         (raw-string
-            (mem-string-bytes ptr)))
+         (if (eq? ptr 0)
+            #false
+            (raw-string
+               (mem-string-bytes ptr))))
        
       (define (mem-array-map ptr func)
-         (let ((nb (n-byte-machine)))
-            (let loop ((ptr ptr))
-               (let ((next (peek-word ptr)))
-                  (if (eq? next 0)
-                     null
-                     (cons 
-                        (func next)
-                        (loop (+ ptr nb))))))))
+         (if (eq? ptr 0)
+            #false
+            (let ((nb (n-byte-machine)))
+               (let loop ((ptr ptr))
+                  (let ((next (peek-word ptr)))
+                     (if (eq? next 0)
+                        null
+                        (cons 
+                           (func next)
+                           (loop (+ ptr nb)))))))))
       
       (define (mem-strings ptr)
          (mem-array-map ptr mem-string))
@@ -150,9 +154,14 @@
       (define (open-dir path)
          (sys 11 path))
 
-      ;; unsafe-dirfd → #false | eof | bvec
+      ;; unsafe-dirfd → #false | eof | raw-string
       (define (read-dir obj)
-         (sys 12 obj))
+         (if (number? obj)
+            (let ((ptrp (sys 12 obj)))
+               (if (number? ptrp)
+                  (mem-string ptrp)
+                  ptrp))
+            #false))
 
       ;; _ → #true
       (define (close-dir obj)
@@ -214,7 +223,6 @@
                      (fd->port (cdr fdpair)))
                #false)))
 
-      ;; warning, easily collides with owl fork
       ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
       (define (fork)
          (sys 18))
@@ -329,7 +337,10 @@
       ;;;
       
       (define (getenv str)
-         (sys 16 str))
+         (let ((ptr (sys 16 str)))
+            (if (eq? ptr 0)
+               #false
+               (mem-string ptr))))
 
       (define (setenv var val)
          (sys 28 var val))
@@ -349,7 +360,8 @@
                   (values (reverse l) (cdr r)))
                (else
                   (loop (cons (car r) l) (cdr r))))))
-                  
+
+      ;; ((keystr . valstr) ...)                  
       (define (get-environment)
          (mem-array-map 
             (get-environment-pointer) 

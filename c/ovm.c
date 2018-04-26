@@ -388,20 +388,6 @@ static word *mkbvec(size_t len, int type) {
    return ob;
 }
 
-/* map a null or C-string to False, Null or owl-string, false being null or too large string */
-word strp2owl(byte *sp) {
-   word *res;
-   unsigned int len;
-   if (sp == NULL)
-      return IFALSE;
-   len = lenn(sp, MAXPAYL + 1);
-   if (len == MAXPAYL + 1)
-      return INULL; /* can't touch this */
-   res = mkbvec(len, TSTRING); /* make a raw-string since we don't know the encoding */
-   bytecopy(sp, (byte *)res + W, len);
-   return (word)res;
-}
-
 /*** Primops called from VM and generated C-code ***/
 
 static word prim_connect(word *host, word port, word type) {
@@ -693,38 +679,20 @@ static word prim_sys(int op, word a, word b, word c) {
                return onum((intptr_t)dirp, 1);
          }
          return IFALSE;
-      case 12: /* read-dir dirp → raw-string | eof | #f */
-         /*if (allocp(a))*/ {
-            struct dirent *ent;
-            errno = 0;
-            ent = readdir((DIR *)(intptr_t)cnum(a));
-            if (ent != NULL)
-               return strp2owl((byte *)&ent->d_name); /* make a raw-string (OS may not use valid UTF-8) */
-            if (errno == 0)
-               return IEOF;
-         }
-         return IFALSE;
+      case 12: { /* read-dir dirp → pointer | eof | #f */
+         struct dirent *ent;
+         errno = 0;
+         ent = readdir((DIR *)(intptr_t)cnum(a));
+         if (ent != NULL)
+            return onum((word)&ent->d_name, 0);
+         if (errno == 0)
+            return IEOF;
+         return IFALSE; }
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)(intptr_t)cnum(a));
          return ITRUE;
-      case 14: { /* get-environment-variables → alist */
-         char **envp;
-         word lst = INULL;
-         for (envp = environ; *envp != NULL; ++envp) {
-            word *name;
-            byte *var, *p = (byte *)fp + W;
-            unsigned int len = 0;
-            for (var = (byte *)*envp; *var != '\0'; ++var) {
-               if (*var == '=') {
-                  ++var;
-                  break;
-               }
-               p[len++] = *var;
-            }
-            name = mkbvec(len, TSTRING);
-            lst = cons(cons((word)name, strp2owl(var)), lst);
-         }
-         return lst; }
+      case 14: /* unused */
+         return IFALSE;
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = fixval(a);
          word *buff = (word *) b;
@@ -737,7 +705,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
          return IFALSE; }
       case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
-         return stringp(a) ? strp2owl((byte *)getenv((char *)a + W)) : IFALSE;
+         return stringp(a) ? onum((word)getenv((char *)a + W), 0) : IFALSE;
       case 17: { /* exec[v] path argl ret */
          char *path = ((char *) a) + W;
          int nargs = llen((word *)b);

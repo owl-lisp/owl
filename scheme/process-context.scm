@@ -4,7 +4,7 @@
       (owl defmac)
       (only (owl primop) halt)
       (only (owl syscall) error)
-      (only (owl sys) getenv)
+      (only (owl sys) getenv get-environment)
       (scheme base))
 
    (export
@@ -15,6 +15,7 @@
       get-environment-variables)
 
    (begin
+      
       (define (command-line)
          (error "Implementation restriction:" 'command-line))
 
@@ -26,9 +27,10 @@
 
       (define emergency-exit exit)
 
-      (define get-environment-variable getenv)
+      (define get-environment-variable 
+         getenv)
 
-      (define (get-environment-variables)
-         (sys-prim 14 #f #f #f))
+      (define get-environment-variables
+         get-environment)
 
 ))
