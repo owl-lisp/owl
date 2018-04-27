@@ -4,7 +4,7 @@
 ;; todo: convert arity checks 17 -> 25
 
 (define-library (owl primop)
-   (export 
+   (export
       primops
       primop-name ;; primop → symbol | primop
       multiple-return-variable-primops
@@ -27,7 +27,7 @@
       apply apply-cont ;; apply post- and pre-cps
       call/cc call-with-current-continuation 
       lets/cc
-      
+
       _poll2
       ;; vm interface
       vm bytes->bytecode
@@ -162,7 +162,7 @@
       (define fx- (func '(4 40 4 5 6 7 24 7)))
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
       (define fx<< (func '(4 59 4 5 6 7 24 7)))
-      
+
       (define apply (bytes->bytecode '(20))) ;; <- no arity, just call 20
       (define apply-cont (bytes->bytecode (list (fxbor 20 64))))
 
@@ -194,14 +194,14 @@
               primops-2))
 
       ;; special things exposed by the vm
-      (define (set-memory-limit n) (sys-prim 7 n n n))
-      (define (get-word-size) (sys-prim 8 #false #false #false))
-      (define (get-memory-limit) (sys-prim 9 #false #false #false))
-      
+      (define (set-memory-limit n) (sys-prim 7 n #f #f))
+      (define (get-word-size) (sys-prim 8 1 #f #f))
+      (define (get-memory-limit) (sys-prim 9 #f #f #f))
+
       ;; todo: add get-heap-metrics
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
-      (define (halt n) (sys-prim 6 n n n))
+      (define (halt n) (sys-prim 6 n #f #f))
 
       (define call/cc
          ('_sans_cps
@@ -228,7 +228,7 @@
             ((eq? op 32) 'bind)
             ((eq? op 50) 'run)
             (else #false)))
-         
+
       (define (primop-name pop)
          (let ((pop (fxband pop 63))) ; ignore top bits which sometimes have further data
             (or (instruction-name pop)
@@ -245,7 +245,7 @@
          (if (eq? a b)
             'ok
             (car 'assert-fail)))
-   
+
       ;; exit by returning to r3
       (define (vm . bytes)
          ((bytes->bytecode bytes)))
@@ -253,7 +253,7 @@
       '(check-equal 42 ;; load 42:
          (vm 14 42 4  ;;   r4 = fixnum(42)
              24 4))   ;;   return r4 = call r3 with it
-      
+
       '(check-equal 0         ;; count down to zero:
          ((bytes->bytecode   ;;   r4 arg
                '(14 0 5      ;;   r5 = 0
