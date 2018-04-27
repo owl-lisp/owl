@@ -32,7 +32,7 @@ typedef intptr_t wdiff;
 #define IPOS                        8 /* offset of immediate payload */
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header */
-#define V(ob)                       *((word *)(ob))
+#define V(ob)                       (*(word *)(ob))
 #define W                           ((unsigned int)sizeof(word))
 #define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
@@ -655,10 +655,17 @@ static word prim_sys(int op, word a, word b, word c) {
       case 7: /* set memory limit (in mb) */
          max_heap_mb = fixval(a);
          return a;
-      case 8: /* get machine word size (in bytes) */
-         return F(W);
-      case 9: /* get memory limit (in mb) */
-         return F(max_heap_mb);
+      case 8: { /* return system constants */
+         static const word sysconst[] = {
+            S_IFMT, W, S_IFBLK, S_IFCHR, S_IFIFO, S_IFREG, S_IFDIR, S_IFLNK,
+            S_IFSOCK
+         };
+         return onum(sysconst[fixval(a) % (sizeof sysconst / W)], 0); }
+      case 9: /* return process variables */
+         return onum(
+            a == F(0) ? errno :
+            a == F(1) ? (word)environ :
+            max_heap_mb, 0);
       case 10: { /* receive-udp-packet sock → (ip-bvec . payload-bvec)| #false */
          struct sockaddr_in si_other;
          socklen_t slen = sizeof(si_other);
@@ -896,19 +903,14 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          return IFALSE;
       case 41: { /* peek mem nbytes → num */
-         word ptr = (word) cnum(a);
-         if (fixval(b) == 1)
-            return onum(*((uint8_t *)ptr), 0);
-         if (fixval(b) == 2)
-            return onum(*((uint16_t *)ptr), 0);
-         if (fixval(b) == 4)
-            return onum(*((uint32_t *)ptr), 0);
-         if (fixval(b) == 8)
-            return onum(*((uint64_t *)ptr), 0);
-         return IFALSE;
+         const word p = cnum(a);
+         return onum(
+            b == F(1) ? *(uint8_t *)p :
+            b == F(2) ? *(uint16_t *)p :
+            b == F(4) ? *(uint32_t *)p :
+            b == F(8) ? *(uint64_t *)p :
+            V(p), 0);
          }
-      case 42: 
-         return onum((word) environ, 0);
       default:
          return IFALSE;
    }
@@ -1699,13 +1701,12 @@ void setup(int nargs, char **argv, int nwords, int nobjs) {
 }
 
 int main(int nargs, char **argv) {
-   word *prog, *args;
+   word *prog;
    int rval, nobjs=0, nwords=0;
    find_heap(&nargs, &argv, &nobjs, &nwords);
    setup(nargs, argv, nwords, nobjs);
    prog = load_heap(nobjs);
-   args = (word *) onum((word) argv, 0);
-   rval = vm(prog, args);
+   rval = vm(prog, (word *)onum((word)argv, 0));
    setdown();
    if (fixnump(rval)) {
       int n = fixval(rval);

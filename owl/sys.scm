@@ -6,6 +6,7 @@
       dir-fold
       dir->list
       dir->list-all
+      errno
       exec
       fork
       pipe
@@ -27,9 +28,9 @@
       mknod
       mkdir
       mkfifo
+      stat
       directory?
       file?
-      stat
       chmod
       chown
       lseek
@@ -98,29 +99,29 @@
                (sys-prim op (sys-arg a) (sys-arg b) (sys-arg c)))))
       
       (define (n-byte-machine)
-         (sys 8))
+         (sys 8 1))
       
       (define (peek-byte ptr)
          (sys 41 ptr 1))
-      
+
       (define (peek-word ptr)
-         (sys 41 ptr (n-byte-machine)))
-            
+         (sys 41 ptr))
+
       (define (mem-string-bytes ptr)
          (let ((this (peek-byte ptr)))
             (if (eq? this 0)
                null
                (cons this (mem-string-bytes (+ ptr 1))))))
-       
+
       (define (raw-string x)
          (raw x type-string))
-      
+
       (define (mem-string ptr)
          (if (eq? ptr 0)
             #false
             (raw-string
                (mem-string-bytes ptr))))
-       
+
       (define (mem-array-map ptr func)
          (if (eq? ptr 0)
             #false
@@ -135,7 +136,10 @@
       
       (define (mem-strings ptr)
          (mem-array-map ptr mem-string))
-      
+
+      (define (errno)
+         (sys 9 0))
+
       (define (fclose fd)
          (sys 2 fd))
 
@@ -297,18 +301,29 @@
       (define (mkfifo path mode)
          (mknod path 0 mode 0))
 
-      (define (directory? path)
-         (let ((dh (open-dir path)))
-            (and dh (begin (close-dir dh) #true))))
-
-      (define (file? path)
-         (let ((fd (fopen path 0)))
-            (and fd (begin (fclose fd) #true))))
+      (define (S_IFMT) (sys 8 0))
+      (define (S_IFBLK) (sys 8 2))
+      (define (S_IFCHR) (sys 8 3))
+      (define (S_IFIFO) (sys 8 4))
+      (define (S_IFREG) (sys 8 5))
+      (define (S_IFDIR) (sys 8 6))
+      (define (S_IFLNK) (sys 8 7))
+      (define (S_IFSOCK) (sys 8 8))
 
       (define (stat arg follow)
          (zip cons
             '(dev ino mode nlink uid gid rdev size atim mtim ctim blksize blocks)
             (sys 38 arg follow)))
+
+      (define (file-type? path type)
+         (let ((mode (getq (stat path #t) 'mode)))
+            (and mode (= (band (S_IFMT) (cdr mode)) type))))
+
+      (define (directory? path)
+         (file-type? path (S_IFDIR)))
+
+      (define (file? path)
+         (file-type? path (S_IFREG)))
 
       (define (chmod arg mode follow)
          (sys 39 arg mode follow))
@@ -335,7 +350,7 @@
       ;;;
       ;;; Environment variables
       ;;;
-      
+
       (define (getenv str)
          (let ((ptr (sys 16 str)))
             (if (eq? ptr 0)
@@ -349,7 +364,7 @@
          (setenv var #false))
       
       (define (get-environment-pointer)
-         (sys 42))
+         (sys 9 1))
        
       (define (split-env-value bytes)
          (let loop ((l null) (r bytes))
@@ -361,7 +376,7 @@
                (else
                   (loop (cons (car r) l) (cdr r))))))
 
-      ;; ((keystr . valstr) ...)                  
+      ;; ((keystr . valstr) ...)
       (define (get-environment)
          (mem-array-map 
             (get-environment-pointer) 
@@ -370,7 +385,7 @@
                   (cons
                      (raw-string k)
                      (raw-string v))))))
-      
+
       ;;;
       ;;; terminal control
       ;;;
