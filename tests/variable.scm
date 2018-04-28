@@ -20,3 +20,13 @@
   (lambda (x) (foo 'call (lambda (y) (+ x y))))
   (iota 0 1 1000))
 (print (foo))
+
+(define foo  (make-variable 'foo))
+(define foo2 (link-variable 'foo))
+
+(foo 11)
+(print (foo))
+(print (foo2))
+(foo2 22)
+(print (foo))
+(print (foo2))

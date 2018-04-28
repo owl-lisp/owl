@@ -5,7 +5,8 @@
 (define-library (owl variable)
 
    (export
-      make-variable)
+      make-variable
+      link-variable)
 
    (import
       (owl defmac)
@@ -38,8 +39,16 @@
                         (store ((cdr msg) val)))
                      (else
                         (store val)))))))
-
-      (define (make-variable)
-         (let ((id (list 'var)))
-            (thread id (store #false))
-            (handler id)))))
+      
+      (define (start-variable id val)
+         (thread id (store val))
+         (handler id))
+      
+      (define make-variable
+         (case-lambda
+            ((id val) (start-variable id val))
+            ((id) (start-variable id #false))
+            (() (start-variable (list 'var) #false))))
+      
+      (define (link-variable id)
+         (handler id))))

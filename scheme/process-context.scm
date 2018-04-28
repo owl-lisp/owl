@@ -2,8 +2,10 @@
 
    (import
       (only (owl primop) halt)
+      (only (owl ff) get)
       (only (owl syscall) error)
       (only (owl sys) getenv get-environment)
+      (only (owl variable) link-variable)
       (scheme base))
 
    (export
@@ -15,8 +17,12 @@
 
    (begin
 
+      ;; link to app state variable started at repl startup
+      (define owl-state 
+         (link-variable '*state*))
+      
       (define (command-line)
-         (error "Implementation restriction:" 'command-line))
+         (get (owl-state) 'command-line-arguments #false))
 
       (define (exit . x)
          (halt

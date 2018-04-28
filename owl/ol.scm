@@ -439,9 +439,12 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                         (tuple 'init
                            (λ () 
                               (thread 'repl
-                                 (begin
+                                 (let ((state (make-variable '*state* #empty)))
                                     ;; get basic io running
                                     (start-base-threads)
+
+                                    ;; store initial state values
+                                    (state 'call (λ (st) (put st 'command-line-arguments vm-args)))
 
                                     ;; repl needs symbol etc interning, which is handled by this thread
                                     (thunk->thread 'intern interner-thunk)
@@ -449,6 +452,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                     ;; set a signal handler which stop evaluation instead of owl 
                                     ;; if a repl eval thread is running
                                     (set-signal-action repl-signal-handler)
+                                    
 
                                     (exit-owl 
                                        (repl-start vm-args repl compiler
@@ -466,6 +470,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                                 (cons 'eval exported-eval)
                                                 (cons 'render render) ;; can be removed when all rendering is done via libraries
                                                 (cons '*vm-special-ops* vm-special-ops)
+                                                (cons '*state* state)
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
                                                 )))))))))
                      null)))))))
