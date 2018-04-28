@@ -97,10 +97,10 @@
                (sys-prim op (sys-arg a) (sys-arg b) #f))
             ((op a b c)
                (sys-prim op (sys-arg a) (sys-arg b) (sys-arg c)))))
-      
+
       (define (n-byte-machine)
          (sys 8 1))
-      
+
       (define (peek-byte ptr)
          (sys 41 ptr 1))
 
@@ -133,7 +133,7 @@
                         (cons 
                            (func next)
                            (loop (+ ptr nb)))))))))
-      
+
       (define (mem-strings ptr)
          (mem-array-map ptr mem-string))
 
@@ -215,7 +215,7 @@
       ;; list->tuple + internal conversion might also be worth doing in sys-arg instead
       (define (exec path args)
          (lets ((args (map c-string args)))
-            (if (all (λ (x) x) args)
+            (if (all self args)
                (sys 17 path args)
                #false)))
 
@@ -362,10 +362,10 @@
 
       (define (unsetenv var)
          (setenv var #false))
-      
+
       (define (get-environment-pointer)
          (sys 9 1))
-       
+
       (define (split-env-value bytes)
          (let loop ((l null) (r bytes))
             (cond

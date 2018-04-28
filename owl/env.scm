@@ -198,7 +198,7 @@
                      (lambda (reason) 
                         (ret (fail reason))))
                      exp)))))
-         
+
       (define env-fold ff-fold)
 
       (define (tuple->list t)
@@ -255,7 +255,7 @@
       ;; later check type, get first opcode and compare to primop wrapper
       (define (primop-of val)
          (cond
-            ((get prim-opcodes val #false) => (lambda (op) op))
+            ((get prim-opcodes val #false) => self)
             ;((equal? val mkt) 23)
             ((eq? val '__mkt__) 23) ;; temp hack to work around changing bytecode
             ;((equal? val bind) 32)

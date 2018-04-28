@@ -154,7 +154,7 @@
                #false)))
 
       (define (dump-fasl obj path)
-         (dump-data (fasl-encode-stream obj (lambda (x) x)) path))
+         (dump-data (fasl-encode-stream obj self) path))
 
       ;; fixme: sould be (load-fasl <path> <fail>)
       (define (load-fasl path fval)
@@ -332,7 +332,7 @@
                #false)))
 
       (define owl-ohai-resume "Welcome back.")
-      
+
       ; path -> 'loaded | 'saved
       (define (suspend path)
          (let ((maybe-world (syscall 16 #true #true)))
@@ -390,7 +390,7 @@
 
                 (entry ;; pull command line args to owl from **argv
                      (with-args entry))
-                  
+
                 (native-cook ;; make a function to possibly rewrite bytecode during save (usually to native code wrappers)
                    (make-native-cook native-ops extras))
 

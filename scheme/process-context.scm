@@ -1,7 +1,6 @@
 (define-library (scheme process-context)
 
    (import
-      (owl defmac)
       (only (owl primop) halt)
       (only (owl syscall) error)
       (only (owl sys) getenv get-environment)
@@ -15,7 +14,7 @@
       get-environment-variables)
 
    (begin
-      
+
       (define (command-line)
          (error "Implementation restriction:" 'command-line))
 

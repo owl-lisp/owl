@@ -1,6 +1,6 @@
 
 (define-library (owl sexp)
-   
+
    (export 
       sexp-parser 
       read-exps-from
@@ -103,7 +103,7 @@
 
       (define get-sign
          (any (get-imm 43) (get-imm 45) (get-epsilon 43)))
-        
+
       (define bases
          (list->ff
             (list
@@ -144,7 +144,7 @@
       (define get-signer
          (let-parses ((char get-sign))
             (if (eq? char 43)
-               (λ (x) x)
+               self
                (λ (x) (- 0 x)))))
 
 
@@ -200,7 +200,7 @@
             (if (eq? imag 0)
                real
                (complex real imag))))
-              
+
       (define get-rest-of-line
          (let-parses
             ((chars (get-greedy* (get-byte-if (lambda (x) (not (eq? x 10))))))
@@ -214,7 +214,7 @@
              (bang (get-imm 33))
              (line get-rest-of-line))
             (list 'quote (list 'hashbang (list->string line)))))
-      
+
       ;; skip everything up to |#
       (define (get-block-comment)
          (get-either
@@ -310,7 +310,7 @@
                   (get-byte-if (λ (x) (get quotations x #false)))))
              (value parser))
             (list (get quotations type #false) value)))
-     
+
       (define get-named-char
          (any
             (get-word "null" 0)
@@ -392,7 +392,7 @@
                (lets ((k lst lst)
                       (v lst lst))
                   (loop lst (put ff k v))))))
-            
+
       (define (get-ff get-any)
          (let-parses
             ((skip (get-imm #\@))
@@ -401,7 +401,6 @@
              (verify (ff-able? fields) '(bad ff)))
             (lst->ff (intern-symbols fields))))
 
-      
       (define (get-sexp)
          (let-parses
             ((skip maybe-whitespace)
@@ -433,14 +432,14 @@
 
       (define get-sexps
          (get-greedy* sexp-parser))
-     
+
       ;; whitespace at either end 
       (define get-padded-sexps
          (let-parses
             ((data get-sexps)
              (ws maybe-whitespace))
             data))
-      
+
       ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
       (define (read-exps-from data done fail)
          (lets/cc ret  ;; <- not needed if fail is already a cont
@@ -478,10 +477,10 @@
       (define (list->sexps lst fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
          (try-parse get-padded-sexps lst #false errmsg #false))
-     
+
       (define (read-port port)
          (fd->exp-stream port sexp-parser #false))
-         
+
       (define read-ll
          (case-lambda
             (()     (read-port stdin))

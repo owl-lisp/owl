@@ -294,17 +294,11 @@
       (define memv member)
 
       (define (memq x lst)
-         (cond
-            ((null? lst) #false)
-            ((eq? x (car lst)) lst)
-            (else (memq x (cdr lst)))))
+         (has? lst x))
 
-      (define (assq k l)
-         (cond
-            ((null? l) #f)
-            ((eq? (caar l) k) (car l))
-            (else (assq k (cdr l)))))
-      
+      (define (assq k lst)
+         (getq lst k))
+
       (define (assv k l)
          (cond
             ((null? l) #f)

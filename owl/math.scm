@@ -98,8 +98,8 @@
       (define (inexact? n) #false)
       ;; signaling an error would also make sense for these, but as compat
       ;; functions returning the argument as suggested in filed bug
-      (define (exact->inexact n) n) 
-      (define (inexact->exact n) n)
+      (define exact->inexact self)
+      (define inexact->exact self)
 
       ;; deprecated primop
       ;(define-syntax fxdivmod
@@ -453,11 +453,11 @@
                (if (eq? (type x) type-fix+)
                   (cast x type-fix-)
                   (cast x type-int-)))))
-               
+
       (define-syntax rational
          (syntax-rules ()
             ((rational a b) (mkt type-rational a b))))
-      
+
       (define (negate num)   
          (case (type num)
             (type-fix+ 
@@ -687,7 +687,7 @@
                ;; could allow negative shift left to mean a shift right, but that is 
                ;; probably more likely an accident than desired behavior, so failing here
                (big-bad-args '<< a b))))
-             
+
       (define (big-band a b)
          (cond
             ((eq? a null) 0)
@@ -847,7 +847,7 @@
                   (if (eq? hi 0)
                      lo
                      (ncons lo (ncons hi null)))))))
-      
+
 
       ;;;
       ;;; Big multiplication
@@ -1135,7 +1135,7 @@
             (if (negative? next)
                (values out a)
                (nat-quotrem-finish next b (nat-succ out)))))
-    
+
       (define (nat-quotrem a b)
          (let loop ((a a) (out 0))
             (let ((s (div-shift a b 0)))
@@ -1240,7 +1240,7 @@
                   (if (eq? carry 0)
                      tl
                      (ncons carry tl))))))
-            
+
       (define (rrem a b) ; both should be scaled to get a good head for b
          (cond
             ((null? a) a)
@@ -1370,7 +1370,7 @@
 
       ;; fixme, add ^
 
-      
+
       ;;; alternative division
 
       (define (div-big-exact a b) (ediv (subi a (nat-rem a b)) b))
@@ -1562,7 +1562,7 @@
          (list->ff 
             (map (lambda (x) (cons (<< 1 x) x))
                '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23))))
-      
+
       (define (lazy-gcd a b n)
          (let ((av (cdr a)) (bv (cdr b)))
             (cond
@@ -1599,7 +1599,7 @@
             ((eq? (type b) type-fix+) (gcd-euclid a b))
             ((eq? a b) a)
             (else (nat-gcd a b))))
-               
+
       (define (gcdl ls) (fold gcd (car ls) (cdr ls)))
 
 
@@ -1639,7 +1639,7 @@
          (cond
             ((eq? (type b) type-fix-) (divide (negate a) (negate b)))
             ((eq? (type b) type-int-) (divide (negate a) (negate b)))
-            ((divide-simple a b) => (lambda (x) x))
+            ((divide-simple a b) => self)
             (else 
                (let ((f (gcd a b)))
                   (cond
@@ -1946,7 +1946,7 @@
                   (negate (nat-succ (div (abs a) b)))
                   (div a b)))
             n))
-      
+
       (define (ceiling n)
          (if (eq? (type n) type-rational)
             (lets ((a b n))
@@ -2160,7 +2160,7 @@
             ((a) (sub 0 a))
             ((a b . xs) 
                (sub a (add b (fold add 0 xs))))))
-      
+
       ;; * → mul
       (define *
          (case-lambda 

@@ -189,7 +189,6 @@
                         (enc (lambda () (loop (cdr kvs))) (car kv) (cdr kv))))
                   (else (loop (kvs)))))))
 
-               
       ; root cook-fn -> byte-stream
       (define (encoder obj cook)
          (encoder-output
@@ -211,7 +210,7 @@
 
       ; dump the data as such
       (define (fasl-encode obj)
-         (force-ll (encode obj (λ (x) x))))
+         (force-ll (encode obj self)))
 
       (define chunk-size 32767)
 
@@ -249,7 +248,7 @@
             (if (eq? 0 (fxband b 128)) ; leaf case
                (values ll (bor (<< top 7) b))
                (get-nat ll fail (bor (<< top 7) (band b low7))))))
-      
+
       (define (decode-immediate ll fail)
          (lets 
             ((ll type (grab ll fail))
@@ -357,7 +356,7 @@
       ;; decode a full (possibly lazy) list of data, and succeed only if it exactly matches a fasl-encoded object
 
       (define failed "fail") ;; a unique object
-          
+
       ;; ll fail → val | fail
       (define (decode ll fail-val)
          (lets ((ll ob (decode-or ll (λ (why) failed))))

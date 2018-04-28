@@ -565,7 +565,7 @@
              (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
              (paths (map conv include-dirs))
              (contentss (map file->list paths))
-             (data (first (λ (x) x) contentss #false)))
+             (data (first self contentss #false)))
             (if data
                (let ((exps (list->sexps data "library fail" path)))
                   (if exps ;; all of the file parsed to a list of sexps
@@ -771,7 +771,7 @@
                            (fail
                               (list "Definition of" (cadr exp) "failed because" reason)))))
                   ((export? exp)
-                     (lets ((module (build-export (cdr exp) env (λ (x) x)))) ; <- to be removed soon, dummy fail cont
+                     (lets ((module (build-export (cdr exp) env self))) ; <- to be removed soon, dummy fail cont
                         (ok module env)))
                   ((library-definition? exp)
                      ;; evaluate libraries in a blank *owl-core* env (only primops, specials and define-syntax)
@@ -897,5 +897,5 @@
          (lets ((exps (try-parse (get-kleene+ sexp-parser) (str-iter str) #false syntax-fail #false)))
             (if exps
                (repl env exps)
-               (tuple 'error "not parseable" env))))))
-
+               (tuple 'error "not parseable" env))))
+))

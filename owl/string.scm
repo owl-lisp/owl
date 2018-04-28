@@ -185,8 +185,7 @@
                (ilist #\\ #\r tl))
             ((eq? p #\tab)
                (ilist #\\ #\t tl))
-            ((maybe-hexencode p tl) => 
-               (lambda (tl) tl))
+            ((maybe-hexencode p tl) => self)
             (else
                (encode-point p tl))))
 
@@ -373,8 +372,6 @@
          (runes->string
             (str-iterr str)))
 
-      (define (i x) x)
-
       (define string-copy i)
 
       ;; going as per R5RS
@@ -464,4 +461,5 @@
             (str-iter str)))
 
       (define (make-string n char)
-         (list->string (repeat char n)))))
+         (list->string (repeat char n)))
+))

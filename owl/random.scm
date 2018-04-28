@@ -34,7 +34,7 @@
    (export   
       ;; prngs
       lcg-rands           ;; seed (int32) → rands
-      
+
       ;; stream construction
       seed->rands         ;; seed → ll of (digit ...) ;; only the default one, later also merseinne twister, blum blum shub etc alternatives
       rands->bits         ;; (digit ...) → (0|1 ...)
@@ -218,7 +218,7 @@
 
       (define seed->bits 
          (o rands->bits seed->rands))
-      
+
       (define seed->bytes
          (o rands->bytes seed->rands))
 
@@ -266,7 +266,7 @@
             (lets ((d rs (uncons rs rs)))
                (values rs d))
             (rand-fixnum rs (+ n 1))))
-         
+
       (define (rand-bignum rs n)
          (let loop ((rs rs) (left n) (out null) (lower? #false))
             (lets ((digit left left))
@@ -545,7 +545,7 @@
       '(begin
          (begin
             (display " * blank    ")
-            (prng-speed (liter (λ (x) x) 42)))
+            (prng-speed (liter self 42)))
          (begin
             (display " * default  ")
             (prng-speed (seed->rands 42)))
@@ -583,4 +583,3 @@
 ;               ((byte rs (uncons rs 0))
 ;                (n _ (fx+ n 1)))
 ;               (loop rs (cons byte out) n))))))
-      
