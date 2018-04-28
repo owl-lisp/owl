@@ -697,8 +697,8 @@ static word prim_sys(int op, word a, word b, word c) {
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)(intptr_t)cnum(a));
          return ITRUE;
-      case 14: /* unused */
-         return IFALSE;
+      case 14: /* strerror errnum → pointer */
+         return onum((word)strerror(immval(a)), 0);
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
          int fd = immval(a);
          word *buff = (word *) b;
