@@ -7,6 +7,7 @@
       dir->list
       dir->list-all
       errno
+      strerror
       exec
       fork
       pipe
@@ -81,14 +82,14 @@
       ;; owl value → value processable in vm (mainly string conversion)
       (define (sys-arg x)
          (cond
-            ((string? x) 
+            ((string? x)
                ;; strings should generally be null-terminated
                (c-string x))
             (else x)))
 
       ;; call fixed arity prim-sys instruction with converted arguments
       (define sys
-         (case-lambda 
+         (case-lambda
             ((op)
                (sys-prim op #f #f #f))
             ((op a)
@@ -130,7 +131,7 @@
                   (let ((next (peek-word ptr)))
                      (if (eq? next 0)
                         null
-                        (cons 
+                        (cons
                            (func next)
                            (loop (+ ptr nb)))))))))
 
@@ -139,6 +140,9 @@
 
       (define (errno)
          (sys 9 0))
+
+      (define (strerror errnum)
+         (mem-string (sys 14 errnum)))
 
       (define (fclose fd)
          (sys 2 fd))
@@ -352,10 +356,7 @@
       ;;;
 
       (define (getenv str)
-         (let ((ptr (sys 16 str)))
-            (if (eq? ptr 0)
-               #false
-               (mem-string ptr))))
+         (mem-string (sys 16 str)))
 
       (define (setenv var val)
          (sys 28 var val))
@@ -378,8 +379,8 @@
 
       ;; ((keystr . valstr) ...)
       (define (get-environment)
-         (mem-array-map 
-            (get-environment-pointer) 
+         (mem-array-map
+            (get-environment-pointer)
             (λ (ptr)
                (lets ((k v (split-env-value (mem-string-bytes ptr))))
                   (cons
