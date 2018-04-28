@@ -102,6 +102,7 @@
    (owl base)
    (owl date)
    (owl codec)
+   (owl variable)
    (scheme cxr)
    (scheme base)
    (scheme case-lambda)
@@ -166,6 +167,7 @@
       get-memory-limit
       string->sexp
       read read-ll
+      make-variable
       *features*
       *include-dirs*
       *libraries*      ;; all currently loaded libraries
