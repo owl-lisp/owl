@@ -28,7 +28,7 @@
       tcp-client              ;; port → ip tcp-fd | #f #f
       tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
-      
+
       ;; datagram-oriented IO
       udp-packets             ;; port → null | ((ip . bvec) ...)
       udp-client-socket       ;; temp
@@ -72,7 +72,7 @@
       system-print system-println system-stderr
       fasl-save         ;; obj path → done?
       fasl-load         ;; path default → done?
-      
+
       start-muxer       ;; new io muxer
       sleep             ;; sleep ms -> sleep at least for ms
    )
@@ -200,7 +200,7 @@
       ;; get a block of size up to block size
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
-      
+
       (define (maybe-get-block fd block-size)
          (try-get-block fd block-size #false))
 
@@ -249,7 +249,7 @@
 
       (define socket-type-tcp 0)
       (define socket-type-udp 1)
-      
+
       (define (open-tcp-socket port)
          (let ((sock (sys-prim 3 port socket-type-tcp #false)))
             (if sock 
@@ -265,10 +265,10 @@
       ;; port → (ip . bvec) | #false, nonblocking
       (define (check-udp-packet port)
          (sys-prim 10 port #f #f))
-    
+
       (define (send-udp-packet sock ip port payload)
          (sys-prim 27 sock (cons port ip) payload))
-         
+
       ;; port → (ip . bvec), blocks thread
       (define (wait-udp-packet port)
          (let ((res (check-udp-packet port)))
@@ -277,7 +277,7 @@
                   ;(interact sid socket-read-delay)
                   (interact 'iomux (tuple 'read port))
                   (wait-udp-packet port)))))
-     
+
       ;; port → null | ((ip . bvec) ...)
       (define (udp-packets port)
          (let ((sock (open-udp-socket port)))
@@ -288,9 +288,9 @@
                         (wait-udp-packet sock)
                         (loop sock))))
                null)))
-      
+
       (define open-socket open-tcp-socket)
-      
+
       ;;; TCP connections
 
       (define (open-connection ip port)
@@ -308,14 +308,13 @@
 
       (define (udp-client-socket)
          (sys-prim 29 #f #f socket-type-udp))
-         
+
       ;; deprecated
       (define (flush-port fd)
          ;(mail fd 'flush)
          42)
 
-      (define (close-port fd)
-         (fclose fd))
+      (define close-port fclose)
 
 
       ;;;
@@ -515,7 +514,7 @@
                (begin
                   ;(print "file->vector: cannot open " path)
                   #false))))
-      
+
       (define (file->list path) ; path -> vec | #false
          (let ((port (maybe-open-file path)))
             (if port
@@ -581,11 +580,11 @@
       ;; stream blocks close at eof
       (define (port->block-stream fd)
          (block-stream fd #true))
-     
+
       ;; stream blocks, wait for more at eof
       (define (port->tail-block-stream fd)
          (block-stream fd #false))
-      
+
       ;; include metadata symbols
       (define (port->meta-block-stream fd)
          (let loop ((block? #false))
@@ -607,7 +606,7 @@
             (λ (block ll)
                (stream-chunk block (- (sizeb block) 1) ll))
             (block-stream fd #f)))
-      
+
       (define (port->tail-byte-stream fd)
          (ledit
             (λ (block ll)
@@ -648,7 +647,7 @@
                      (loop bs 0 out)))
                (else
                   (loop (bs) n out)))))
-      
+
       (define (byte-stream->lines ll)
          (let loop ((ll ll) (out null))
             (cond
@@ -671,7 +670,7 @@
                (else
                   (λ ()
                     (loop (ll) out))))))
-     
+
       (define (lines fd)
          (byte-stream->lines
             (utf8-decoder 
@@ -743,9 +742,9 @@
                      (print-to stderr " - found it"))
                   (eq? port fd)))
             alarms))
-      
+
       ;; alarm-mail = #(sender #(read-timeout fd ms))
-      
+
       (define (wakeup rs ws alarms fd reason)
          (cond
             ((eq? reason 1) ;; data ready to be read
@@ -785,7 +784,7 @@
                (if (< (car a) time)
                   (cons a (push-alarm (cdr alarms) time id))
                   (cons (cons time id) alarms)))))
-               
+
       ;; including time currently causes a circular dependency - resolve later
       (define (time-ms)
          (lets ((ss ms (clock)))
@@ -861,7 +860,7 @@
                            (print-to stderr "not sure how to alarm " message)
                            (mail id 'alarm)
                            (muxer rs ws (cdr alarms)))))))))
-            
+
       (define (start-muxer . id)
          (thread
             (if (null? id) 'iomux (car id))
@@ -881,4 +880,3 @@
                port)))
 
 ))
-

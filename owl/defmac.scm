@@ -1,4 +1,4 @@
-  
+
 (define-library (owl defmac)
 
    (export
@@ -267,7 +267,7 @@
                   (λ (var ...) (let*-values rest . body))))
             ((let*-values () . rest)
                (begin . rest))))
-               
+
       ; i hate special characters, especially in such common operations.
       ; lets (let sequence) is way prettier and a bit more descriptive 
 
@@ -430,7 +430,6 @@
 
       ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
 
-      (define (i x) x)
       (define (k x y) x)
 
 
@@ -571,5 +570,5 @@
 
       (define (maybe op arg)
          (if arg (op arg) arg))
-      
+
 ))

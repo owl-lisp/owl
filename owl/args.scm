@@ -41,8 +41,6 @@
                   this
                   (select-rule string (cdr rules))))))
 
-      (define (self x) x)
-
       ;; "-foo" → ("-f" "-o" "-o") | #false
       (define (explode str)
          (if (m/^-[^-]{2,}/ str)
@@ -117,7 +115,7 @@
                                  (fail (list "'" (car args) "' requires an argument."))
                                  (lets
                                     ((value (cook (cadr args)))
-                                     (ok? ((get rule 'pred (λ (x) x)) value)))
+                                     (ok? ((get rule 'pred self) value)))
                                     (if ok?
                                        (walk rules 
                                           ;; instert an implicit -- after terminal rules to stop
@@ -232,4 +230,5 @@
                null rules)))
 
       (define print-rules 
-         (o display format-rules))))
+         (o display format-rules))
+))

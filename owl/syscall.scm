@@ -42,7 +42,7 @@
 
       (define (single-thread?)
          (syscall 7 #true #true))
-         
+
       (define (set-signal-action choice)
          (syscall 12 choice #false))
 
@@ -70,14 +70,14 @@
          (let loop ((rss (par* ts)))
             (cond
                ((null? rss) #false)
-               ((car rss) => (λ (result) result))
+               ((car rss) => self)
                (else (loop ((cdr rss)))))))
-               
+
       (define-syntax por
          (syntax-rules ()
             ((por exp ...)
                (por* (list (λ () exp) ...)))))
-    
+
       (define (wait-mail)           (syscall 13 #false #false))
       (define (check-mail)          (syscall 13 #false #true))
 
@@ -118,7 +118,7 @@
                (else
                   ;; got spam, keep waiting
                   (loop (check-mail) (cons envp spam) rounds)))))
-         
+
       (define thunk->thread 
          (case-lambda
             ((id thunk)
@@ -128,18 +128,18 @@
                (fork-named (tuple 'anonimas) thunk))))
 
       (define fork thunk->thread)
-      
+
       (define-syntax thread
          (syntax-rules (quote)
             ((thread id val)
                (thunk->thread id (lambda () val)))
             ((thread val)
                (thunk->thread (lambda () val)))))
-                  
+
       ;; (thread (op . args)) → id
       ;; (wait-thread (thread (op . args)) [default]) → value
       ;; thread scheduler should keep the exit value
-      
+
       ; Message passing (aka mailing) is asynchronous, and at least 
       ; in a one-core environment order-preserving. interact is like 
       ; mail, but it blocks the thread until the desired response 
@@ -154,8 +154,8 @@
 
       (define (stop-profiling)
          (syscall 21 #true #true))
-      
+
       (define (link id)
          (syscall 23 id id))
-         
+
 ))

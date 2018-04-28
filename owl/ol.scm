@@ -277,7 +277,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                         (compiler val 
                            ;; output path
                            (cond
-                              ((get opts 'output #false) => (λ (given) given)) ; requested with -o
+                              ((get opts 'output #false) => self) ; requested with -o
                               ((equal? path "-") path) ; stdin → stdout
                               (else (c-source-name path)))
                            ;; inverse option on command line, add here if set

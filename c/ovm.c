@@ -41,10 +41,10 @@ typedef intptr_t wdiff;
 #define MAXPAYL                     ((MAXOBJ - 1) * W) /* maximum payload in an allocated object */
 #define RAWBIT                      2048
 #define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
-#define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
-#define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
-#define make_raw_header(s, t, p)    (((s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
-#define F(val)                      (((val) << IPOS) | 2)
+#define make_immediate(value, type) (((word)(value) << IPOS) | ((type) << TPOS) | 2)
+#define make_header(size, type)     (((word)(size) << SPOS) | ((type) << TPOS) | 2)
+#define make_raw_header(s, t, p)    (((word)(s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
+#define F(val)                      make_immediate(val, 0)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define fixval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
@@ -58,17 +58,17 @@ typedef intptr_t wdiff;
 #define rawp(hdr)                   ((hdr) & RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
-#define PAIRHDR                     make_header(3,1)
-#define NUMHDR                      make_header(3,40) /* <- on the way to 40, see type-int+ in defmac.scm */
+#define PAIRHDR                     make_header(3, 1)
+#define NUMHDR                      make_header(3, 40) /* <- on the way to 40, see type-int+ in defmac.scm */
 #define NUMNHDR                     make_header(3, 41)
 #define pairp(ob)                   (allocp(ob) && V(ob) == PAIRHDR)
 #define cons(a, d)                  mkpair(PAIRHDR, a, d)
-#define INULL                       make_immediate(0,13)
-#define IFALSE                      make_immediate(1,13)
-#define ITRUE                       make_immediate(2,13)
-#define IEMPTY                      make_immediate(3,13) /* empty ff */
-#define IEOF                        make_immediate(4,13)
-#define IHALT                       make_immediate(5,13)
+#define INULL                       make_immediate(0, 13)
+#define IFALSE                      make_immediate(1, 13)
+#define ITRUE                       make_immediate(2, 13)
+#define IEMPTY                      make_immediate(3, 13) /* empty ff */
+#define IEOF                        make_immediate(4, 13)
+#define IHALT                       make_immediate(5, 13)
 #define TNUM                        0
 #define TTUPLE                      2
 #define TSTRING                     3
@@ -96,12 +96,12 @@ typedef intptr_t wdiff;
 #define A3                          R[ip[3]]
 #define A4                          R[ip[4]]
 #define A5                          R[ip[5]]
-#define G(ptr,n)                    ((word *)(ptr))[n]
+#define G(ptr, n)                   (((word *)(ptr))[n])
 #define TICKS                       10000 /* # of function calls in a thread quantum */
 #define allocate(size, to)          (to = fp, fp += size)
 #define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word)a; R[6] = (word)b; goto invoke_mcp;
-#define assert(exp,val,code)        if(!(exp)) {error(code, val, ITRUE);}
-#define assert_not(exp,val,code)    if(exp) {error(code, val, ITRUE);}
+#define assert(exp, val, code)      if (!(exp)) { error(code, val, ITRUE); }
+#define assert_not(exp, val, code)  if (exp) { error(code, val, ITRUE); }
 #define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
 #define MINGEN                      1024 * 32 /* minimum generation size before doing full GC */
 #define INITCELLS                   100000
@@ -457,7 +457,7 @@ static word prim_cast(word *ob, int type) {
       allocate(size, new);
       res = new;
       *new++ = (hdr&(~252))|((type&1087)<<TPOS); /* clear type, allow setting teardown in new one */
-      wordcopy(ob,new,size-1);
+      wordcopy(ob, new, size - 1);
       return (word)res;
    }
 }
@@ -1028,9 +1028,9 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
 
    if (allocp(ob)) {
       word hdr = *ob & 4095; /* cut size out, take just header info */
-      if (hdr == make_header(0,TPROC)) { /* proc */
+      if (hdr == make_header(0, TPROC)) { /* proc */
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if (hdr == make_header(0,TCLOS)) { /* clos */
+      } else if (hdr == make_header(0, TCLOS)) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
       } else if (((hdr>>TPOS)&60) == TFF) { /* low bits have special meaning */
@@ -1368,8 +1368,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(4); }
    op39: { /* fx* a b l h */
       uint64_t res = ((uint64_t) ((uint64_t) fixval(R[*ip])) * ((uint64_t) fixval(A1)));
-      A2 = F(((word)(res&FMAX)));
-      A3 = F(((word)(res>>FBITS)&FMAX));
+      A2 = F(res & FMAX);
+      A3 = F((res >> FBITS) & FMAX);
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
       word r = (fixval(A0)|(1<<FBITS)) - fixval(A1);
@@ -1381,10 +1381,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A1 = BOOL(allocp(node) && ((*node)&(FFRED<<TPOS)));
       NEXT(2); }
    op42: /* mkblack l k v r t */
-      A4 = prim_mkff(TFF,A0,A1,A2,A3);
+      A4 = prim_mkff(TFF, A0, A1, A2, A3);
       NEXT(5);
    op43: /* mkred l k v r t */
-      A4 = prim_mkff(TFF|FFRED,A0,A1,A2,A3);
+      A4 = prim_mkff(TFF | FFRED, A0, A1, A2, A3);
       NEXT(5);
    op44: /* less a b r */
       A2 = prim_less(A0, A1);
@@ -1438,7 +1438,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       R[0] = R[3];
       ticker = bank ? bank : fixval(A1);
       bank = 0;
-      assert(allocp(ob),ob,50);
+      assert(allocp(ob), ob, 50);
       hdr = *ob;
       if (imm_type(hdr) == TTHREAD) {
          int pos = hdrsize(hdr) - 1;
@@ -1676,7 +1676,7 @@ word *decode_fasl(int nobjs) {
       pos++;
    }
    entry = (word *) ptrs[pos - 1];
-   ptrs[0] = make_raw_header(nobjs+1,0,0);
+   ptrs[0] = make_raw_header(nobjs + 1, 0, 0);
    return entry;
 }
 
@@ -1686,7 +1686,7 @@ word *load_heap(int nobjs) {
    return entry;
 }
 
-void setup(int nargs, char **argv, int nwords, int nobjs) {
+void setup(int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
    state = IFALSE;
    set_signal_handler();
@@ -1696,7 +1696,8 @@ void setup(int nargs, char **argv, int nwords, int nobjs) {
    max_heap_mb = (W == 4) ? 4096 : 65535;
    nwords += nobjs + INITCELLS;
    memstart = genstart = fp = realloc(NULL, (nwords + MEMPAD) * W);
-   if (!memstart) exit(4);
+   if (memstart == NULL)
+      exit(4);
    memend = memstart + nwords - MEMPAD;
 }
 
@@ -1704,7 +1705,7 @@ int main(int nargs, char **argv) {
    word *prog;
    int rval, nobjs=0, nwords=0;
    find_heap(&nargs, &argv, &nobjs, &nwords);
-   setup(nargs, argv, nwords, nobjs);
+   setup(nwords, nobjs);
    prog = load_heap(nobjs);
    rval = vm(prog, (word *)onum((word)argv, 0));
    setdown();

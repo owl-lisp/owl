@@ -75,7 +75,7 @@
          (if (eq? (type cp) type-fix+)
             accept
             (error "match string cannot yet contain a " cp)))
-      
+
       (define (pred fn) ;; match match a specific (fixnum) code point
          (define (accept ls buff ms cont)
             (cond
@@ -87,7 +87,7 @@
                (else 
                   (accept (ls) buff ms cont))))
          accept)
-      
+
       ;; [ab..n], store set in a ff (range 0-65535)
       (define (accept-ff ff)
          (λ (ls buff ms cont)
@@ -200,7 +200,7 @@
                (rx ls buff ms 
                   (λ (ls buff ms) (collect ls buff ms cont)))))
          collect)
-     
+
       ;; <rx>+?
       (define (alt-plus rx) (rex-and rx (alt-star rx)))
 
@@ -295,7 +295,7 @@
          (λ (ls buff ms cont)
             (rex ls buff ms
                (λ (lsp buffp msp) (cont ls buff ms))))) ;; there she blows
-      
+
       (define (lookahead-not rex)
          (λ (ls buff ms cont)
             (if (rex ls buff ms (λ (a b c) #true))
@@ -359,7 +359,7 @@
                         (values #false #false)))))
             (else
                (match-list (ls) val buff))))
-         
+
       (define (matched n)
          (λ (ls buff ms cont)
             (let ((val (ranges-ref (reverse ms) n)))
@@ -390,7 +390,7 @@
       (define (rex-match-prefix? rex ll)
          (rex ll null blank-ranges
             (λ (ls buff ms) #true)))
-      
+
       ;; rex ll → #false | #(ls buff ms), for replacing
       (define (rex-match-prefix rex ll)
          (rex ll null blank-ranges
@@ -422,7 +422,7 @@
                (rex-match-prefix? rex (iter target)))
             (λ (target)
                (rex-match-anywhere? rex (iter target)))))
-     
+
       ;; another half-sensible but at the moment useful thing would be (m/<regex>/ iterable) -> #false | (head . tail)
       (define (make-copy-matcher rex start?)
          (if start?
@@ -436,7 +436,7 @@
          (if (null? out)
             null
             (list (runes->string (reverse out)))))
-     
+
       (define (force node)
          (cond ((pair? node) node)
                ((null? node) node)
@@ -487,7 +487,7 @@
                            (loop ls (cons (runes->string (reverse buff)) out)))
                         (loop (cdr ll) out))))
                (else (loop (ll) out)))))
-                        
+
       ;;;
       ;;; Replacing
       ;;;
@@ -609,14 +609,14 @@
             ((skip (get-imm 42))
              (altp get-altp))
             (if altp alt-star star)))
-      
+
       ;; a+ = aa*
       (define get-plus 
          (let-parses 
             ((skip (get-imm 43))
              (altp get-altp))
             (if altp alt-plus plus)))
-      
+
       ;; a? = a{0,1} = (a|"")
       (define get-quest 
          (let-parses 
@@ -624,10 +624,8 @@
              (altp get-altp))
             (if altp alt-quest quest)))
 
-      (define (i x) x)
-
       (define special-chars '(40 41 124 46 47)) ;; kinda ugly. the parser should check for these first
-     
+
       (define (imm-val imm val)
          (let-parses ((d (get-imm imm))) val))
 
@@ -647,7 +645,7 @@
       (define accept-nonword (pred (λ (b) (not (word? b)))))
       (define accept-space (pred space?))
       (define accept-nonspace (pred (λ (b) (not (space? b)))))
-      
+
       ;; \<x>
       (define get-quoted-char
          (let-parses
@@ -681,7 +679,7 @@
             ((val get-byte) ;; really get-code-point since the input is already decoded
              (verify (not (has? special-chars val)) "bad special char"))
             (imm val)))
-       
+
       (define (quoted-imm val)
          (let-parses 
             ((quote (get-imm 92))
@@ -731,10 +729,10 @@
 
       (define get-8bit 
          (let-parses ((hi get-hex) (lo get-hex)) (bor (<< hi 4) lo)))
-      
+
       (define get-16bit 
          (let-parses ((hi get-8bit) (lo get-8bit)) (bor (<< hi 8) lo)))
-      
+
       (define get-32bit 
          (let-parses ((hi get-16bit) (lo get-16bit)) (bor (<< hi 16) lo)))
 
@@ -790,7 +788,7 @@
          (get-either
             (get-imm 94)  ;; hack, returned 94 on match is also true
             (get-epsilon #false)))
-         
+
       (define get-char-class
          (let-parses
             ((open (get-imm 91))
@@ -907,7 +905,7 @@
             ((hd (get-catn get-regex))
              (tl (get-kleene* (let-parses ((skip (get-imm 124)) (rex (get-catn get-regex))) rex))))
             (fold rex-or hd tl)))
-    
+
       (define get-matcher-regex
          (let-parses 
             ((skip (get-imm #\m)) ;; [m]atch
@@ -989,7 +987,7 @@
       ;; str -> rex|#false, for conversion of strings to complete matchers
       (define (string->complete-match-regex str)
          (try-parse get-body-regex (str-iter str) #false #false #false))
-      
+
       ;; str → rex|#false, same as is used in owl parser
       (define (string->extended-regexp str)
          (try-parse get-sexp-regex (str-iter str) #false #false #false))
