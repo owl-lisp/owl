@@ -44,14 +44,12 @@ typedef intptr_t wdiff;
 #define make_immediate(value, type) (((word)(value) << IPOS) | ((type) << TPOS) | 2)
 #define make_header(size, type)     (((word)(size) << SPOS) | ((type) << TPOS) | 2)
 #define make_raw_header(s, t, p)    (((word)(s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
-#define F(val)                      make_immediate(val, 0)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
-#define fixval(desc)                ((desc) >> IPOS)
+#define immval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
 #define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
-#define imm_val(x)                  ((x) >> IPOS)
 #define hdrsize(x)                  (((word)(x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
@@ -82,6 +80,7 @@ typedef intptr_t wdiff;
 #define TBYTECODE                   16
 #define TPROC                       17
 #define TCLOS                       18
+#define F(value)                    make_immediate(value, TNUM)
 #define stringp(ob)                 (allocp(ob) && (V(ob) & make_header(0, 63)) == make_header(0, TSTRING))
 #define FLAG                        1
 #define cont(n)                     V((word)(n) & ~FLAG)
@@ -395,8 +394,8 @@ static word prim_connect(word *host, word port, word type) {
    byte *ip = ((unsigned char *) host) + W;
    unsigned long ipfull;
    struct sockaddr_in addr;
-   char udp = (fixval(type) == 1);
-   port = fixval(port);
+   char udp = (immval(type) == 1);
+   port = immval(port);
    if ((sock = socket(PF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0))) == -1)
       return IFALSE;
    if (udp)
@@ -449,7 +448,7 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
 
 static word prim_cast(word *ob, int type) {
    if (immediatep((word)ob)) {
-      return make_immediate(imm_val((word)ob), type & 63);
+      return make_immediate(immval((word)ob), type & 63);
    } else { /* make a clone of more desired type */
       word hdr = *ob++;
       int size = hdrsize(hdr);
@@ -462,7 +461,7 @@ static word prim_cast(word *ob, int type) {
    }
 }
 
-static int prim_refb(word pword, unsigned int pos) {
+static word prim_refb(word pword, unsigned int pos) {
    word *ob = (word *) pword;
    word hdr, hsize;
    if (immediatep(ob))
@@ -477,7 +476,7 @@ static int prim_refb(word pword, unsigned int pos) {
 static word prim_ref(word pword, word pos) {
    word *ob = (word *) pword;
    word hdr, size;
-   pos = fixval(pos);
+   pos = immval(pos);
    if (immediatep(ob))
       return IFALSE;
    hdr = *ob;
@@ -500,13 +499,13 @@ static int64_t cnum(word a) {
       unsigned int shift = 0;
       x = 0;
       do {
-         x |= fixval(p[1]) << shift;
+         x |= immval(p[1]) << shift;
          shift += FBITS;
          p = (word *)p[2];
       } while (shift < 64 && allocp(p));
       return header(a) == NUMNHDR ? -x : x;
    }
-   x = fixval(a);
+   x = immval(a);
    return imm_type(a) == TNUMN ? -x : x;
 }
 
@@ -537,7 +536,7 @@ static word prim_set(word wptr, word pos, word val) {
    word *ob = (word *) wptr;
    word hdr, p;
    word *new;
-   pos = fixval(pos);
+   pos = immval(pos);
    if (immediatep(ob))
       return IFALSE;
    hdr = *ob;
@@ -561,7 +560,7 @@ void setdown() {
 static word prim_sys(int op, word a, word b, word c) {
    switch(op) {
       case 0: { /* 0 fsend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
-         int fd = fixval(a);
+         int fd = immval(a);
          word *buff = (word *) b;
          int wrote, size, len = cnum(c);
          if (immediatep(buff)) return IFALSE;
@@ -573,7 +572,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return IFALSE; }
       case 1: { /* 1 = fopen <str> <mode> <to> */
          char *path = (char *) a;
-         int mode = fixval(b);
+         int mode = immval(b);
          int val = 0;
          struct stat sb;
          if (!stringp(a))
@@ -590,10 +589,10 @@ static word prim_sys(int op, word a, word b, word c) {
          toggle_blocking(val,0);
          return F(val); }
       case 2:
-         return BOOL(close(fixval(a)) == 0);
+         return BOOL(close(immval(a)) == 0);
       case 3: { /* 3 = sopen port 0=tcp|1=udp -> False | fd  */
-         int port = fixval(a);
-         int type = fixval(b);
+         int port = immval(a);
+         int type = immval(b);
          int s;
          int opt = 1; /* TRUE */
          char udp = (type == 1);
@@ -620,7 +619,7 @@ static word prim_sys(int op, word a, word b, word c) {
          toggle_blocking(s,0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
-         int sock = fixval(a);
+         int sock = immval(a);
          struct sockaddr_in addr;
          socklen_t len = sizeof(addr);
          int fd;
@@ -632,7 +631,7 @@ static word prim_sys(int op, word a, word b, word c) {
          bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
          return cons((word)ipa, F(fd)); }
       case 5: { /* fread fd max -> obj | eof | F (read error) | T (would block) */
-         word fd = fixval(a);
+         word fd = immval(a);
          word max = cnum(b);
          word *res;
          int n, nwords = (max/W) + 2;
@@ -651,16 +650,16 @@ static word prim_sys(int op, word a, word b, word c) {
          return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
       case 6:
          setdown();
-         exit(fixval(a)); /* stop the press */
+         exit(immval(a)); /* stop the press */
       case 7: /* set memory limit (in mb) */
-         max_heap_mb = fixval(a);
+         max_heap_mb = immval(a);
          return a;
       case 8: { /* return system constants */
          static const word sysconst[] = {
             S_IFMT, W, S_IFBLK, S_IFCHR, S_IFIFO, S_IFREG, S_IFDIR, S_IFLNK,
             S_IFSOCK
          };
-         return onum(sysconst[fixval(a) % (sizeof sysconst / W)], 0); }
+         return onum(sysconst[immval(a) % (sizeof sysconst / W)], 0); }
       case 9: /* return process variables */
          return onum(
             a == F(0) ? errno :
@@ -672,7 +671,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *bvec;
          word *ipa;
          int recvd;
-         recvd = recvfrom(fixval(a), fp + 1, 65528, 0, (struct sockaddr *)&si_other, &slen);
+         recvd = recvfrom(immval(a), fp + 1, 65528, 0, (struct sockaddr *)&si_other, &slen);
          if (recvd < 0)
             return IFALSE;
          bvec = mkbvec(recvd, TBVEC);
@@ -701,7 +700,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 14: /* unused */
          return IFALSE;
       case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
-         int fd = fixval(a);
+         int fd = immval(a);
          word *buff = (word *) b;
          int wrote, size, len = cnum(c);
          if (immediatep(buff)) return IFALSE;
@@ -769,7 +768,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 20: /* chdir path → bool */
          return BOOL(stringp(a) && chdir((char *)a + W) == 0);
       case 21: /* kill pid signal → bool */
-         return BOOL(kill(cnum(a), fixval(b)) == 0);
+         return BOOL(kill(cnum(a), immval(b)) == 0);
       case 22: /* unlink path → bool */
          return BOOL(stringp(a) && unlink((char *)a + W) == 0);
       case 23: /* rmdir path → bool */
@@ -778,14 +777,14 @@ static word prim_sys(int op, word a, word b, word c) {
          if (stringp(a) && pairp(b)) {
             const mode_t nods[4] = { S_IFIFO, S_IFCHR, S_IFBLK, S_IFREG };
             const char *path = (const char *)a + W;
-            const mode_t type = fixval(G(b, 1)), mode = fixval(G(b, 2));
+            const mode_t type = immval(G(b, 1)), mode = immval(G(b, 2));
             if ((type & ~3 ? mkdir(path, mode) : mknod(path, nods[type] | mode, cnum(c))) == 0)
                return ITRUE;
          }
          return IFALSE;
       case 25: {
-         int whence = fixval(c);
-         off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
+         int whence = immval(c);
+         off_t p = lseek(immval(a), cnum(b), whence == 0 ? SEEK_SET : (whence == 1 ? SEEK_CUR : SEEK_END));
          return p != -1 ? onum(p, 1) : IFALSE; }
       case 26:
          if (a != IFALSE) {
@@ -800,14 +799,14 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          return BOOL(tcsetattr(0, TCSANOW, &tsettings) == 0);
       case 27: { /* sendmsg sock (port . ipv4) bvec */
-         int sock = fixval(a);
+         int sock = immval(a);
          int port;
          struct sockaddr_in peer;
          byte* data = ((byte *) c) + W;
          byte *ip;
          word hdr = header(c);
          int nbytes = (hdrsize(hdr) - 1) * W - ((hdr >> 8) & 7);
-         port = fixval(G(b, 1));
+         port = immval(G(b, 1));
          ip = (byte *)G(b, 2) + W;
          peer.sin_family = AF_INET;
          peer.sin_port = htons(port);
@@ -823,7 +822,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 29:
          return prim_connect((word *) a, b, c);
       case 30: { /* dupfd old-fd new-fd fixed → new-fd | #false */
-         int fd0 = fixval(a), fd1 = fixval(b);
+         int fd0 = immval(a), fd1 = immval(b);
          fd1 = c != IFALSE ? dup2(fd0, fd1) : fcntl(fd0, F_DUPFD, fd1);
          if (fd1 == -1)
             return IFALSE;
@@ -861,12 +860,12 @@ static word prim_sys(int op, word a, word b, word c) {
          }
          return IFALSE;
       case 37: /* umask mask → mask */
-         return F(umask(fixval(a)));
+         return F(umask(immval(a)));
       case 38: /* stat fd|path follow → list */
          if (immediatep(a) || stringp(a)) {
             struct stat st;
             int flg = b != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
-            if ((allocp(a) ? fstatat(AT_FDCWD, (char *)a + W, &st, flg) : fstat(fixval(a), &st)) == 0) {
+            if ((allocp(a) ? fstatat(AT_FDCWD, (char *)a + W, &st, flg) : fstat(immval(a), &st)) == 0) {
                word lst = INULL;
                lst = cons(onum(st.st_blocks, 1), lst);
                lst = cons(onum(st.st_blksize, 1), lst);
@@ -887,9 +886,9 @@ static word prim_sys(int op, word a, word b, word c) {
          return INULL;
       case 39: /* chmod fd|path mode follow → bool */
          if ((immediatep(a) || stringp(a)) && fixnump(b)) {
-            mode_t mod = fixval(b);
+            mode_t mod = immval(b);
             int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
-            if ((allocp(a) ? fchmodat(AT_FDCWD, (char *)a + W, mod, flg) : fchmod(fixval(a), mod)) == 0)
+            if ((allocp(a) ? fchmodat(AT_FDCWD, (char *)a + W, mod, flg) : fchmod(immval(a), mod)) == 0)
                return ITRUE;
          }
          return IFALSE;
@@ -898,7 +897,7 @@ static word prim_sys(int op, word a, word b, word c) {
             uid_t uid = cnum(G(b, 1));
             gid_t gid = cnum(G(b, 2));
             int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
-            if ((allocp(a) ? fchownat(AT_FDCWD, (char *)a + W, uid, gid, flg) : fchown(fixval(a), uid, gid)) == 0)
+            if ((allocp(a) ? fchownat(AT_FDCWD, (char *)a + W, uid, gid, flg) : fchown(immval(a), uid, gid)) == 0)
                return ITRUE;
          }
          return IFALSE;
@@ -928,7 +927,7 @@ static word prim_lraw(word wptr, int type) {
    raw = mkbvec(len, type);
    pos = ((byte *) raw) + W;
    for (ob = lst; (word)ob != INULL; ob = (word *)ob[2])
-      *pos++ = fixval(ob[1]) & 255;
+      *pos++ = immval(ob[1]) & 255;
    return (word)raw;
 }
 
@@ -967,7 +966,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
    cur = (word *)a;
    while((word)cur != INULL) {
-      int fd = fixval(G(cur[1], 1));
+      int fd = immval(G(cur[1], 1));
       FD_SET(fd, &rs);
       FD_SET(fd, &es);
       if (fd >= nfds)
@@ -976,7 +975,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    }
    cur = (word *)b;
    while ((word)cur != INULL) {
-      int fd = fixval(G(cur[1], 1));
+      int fd = immval(G(cur[1], 1));
       FD_SET(fd, &ws);
       FD_SET(fd, &es);
       if (fd >= nfds)
@@ -986,7 +985,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    if (c == IFALSE) {
       res = select(nfds, &rs, &ws, &es, NULL);
    } else {
-      int ms = fixval(c);
+      int ms = immval(c);
       tv.tv_sec = ms/1000;
       tv.tv_usec = (ms%1000)*1000;
       res = select(nfds, &rs, &ws, &es, &tv);
@@ -1250,7 +1249,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       goto invoke; }
    op22: { /* cast o t r */
       word *ob = (word *) R[*ip];
-      word type = fixval(A1);
+      word type = immval(A1);
       A2 = prim_cast(ob, type);
       NEXT(3); }
    op23: { /* mkt t s f1 .. fs r */
@@ -1287,8 +1286,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(3); }
    op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-      uint64_t a = ((uint64_t)fixval(A0) << FBITS) | fixval(A1);
-      word b = fixval(A2);
+      uint64_t a = ((uint64_t)immval(A0) << FBITS) | immval(A1);
+      word b = immval(A2);
       uint64_t q;
       q = a / b;
       A3 = F(q>>FBITS);
@@ -1340,8 +1339,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(3);
    op35: { /* listuple type size lst to */
-      word type = fixval(R[*ip]);
-      word size = fixval(A1);
+      word type = immval(R[*ip]);
+      word size = immval(A1);
       word *lst = (word *) A2;
       word *ob;
       allocate(size+1, ob);
@@ -1358,23 +1357,23 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
       NEXT(2); }
    op37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
-      A2 = prim_lraw(A0, fixval(A1));
+      A2 = prim_lraw(A0, immval(A1));
       NEXT(3);
    op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
-      word res = fixval(A0) + fixval(A1);
+      word res = immval(A0) + immval(A1);
       word low = res & FMAX;
       A3 = BOOL(res & (1 << FBITS));
       A2 = F(low);
       NEXT(4); }
    op39: { /* fx* a b l h */
-      uint64_t res = ((uint64_t) ((uint64_t) fixval(R[*ip])) * ((uint64_t) fixval(A1)));
+      uint64_t res = (uint64_t)immval(R[*ip]) * (uint64_t)immval(A1);
       A2 = F(res & FMAX);
       A3 = F((res >> FBITS) & FMAX);
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
-      word r = (fixval(A0)|(1<<FBITS)) - fixval(A1);
-      A3 = (r & (1<<FBITS)) ? IFALSE : ITRUE;
-      A2 = F(r&FMAX);
+      word r = (immval(A0) | (1 << FBITS)) - immval(A1);
+      A3 = r & (1 << FBITS) ? IFALSE : ITRUE;
+      A2 = F(r & FMAX);
       NEXT(4); }
    op41: { /* red? node r (has highest type bit?) */
       word *node = (word *) R[*ip];
@@ -1411,7 +1410,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = prim_ref(A0, A1);
       NEXT(3);
    op48: { /* refb t o r */ /* todo: merge with ref, though 0-based  */
-      A2 = prim_refb(A0, fixval(A1));
+      A2 = prim_refb(A0, immval(A1));
       NEXT(3); }
    op49: { /* withff node l k v r */
       word hdr, *ob = (word *) R[*ip];
@@ -1436,7 +1435,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       word hdr;
       ob = (word *) A0;
       R[0] = R[3];
-      ticker = bank ? bank : fixval(A1);
+      ticker = bank ? bank : immval(A1);
       bank = 0;
       assert(allocp(ob), ob, 50);
       hdr = *ob;
@@ -1485,12 +1484,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = a ^ (b & (FMAX << IPOS)); /* inherit a's type info */
       NEXT(3); }
    op58: { /* fx>> a b hi lo */
-      uint64_t r = ((uint64_t) fixval(A0)) << (FBITS - fixval(A1));
+      uint64_t r = (uint64_t)immval(A0) << (FBITS - immval(A1));
       A2 = F(r>>FBITS);
       A3 = F(r&FMAX);
       NEXT(4); }
    op59: { /* fx<< a b hi lo */
-      uint64_t res = (uint64_t) fixval(R[*ip]) << fixval(A1);
+      uint64_t res = (uint64_t)immval(R[*ip]) << immval(A1);
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
@@ -1511,10 +1510,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(2); }
    op62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
       A1 = F(ticker & FMAX);
-      ticker = fixval(A0);
+      ticker = immval(A0);
       NEXT(2);
    op63: { /* sys-prim op arg1 arg2 arg3 r1 */
-      A4 = prim_sys(fixval(A0), A1, A2, A3);
+      A4 = prim_sys(immval(A0), A1, A2, A3);
       NEXT(5); }
 
 super_dispatch: /* run macro instructions */
@@ -1710,7 +1709,7 @@ int main(int nargs, char **argv) {
    rval = vm(prog, (word *)onum((word)argv, 0));
    setdown();
    if (fixnump(rval)) {
-      int n = fixval(rval);
+      int n = immval(rval);
       if (!(n & ~127))
          return n;
    }
