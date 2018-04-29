@@ -661,12 +661,46 @@ static word prim_sys(int op, word a, word b, word c) {
             EBADF, EBADMSG, EBUSY, ECANCELED, ECHILD, ECONNABORTED, ECONNREFUSED, ECONNRESET,
             EDEADLK, EDESTADDRREQ, EDOM, EDQUOT, EEXIST, EFAULT, EFBIG, EHOSTUNREACH,
             EIDRM, EILSEQ, EINPROGRESS, EINTR, EINVAL, EIO, EISCONN, EISDIR,
-            ELOOP, EMFILE, EMLINK, EMSGSIZE, EMULTIHOP, ENAMETOOLONG, ENETDOWN, ENETRESET,
-            ENETUNREACH, ENFILE, ENOBUFS, ENODATA, ENODEV, ENOENT, ENOEXEC, ENOLCK,
-            ENOLINK, ENOMEM, ENOMSG, ENOPROTOOPT, ENOSPC, ENOSR, ENOSTR, ENOSYS,
+            ELOOP, EMFILE, EMLINK, EMSGSIZE,
+#ifdef EMULTIHOP
+            EMULTIHOP,
+#else
+            ~(word)0,
+#endif
+            ENAMETOOLONG, ENETDOWN, ENETRESET,
+            ENETUNREACH, ENFILE, ENOBUFS,
+#ifdef ENODATA
+            ENODATA,
+#else
+            ~(word)0,
+#endif
+            ENODEV, ENOENT, ENOEXEC, ENOLCK,
+#ifdef ENOLINK
+            ENOLINK,
+#else
+            ~(word)0,
+#endif
+            ENOMEM, ENOMSG, ENOPROTOOPT, ENOSPC,
+#ifdef ENOSR
+            ENOSR,
+#else
+            ~(word)0,
+#endif
+#ifdef ENOSTR
+            ENOSTR,
+#else
+            ~(word)0,
+#endif
+            ENOSYS,
             ENOTCONN, ENOTDIR, ENOTEMPTY, ENOTRECOVERABLE, ENOTSOCK, ENOTSUP, ENOTTY, ENXIO,
             EOPNOTSUPP, EOVERFLOW, EOWNERDEAD, EPERM, EPIPE, EPROTO, EPROTONOSUPPORT, EPROTOTYPE,
-            ERANGE, EROFS, ESPIPE, ESRCH, ESTALE, ETIME, ETIMEDOUT, ETXTBSY,
+            ERANGE, EROFS, ESPIPE, ESRCH, ESTALE,
+#ifdef ETIME
+            ETIME,
+#else
+            ~(word)0,
+#endif
+            ETIMEDOUT, ETXTBSY,
             EWOULDBLOCK, EXDEV
          };
          return onum(sysconst[immval(a) % (sizeof sysconst / W)], 0); }
