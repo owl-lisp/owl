@@ -1045,7 +1045,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if (((hdr >> TPOS) & 63) != TBYTECODE) { /* not even code, extend bits later */
+      } else if (imm_type(hdr) != TBYTECODE) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
       if (!ticker--) goto switch_thread;
@@ -1142,21 +1142,21 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    }
 
    op0: op = (*ip << 8) | ip[1]; goto super_dispatch;
-   op1: {word *ob = (word *)R[*ip]; R[ip[2]] = ob[ip[1]]; NEXT(3);}
-   op2: ob = (word*) R[*ip]; acc = ip[1]; goto apply;
+   op1: A2 = G(A0, ip[1]); NEXT(3);
+   op2: ob = (word *)A0; acc = ip[1]; goto apply;
    op3: OCLOSE(TCLOS); NEXT(0);
    op4: OCLOSE(TPROC); NEXT(0);
    op5: /* mov2 from1 to1 from2 to2 */
-      R[ip[1]] = R[ip[0]];
-      R[ip[3]] = R[ip[2]];
+      A1 = A0;
+      A3 = A2;
       NEXT(4);
    op6: CLOSE1(TCLOS); NEXT(0);
    op7: CLOSE1(TPROC); NEXT(0);
    op8: /* jlq a b o, extended jump */
-      if (R[*ip] == A1)
+      if (A0 == A1)
          ip += ip[2] + (ip[3] << 8);
       NEXT(4);
-   op9: R[ip[1]] = R[*ip]; NEXT(2);
+   op9: A1 = A0; NEXT(2);
    op10: error(10, F(42), F(42));
    op11:
       do_poll(A0, A1, A2, &A3, &A4);
@@ -1167,17 +1167,18 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          ticker--;
       NEXT(0);
    op13: /* ldi{2bit what} [to] */
-      R[*ip++] = load_imms[op>>6];
-      NEXT(0);
-   op14: R[ip[1]] = F(*ip); NEXT(2);
+      A0 = load_imms[op >> 6];
+      NEXT(1);
+   op14: A1 = F(*ip); NEXT(2);
    op15: { /* type-byte o r <- actually sixtet */
-      word ob = R[*ip++];
-      if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>TPOS)&63);
-      NEXT(0); }
+      word ob = A0;
+      if (allocp(ob))
+         ob = V(ob);
+      A1 = F(imm_type(ob));
+      NEXT(2); }
    op16: /* jv[which] a o1 a2*/
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
-      if (R[*ip] == load_imms[op >> 6])
+      if (A0 == load_imms[op >> 6])
          ip += ip[1] + (ip[2] << 8);
       NEXT(3);
    op17: { /* arity error */
@@ -1190,12 +1191,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       error(17, ob, t); }
    op18: /* goto-code p */
-      ob = (word *) R[*ip]; /* needed in opof gc */
+      ob = (word *)A0; /* needed in opof gc */
       acc = ip[1];
-      ip = ((unsigned char *) R[*ip]) + W;
+      ip = (unsigned char *)A0 + W;
       goto invoke;
    op19: { /* goto-proc p */
-      word *this = (word *) R[*ip];
+      word *this = (word *)A0;
       R[1] = (word) this;
       acc = ip[1];
       ob = (word *) this[1];
@@ -1239,7 +1240,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       acc = arity;
       goto apply; }
    op21: { /* goto-clos p */
-      word *this = (word *) R[*ip];
+      word *this = (word *)A0;
       R[1] = (word) this;
       acc = ip[1];
       this = (word *) this[1];
@@ -1248,7 +1249,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       ip = ((unsigned char *) ob) + W;
       goto invoke; }
    op22: { /* cast o t r */
-      word *ob = (word *) R[*ip];
+      word *ob = (word *)A0;
       word type = immval(A1);
       A2 = prim_cast(ob, type);
       NEXT(3); }
@@ -1266,7 +1267,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(s+1); }
    op24: /* ret val == implicit call r3 with 1 arg */
       ob = (word *) R[3];
-      R[3] = R[*ip];
+      R[3] = A0;
       acc = 1;
       goto apply;
    op25: { /* jmp-nargs(>=?) a hi lo */
@@ -1297,12 +1298,15 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op27: /* syscall cont op arg1 arg2 */
       ob = (word *) R[0];
       R[0] = IFALSE;
-      R[3] = A1; R[4] = R[*ip]; R[5] = A2; R[6] = A3;
+      R[3] = A1;
+      R[4] = A0;
+      R[5] = A2;
+      R[6] = A3;
       acc = 4;
       if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
       goto apply;
    op28: { /* sizeb obj to */
-      word ob = R[*ip];
+      word ob = A0;
       if (immediatep(ob)) {
          A1 = IFALSE;
       } else {
@@ -1314,12 +1318,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = mkpair(NUMHDR, A0, A1);
       NEXT(3); }
    op30: { /* ncar a rd */
-      word *ob = (word *) R[*ip];
+      word *ob = (word *)A0;
       assert(allocp(ob), ob, 30);
       A1 = ob[1];
       NEXT(2); }
    op31: { /* ncdr a r */
-      word *ob = (word *) R[*ip];
+      word *ob = (word *)A0;
       assert(allocp(ob), ob, 31);
       A1 = ob[2];
       NEXT(2); }
@@ -1339,7 +1343,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(3);
    op35: { /* listuple type size lst to */
-      word type = immval(R[*ip]);
+      word type = immval(A0);
       word size = immval(A1);
       word *lst = (word *) A2;
       word *ob;
@@ -1353,8 +1357,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(4); }
    op36: { /* size o r */
-      word *ob = (word *) R[ip[0]];
-      R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
+      word *ob = (word *)A0;
+      A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
       NEXT(2); }
    op37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
       A2 = prim_lraw(A0, immval(A1));
@@ -1366,7 +1370,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(low);
       NEXT(4); }
    op39: { /* fx* a b l h */
-      uint64_t res = (uint64_t)immval(R[*ip]) * (uint64_t)immval(A1);
+      uint64_t res = (uint64_t)immval(A0) * (uint64_t)immval(A1);
       A2 = F(res & FMAX);
       A3 = F((res >> FBITS) & FMAX);
       NEXT(4); }
@@ -1376,7 +1380,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(r & FMAX);
       NEXT(4); }
    op41: { /* red? node r (has highest type bit?) */
-      word *node = (word *) R[*ip];
+      word *node = (word *)A0;
       A1 = BOOL(allocp(node) && ((*node)&(FFRED<<TPOS)));
       NEXT(2); }
    op42: /* mkblack l k v r t */
@@ -1392,7 +1396,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = prim_set(A0, A1, A2);
       NEXT(4); }
    op46: { /* fftoggle - toggle node color */
-      word *node = (word *) R[*ip];
+      word *node = (word *)A0;
       word *new, h;
       assert(allocp(node), node, 46);
       new = fp;
@@ -1413,7 +1417,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = prim_refb(A0, immval(A1));
       NEXT(3); }
    op49: { /* withff node l k v r */
-      word hdr, *ob = (word *) R[*ip];
+      word hdr, *ob = (word *)A0;
       hdr = *ob++;
       A2 = *ob++; /* key */
       A3 = *ob++; /* value */
@@ -1456,30 +1460,30 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = cons(A0, A1);
       NEXT(3); }
    op52: { /* car a r */
-      word *ob = (word *) R[*ip++];
+      word *ob = (word *)A0;
       assert(pairp(ob), ob, 52);
-      R[*ip++] = ob[1];
-      NEXT(0); }
+      A1 = ob[1];
+      NEXT(2); }
    op53: { /* cdr a r */
-      word *ob = (word *) R[*ip++];
+      word *ob = (word *)A0;
       assert(pairp(ob), ob, 53);
-      R[*ip++] = ob[2];
-      NEXT(0); }
+      A1 = ob[2];
+      NEXT(2); }
    op54: /* eq a b r */
-      A2 = BOOL(R[*ip] == A1);
+      A2 = BOOL(A0 == A1);
       NEXT(3);
    op55: { /* band a b r, prechecked */
-      word a = R[*ip];
+      word a = A0;
       word b = A1;
       A2 = a & b;
       NEXT(3); }
    op56: { /* bor a b r, prechecked */
-      word a = R[*ip];
+      word a = A0;
       word b = A1;
       A2 = a | b;
       NEXT(3); }
    op57: { /* bxor a b r, prechecked */
-      word a = R[*ip];
+      word a = A0;
       word b = A1;
       A2 = a ^ (b & (FMAX << IPOS)); /* inherit a's type info */
       NEXT(3); }
@@ -1489,7 +1493,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = F(r&FMAX);
       NEXT(4); }
    op59: { /* fx<< a b hi lo */
-      uint64_t res = (uint64_t)immval(R[*ip]) << immval(A1);
+      uint64_t res = (uint64_t)immval(A0) << immval(A1);
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
