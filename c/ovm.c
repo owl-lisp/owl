@@ -319,7 +319,10 @@ static word *gc(int size, word *regs) {
 void toggle_blocking(int fd, int blockp) {
    int fl0 = fcntl(fd, F_GETFL);
    if (fl0 != -1) {
-      int fl1 = (fl0 & ~O_NONBLOCK) | (blockp ? 0 : O_NONBLOCK);
+      int fl1 = fl0 & ~O_NONBLOCK;
+      /* make sure, stdio stays in blocking mode */
+      if (!blockp && fd > 2)
+         fl1 |= O_NONBLOCK;
       if (fl0 != fl1)
          fcntl(fd, F_SETFL, fl1);
    }
@@ -411,7 +414,7 @@ static word prim_connect(word *host, word port, word type) {
       close(sock);
       return IFALSE;
    }
-   toggle_blocking(sock,0);
+   toggle_blocking(sock, 0);
    return F(sock);
 }
 
@@ -583,7 +586,7 @@ static word prim_sys(int op, word a, word b, word c) {
             close(val);
             return IFALSE;
          }
-         toggle_blocking(val,0);
+         toggle_blocking(val, 0);
          return F(val); }
       case 2:
          return BOOL(close(immval(a)) == 0);
@@ -613,7 +616,7 @@ static word prim_sys(int op, word a, word b, word c) {
                return IFALSE;
             }
          }
-         toggle_blocking(s,0);
+         toggle_blocking(s, 0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = immval(a);
@@ -623,7 +626,7 @@ static word prim_sys(int op, word a, word b, word c) {
          word *ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
-         toggle_blocking(fd,0);
+         toggle_blocking(fd, 0);
          ipa = mkbvec(4, TBVEC);
          bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
          return cons((word)ipa, F(fd)); }
@@ -857,6 +860,8 @@ static word prim_sys(int op, word a, word b, word c) {
          fd1 = c != IFALSE ? dup2(fd0, fd1) : fcntl(fd0, F_DUPFD, fd1);
          if (fd1 == -1)
             return IFALSE;
+         if (fd1 < 3)
+            toggle_blocking(fd1, 1);
          return F(fd1); }
       case 31: { /* pipe → (read-fd . write-fd) | #false */
          int fd[2];
