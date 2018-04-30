@@ -4,9 +4,9 @@
 
 (define-library (owl compile)
 
-   (export 
+   (export
       compile
-      primops 
+      primops
       prim-opcodes)
 
    (import
@@ -81,9 +81,9 @@
                   ((eq? subtype (ref this 1))
                      (or
                         (find-any (cdr regs) sym type subtype)
-                        (let 
-                           ((sub 
-                              (index-of sym (ref this 2) 2)))   
+                        (let
+                           ((sub
+                              (index-of sym (ref this 2) 2)))
                            ;; FIXME, 2 will not be correct for shared envs
                            (if sub
                               (cons (ref this 3) sub)
@@ -233,7 +233,7 @@
             (if (null? args)
                (error "rtl-primitive: no type for mkt" args)
                (begin
-                  (rtl-primitive regs 
+                  (rtl-primitive regs
                      (+ (<< op 8) (band (value-of (car args)) #xff))
                      formals (cdr args) cont)))
             (rtl-args regs args
@@ -316,8 +316,8 @@
          (lets
             ((call-prime (apply-saves saves free call))
              (call-prime (rtl-add-targets call-prime))
-             (call-prime 
-               (remove 
+             (call-prime
+               (remove
                   (λ (move) (eq? (car move) (cdr move)))
                   call-prime))
              (call-prime (sort (λ (a b) (< (car a) (car b))) call-prime))
@@ -334,10 +334,9 @@
             (λ (ret)
                (or
                   (lfor #false (subsets call)
-                     (λ (foo subset) 
+                     (λ (foo subset)
                         (cond
-                           ((rtl-try-saves subset free call rest)
-                              => (λ (call) (ret call)))
+                           ((rtl-try-saves subset free call rest) => ret)
                            (else #false))))
                   ; has never happened in practice
                   (error "failed to compile call: " call)))))
@@ -402,7 +401,7 @@
                      ;   (error "Bad operator: " rator))
                      #false ;; <- can't remember why we're not failing here. changed while adding variable arity?
                      )))
-            (else 
+            (else
                ;(print "XXXXXXXXXXXXXXXXXXXXXXX non value call " rator)
                ;(print "ENV:")
                ;(for-each (λ (x) (print " - " x)) regs)
@@ -414,7 +413,7 @@
          (rtl-args regs (cons rator rands)
             (λ (regs all)
                (let ((free (rtl-safe-registers (length all) all)))
-                  (rtl-jump (car all) (cdr all) free 
+                  (rtl-jump (car all) (cdr all) free
                      (rtl-pick-call regs rator (length rands)))))))
 
       (define (value-pred pred)
@@ -442,9 +441,9 @@
 
       ;; fixme: ??? O(n) search for opcode->primop. what the...
       (define (opcode->primop op)
-         (let 
+         (let
             ((node
-               (some 
+               (some
                   (λ (x) (if (eq? (ref x 2) op) x #false))
                   primops)))
             (if node node (error "Unknown primop: " op))))
@@ -470,19 +469,19 @@
                               ;; todo: convert jump-if-<val> rtl nodes to a single shared rtl node to avoid having to deal with them as separate instructions
                               ((null-value? a) ; jump-if-null (optimization)
                                  (rtl-simple regs b (λ (regs bp)
-                                    (let 
+                                    (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jn bp then else)))))
                               ((false-value? a) ; jump-if-false 
                                  (rtl-simple regs b (λ (regs bp)
-                                    (let 
+                                    (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jf bp then else)))))
                               ((zero-value? a) ; jump-if-false 
                                  (rtl-simple regs b (λ (regs bp)
-                                    (let 
+                                    (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jz bp then else)))))
@@ -498,16 +497,16 @@
                      ; FIXME check object size here (via meta)
                      (let ((b (extract-value b)))
                         (if (and (fixnum? b) (>= b 0) (< b 257))
-                           (rtl-simple regs a 
+                           (rtl-simple regs a
                               (λ (regs ap)
                                  (tuple-case then
                                     ((lambda formals body)
                                        (bind (rtl-bind regs formals)
                                           (λ (selected then-regs)
-                                             (let 
+                                             (let
                                                 ((then-body (rtl-any then-regs body))
                                                  (else (rtl-any regs else)))
-                                                (tuple 'jab ap b 
+                                                (tuple 'jab ap b
                                                    (tuple 'lambda selected then-body)
                                                    else)))))
                                     (else
@@ -525,7 +524,7 @@
                               (rtl-primitive regs op formals (cdr rands)
                                  (λ (regs) (rtl-any regs body)))
                               ;; fixme: should be a way to show just parts of AST nodes, which may look odd
-                              (error "Bad number of arguments for primitive: " 
+                              (error "Bad number of arguments for primitive: "
                                  (list 'op (primop-name op) 'got (length (cdr rands)) 'arguments))))
                         (else
                            (error "bad primitive args: " rands)))
@@ -579,11 +578,11 @@
 
       ;; rtl-procedure now passes the intended new form here - replace it later in the AST node also
       (define (rtl-plain-lambda rtl exp clos literals tail)
-         (tuple-case exp   
+         (tuple-case exp
             ((lambda-var fixed? formals body)
                (lets
                   ((exec
-                     (assemble-code 
+                     (assemble-code
                         (tuple 'code-var fixed?
                            (length formals)
                            (rtl-any (entry-regs clos literals formals) body))
@@ -592,7 +591,7 @@
                      exec ; #<bytecode> 
                      (list->proc (cons exec literals)))))
             ((lambda formals body) ;; to be deprecated
-               (rtl-plain-lambda rtl 
+               (rtl-plain-lambda rtl
                   (tuple 'lambda-var #true formals body)
                   clos literals tail))
             (else
@@ -608,22 +607,22 @@
                (bytecode->list (ref thing 1)))
             (else
                (error "bytecode->list: " thing))))
-            
+
       (define (rtl-case-lambda rtl exp clos literals)
          (tuple-case exp
             ((lambda-var fixed? formals body)
                (rtl-plain-lambda rtl exp clos literals null))
             ((lambda formals body) ;; soon to be deprecated
-               (rtl-case-lambda rtl 
+               (rtl-case-lambda rtl
                   (tuple 'lambda-var #true formals body)
                   clos literals))
             ((case-lambda func else)
                (rtl-plain-lambda rtl func clos literals
-                  (bytecode->list 
+                  (bytecode->list
                      (rtl-case-lambda rtl else clos literals))))
             (else
                (error "rtl-case-lambda: bad node " exp))))
-  
+
       ;; todo: separate closure nodes from lambdas now that the arity may vary
       ;; todo: control flow analysis time - if we can see what the arguments are here, the info could be used to make most continuation returns direct via known call opcodes, which could remove an important branch prediction killer
       ;;; proc = #(procedure-header <code-ptr> l0 ... ln)
@@ -639,7 +638,7 @@
                   (tuple 'lambda-var fixed? formals body)
                   clos (rtl-literals rtl-procedure literals) null))
             ((closure-case body clos literals)
-               (lets 
+               (lets
                   ((lits (rtl-literals rtl-procedure literals))
                    (body (rtl-case-lambda rtl-procedure body clos lits)))
                   body))
