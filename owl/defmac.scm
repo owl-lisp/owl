@@ -14,14 +14,13 @@
       define-record-type
       _record-values
       not o i self
-      eof-object
       type-complex
       type-rational
       type-int+
       type-int-
       type-record
 
-      immediate? allocated? raw? record? eof?
+      immediate? allocated? raw? record?
 
       -> ->> if-lets
 
@@ -426,13 +425,6 @@
       ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
 
       (define (k x y) x)
-
-      (define eof-object
-         (let ((eof (cast 4 13)))
-            (λ () eof)))
-
-      (define (eof? obj)
-         (eq? (eof-object) obj))
 
 
       ;;;

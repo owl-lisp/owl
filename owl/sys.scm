@@ -65,6 +65,7 @@
 
    (import
       (owl defmac)
+      (owl eof)
       (owl string)
       (owl math)
       (owl equal)
@@ -272,7 +273,7 @@
             (if dfd
                (let loop ((st st))
                   (let ((val (read-dir dfd)))
-                     (if (eof? val)
+                     (if (eof-object? val)
                         (begin
                            (close-dir dfd)
                            st)

@@ -1,8 +1,8 @@
 
 (define-library (owl sexp)
 
-   (export 
-      sexp-parser 
+   (export
+      sexp-parser
       read-exps-from
       list->number
       get-sexps         ;; greedy* get-sexp
@@ -14,6 +14,7 @@
 
    (import
       (owl defmac)
+      (owl eof)
       (owl parse)
       (owl math)
       (owl string)
@@ -38,23 +39,22 @@
 
       (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:")) ;; owl uses @ for finite function syntax
 
-      (define (symbol-lead-char? n) 
-         (or 
+      (define (symbol-lead-char? n)
+         (or
             (between? #\a n #\z)
             (between? #\A n #\Z)
             (has? special-symbol-chars n)
             (> n 127)))         ;; allow high code points in symbols
 
-      (define (symbol-char? n) 
-         (or (symbol-lead-char? n) 
-             (eq? n #\.)
-             (or
-               (between? #\0 n #\9)
-               (> n 127))))         ;; allow high code points in symbols
+      (define (symbol-char? n)
+         (or
+            (symbol-lead-char? n)
+            (eq? n #\.)
+            (or (between? #\0 n #\9) (> n 127)))) ;; allow high code points in symbols
 
-      (define get-symbol 
+      (define get-symbol
          (get-either
-            (let-parses 
+            (let-parses
                ((head (get-rune-if symbol-lead-char?))
                 (tail (get-greedy* (get-rune-if symbol-char?)))
                 ;(next (peek get-byte))
@@ -63,20 +63,20 @@
                (string->uninterned-symbol (runes->string (cons head tail))))
             (let-parses
                ((skip (get-imm #\|))
-                (chars 
-                  (get-greedy* 
-                    (get-either
-                      (let-parses ((skip (get-imm #\\)) (rune get-rune)) rune)
-                      (get-rune-if (λ (x) (not (eq? x #\|)))))))
+                (chars
+                  (get-greedy*
+                     (get-either
+                        (let-parses ((skip (get-imm #\\)) (rune get-rune)) rune)
+                        (get-rune-if (λ (x) (not (eq? x #\|)))))))
                 (skip (get-imm #\|)))
                (string->uninterned-symbol (runes->string chars)))))
 
-      (define (digit-char? x) 
+      (define (digit-char? x)
          (or (between? 48 x 57)
             (between? 65 x 70)
             (between? 97 x 102)))
 
-      (define digit-values 
+      (define digit-values
          (list->ff
             (foldr append null
                (list
@@ -113,7 +113,7 @@
                (cons #\x 16))))
 
       ; fixme, # and cooked later
-      (define get-base 
+      (define get-base
          (any
             (let-parses
                ((skip (get-imm #\#))
@@ -273,10 +273,10 @@
               (#\" . #x0022)
               (#\\ . #x005c))))
 
-      (define get-quoted-string-char 
+      (define get-quoted-string-char
          (let-parses
             ((skip (get-imm #\\))
-             (char 
+             (char
                (get-either
                   (let-parses
                      ((char (get-byte-if (λ (byte) (getf quoted-values byte)))))
@@ -304,7 +304,7 @@
 
       (define (get-quoted parser)
          (let-parses
-            ((type 
+            ((type
                (get-either
                   (let-parses ((_ (get-imm 44)) (_ (get-imm 64))) 'splice) ; ,@
                   (get-byte-if (λ (x) (get quotations x #false)))))
@@ -366,24 +366,24 @@
       (define (valid-ff-node? val)
          (and (pair? val)
             (or
-               (symbol? val) 
+               (symbol? val)
                (immediate? val))))
 
       (define (valid-ff-key? val)
-        (or (symbol? val) (immediate? val)))
+         (or (symbol? val) (immediate? val)))
 
       (define (ff-able? lst)
-        (cond
-          ((null? lst)
-            #true)
-          ((valid-ff-key? (car lst))
-            (let ((lst (cdr lst)))
-              (if (null? lst)
-                #false
-                (ff-able? (cdr lst)))))
-          (else 
-            (print-to stderr "Invalid ff key: " (car lst))
-            #false)))
+         (cond
+            ((null? lst)
+               #true)
+            ((valid-ff-key? (car lst))
+               (let ((lst (cdr lst)))
+                  (if (null? lst)
+                     #false
+                     (ff-able? (cdr lst)))))
+            (else
+               (print-to stderr "Invalid ff key: " (car lst))
+               #false)))
 
       (define (lst->ff lst)
          (let loop ((lst lst) (ff #empty))
@@ -396,7 +396,7 @@
       (define (get-ff get-any)
          (let-parses
             ((skip (get-imm #\@))
-             (fields 
+             (fields
                (get-list-of get-any))
              (verify (ff-able? fields) '(bad ff)))
             (lst->ff (intern-symbols fields))))
@@ -416,7 +416,7 @@
                   (get-vector-of (get-sexp)) ;; #(...) -> vector or #((a . b) (c . d))
                   (get-ff (get-sexp)) ;; #(...) -> vector or #((a . b) (c . d))
                   (get-quoted (get-sexp))
-                  (get-byte-if eof?)
+                  (get-byte-if eof-object?)
                   get-quoted-char)))
             val))
 
@@ -424,7 +424,7 @@
       (define (ok exp env) (tuple 'ok exp env))
       (define (fail reason) (tuple 'fail reason))
 
-      (define sexp-parser 
+      (define sexp-parser
          (let-parses
             ((foo maybe-whitespace)
              (sexp (get-sexp))) ;; do not read trailing whitespace to avoid blocking when parsing a stream
@@ -443,14 +443,14 @@
       ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
       (define (read-exps-from data done fail)
          (lets/cc ret  ;; <- not needed if fail is already a cont
-            ((data 
-               (utf8-decoder data 
-                  (λ (self line data) 
+            ((data
+               (utf8-decoder data
+                  (λ (self line data)
                      (ret (fail (list "Bad UTF-8 data on line " line ": " (ltake line 10))))))))
             (sexp-parser data
                (λ (data drop val pos)
                   (cond
-                     ((eof? val) (reverse done))
+                     ((eof-object? val) (reverse done))
                      ((null? data) (reverse (cons val done))) ;; only for non-files
                      (else (read-exps-from data (cons val done) fail))))
                (λ (pos reason)
@@ -484,7 +484,7 @@
       (define read-ll
          (case-lambda
             (()     (read-port stdin))
-            ((thing) 
+            ((thing)
                (cond
                   ((port? thing)
                      (read-port thing))

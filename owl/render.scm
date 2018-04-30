@@ -5,6 +5,7 @@
 
    (import
       (owl defmac)
+      (owl eof)
       (owl string)
       (owl list)
       (owl list-extra)
@@ -22,8 +23,8 @@
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
       (only (owl string) render-string string?))
-   
-   (export 
+
+   (export
       make-serializer    ;; names → ((obj tl) → (byte ... . tl))
       ;serialize         ;; obj tl        → (byte ... . tl), eager, always shared
       ;serialize-lazy    ;; obj tl share? → (byte ... . tl), lazy, optional sharing
@@ -57,14 +58,14 @@
                            (cond
                               ((null? obj) tl)
                               ((pair? obj)
-                                 (cons #\space 
+                                 (cons #\space
                                     (render (car obj) (loop (cdr obj) tl))))
                               (else
                                  (ilist #\space #\. #\space (render obj tl))))))))
 
                ((boolean? obj)
                   (append (string->list (if obj "#true" "#false")) tl))
-                  
+
                ((symbol? obj)
                   (render (symbol->string obj) tl))
 
@@ -91,7 +92,7 @@
                            (λ (tl pos) (cons 32 (render (ref obj pos) tl)))
                            (cons #\] tl)
                            (iota (size obj) -1 1)))))
-               
+
                ((record? obj)
                   (ilist #\# #\{
                      (render (ref obj 1) ;; type tag object
@@ -108,7 +109,7 @@
 
                ((ff? obj)
                   (cons #\@ (render (ff-foldr (λ (st k v) (cons k (cons v st))) null obj) tl)))
-             
+
                ((tuple? obj)
                   (ilist #\# #\[ (render (tuple->list obj) (cons #\] tl))))
 
@@ -116,10 +117,10 @@
                ((socket? obj) (ilist #\# #\[ #\s #\o #\c #\k #\e #\t #\space (render (port->fd obj) (cons #\] tl))))
                ((tcp? obj) (ilist #\# #\[ #\t #\c #\p #\space (render (port->fd obj) (cons #\] tl))))
                ((port? obj) (ilist #\# #\[ #\f #\d #\space (render (port->fd obj) (cons #\] tl))))
-               ((eof? obj) (ilist #\# #\e #\o #\f tl))
+               ((eof-object? obj) (ilist #\# #\e #\o #\f tl))
                ((eq? obj #empty) (ilist #\# #\e #\m #\p #\t #\y tl))
 
-               (else 
+               (else
                   (append (string->list "#<WTF>") tl)))) ;; What This Format?
          render)
 
@@ -139,10 +140,10 @@
             (cond
 
                ((getf sh obj) =>
-                  (λ (id) 
+                  (λ (id)
                      (if (< id 0) ;; already written, just refer
                         (ilist #\# (render (abs id) (pair #\# (k sh))))
-                        (ilist #\# 
+                        (ilist #\#
                            (render id
                               (ilist #\# #\=
                                  (ser (del sh obj) obj
@@ -157,7 +158,7 @@
                   (render-number obj (delay (k sh)) 10))
 
                ((string? obj)
-                  (cons #\" 
+                  (cons #\"
                      (render-quoted-string obj  ;; <- all eager now
                         (pair #\" (k sh)))))
 
@@ -176,31 +177,31 @@
                                           (if (< id 0)
                                              (pair 41 (k sh))
                                              (pair #\=
-                                                (ser (del sh obj) obj 
+                                                (ser (del sh obj) obj
                                                    (λ (sh)
                                                       (pair 41
-                                                         (k 
-                                                            (put sh obj 
+                                                         (k
+                                                            (put sh obj
                                                                (- 0 id)))))))))))))
-                           ((pair? obj) 
+                           ((pair? obj)
                               ;; render car, then cdr
                               (ser sh (car obj)
                                  (λ (sh)
-                                    (delay 
+                                    (delay
                                        (if (null? (cdr obj))
                                           (loop sh (cdr obj))
                                           (cons #\space (loop sh (cdr obj))))))))
-                           (else 
+                           (else
                               ;; improper list
-                              (ilist #\. #\space 
+                              (ilist #\. #\space
                                  (ser sh obj
                                     (λ (sh) (pair 41 (k sh))))))))))
 
                ((boolean? obj)
-                  (append 
-                     (string->list (if obj "#true" "#false")) 
+                  (append
+                     (string->list (if obj "#true" "#false"))
                      (delay (k sh))))
-                  
+
                ((symbol? obj)
                   (render (symbol->string obj) (delay (k sh))))
 
@@ -243,23 +244,23 @@
                ((socket? obj) (render obj (λ () (k sh))))
                ((tcp? obj)    (render obj (λ () (k sh))))
                ((port? obj)   (render obj (λ () (k sh))))
-               ((eof? obj)    (render obj (λ () (k sh))))
+               ((eof-object? obj) (render obj (λ () (k sh))))
                ((eq? obj #empty)    (render obj (λ () (k sh))))
 
-               (else 
+               (else
                   (append (string->list "#<WTF>") (delay (k sh))))))
          ser)
 
       (define (self-quoting? val)
-         (or 
+         (or
             (immediate? val)
-            (number? val) (string? val) (function? val) 
+            (number? val) (string? val) (function? val)
             (tcp? val) (socket? val) (rlist? val)
             (ff? val)))
 
       ;; could drop val earlier to possibly gc it while rendering 
       (define (maybe-quote val lst)
-         (if (self-quoting? val) 
+         (if (self-quoting? val)
             lst
             (cons #\' lst)))
 
@@ -287,14 +288,14 @@
       (define (label-shared-objects val)
          (lets
             ((refs (sub-objects val shareable?))
-             (shares 
-               (fold 
+             (shares
+               (fold
                   (λ (shared p)
                      (lets ((ob refs p))
                         (cond
-                          ((eq? refs 1) shared)
-                          ((shareable? ob) (cons ob shared))
-                          (else shared))))
+                           ((eq? refs 1) shared)
+                           ((shareable? ob) (cons ob shared))
+                           (else shared))))
                   null refs)))
             (let loop ((out empty) (shares shares) (n 1))
                (if (null? shares)
@@ -305,7 +306,7 @@
          (let ((ser (make-ser names)))
             (λ (val tl share?)
                (maybe-quote val
-                  (ser 
+                  (ser
                      (if share? ;; O(n), allow skipping
                         (label-shared-objects val)
                         empty)
@@ -314,7 +315,7 @@
       (define (make-serializer names)
          (let ((serialize-lazy (make-lazy-serializer names)))
             (λ (val tl)
-               (force-ll 
+               (force-ll
                   (serialize-lazy val tl #true)))))
 
       (define (str . args)

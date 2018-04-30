@@ -10,10 +10,10 @@
  | the rights to use, copy, modify, merge, publish, distribute, sublicense,
  | and/or sell copies of the Software, and to permit persons to whom the
  | Software is furnished to do so, subject to the following conditions
- | 
+ |
  | The above copyright notice and this permission notice shall be included 
  | in all copies or substantial portions of the Software.
- | 
+ |
  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  | IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  | FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
@@ -30,9 +30,9 @@
 ; forget all other libraries to have them be reloaded and rebuilt
 
 (define *libraries*
-   (keep 
+   (keep
       (λ (lib) (equal? (car lib) '(owl core)))
-       *libraries*))
+      *libraries*))
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
@@ -50,7 +50,7 @@
 (define *owl-version* "0.1.14")
 (define max-object-size #xffff)
 
-(import 
+(import
    (owl syscall)
    (owl primop)
    (owl boolean)
@@ -120,17 +120,17 @@
 
 ;; implementation features, used by cond-expand
 (define *features*
-   (cons 
+   (cons
       (string->symbol (string-append "owl-lisp-" *owl-version*))
       '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
 
 (define shared-misc
    (share-bindings
       run syscall error
-      pair?  boolean?  fixnum?  eof?  symbol?  
-      tuple?  string?  function? procedure? equal? eqv? bytecode?
+      pair? boolean? fixnum? eof-object? symbol?
+      tuple? string? function? procedure? equal? eqv? bytecode?
       not
-      null?  null 
+      null? null
       o
       time
       time-ms
@@ -138,8 +138,8 @@
       apply
       call/cc
       call-with-current-continuation
-      display print-to print print* 
-      render 
+      display print-to print print*
+      render
       system-println
       sleep
       list->tuple
@@ -161,7 +161,7 @@
       byte-vector?
       string->symbol
       close-port flush-port
-      set-memory-limit 
+      set-memory-limit
       gensym
       get-word-size
       get-memory-limit
@@ -176,7 +176,7 @@
 (define shared-bindings shared-misc)
 
 (define initial-environment-sans-macros
-   (fold 
+   (fold
       (λ (env pair) (env-put-raw env (car pair) (cdr pair)))
       *owl-core*
       shared-bindings))
@@ -203,11 +203,11 @@
        (test     "-t" "--test"     has-arg comment "evaluate given expression exit with 0 unless the result is #false")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
-       (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state saved with suspend")
-       (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
+       (load     "-l" "--load"     has-arg comment "resume execution of a saved program state saved with suspend")
+       (output   "-o" "--output"   has-arg comment "where to put compiler output (default auto)")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
-       (custom-runtime  "-R" "--runtime" 
+       (custom-runtime "-R" "--runtime"
           cook ,path->string
           comment "use a custom runtime in C compilation")
        ;(interactive "-i" "--interactive" comment "use builtin interactive line editor")
@@ -239,7 +239,7 @@
             2))
       1))
 
-(define about-owl 
+(define about-owl
 "Owl Lisp -- a functional scheme
 Copyright (c) Aki Helin
 Check out https://github.com/aoh/owl-lisp for more information.")
@@ -250,7 +250,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          put get del ff-fold fupd
          - + * /
          div gcd ediv
-         << < <= = >= > >> 
+         << < <= = >= > >>
          equal? has? mem
          band bor bxor
          sort
@@ -258,9 +258,9 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          fold foldr map reverse length zip append unfold
          lref lset iota
          ;vec-ref vec-len vec-fold vec-foldr
-         ;print 
-         mail interact 
-         take keep remove 
+         ;print
+         mail interact
+         take keep remove
          thread-controller
          uncons lfold lmap
          rand seed->rands
@@ -276,7 +276,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                ((ok val env)
                   (if (function? val)
                      (begin
-                        (compiler val 
+                        (compiler val
                            ;; output path
                            (cond
                               ((get opts 'output #false) => self) ; requested with -o
@@ -322,7 +322,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          (exit-owl
             (if (print val) 0 126)))
       ((error reason partial-env)
-         (print-repl-error 
+         (print-repl-error
             (list "An error occurred while evaluating:" str reason))
          (exit-owl 1))
       (else
@@ -334,7 +334,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       ((ok val env)
          (exit-owl (if val 0 1)))
       ((error reason partial-env)
-         (print-repl-error 
+         (print-repl-error
             (list "An error occurred while evaluating:" str reason))
          (exit-owl 126))
       (else
@@ -358,7 +358,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
    (or
       (process-arguments (cdr vm-args) command-line-rules error-usage-text
          (λ (dict others)
-            (lets 
+            (lets
                ((env ;; be quiet automatically if any of these are set
                   (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet test evaluate run output output-format))
                      (env-set env '*interactive* #false)
@@ -380,7 +380,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (λ (path) (try-load-state path others)))
                   ((or (getf dict 'output) (getf dict 'output-format))
                      (if (< (length others) 2) ;; can take just one file or stdin
-                        (repl-compile compiler env 
+                        (repl-compile compiler env
                            (if (null? others) "-" (car others)) dict)
                         (begin
                            (print "compile just one file for now please: " others)
@@ -388,15 +388,15 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   ((getf dict 'run) =>
                      (λ (path)
                         (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path)))
-                  ((getf dict 'evaluate) => 
+                  ((getf dict 'evaluate) =>
                      (λ (str)
                         (try-repl-string env str))) ;; fixme, no error reporting
-                  ((getf dict 'test) => 
+                  ((getf dict 'test) =>
                      (λ (str)
                         (try-test-string env str)))
                   ((null? others)
                      (greeting env)
-                     (repl-trampoline repl 
+                     (repl-trampoline repl
                         (-> env
                            ;(env-set '*line-editor* (getf dict 'interactive))
                            )))
@@ -405,7 +405,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (define input
                         (foldr (λ (path tail) (ilist ',load path tail)) null others))
                      (tuple-case (repl (env-set env '*interactive* #false) input)
-                        ((ok val env)  
+                        ((ok val env)
                            0)
                         ((error reason partial-env)
                            (print-repl-error reason)
@@ -415,7 +415,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (directory-of path)
    (runes->string
       (reverse
-         (drop-while 
+         (drop-while
             (λ (x) (not (eq? x #\/)))
             (reverse
                (string->runes path))))))
@@ -437,7 +437,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   (start-thread-controller
                      (list
                         (tuple 'init
-                           (λ () 
+                           (λ ()
                               (thread 'repl
                                  (let ((state (make-variable '*state* #empty)))
                                     ;; get basic io running
@@ -452,11 +452,10 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                     ;; set a signal handler which stop evaluation instead of owl 
                                     ;; if a repl eval thread is running
                                     (set-signal-action repl-signal-handler)
-                                    
 
-                                    (exit-owl 
+                                    (exit-owl
                                        (repl-start vm-args repl compiler
-                                          (fold 
+                                          (fold
                                              (λ (env defn)
                                                 (env-set env (car defn) (cdr defn)))
                                              initial-environment
@@ -505,7 +504,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                        (want-symbols . #true)
                        (want-codes . #true)
                        (want-native-ops . #true)))
-                  (choose-natives 
+                  (choose-natives
                      (get opts 'specialize "none")
                      heap-entry))
                (print "Output written at " (- (time-ms) build-start) "ms.")
