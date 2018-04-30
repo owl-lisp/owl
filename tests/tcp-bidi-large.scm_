@@ -9,7 +9,7 @@
    (let loop ((port 1025))
       (if (< port #x10000)
          (let ((sock (open-socket port)))
-            (if sock 
+            (if sock
                (cons sock port)
                (loop (+ port 1))))
          (error "Couldn't open any ports" port))))
@@ -54,10 +54,10 @@
          ((eq? n 1) ;; check for arrived data
             (lets ((envelope (check-mail)))
                (if envelope
-                  (lets 
+                  (lets
                      ((from msg envelope)
                       (reqs (- reqs 1)))
-                     (if (eof? msg)
+                     (if (eof-object? msg)
                         (io fd rst data left reqs)
                         (explode msg (io fd rst data (- left (vec-len msg)) reqs))))
                   ;; you have no new email
@@ -72,10 +72,10 @@
                (io fd rst data left reqs)))
          ((and (null? data) (= left 0)) ;; all sent and enough received
             (let loop ((reqs reqs)) ;; read responses to remaining requests 
-               (if (= reqs 0) 
+               (if (= reqs 0)
                   null ;; all done
                   (let ((env (wait-mail)))
-                     (if (eof? (ref env 2)) ;; check that we get an eof now
+                     (if (eof-object? (ref env 2)) ;; check that we get an eof now
                         (loop (- reqs 1))
                         (error "bad finale message: " env))))))
          (else

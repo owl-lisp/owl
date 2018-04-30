@@ -242,6 +242,7 @@
 
    (import
       (owl defmac)
+      (owl eof)
       (owl equal)
       (owl list)
       (only (owl syscall) error)
@@ -353,8 +354,6 @@
             ((n base) (number->string/base n base))))
 
       (define (square x) (* x x))
-
-      (define eof-object? eof?)
 
       (define-missing-bad write-u8)
       (define-missing-bad write-string)
