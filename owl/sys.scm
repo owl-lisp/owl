@@ -250,12 +250,11 @@
 
       ;; unsafe-dirfd → #false | eof | raw-string
       (define (read-dir obj)
-         (if (number? obj)
-            (let ((ptrp (sys 12 obj)))
-               (if (number? ptrp)
-                  (mem-string ptrp)
-                  ptrp))
-            #false))
+         (and
+            (integer? obj)
+            (or
+               (mem-string (sys 12 obj))
+               (and (zero? (errno)) (eof-object)))))
 
       ;; _ → #true
       (define (close-dir obj)

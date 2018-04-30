@@ -729,15 +729,11 @@ static word prim_sys(int op, word a, word b, word c) {
                return onum((intptr_t)dirp, 1);
          }
          return IFALSE;
-      case 12: { /* read-dir dirp → pointer | eof | #f */
+      case 12: { /* read-dir dirp → pointer */
          struct dirent *ent;
          errno = 0;
          ent = readdir((DIR *)(intptr_t)cnum(a));
-         if (ent != NULL)
-            return onum((word)&ent->d_name, 0);
-         if (errno == 0)
-            return IEOF;
-         return IFALSE; }
+         return onum(ent != NULL ? (word)&ent->d_name : 0, 0); }
       case 13: /* sys-closedir dirp _ _ -> ITRUE */
          closedir((DIR *)(intptr_t)cnum(a));
          return ITRUE;
