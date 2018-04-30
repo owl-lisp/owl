@@ -437,24 +437,10 @@
             (lets 
                ((this todo todo)
                 (id st this))
-               (if (eq? (type st) type-tuple)
-                  ;; parallel or node, hunt next slice to run and proceed
-                  (lets ((fini stp (step-parallel st)))
-                     (cond
-                        ((not fini)
-                           ;; no result found yet but options remaining - keep on truckin
-                           (self self todo (cons (tuple id stp) done) state))
-                        ((eq? fini #true)
-                           ;; some result was found and stp is a thunk to proceed computation
-                           (self self todo (cons (tuple id stp) done) state))
-                        (else
-                           ;; TODO: something failed and stp is an error code. time to crash.
-                           (print "GONDOR!")
-                           "GONDOR!")))
-                  (lets ((op a b c (run st thread-quantum)))
-                     (if (eq? op 1)
-                        (self self todo (cons (tuple id a) done) state)
-                        ((ref mcp-syscalls op) id a b c todo done state self)))))))
+               (lets ((op a b c (run st thread-quantum)))
+                  (if (eq? op 1)
+                     (self self todo (cons (tuple id a) done) state)
+                     ((ref mcp-syscalls op) id a b c todo done state self))))))
 
       (define (start-thread-controller threads state-alist)
          (thread-controller thread-controller threads

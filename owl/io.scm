@@ -126,10 +126,13 @@
       (define (try-write-block fd bvec len)
          (cond
             ;; one does not simply write() on all platforms
-            ((tcp? fd) (sys-prim 15 fd bvec len))
-            ((port? fd) (sys-prim 0 fd bvec len))
+            ((tcp? fd)  (sys-prim 15 fd bvec len))
+            ((port? fd)
+               ;; stdio ports are not in non-blocking mode, so poll always
+               (if (or (eq? fd stdout) (eq? fd stderr))
+                  (interact 'iomux (tuple 'write fd)))
+               (sys-prim 0 fd bvec len))
             (else 
-               ;(sys-prim 0 fd bvec len)
                #false)))
 
       ;; bvec port → bool
@@ -143,7 +146,6 @@
                         ((eq? wrote end) #true) ;; ok, wrote the whole chunk
                         ((eq? wrote 0) ;; 0 = EWOULDBLOCK
                            (interact 'iomux (tuple 'write fd))
-                           ;(interact sid 2)
                            (loop))
                         (wrote ;; partial write
                            (write-really (bvec-tail bvec wrote) fd))
@@ -187,6 +189,9 @@
          #x8000)
 
       (define (try-get-block fd block-size block?)
+         ;; stdin is not in nonblocking mode, so always poll
+         (if (eq? fd stdin)
+            (interact 'iomux (tuple 'read fd)))
          (let ((res (sys-prim 5 fd block-size 0)))
             (if (eq? res #true) ;; would block
                (if block?

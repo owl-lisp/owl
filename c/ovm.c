@@ -550,9 +550,6 @@ static word prim_set(word wptr, word pos, word val) {
 }
 
 void setdown() {
-   toggle_blocking(0,1); /* return to blocking mode */
-   toggle_blocking(1,1);
-   toggle_blocking(2,1);
    tcsetattr(0, TCSANOW, &tsettings); /* return stdio settings */
 }
 
@@ -764,14 +761,8 @@ static word prim_sys(int op, word a, word b, word c) {
             b = G(b, 2);
          }
          *argp = NULL;
-         toggle_blocking(0,1); /* try to return stdio to blocking mode */
-         toggle_blocking(1,1); /* warning, other file descriptors will stay in nonblocking mode */
-         toggle_blocking(2,1);
          execv(path, args); /* may return -1 and set errno */
          free(args);
-         toggle_blocking(0,0); /* exec failed, back to nonblocking io for owl */
-         toggle_blocking(1,0);
-         toggle_blocking(2,0);
          return IFALSE; }
       case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
          pid_t pid = fork();
@@ -1725,9 +1716,6 @@ void setup(int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
    state = IFALSE;
    set_signal_handler();
-   toggle_blocking(0,0); /* change to nonblocking stdio */
-   toggle_blocking(1,0);
-   toggle_blocking(2,0);
    max_heap_mb = W == 4 ? 4096 : 65535;
    nwords += nobjs + INITCELLS;
    memstart = genstart = fp = realloc(NULL, (nwords + MEMPAD) * W);
