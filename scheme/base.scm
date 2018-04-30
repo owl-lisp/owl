@@ -1,5 +1,5 @@
 (define-library (scheme base)
-  (export 
+  (export
       *
       +
       -
@@ -240,7 +240,7 @@
       string->integer ;; NOT R7RS but used currently in many places in owl stuff
       )
 
-   (import 
+   (import
       (owl defmac)
       (owl equal)
       (owl list)
@@ -261,26 +261,26 @@
    (begin
 
       (define-syntax define-symbols
-        (syntax-rules ()
-          ((define-symbols x ...)
-            (define-values (x ...) 
-              (values (quote x) ...)))))
+         (syntax-rules ()
+            ((define-symbols x ...)
+               (define-values (x ...)
+                  (values (quote x) ...)))))
 
       (define-symbols ... => unquote unquote-splicing)
 
-      (define-syntax define-missing-bad 
+      (define-syntax define-missing-bad
          (syntax-rules ()
             ((define-missing-bad name)
-               (define name 
+               (define name
                   (lambda args
                      (error "Implementation restriction:" (cons (quote name) args)))))))
 
-       (define-syntax define-missing-my-bad 
+      (define-syntax define-missing-my-bad
          (syntax-rules ()
             ((define-missing-my-bad name)
-               (define name 
+               (define name
                   (lambda args
-                     (error "Currently missing or incompatible:" (cons (quote name) args)))))))  
+                     (error "Currently missing or incompatible:" (cons (quote name) args)))))))
 
 
       ;; grr, scheme member functions don't follow the argument conventions of other functions used in owl...
@@ -343,9 +343,9 @@
          (list->string (render-number n null base)))
 
       (define-syntax when
-        (syntax-rules ()
-          ((when test exp ...)
-            (if test (begin exp ...)))))
+         (syntax-rules ()
+            ((when test exp ...)
+               (if test (begin exp ...)))))
 
       (define number->string
          (case-lambda
@@ -353,6 +353,8 @@
             ((n base) (number->string/base n base))))
 
       (define (square x) (* x x))
+
+      (define eof-object? eof?)
 
       (define-missing-bad write-u8)
       (define-missing-bad write-string)
@@ -436,8 +438,6 @@
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
-      (define-missing-bad eof-object?)
-      (define-missing-bad eof-object)
       (define-missing-bad else)
       (define-missing-bad dynamic-wind)
       (define-missing-bad current-output-port)

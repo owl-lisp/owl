@@ -2,18 +2,19 @@
 (define-library (owl defmac)
 
    (export
-      λ syntax-error begin 
-      quasiquote letrec let if 
+      λ syntax-error begin
+      quasiquote letrec let if
       letrec* let*-values
       cond case define define*
       lets let* or and list
-      ilist tuple tuple-case 
+      ilist tuple tuple-case
       call-with-values do define-library
       case-lambda
       define-values
       define-record-type
       _record-values
       not o i self
+      eof-object
       type-complex
       type-rational
       type-int+
@@ -34,13 +35,12 @@
       type-vector-leaf
       type-vector-raw
       type-ff-black-leaf
-      type-eof
       type-tuple
       type-symbol
       type-const
       type-rlist-spine
       type-rlist-node
-      type-port 
+      type-port
       type-tcp-socket
       type-udp-socket
       type-tcp-client
@@ -64,8 +64,8 @@
 
    (begin
 
-      (define-syntax λ 
-         (syntax-rules () 
+      (define-syntax λ
+         (syntax-rules ()
             ((λ . x) (lambda . x))))
 
       (define-syntax syntax-error
@@ -76,7 +76,7 @@
       ;; expand case-lambda syntax to to (_case-lambda <lambda> (_case-lambda ... (_case-lambda <lambda> <lambda)))
       (define-syntax case-lambda
          (syntax-rules (lambda _case-lambda)
-            ((case-lambda) #false) 
+            ((case-lambda) #false)
             ; ^ should use syntax-error instead, but not yet sure if this will be used before error is defined
             ((case-lambda (formals . body))
                ;; downgrade to a run-of-the-mill lambda
@@ -115,7 +115,7 @@
                (begin 43 b (a . c) exps))
             ((begin 43 () bindings exps)
                (letrec bindings (begin . exps)))
-            ((begin first . rest)  
+            ((begin first . rest)
                ((lambda (free)
                   (begin . rest))
                   first))))
@@ -135,21 +135,21 @@
 
       (define-syntax let
             (syntax-rules ()
-               ((let ((var val) ...) exp . rest) 
+               ((let ((var val) ...) exp . rest)
                   ((lambda (var ...) exp . rest) val ...))
-               ((let keyword ((var init) ...) exp . rest) 
+               ((let keyword ((var init) ...) exp . rest)
                   (letrec ((keyword (lambda (var ...) exp . rest))) (keyword init ...)))))
 
       ; Temporary hack: if inlines some predicates.
 
       (define-syntax if
-         (syntax-rules 
+         (syntax-rules
             (not eq? and null? pair? empty? type =)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
             ((if (empty? test) then else) (if (eq? test #empty) then else)) ;; FIXME - handle with partial eval later
-            ((if (eq? a b) then else) (_branch 0 a b then else))            
+            ((if (eq? a b) then else) (_branch 0 a b then else))
             ((if (a . b) then else) (let ((x (a . b))) (if x then else)))
             ((if #false then else) else)
             ((if #true then else) then)
@@ -160,12 +160,12 @@
             ((cond) #false)
             ((cond (else exp . rest))
                (begin exp . rest))
-            ((cond (clause => exp) . rest) 
+            ((cond (clause => exp) . rest)
                (let ((fresh clause))
                   (if fresh
                      (exp fresh)
                      (cond . rest))))
-            ((cond (clause exp . rest-exps) . rest) 
+            ((cond (clause exp . rest-exps) . rest)
                (if clause
                   (begin exp . rest-exps)
                   (cond . rest)))))
@@ -225,9 +225,9 @@
       (define-syntax define*
          (syntax-rules (print list)
             ((define* (op . args) . body)
-               (define (op . args) 
+               (define (op . args)
                   (print " * " (list (quote op) . args))
-                  .  body))
+                  . body))
             ((define* name (lambda (arg ...) . body))
                (define* (name arg ...) . body))))
 
@@ -239,11 +239,11 @@
                ((lambda (var) (lets rest-bindings exp . rest-exps)) val))
             ((lets ((var ... (op . args)) . rest-bindings) exp . rest-exps)
                (receive (op . args)
-                  (lambda (var ...) 
+                  (lambda (var ...)
                      (lets rest-bindings exp . rest-exps))))
             ((lets ((var ... node) . rest-bindings) exp . rest-exps)
                (bind node
-                  (lambda (var ...) 
+                  (lambda (var ...)
                      (lets rest-bindings exp . rest-exps))))
             ((lets (((name ...) <= value) . rest) . code)
                (bind value
@@ -314,8 +314,8 @@
             ((quasiquote _work () (_sharp_vector . es))
                (list->vector
                   (quasiquote _work () es)))
-            ((quasiquote _work d (a . b))  
-               (cons (quasiquote _work d a) 
+            ((quasiquote _work d (a . b))
+               (cons (quasiquote _work d a)
                      (quasiquote _work d b)))
             ((quasiquote _work d atom)
                (quote atom))
@@ -373,20 +373,20 @@
                (receive (thunk) (lambda (arg ...) body)))))
 
       (define-syntax do
-        (syntax-rules (__init)
-          ((do __init () ((var init step) ...) (test then ...) command ...)
-            (let loop ((var init) ...)
-              (if test 
-                (begin then ...)
-                (begin
-                  command ...
-                  (loop step ...)))))
-          ((do __init ((var init step) . rest) done . tail)
-            (do __init rest ((var init step) . done) . tail))
-          ((do __init ((var init) . rest) done . tail)
-            (do __init rest ((var init var) . done) . tail))
-          ((do (vari ...) (test exp ...) command ...)
-            (do __init (vari ...) () (test exp ...) command ...))))
+         (syntax-rules (__init)
+            ((do __init () ((var init step) ...) (test then ...) command ...)
+               (let loop ((var init) ...)
+                  (if test
+                     (begin then ...)
+                     (begin
+                        command ...
+                        (loop step ...)))))
+            ((do __init ((var init step) . rest) done . tail)
+               (do __init rest ((var init step) . done) . tail))
+            ((do __init ((var init) . rest) done . tail)
+               (do __init rest ((var init var) . done) . tail))
+            ((do (vari ...) (test exp ...) command ...)
+               (do __init (vari ...) () (test exp ...) command ...))))
 
       (define-syntax define-library
          (syntax-rules (export import begin _define-library define-library)
@@ -421,16 +421,18 @@
 
       (define i (λ (x) x))
 
-      (define eof?
-         (let ((eof (cast 4 13)))
-            (lambda (x)
-               (eq? x eof))))
-
       (define self i)
 
       ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
 
       (define (k x y) x)
+
+      (define eof-object
+         (let ((eof (cast 4 13)))
+            (λ () eof)))
+
+      (define (eof? obj)
+         (eq? (eof-object) obj))
 
 
       ;;;
@@ -456,7 +458,7 @@
       ;                   |   |'----------------> teardown bit - something needs to be done if freed by gc
       ;                   |   '-----------------> your tags here! e.g. tag for closing file descriptors in gc
       ;                   '---------------------> object size in words
-      ;  
+      ;
       ;; note - there are 6 type bits, but one is currently wasted in old header position
       ;; to the right of them, so all types must be <32 until they can be slid to right 
       ;; position.
@@ -495,7 +497,6 @@
       (define type-fix-             32)
       (define type-rational         42)
       (define type-complex          43) ;; 3 free below
-      (define type-eof              20) ;; moved from 4, clashing with symbols
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
       (define type-port             12)
       (define type-tcp-socket       44) ;; port | 1<<5
@@ -512,7 +513,7 @@
       (define raw?       sizeb)
       (define (record? x) (eq? type-record (type x)))
 
-      (define-syntax _record-values 
+      (define-syntax _record-values
          (syntax-rules (emit find)
             ((_record-values emit tag mk pred () fields tail)
                (values tag mk pred . tail))
@@ -520,13 +521,13 @@
                ;; next must cons accessor of field to tail, so need to lookup its position
                (_record-values find tag mk pred (x ...) fields tail field fields (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)))
             ((_record-values find tag mk pred left fields tail key (key . rest) (pos . poss))
-               (_record-values emit tag mk pred left fields ((λ (x) (ref x pos)) . tail))) 
+               (_record-values emit tag mk pred left fields ((λ (x) (ref x pos)) . tail)))
             ((_record-values find tag mk pred left fields tail key (x . rest) (pos . poss))
                (_record-values find tag mk pred left fields tail key rest poss))
             ((_record-values find tag mk pred left fields tail key () (pos . poss))
-               (syntax-error "Not found in record: " key)) 
+               (syntax-error "Not found in record: " key))
             ((_record-values find tag mk pred left fields tail key (x . rest) ())
-               (syntax-error "Implementation restriction: add more offsets to define-record-type macro" tag)))) 
+               (syntax-error "Implementation restriction: add more offsets to define-record-type macro" tag))))
 
       (define-syntax define-record-type
          (syntax-rules (emit)
@@ -534,10 +535,10 @@
                (define-values
                   (name constructor pred accessor ...)
                   (let ((tag (quote name))) ; ← note, not unique after redefinition, but atm seems useful to get pattern matching
-                     (_record-values emit 
-                        tag     
+                     (_record-values emit
+                        tag
                         (λ (fieldname ...) (mkt type-record tag fieldname ...))
-                        (λ (ob) (eq? tag (ref ob 1))) 
+                        (λ (ob) (eq? tag (ref ob 1)))
                         ((field accessor) ...) (fieldname ...) ()))))))
 
       (define-syntax ->
@@ -562,10 +563,10 @@
                then)
             ((if-lets ((k ... val) . rest) then else)
                (lets ((k ... val))
-                 (if k
-                   (if-lets rest then else)
-                   else)))
-             ((if-lets bindings then)
+                  (if k
+                     (if-lets rest then else)
+                     else)))
+            ((if-lets bindings then)
                (if-lets bindings then #false))))
 
       (define (maybe op arg)
