@@ -223,10 +223,8 @@
          (λ (obj)
             (cond
                ;; if chosen to be a macro instruction in the new vm, replace with new bytecode calling it
-               ((get native-ops obj #false) =>
-                  (λ (vals) 
-                     ; write a reference to the wrapper function instead of the original bytecode
-                     (ref vals 2)))
+               ;; write a reference to the wrapper function instead of the original bytecode
+               ((get native-ops obj #false) => (c ref 2))
                ;; if this is a macro instruction in the current system, convert back to vanilla bytecode, or the 
                ;; target machine won't understand this
                ((extended-opcode obj) =>

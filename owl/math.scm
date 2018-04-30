@@ -1251,8 +1251,7 @@
                    (bp (rmul-digit b f))
                    (ap (rev-sub a bp)))
                   (if ap (rrem ap b) a)))
-            ((rev-sub a b) =>
-               (lambda (ap) (rrem ap b)))
+            ((rev-sub a b) => (c rrem b))
             (else
                (lets
                   ((h o (fx+ (ncar b) 1))

@@ -134,7 +134,7 @@
                (let ((state (put state return-value-tag 126)))
                   (drop-delivering todo done state id 
                      (tuple id (tuple 'crashed a b c)) tc)))
-            
+
             ; 4, fork
             (λ (id cont opts thunk todo done state tc)
                (lets 
@@ -177,14 +177,14 @@
                (tc tc 
                   (cons (tuple id (λ () (cont (and (null? todo) (null? done))))) todo)
                   done state))
-               
+
             ; 8, get running thread ids (sans self)
             (λ (id cont b c todo done state tc)
                (let 
                   ((ids
                      (append
-                        (map (λ (x) (ref x 1)) todo)
-                        (map (λ (x) (ref x 1)) done))))
+                        (map (c ref 1) todo)
+                        (map (c ref 1) done))))
                   (tc tc 
                      (cons 
                         (tuple id (λ () (cont ids)))
@@ -208,7 +208,7 @@
                   ;; tailcall signal handler and pass controller to allow resuming operation
                   ((get state signal-tag signal-halt) ; default to standard mcp 
                      all-threads state thread-controller)))
-            
+
             ; 11, reset mcp state (usually means exit from mcp repl)
             (λ (id cont threads state xtodo xdone xstate tc)
                ; (system-println "syscall 11 - swapping mcp state")
@@ -278,13 +278,13 @@
             ; 19, set return value proposal
             (λ (id cont b c todo done state tc)
                (tc tc (cons (tuple id (λ () (cont b))) todo) done (put state return-value-tag b)))
-           
+
             ;;; 20 & 21 change during profiling 
 
             ; 20, start profiling, no-op during profiling returning 'already-profiling
             (λ (id cont b c todo done state tc) 
                (tc tc (cons (tuple id (λ () (cont 'already-profiling))) todo) done state))
-            
+
             ; 21, end profiling, resume old ones, pass profiling info 
             (λ (id cont b c todo done state tc) 
                (lets
@@ -299,7 +299,7 @@
                (lets
                   ((por-state (tuple cont opts c)))
                   (tc tc (cons (tuple id por-state) todo) done state)))
-            
+
             ; 23, link thread
             (λ (id cont target c todo done state tc)
                (lets 

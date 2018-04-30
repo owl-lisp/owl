@@ -376,8 +376,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (print "Owl Lisp " *owl-version*)
                      0)
                   ((getf dict 'about) (print about-owl) 0)
-                  ((getf dict 'load) =>
-                     (λ (path) (try-load-state path others)))
+                  ((getf dict 'load) => (c try-load-state others))
                   ((or (getf dict 'output) (getf dict 'output-format))
                      (if (< (length others) 2) ;; can take just one file or stdin
                         (repl-compile compiler env

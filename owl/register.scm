@@ -47,7 +47,7 @@
       ; return a list of registers from uses (where the value has been moved to), or 
       ; some list of low registers if this one is outside the available ones
       (define (use-list uses reg)
-         (let ((opts (keep (λ (x) (< x highest-register)) (get uses reg null))))
+         (let ((opts (keep (c < highest-register) (get uses reg null))))
             (cond
                ((< reg highest-register)
                   opts)
@@ -306,5 +306,4 @@
       (define (allocate-registers rtl)
          (lets ((rtl usages (rtl-retard rtl)))
             rtl))
-         
-   ))
+))

@@ -13,7 +13,7 @@
       define-values
       define-record-type
       _record-values
-      not o i self
+      not c i o self
       type-complex
       type-rational
       type-int+
@@ -424,6 +424,8 @@
 
       ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
 
+      (define (c f y) (λ (x) (f x y)))
+
       (define (k x y) x)
 
 
@@ -513,7 +515,7 @@
                ;; next must cons accessor of field to tail, so need to lookup its position
                (_record-values find tag mk pred (x ...) fields tail field fields (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)))
             ((_record-values find tag mk pred left fields tail key (key . rest) (pos . poss))
-               (_record-values emit tag mk pred left fields ((λ (x) (ref x pos)) . tail)))
+               (_record-values emit tag mk pred left fields ((c ref pos) . tail)))
             ((_record-values find tag mk pred left fields tail key (x . rest) (pos . poss))
                (_record-values find tag mk pred left fields tail key rest poss))
             ((_record-values find tag mk pred left fields tail key () (pos . poss))

@@ -114,7 +114,7 @@
                            (lambda (node) (has? partition (name-of node)))
                            deps))
                      null)))
-            
+
             (error "unable to resolve dependencies for mutual recursion. remaining bindings are " deps)))
 
       ;;; remove nodes and associated deps
@@ -188,16 +188,14 @@
                            (let ((sub-env (env-bind env formals)))
                               (mkcall rator
                                  (append
-                                    (map 
-                                       (lambda (arg) (carry-bindings arg sub-env))
-                                       rands)
+                                    (map (c carry-bindings sub-env) rands)
                                     (map mkvar deps)))))
                         (else
                            (mkcall (carry-bindings rator env)
-                              (map(lambda (exp) (carry-bindings exp env)) rands)))))
+                              (map (c carry-bindings env) rands)))))
                   (else
                      (mkcall (carry-bindings rator env)
-                        (map (lambda (exp) (carry-bindings exp env)) rands)))))
+                        (map (c carry-bindings env) rands)))))
             ((lambda formals body)
                (mklambda formals
                   (carry-bindings body
@@ -227,7 +225,7 @@
             ((value val) exp)
             ((values vals)
                (tuple 'values
-                  (map (lambda (exp) (carry-bindings exp env)) vals)))
+                  (map (c carry-bindings env) vals)))
             (else
                (error "carry-bindings: strage expression: " exp))))
 
@@ -394,7 +392,7 @@
 
       (define (unletrec exp env)
          (define (unletrec-list exps)
-            (map (lambda (exp) (unletrec exp env)) exps))
+            (map (c unletrec env) exps))
          (tuple-case exp
             ((var value) exp)
             ((call rator rands)
@@ -410,7 +408,7 @@
             ((rlambda names values body)
                (lets
                   ((env (env-bind env names))
-                   (handle (lambda (exp) (unletrec exp env))))
+                   (handle (c unletrec env)))
                   (compile-rlambda names (map handle values) (handle body) env)))
             ((receive op fn)
                (tuple 'receive (unletrec op env) (unletrec fn env)))
@@ -436,5 +434,4 @@
       (define (fix-points exp env)
          (let ((result (unletrec exp env)))
             (tuple 'ok result env)))
-
-   ))
+))

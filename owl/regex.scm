@@ -892,7 +892,7 @@
                (any
                   (let-parses ;; join tail of exp with implicit catenation
                      ((tl (get-catn get-regex)))
-                     (λ (head) (rex-and head tl)))
+                     (c rex-and tl))
                   (get-epsilon i)))) ;; nothing
            (tail (repetition regex))))
 
