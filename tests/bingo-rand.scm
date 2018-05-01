@@ -16,7 +16,7 @@
          (wait-for msg))))
 
 ;; ff of all numbers
-(define wanted 
+(define wanted
    (fold (λ (ff n) (put ff n n)) empty (iota 0 1 n)))
 
 (define (drop-mails)
@@ -38,7 +38,7 @@
                (mail 'fini "i has all")
                (drop-mails))
             (else
-               (lets 
+               (lets
                   ((rst to  (rand rst n))
                    (rst num (rand rst n))
                    (rst rounds (rand rst 3)))
@@ -49,8 +49,7 @@
 (thread 'fini
    (begin
       (print (ref (wait-mail) 2)) ; omit the id to make output equal in all cases
-      (for-each (λ (id) (mail id 'halt)) 
-      (drop-mails))))
+      (for-each (c mail 'halt) (drop-mails))))
 
 (fold
    (λ (rst id)
@@ -62,6 +61,4 @@
    (iota 0 1 n))
 
 ;; start all threads
-(for-each
-   (λ (id) (mail id 'start))
-   (iota 0 1 n))
+(for-each (c mail 'start) (iota 0 1 n))

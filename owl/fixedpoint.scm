@@ -21,7 +21,7 @@
       ; return the least score by pred 
       (define (least pred lst)
          (if (null? lst)
-            #false   
+            #false
             (cdr
                (fold
                   (λ (lead x)
@@ -59,7 +59,7 @@
                ((value val) found)
                ((values vals)
                   (walk-list vals bound found))
-               ((receive op fn) 
+               ((receive op fn)
                   (walk op bound
                      (walk fn bound found)))
                ((branch kind a b then else)
@@ -159,7 +159,7 @@
                   (tuple 'branch kind (walk a) (walk b) (walk then) (walk else)))
                ((receive op fn)
                   (tuple 'receive (walk op) (walk fn)))
-               ((values vals) 
+               ((values vals)
                   (tuple 'values (map walk vals)))
                ((value val) exp)
                ((var sym)
@@ -182,14 +182,13 @@
                      (tuple-case (lookup env sym)
                         ((recursive formals deps)
                            (if (not (= (length formals) (length rands)))
-                              (error 
+                              (error
                                  "Wrong number of arguments: "
                                  (list 'call exp 'expects formals)))
-                           (let ((sub-env (env-bind env formals)))
-                              (mkcall rator
-                                 (append
-                                    (map (c carry-bindings sub-env) rands)
-                                    (map mkvar deps)))))
+                           (mkcall rator
+                              (append
+                                 (map (c carry-bindings (env-bind env formals)) rands)
+                                 (map mkvar deps))))
                         (else
                            (mkcall (carry-bindings rator env)
                               (map (c carry-bindings env) rands)))))
@@ -215,9 +214,9 @@
             ((var sym)
                (tuple-case (lookup env sym)
                   ((recursive formals deps)
-                     (let 
-                        ((lexp 
-                           (mklambda formals 
+                     (let
+                        ((lexp
+                           (mklambda formals
                               (mkcall exp (map mkvar (append formals deps))))))
                         ; (print "carry-bindings: made local closure " lexp)
                         lexp))
@@ -268,7 +267,7 @@
             (tuple-case (pick-binding deps env)
 
                ; no dependecies, so bind with ((lambda (a ...) X) A ...)
-               ((trivial nodes) 
+               ((trivial nodes)
                   (make-bindings (map first nodes) (map second nodes)
                      (generate-bindings
                         (remove-deps (map first nodes) deps)
@@ -281,9 +280,9 @@
                         (fold
                            (lambda (env node)
                               (let ((formals (ref (value-of node) 2)))
-                                 (env-put-raw env  
-                                    (name-of node) 
-                                    (tuple 'recursive formals 
+                                 (env-put-raw env
+                                    (name-of node)
+                                    (tuple 'recursive formals
                                        (list (name-of node))))))
                            env nodes)))
                      ; bind all names to extended functions (think (let ((fakt (lambda (fakt x fakt) ...) ...))))
@@ -291,7 +290,7 @@
                         (map first nodes)
                         (handle-recursion nodes env-rec)
                         ; then in the body bind them to (let ((fakt (lambda (x) (fakt x fakt))) ...) ...)
-                        (let 
+                        (let
                            ((body
                               (generate-bindings
                                  (remove-deps (map first nodes) deps)
@@ -312,7 +311,7 @@
                            (fold
                               (lambda (body node)
                                  (lets ((name val deps node))
-                                    (carry-simple-recursion body name 
+                                    (carry-simple-recursion body name
                                        (append (ref val 2) deps)))) ; add self to args
                               body nodes)
                            ))))
@@ -326,16 +325,16 @@
                            (lambda (node)
                               (if (null? (diff (deps-of node) partition))
                                  (set-deps node partition)
-                                 (error 
-                                    "mutual recursion bug, partitions differ: " 
+                                 (error
+                                    "mutual recursion bug, partitions differ: "
                                     (list 'picked partition 'found node))))
                            nodes))
                       (env-rec
                         (fold
                            (lambda (env node)
                               (let ((formals (ref (value-of node) 2)))
-                                 (env-put-raw env 
-                                    (name-of node) 
+                                 (env-put-raw env
+                                    (name-of node)
                                     (tuple 'recursive formals partition))))
                            env nodes)))
                      (make-bindings
@@ -424,7 +423,7 @@
                    (else (unletrec else env)))
                   (tuple 'branch kind a b then else)))
             ((case-lambda func else)
-               (tuple 'case-lambda 
+               (tuple 'case-lambda
                   (unletrec func env)
                   (unletrec else env)))
             (else

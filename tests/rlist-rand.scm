@@ -39,15 +39,15 @@
 				((9 10) ; set a random element
 					(if (= len 0)
 						(list-test rst rl l len steps)
-						(lets 
+						(lets
 							((rst p (rand rst len))
 							 (rst v (rand rst 10000)))
 							;(print* (list "L[" p "] = " v))
 							(list-test rst (rset rl p v) (lset l p v) len steps))))
 				((11) ; map increment
 					(list-test rst
-						(rmap (lambda (x) (+ x 1)) rl)
-						(map (lambda (x) (+ x 1)) l)
+						(rmap (c + 1) rl)
+						(map (c + 1) l)
 						len steps))
 				((12) ; fold
 					(if (= (fold - 0 l) (rfold - 0 rl))
