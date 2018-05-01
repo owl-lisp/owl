@@ -5,13 +5,13 @@
 
 (define-library (owl dump)
 
-   (export 
+   (export
       make-compiler    ; ((make-compiler extra-insts) entry path opts native) 
       dump-fasl 
       load-fasl
       suspend)
 
-   (import 
+   (import
       (owl defmac)
       (owl fasl)
       (owl list)
@@ -37,9 +37,9 @@
       (only (owl queue) qnull))
 
    (begin
-      ;;; 
+      ;;;
       ;;; Symbols must be properly interned in a repl.
-      ;;; 
+      ;;;
 
       (define (symbols-of node)
 
@@ -224,9 +224,9 @@
             (cond
                ;; if chosen to be a macro instruction in the new vm, replace with new bytecode calling it
                ;; write a reference to the wrapper function instead of the original bytecode
-               ((get native-ops obj #false) => (c ref 2))
-               ;; if this is a macro instruction in the current system, convert back to vanilla bytecode, or the 
-               ;; target machine won't understand this
+               ((get native-ops obj #false) => (C ref 2))
+               ;; if this is a macro instruction in the current system, convert back
+               ;; to vanilla bytecode, or the target machine won't understand this
                ((extended-opcode obj) =>
                   (λ (opcode)
                      ;(print " * mapping superinstruction back to to bytecode: " opcode)

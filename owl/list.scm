@@ -1,14 +1,14 @@
 (define-library (owl list)
 
-   (export 
+   (export
       null pair? null?
       caar cadr cdar cddr
-      list?      
+      list?
       zip fold foldr map for-each
       has? getq last drop-while
       mem
       fold-map foldr-map
-      append reverse keep remove 
+      append reverse keep remove
       all some
       smap unfold
       take-while                ;; pred, lst -> as, bs
@@ -18,7 +18,7 @@
       edit                      ;; op lst → lst'
       interleave
       ╯°□°╯
-      
+
       diff union intersect)
 
    (import
@@ -69,19 +69,19 @@
             (else
                (let ((hd (op (car a) (car b))))
                   (cons hd (zip op (cdr a) (cdr b)))))))
-      
+
       ;; op state lst -> state', walk over a list from left and compute a value
-      
-      (define (fold op state lst) 
-         (if (null? lst) 
-            state 
-            (fold op 
+
+      (define (fold op state lst)
+         (if (null? lst)
+            state
+            (fold op
                (op state (car lst))
                (cdr lst))))
 
-      (example 
+      (example
          (zip cons '(1 2 3) '(a b c d)) = '((1 . a) (2 . b) (3 . c)))
-      
+
       (define (unfold op st end?)
          (if (end? st)
             null
@@ -102,21 +102,21 @@
             st
             (op (car lst)
                (foldr op st (cdr lst)))))
-      
+
       (example (foldr cons null '(a b c)) = '(a b c))
 
       ;; fn lst -> lst', run a function to all elements of a list
       (define (map fn lst)
          (if (null? lst)
             null
-            (lets 
+            (lets
                ((hd tl lst)
                 (hd (fn hd))) ;; compute head first
                (cons hd (map fn tl)))))
 
       (example
          (map not '(#false #false #true)) = '(#true #true #false))
-      
+
       ;; fn lst -> _, run a function to all elements of a list for side effects
       (define (for-each op lst)
          (if (null? lst)
@@ -138,20 +138,20 @@
             ((null? lst) #false)
             ((eq? k (car (car lst))) (car lst))
             (else (getq (cdr lst) k))))
-      
-      (example 
+
+      (example
          (getq '((a . 1) (b . 2)) 'a) = '(a . 1)
          (getq '((a . 1) (b . 2)) 'c) = #false)
-         
+
 
       ;; last list default -> last-elem | default, get the last value of a list
       (define (last l def)
-         (fold (λ (a b) b) def l)) 
+         (fold (λ (a b) b) def l))
 
       (example
          (last '(1 2 3) 'a) = 3
          (last '() 'a) = 'a)
-      
+
       ;; mem compare lst elem -> bool, check if lst contains elem comparing with compare
       (define (mem cmp lst elem)
          (cond
@@ -163,7 +163,7 @@
          (if (null? a)
             b
             (cons (car a) (app (cdr a) b app))))
-      
+
       (define (appl l appl)
          (if (null? (cdr l))
             (car l)
@@ -172,7 +172,7 @@
       ;; append list ... -> list', join lists
       ;;    (append '(1) '() '(2 3)) = '(1 2 3)
       (define append
-         (case-lambda 
+         (case-lambda
             ((a b) (app a b app))
             ((a b . cs) (app a (app b (appl cs appl) app) app))
             ((a) a)
@@ -181,7 +181,7 @@
 
       (example
          (append '(1 2 3) '(a b c)) = '(1 2 3 a b c))
-      
+
       ; todo: update to work like ledit
       (define (edit op l)
          (if (null? l)
@@ -199,11 +199,11 @@
             (rev-loop (cdr a) (cons (car a) b))))
 
       ;; lst -> lst', reverse a list
-      (define (reverse l) (rev-loop l null))   
+      (define (reverse l) (rev-loop l null))
 
-      (example 
+      (example
          (reverse '(1 2 3)) = '(3 2 1))
-      
+
       ;; misc
 
       (define (drop-while pred lst)
@@ -224,7 +224,7 @@
          (foldr (λ (x tl) (if (pred x) (cons x tl) tl)) null lst))
 
       (define (remove pred lst)
-         (keep (o not pred) lst))
+         (keep (B not pred) lst))
 
       (let ((l '(1 2 () 3 () 4)))
          (example
@@ -235,7 +235,7 @@
          (withcc ret
             (fold (λ (ok x) (if (pred x) ok (ret #false))) #true lst)))
 
-      (define (some pred lst) 
+      (define (some pred lst)
          (withcc ret
             (fold (λ (_ x) (let ((v (pred x))) (if v (ret v) #false))) #false lst)))
 
@@ -243,7 +243,7 @@
          (example
             (some null? l) = #true
             (all null? l) = #false))
-      
+
       ; map carrying one state variable down like fold
       (define (smap op st lst)
          (if (null? lst)
@@ -262,7 +262,7 @@
       (example
          (first null? '(1 2 3) 42) = 42
          (first null? '(1 ()) 42) = ())
-      
+
       (define (fold-map o s l)
          (let loop ((s s) (l l) (r null))
             (if (null? l)
@@ -311,7 +311,7 @@
             (union abc def) = '(a b c d e f)
             (intersect abc cd) = '(c)
             (diff abc cd) = (diff abc (intersect abc cd))))
-         
+
       (define (interleave mid lst)
          (if (null? lst)
             null
@@ -319,7 +319,7 @@
                (if (null? as)
                   (list a)
                   (ilist a mid (loop (car as) (cdr as)))))))
-      
+
       ;; lst → a b, a ++ b == lst, length a = length b | length b + 1
       (define (halve lst)
          (let walk ((t lst) (h lst) (out null))
@@ -330,14 +330,14 @@
                      (values (reverse (cons (car t) out)) (cdr t))
                      (walk (cdr t) (cdr h) (cons (car t) out)))))))
       (lets ((l '(a b c d e f)))
-         (example 
+         (example
             l = (lets ((head tail (halve l))) (append head tail))))
-            
+
       (example
          (interleave 'x '(a b c)) = '(a x b x c)
          (interleave 'x '()) = ()
          (halve '(a b c d)) = (values '(a b) '(c d))
          (halve '(a b c d e)) = (values '(a b c) '(d e)))
 
-      (define ╯°□°╯ reverse)     
+      (define ╯°□°╯ reverse)
 ))

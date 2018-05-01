@@ -423,7 +423,7 @@
                (else #false))))
 
       (define null-value? (value-pred null?))
-      (define false-value? (value-pred (c eq? #f)))
+      (define false-value? (value-pred (C eq? #f)))
       (define zero-value? (value-pred zero?))
 
       (define (simple-first a b cont)
@@ -522,7 +522,7 @@
                         ((lambda formals body)
                            (if (opcode-arity-ok? op (length (cdr rands)))
                               (rtl-primitive regs op formals (cdr rands)
-                                 (c rtl-any body))
+                                 (C rtl-any body))
                               ;; fixme: should be a way to show just parts of AST nodes, which may look odd
                               (error "Bad number of arguments for primitive: "
                                  (list 'op (primop-name op) 'got (length (cdr rands)) 'arguments))))

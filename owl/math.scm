@@ -266,7 +266,7 @@
             (else (error 'negative? a))))
 
       (define positive?
-         (o not negative?))
+         (B not negative?))
 
       ;; RnRS compat
       (define real? number?)
@@ -1251,7 +1251,7 @@
                    (bp (rmul-digit b f))
                    (ap (rev-sub a bp)))
                   (if ap (rrem ap b) a)))
-            ((rev-sub a b) => (c rrem b))
+            ((rev-sub a b) => (C rrem b))
             (else
                (lets
                   ((h o (fx+ (ncar b) 1))

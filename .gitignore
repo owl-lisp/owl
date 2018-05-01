@@ -7,4 +7,5 @@ fasl/bootp.fasl
 fasl/ol.fasl
 tmp
 bin/ol
+bin/ol-old
 bin/vm
