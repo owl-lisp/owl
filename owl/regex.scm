@@ -636,12 +636,12 @@
       ;; shared automata parts corresponding to predefined character classes
       (define accept-digit (pred digit?))
       (define accept-dot (imm 46))
-      (define accept-nondigit (pred (λ (b) (not (digit? b)))))
+      (define accept-nondigit (pred (B not digit?)))
       (define accept-alnum (pred alnum?))
       (define accept-word (pred word?))
-      (define accept-nonword (pred (λ (b) (not (word? b)))))
+      (define accept-nonword (pred (B not word?)))
       (define accept-space (pred space?))
-      (define accept-nonspace (pred (λ (b) (not (space? b)))))
+      (define accept-nonspace (pred (B not space?)))
 
       ;; \<x>
       (define get-quoted-char
@@ -799,14 +799,14 @@
       (define (make-repeater n m)
          (cond
             ((eq? m 'inf)
-               (λ (rx) (at-least n rx)))
+               (H at-least n))
             ((= n m)
                (if (eq? n 0)
                   epsilon
-                  (λ (rx) (exactly n rx))))
+                  (H exactly n)))
             ((< n m) ;; <= enforced when parsing but ok to double-check as this is only done once 
                (if (eq? n 0)
-                  (λ (rx) (at-most m rx))
+                  (H at-most m)
                   (λ (rx) (rex-and (exactly n rx) (at-most (- m n) rx)))))
             (else
                (error "make-repeater: bad range: " (list n 'to m)))))
@@ -996,5 +996,4 @@
       ;; POSIX (ERE)
       (define string->regex
          string->extended-regexp)
-
 ))

@@ -86,7 +86,7 @@
          (or
             ; things which have no dependences
             (maybe 'trivial
-               (keep (lambda (node) (null? (deps-of node))) deps))
+               (keep (B null? deps-of) deps))
 
             ; things which only depend on themselvs (simply recursive)
             (maybe 'simple
@@ -106,7 +106,7 @@
                (let
                   ((node
                      (least
-                        (lambda (node) (length (deps-of node)))
+                        (B length deps-of)
                         (keep (lambda (node) (lambda? (value-of node) env)) deps))))
                   (if node
                      (let ((partition (deps-of node)))

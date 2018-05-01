@@ -257,7 +257,7 @@
          ∀ a ∊ Nat 
             (< a 100000000) ⇒ 
                (prime? a) ⇒ (= 1 (length (factor a)))
-     
+
       theorem factor-1
          ∀ a ∊ Nat
             (and (< 1 a) (< a 1000000)) ⇒ 
@@ -282,7 +282,7 @@
       theorem mul-distrib
          ∀ a b c ∊ Num
             (* a (+ b c)) = (+ (* a b) (* a c))
-            
+
       theorem mul-add-1
          ∀ a b ∊ Num 
             (* a (+ b 1)) = (+ (* a b) a)
@@ -310,7 +310,7 @@
       theorem mul-comm
          ∀ a b ∊ Num 
             (* a b) = (* b a)
-      
+
       theorem mul-assoc
          ∀ a b c ∊ Num 
             (* a (* b c)) = (* (* a b) c)
@@ -362,7 +362,7 @@
       theorem ff-del
          ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
             b = (get (del (put f a a) a) a b)
-     
+
       theorem ff-del-all
          ∀ f ∊ (Ff-of Byte)
             empty = (ff-fold (λ (ff key val) (del ff key)) f f)
@@ -370,7 +370,7 @@
       theorem ff-put
          ∀ f ∊ (Ff-of Byte) ∀ a b ∊ Byte
             b = (get (put f a b) a #false)
-            
+
       theorem ff-keys-sorted
          ∀ f ∊ (Ff-of Short)
             ks ← (keys f) ;; inorder 
@@ -422,7 +422,7 @@
          ∀ a n m ∊ Nat
             b ← (+ a n)
             c ← (+ b (+ m 1))
-            b = (bisect (λ (p) (>= p b)) a c)
+            b = (bisect (C >= b) a c)
 
       theorem rlist-car-cons
          ∀ a ∊ Byte ∀ r ∊ Rlist
@@ -467,7 +467,7 @@
       theorem lazy-1
          ∀ n ∊ Byte
             (fold + 0 (iota 0 1 n)) = (lfold + 0 (liota 0 1 n))
-      
+
       theorem lazy-2
          ∀ n ∊ Byte
             (zip cons (iota 0 1 n) (iota n -1 0)) 
@@ -600,5 +600,3 @@
                            (begin
                               (print "TESTS FAILED: " (list 'fails fails 'seed seed 'n n))
                               2))))))))))
-
-

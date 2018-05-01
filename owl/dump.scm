@@ -215,7 +215,7 @@
 
       (define (show-func val)
          (cons 'bytecode
-            (map (λ (p) (refb val p)) (iota 0 1 (sizeb val)))))
+            (map (H refb val) (iota 0 1 (sizeb val)))))
 
       ; native-ops → (obj → obj')
       ;; fixme: rewrite...
@@ -249,7 +249,7 @@
                         (clone-code original extras)
                         (error "bug: no original code found for superinstruction " opcode)))))
             (else
-               (let ((bytes (map (λ (p) (refb bc p)) (iota 0 1 (sizeb bc)))))
+               (let ((bytes (map (H refb bc) (iota 0 1 (sizeb bc)))))
                   (if (eq? (cadr bytes) 0)
                      (error "bug: vm speciazation instruction probably referencing code from current vm: " bytes))
                   (raw bytes type-bytecode))))) ; <- reallocate it
@@ -341,8 +341,7 @@
                   'saved))))
 
       (define (with-args func)
-         (λ (argv-pointer)
-            (func (mem-strings argv-pointer))))
+         (B func mem-strings))
 
       ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
       ; dump entry object to path, or stdout if path is "-"
@@ -432,5 +431,4 @@
 
                      ;; done, now just gcc -O2 -o foo <path>
                      (close-port port))))))
-
 ))

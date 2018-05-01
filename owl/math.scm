@@ -2062,12 +2062,12 @@
       ;(import-old lib-test)
       ;(test
       ;   (lmap (λ (i) (lets ((rst n (rand i 10000000000000000000))) n)) (lnums 1))
-      ;   (λ (n) (log-naive 3 n))
-      ;   (λ (n) (log 3 n)))
+      ;   (H log-naive 3)
+      ;   (H log 3))
       ;(import-old lib-test)
       ;(test
       ;   (lmap (λ (i) (lets ((rst n (rand i #x20000))) n)) (lnums 1))
-      ;   (λ (n) (log 2 n))
+      ;   (H log 2)
       ;   log2)
 
       ; note: it is safe to use div, which is faster for bignums, because by definition
@@ -2209,5 +2209,4 @@
       (define max (vararg-fold max #false))
       (define gcd (vararg-fold gcd 0))
       (define lcm (vararg-fold lcm 1))
-
 ))

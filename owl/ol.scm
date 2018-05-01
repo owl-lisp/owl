@@ -387,12 +387,8 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   ((getf dict 'run) =>
                      (λ (path)
                         (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path)))
-                  ((getf dict 'evaluate) =>
-                     (λ (str)
-                        (try-repl-string env str))) ;; fixme, no error reporting
-                  ((getf dict 'test) =>
-                     (λ (str)
-                        (try-test-string env str)))
+                  ((getf dict 'evaluate) => (H try-repl-string env)) ;; FIXME: no error reporting
+                  ((getf dict 'test) => (H try-test-string env))
                   ((null? others)
                      (greeting env)
                      (repl-trampoline repl
