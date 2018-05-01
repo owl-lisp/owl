@@ -1,5 +1,5 @@
 ;;;
-;;; Minimal thread-based pseudo-mutable values 
+;;; Minimal thread-based pseudo-mutable values
 ;;;
 
 (define-library (owl variable)
@@ -39,16 +39,16 @@
                         (store ((cdr msg) val)))
                      (else
                         (store val)))))))
-      
+
       (define (start-variable id val)
          (thread id (store val))
          (handler id))
-      
+
       (define make-variable
          (case-lambda
             ((id val) (start-variable id val))
             ((id) (start-variable id #false))
             (() (start-variable (list 'var) #false))))
-      
-      (define (link-variable id)
-         (handler id))))
+
+      (define link-variable handler)
+))

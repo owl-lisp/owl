@@ -1,7 +1,7 @@
 ; already loaded when booting.
 
 (define-library (owl macro)
-   
+
    ; remove make-transformer when it is no longer referred 
    (export macro-expand match make-transformer)
 
@@ -38,8 +38,7 @@
                   (cons exp found))
                (else found)))
 
-         (lambda (exp)
-            (walk exp null)))
+         (c walk null))
 
 
       ;;;
@@ -181,7 +180,7 @@
                (else
                   ;; repetition of length 0 or n>1
                   (car opts)))))
-     
+
       ;; pop all bindings of length > 1 
       (define (pop-ellipsis dict)
          (map 
@@ -406,7 +405,4 @@
              (free (gensym exp))
              (exp free (expand exp env free abort)))
             (post-macro-expand exp env abort)))
-
-
 ))
-

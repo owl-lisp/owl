@@ -36,9 +36,9 @@
 
    (begin
 
-      ;;; 
+      ;;;
       ;;; Matching functions
-      ;;; 
+      ;;;
 
       ;; the regexp is represented by a function which does stream matching
 
@@ -57,7 +57,7 @@
       (define (dot ls buff ms cont)
          (cond
             ((null? ls) #false)
-            ((pair? ls) 
+            ((pair? ls)
                (cont (cdr ls) (cons (car ls) buff) ms))
             (else (dot (ls) buff ms cont))))
 
@@ -70,7 +70,7 @@
                   (if (eq? (car ls) cp)
                      (cont (cdr ls) (cons cp buff) ms)
                      #false))
-               (else 
+               (else
                   (accept (ls) buff ms cont))))
          (if (eq? (type cp) type-fix+)
             accept
@@ -84,7 +84,7 @@
                   (if (fn (car ls))
                      (cont (cdr ls) (cons (car ls) buff) ms)
                      #false))
-               (else 
+               (else
                   (accept (ls) buff ms cont))))
          accept)
 
@@ -128,8 +128,8 @@
       (define (make-ff cs)
          (call/cc
             (λ (ret)
-               (fold 
-                  (λ (ff n) 
+               (fold
+                  (λ (ff n)
                      (if (eq? (type n) type-fix+)
                         (put ff n #true)
                         (ret #false))) ;; code point outside of fixnum range
@@ -140,24 +140,23 @@
          (cond
             ((null? cs) ;; should not come out of parser
                (error "empty char class: " cs))
-            (complement? 
+            (complement?
                ;; always use an iff for now in [^...]
                (reject-iff
-                  (fold 
+                  (fold
                      (λ (iff val) (iput iff val #true))
                      #empty cs)))
             ((null? (cdr cs))
                (imm (car cs)))
-            ((make-ff cs) =>
-               (λ (ff) (accept-ff ff)))
-            (else 
-               (accept-iff    
-                  (fold 
+            ((make-ff cs) => accept-ff)
+            (else
+               (accept-iff
+                  (fold
                      (λ (iff val) (iput iff val #true))
                      #empty cs)))))
 
       ;; <ra>|<rb>
-      (define (rex-or ra rb)  
+      (define (rex-or ra rb)
          (λ (ls buff ms cont)
             (or (ra ls buff ms cont)
                 (rb ls buff ms cont))))
@@ -165,7 +164,7 @@
       ;; <ra><rb>
       (define (rex-and ra rb)
          (λ (ls buff ms cont)
-            (ra ls buff ms 
+            (ra ls buff ms
                (λ (ls buff ms)
                   (rb ls buff ms cont)))))
 
@@ -197,7 +196,7 @@
       (define (alt-star rx)
          (define (collect ls buff ms cont)
             (or (cont ls buff ms)
-               (rx ls buff ms 
+               (rx ls buff ms
                   (λ (ls buff ms) (collect ls buff ms cont)))))
          collect)
 
@@ -234,7 +233,7 @@
                   (define (maybe ls buff ms n)
                      (if (eq? n 0)
                         (cont ls buff ms)
-                        (or 
+                        (or
                            (rx ls buff ms (λ (ls buff ms) (maybe ls buff ms (- n 1))))
                            (cont ls buff ms))))
                   (maybe ls buff ms n)))))
@@ -265,7 +264,7 @@
          (cond
             ((null? head) out)
             ((eq? head old) out)
-            (else 
+            (else
                (add-range (cdr head) old (cons (car head) out)))))
 
       ;; find node = (id . start-pos) in ms, and update the cdr to hold the range between buff and the start-pos
@@ -315,7 +314,7 @@
                   ((rex try rev ms (λ (ls buff ms) (null? ls)))
                      (cont ls buff ms))
                   ((null? rev) #false)
-                  (else 
+                  (else
                      (lets ((char rev rev))
                         (loop rev (cons char try))))))))
 
@@ -328,7 +327,7 @@
                      #false)
                   ((null? rev)
                      (cont ls buff ms))
-                  (else 
+                  (else
                      (lets ((char rev rev))
                         (loop rev (cons char try))))))))
 
@@ -372,11 +371,11 @@
       ;;; Running the regexen
       ;;;
 
-      (define start-node 
+      (define start-node
          (cons 0 null))
 
       ;; ranges = ((nth-range . start-node) ...)
-      (define blank-ranges 
+      (define blank-ranges
          (list start-node))
 
 
@@ -399,7 +398,7 @@
       ;; rex str → bool (if matches anywhere)
       (define (rex-match-anywhere? rex ll)
          (cond
-            ((null? ll) 
+            ((null? ll)
                (rex-match-prefix? rex ll))
             ((pair? ll)
                (if (rex-match-prefix? rex ll)
@@ -530,7 +529,7 @@
                   (let ((match (rex-match-prefix rex ll)))
                      (cond
                         (match
-                           (lets 
+                           (lets
                               ((ls buff ms match)
                                (ms (update-node ms start-node buff))) ;; save whole match to \0
                               (cond
@@ -550,7 +549,7 @@
                   (loop (ll))))))
 
       (define (make-replacer rex rep all? start?)
-         (λ (target) 
+         (λ (target)
             (cond
                ((string? target)
                   (runes->string (rex-replace (str-iter target) rex rep start? all?)))
@@ -560,22 +559,20 @@
       (define (rex-full-match ll rex)
          (let ((match (rex-match-prefix rex ll)))
             (if match
-               (lets 
+               (lets
                   ((ls buff ms match))
                   ;; check end of stream
                   (lets ((a ls (uncons ls #false)))
-                     (if a 
-                        #false
-                        ms)))
+                     (if a #false ms)))
                #false)))
 
       (define (make-full-match rex)
-         (λ (target) 
+         (λ (target)
             (cond
                ((string? target)
                   (let ((res (rex-full-match (str-iter target) rex)))
                      (if res
-                        (map (o runes->string cdr) 
+                        (map (o runes->string cdr)
                            (cdr (reverse res)))
                         #false)))
                (else
@@ -596,7 +593,7 @@
          (let-parses ((foo (get-imm 36))) fini))
 
       ;; maybe get a ?
-      (define get-altp 
+      (define get-altp
          (get-either (get-imm 63) (get-epsilon #false)))
 
       ;; todo: / or ?, and carry along in get-regex
@@ -604,22 +601,22 @@
          (get-imm #\/))
 
       ;; → (rex → rex')
-      (define get-star 
-         (let-parses 
+      (define get-star
+         (let-parses
             ((skip (get-imm 42))
              (altp get-altp))
             (if altp alt-star star)))
 
       ;; a+ = aa*
-      (define get-plus 
-         (let-parses 
+      (define get-plus
+         (let-parses
             ((skip (get-imm 43))
              (altp get-altp))
             (if altp alt-plus plus)))
 
       ;; a? = a{0,1} = (a|"")
-      (define get-quest 
-         (let-parses 
+      (define get-quest
+         (let-parses
             ((skip (get-imm 63))
              (altp get-altp))
             (if altp alt-quest quest)))
@@ -637,7 +634,7 @@
       (define space? (λ (b) (has? '(32 9 13 10 11 12) b)))
 
       ;; shared automata parts corresponding to predefined character classes
-      (define accept-digit (pred digit?)) 
+      (define accept-digit (pred digit?))
       (define accept-dot (imm 46))
       (define accept-nondigit (pred (λ (b) (not (digit? b)))))
       (define accept-alnum (pred alnum?))
@@ -674,14 +671,14 @@
 
       ;; strings are already sequences of unicode code points, so no need to decode here
       ;; accept any non-special char
-      (define get-plain-char 
-         (let-parses 
+      (define get-plain-char
+         (let-parses
             ((val get-byte) ;; really get-code-point since the input is already decoded
              (verify (not (has? special-chars val)) "bad special char"))
             (imm val)))
 
       (define (quoted-imm val)
-         (let-parses 
+         (let-parses
             ((quote (get-imm 92))
              (val (get-imm val)))
             val))
@@ -727,13 +724,13 @@
              (verify (char->hex b) #false))
             (char->hex b)))
 
-      (define get-8bit 
+      (define get-8bit
          (let-parses ((hi get-hex) (lo get-hex)) (bor (<< hi 4) lo)))
 
-      (define get-16bit 
+      (define get-16bit
          (let-parses ((hi get-8bit) (lo get-8bit)) (bor (<< hi 8) lo)))
 
-      (define get-32bit 
+      (define get-32bit
          (let-parses ((hi get-16bit) (lo get-16bit)) (bor (<< hi 16) lo)))
 
       ;; todo: what is the quotation used for 32-bit \xhhhhhhhh?
@@ -764,7 +761,7 @@
       ;; a quoted character or anything other than ]
       (define parse-char-class-char
          (get-either
-            parse-quoted-char 
+            parse-quoted-char
             (let-parses
                ((char get-byte)
                 (verify (not (eq? char 93)) #false))
@@ -804,22 +801,22 @@
             ((eq? m 'inf)
                (λ (rx) (at-least n rx)))
             ((= n m)
-               (if (eq? n 0) 
+               (if (eq? n 0)
                   epsilon
                   (λ (rx) (exactly n rx))))
             ((< n m) ;; <= enforced when parsing but ok to double-check as this is only done once 
-               (if (eq? n 0) 
+               (if (eq? n 0)
                   (λ (rx) (at-most m rx))
                   (λ (rx) (rex-and (exactly n rx) (at-most (- m n) rx)))))
             (else
                (error "make-repeater: bad range: " (list n 'to m)))))
 
-      (define get-range 
+      (define get-range
          (let-parses
             ((skip (get-imm 123))   ; <{>...}
-             (start  
+             (start
                (get-either get-number (get-epsilon 0))) ; <{[n]>...}
-             (end 
+             (end
                (get-either
                   (let-parses
                      ((skip (get-imm 44)) ; <{[n],>
@@ -881,7 +878,7 @@
                       (close (get-imm 41)))
                      (chunk rex))
                   get-char-class
-                  get-reference 
+                  get-reference
                   get-quoted-char
                   get-plain-char))
              (repetition
@@ -891,11 +888,11 @@
                   get-quest
                   get-range
                   (get-epsilon i)))
-             (tail 
+             (tail
                (any
                   (let-parses ;; join tail of exp with implicit catenation
                      ((tl (get-catn get-regex)))
-                     (λ (head) (rex-and head tl)))
+                     (c rex-and tl))
                   (get-epsilon i)))) ;; nothing
            (tail (repetition regex))))
 
@@ -907,7 +904,7 @@
             (fold rex-or hd tl)))
 
       (define get-matcher-regex
-         (let-parses 
+         (let-parses
             ((skip (get-imm #\m)) ;; [m]atch
              (skip (get-imm 47))  ;; opening /
              (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
@@ -921,7 +918,7 @@
             (make-matcher (rex-and rex fini) #true)))
 
       (define get-copy-matcher-regex
-         (let-parses 
+         (let-parses
             ((skip (get-imm #\g)) ;; [g]rab
              (skip (get-imm 47))  ;; opening /
              (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
@@ -930,7 +927,7 @@
             (make-copy-matcher rex start?)))
 
       (define get-cutter-regex
-         (let-parses 
+         (let-parses
             ((skip (get-imm 99))  ;; [c]ut
              (skip (get-imm 47))  ;; opening /
              (start? (get-either (get-imm 94) (get-epsilon #false))) ;; maybe get leading ^ (special)
@@ -939,7 +936,7 @@
             )
            (make-cutter rex start?)))
 
-      (define get-replace-char 
+      (define get-replace-char
          (get-either
             (let-parses ;; quoted
                ((skip (get-imm 92)) ;; \\
@@ -951,8 +948,8 @@
                char)))
 
       (define get-maybe-g
-         (get-either 
-            (get-imm 103) 
+         (get-either
+            (get-imm 103)
             (get-epsilon #false)))
 
       (define get-replace-regex
