@@ -38,7 +38,7 @@
                   (cons exp found))
                (else found)))
 
-         (c walk null))
+         (C walk null))
 
 
       ;;;
@@ -169,7 +169,7 @@
       ;; single matches can be used along with ellipsis matches.
 
       (define (repetition-length dict)
-         (let loop ((opts (sort < (map (o length cdr) dict))) (best 0))
+         (let loop ((opts (sort < (map (B length cdr) dict))) (best 0))
             (cond
                ((null? opts)
                   ;; 0 if ellipsis with empty match, or 1 due to ellipsis of lenght 1 or just normal valid bindings

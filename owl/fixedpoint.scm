@@ -187,14 +187,14 @@
                                  (list 'call exp 'expects formals)))
                            (mkcall rator
                               (append
-                                 (map (c carry-bindings (env-bind env formals)) rands)
+                                 (map (C carry-bindings (env-bind env formals)) rands)
                                  (map mkvar deps))))
                         (else
                            (mkcall (carry-bindings rator env)
-                              (map (c carry-bindings env) rands)))))
+                              (map (C carry-bindings env) rands)))))
                   (else
                      (mkcall (carry-bindings rator env)
-                        (map (c carry-bindings env) rands)))))
+                        (map (C carry-bindings env) rands)))))
             ((lambda formals body)
                (mklambda formals
                   (carry-bindings body
@@ -224,7 +224,7 @@
             ((value val) exp)
             ((values vals)
                (tuple 'values
-                  (map (c carry-bindings env) vals)))
+                  (map (C carry-bindings env) vals)))
             (else
                (error "carry-bindings: strage expression: " exp))))
 
@@ -391,7 +391,7 @@
 
       (define (unletrec exp env)
          (define (unletrec-list exps)
-            (map (c unletrec env) exps))
+            (map (C unletrec env) exps))
          (tuple-case exp
             ((var value) exp)
             ((call rator rands)
@@ -407,7 +407,7 @@
             ((rlambda names values body)
                (lets
                   ((env (env-bind env names))
-                   (handle (c unletrec env)))
+                   (handle (C unletrec env)))
                   (compile-rlambda names (map handle values) (handle body) env)))
             ((receive op fn)
                (tuple 'receive (unletrec op env) (unletrec fn env)))

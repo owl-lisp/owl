@@ -11,7 +11,7 @@
       byte
       imm
       seq
-      epsilon ε 
+      epsilon ε
       byte-if
       rune
       either
@@ -45,7 +45,7 @@
       (owl io)
       (owl syscall))
 
-   (begin 
+   (begin
 
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
@@ -69,13 +69,13 @@
       (define (imm x)
          (λ (l r ok)
             (cond
-               ((null? r) 
+               ((null? r)
                   (backtrack l r eof-error))
-               ((pair? r) 
+               ((pair? r)
                   (if (eq? (car r) x)
                      (ok (cons (car r) l) (cdr r) x)
                      (backtrack l r 'bad-byte)))
-               (else 
+               (else
                   ((imm x) l (r) ok)))))
 
       (define (ε val)
@@ -92,16 +92,16 @@
          (λ (l r ok)
             (a l r
                (λ (l r av)
-                  (b l r 
+                  (b l r
                      (λ (l r bv)
                         (ok l r (cons av bv))))))))
 
       (define (star-vals a vals)
          (λ (l r ok)
-            (a 
-               (cons 
+            (a
+               (cons
                   (λ (l r why) (ok l r (reverse vals))) l)
-                r 
+                r
                 (λ (l r val)
                    ((star-vals a (cons val vals)) l r ok)))))
 
@@ -132,7 +132,7 @@
                (parser l r
                   (λ (l r val)
                      (let-parses 42 l r ok rest body))))
-            ((let-parses 42 l r ok () body) 
+            ((let-parses 42 l r ok () body)
                (ok l r body))
             ((let-parses 42 l r ok ((verify term msg) . rest) body)
                (if term
@@ -187,7 +187,7 @@
             a))
 
       ; #b10xxxxxx
-      (define extension-byte 
+      (define extension-byte
          (let-parses
             ((b byte)
              (verify (eq? #b10000000 (fxband b #b11000000)) "Bad extension byte"))
@@ -201,7 +201,7 @@
 
       (define rune
          (any
-            (byte-if (c lesser? 128))
+            (byte-if (C lesser? 128))
             (let-parses
                ((a (byte-between 127 224))
                 (verify (not (eq? a #b11000000)) "blank leading 2-byte char") ;; would be non-minimal
@@ -237,7 +237,7 @@
       (define (fd->exp-stream fd parser fail)
          (let loop ((ll (port->byte-stream fd)))
             (lets
-               ((lp r val 
+               ((lp r val
                    (parser null ll parser-succ)))
                (cond
                   (lp ;; something parsed successfully
@@ -272,7 +272,7 @@
       (define get-either either)
       (define get-word word)
 
-      (define (try-parse parser data maybe-path maybe-error-msg fail-fn) 
+      (define (try-parse parser data maybe-path maybe-error-msg fail-fn)
          (lets ((l r val (parser null data parser-succ)))
             (cond
                ((not l)

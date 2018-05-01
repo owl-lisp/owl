@@ -13,7 +13,7 @@
 ;;; ```
 
 (define-library (owl digest)
-   
+
    (export
       sha1            ;; str | vec | list | ll → str
       sha1-raw        ;; ditto → integer list
@@ -51,7 +51,7 @@
                (c (band (>> n 16) 255))
                (d (band (>> n 24) 255)))
             (values a b c d)))
-                 
+
       (define (sha1-finish-pad bits)
          (cons #x80
             (let loop ((pos (band (+ bits 8) 511)))
@@ -70,7 +70,7 @@
             (bor
                (<< x n)
                (>> x (- 32 n)))))
-      
+
       (define (ror x n)
          (word
             (bor
@@ -97,7 +97,7 @@
             (values (bor (bor d (<< c 8))
                          (bor (<< b 16) (<< a 24)))
                     ll)))
-               
+
       (define (grab-initial-words ll)
          (lets ((a ll (uncons ll #false)))
             (if a ;;something in stream
@@ -177,8 +177,8 @@
                (append (cdr (string->list (number->string (+ #x100 b) 16))) tl))
             null bs)))
 
-   (define sha1-format-result 
-      (o hash-bytes->string ws->bytes))
+   (define sha1-format-result
+      (B hash-bytes->string ws->bytes))
 
       ;; i-3 i-8 i-14 i-16
       (define (sha1-extend-initial-words lst)
@@ -215,10 +215,10 @@
             (else thing))))
 
    (define sha1-bytes
-      (o ws->bytes sha1-raw))
+      (B ws->bytes sha1-raw))
 
-   (define sha1 
-      (o sha1-format-result sha1-raw))
+   (define sha1
+      (B sha1-format-result sha1-raw))
 
    (define (list-xor a b)
       (cond
@@ -239,7 +239,7 @@
          (else
             ;; may be a lazy list or list
             x)))
-      
+
    (define (make-hmac hasher blocksize)
       (lambda (key msg)
          (lets
@@ -255,7 +255,7 @@
             (hasher
                (append (list-xor o-pad key)
                   (hasher (append (list-xor i-pad key) msg)))))))
-               
+
    (define hmac-sha1-bytes
       (make-hmac sha1-bytes sha1-blocksize))
 
@@ -316,7 +316,7 @@
       (let loop ((lst lst) (n 16))
          (if (eq? n 64)
             lst
-            (lets ;;  
+            (lets
                ((p2 l (pick lst 2)) ;; i-2
                 (p7 l (pick l 5))   ;; i-7 
                 (p15 l (pick l 8))  ;; i-15
@@ -325,10 +325,10 @@
                 (s1 (bxor (bxor (ror p2 17) (ror p2 19)) (>> p2 10)))
                 (new (word (+ (+ p16 s0) (+ p7 s1)))))
                (loop (cons new lst) (+ n 1))))))
-               
+
 
    (define (sha256-chunks ll)
-      (let loop 
+      (let loop
          ((ll (sha256-pad ll))
           (h0 #x6a09e667)
           (h1 #xbb67ae85)
@@ -347,7 +347,7 @@
                   (loop ll h0 h1 h2 h3 h4 h5 h6 h7))
                (list h0 h1 h2 h3 h4 h5 h6 h7)))))
 
-   
+
    (define (sha256-raw thing)
       (sha256-chunks
          (cond
@@ -356,10 +356,10 @@
             (else thing))))
 
    (define sha256-bytes
-      (o ws->bytes sha256-raw))
+      (B ws->bytes sha256-raw))
 
    (define sha256
-      (o sha1-format-result sha256-raw))
+      (B sha1-format-result sha256-raw))
 
    (define hmac-sha256-bytes
       (make-hmac sha256-bytes sha256-blocksize))

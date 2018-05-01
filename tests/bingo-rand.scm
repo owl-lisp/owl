@@ -49,7 +49,7 @@
 (thread 'fini
    (begin
       (print (ref (wait-mail) 2)) ; omit the id to make output equal in all cases
-      (for-each (c mail 'halt) (drop-mails))))
+      (for-each (C mail 'halt) (drop-mails))))
 
 (fold
    (λ (rst id)
@@ -61,4 +61,4 @@
    (iota 0 1 n))
 
 ;; start all threads
-(for-each (c mail 'start) (iota 0 1 n))
+(for-each (C mail 'start) (iota 0 1 n))

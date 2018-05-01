@@ -1,6 +1,6 @@
 (define-library (owl list-extra)
 
-   (export 
+   (export
       lref lset ldel length
       led ledn lins
       take drop iota
@@ -68,11 +68,11 @@
                (lets ((hd tl lst))
                   (cons hd (lins tl (- pos 1) val))))))
 
-      (example         
+      (example
          (lref '(a b c) 1) = 'b
          (lset '(a b c) 1 'x) = '(a x c)
          (ldel '(a b c) 1)  = '(a c)
-         (led '(1 2 3) 1 (c * 10)) =  '(1 20 3)
+         (led '(1 2 3) 1 (C * 10)) =  '(1 20 3)
          (ledn '(1 2 3) 1 (λ (lst) (cons 'x lst))) = '(1 x 2 3)
          (lins '(a b c) 1 'x) = '(a x b c))
 
@@ -116,9 +116,9 @@
                (if (< to from) null (iota-up from step to)))
             ((< step 0)
                (if (> to from) null (iota-down from step to)))
-            ((= from to) 
+            ((= from to)
                null)
-            (else 
+            (else
                (error "bad iota: " (list 'iota from step to)))))
 
       (example
@@ -136,14 +136,14 @@
                out
                (loop (- n 1) (cons thing out)))))
 
-      (define (split l n)  
+      (define (split l n)
          (let loop ((l l) (o null) (n n))
             (cond
                ((null? l)
                   (values (reverse o) l))
                ((eq? n 0)
                   (values (reverse o) l))
-               (else 
+               (else
                   (loop (cdr l) (cons (car l) o) (- n 1))))))
 
       (example

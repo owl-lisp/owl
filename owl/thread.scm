@@ -10,9 +10,9 @@
 
 (define-library (owl thread)
 
-   (export 
+   (export
       start-thread-controller
-      thread-controller 
+      thread-controller
       repl-signal-handler
       try)
 
@@ -52,7 +52,7 @@
                   ;(values state #false)
                   )
                (else ;; activate the state function
-                  (values 
+                  (values
                      (fupd state to qnull) ;; leave an inbox
                      (tuple to (λ () (st envelope)))))))) ;; activate it
 
@@ -78,7 +78,7 @@
                   ;; no threads were waiting for something that is being removed, so tell stderr about it
                   ;(print*-to stderr "VM: thread " id " exited")
                   (tc tc todo done (del state id)))
-               (deliver-messages todo done 
+               (deliver-messages todo done
                   (del (fupd state link-tag (del (get state link-tag empty) id)) id)
                   subs msg tc))))
 
@@ -87,20 +87,20 @@
          (cond
             ((null? lst) lst)
             ((eq? (ref (car lst) 1) tid) (cdr lst))
-            (else 
-               (cons (car lst) 
+            (else
+               (cons (car lst)
                   (drop-from-list (cdr lst) tid)))))
 
       ; drop a possibly running thread and notify linked 
       (define (drop-thread id todo done state msg tc) ; -> todo' x done' x state'
-         (drop-delivering 
+         (drop-delivering
             (drop-from-list todo id)
             (drop-from-list done id)
             state id msg tc))
 
       ; l id → #false|thread l', O(n) running threads
       (define (catch-thread l id)
-         (if (null? l) 
+         (if (null? l)
             (values #false l)
             (let ((this (car l)))
                (if (eq? id (ref this 1))
@@ -124,7 +124,7 @@
             ; 2, thread finished, drop
             (λ (id a b c todo done state tc)
                ; (system-println "mcp: syscall 2 -- thread finished")
-               (drop-delivering todo done state id 
+               (drop-delivering todo done state id
                   (tuple id (tuple 'finished a b c)) tc))
 
             ; 3, vm thrown error
@@ -132,16 +132,16 @@
                ;(system-println "mcp: syscall 3 -- vm error")
                ;; set crashed exit value proposal 
                (let ((state (put state return-value-tag 126)))
-                  (drop-delivering todo done state id 
+                  (drop-delivering todo done state id
                      (tuple id (tuple 'crashed a b c)) tc)))
 
             ; 4, fork
             (λ (id cont opts thunk todo done state tc)
-               (lets 
+               (lets
                   ((new-id (car opts))
                    (todo (ilist (tuple new-id thunk) (tuple id (λ () (cont new-id))) todo))
                    (state
-                      (fold 
+                      (fold
                         (λ (state req)
                            (cond
                               ((eq? req 'link)
@@ -161,7 +161,7 @@
             ; 5, user thrown error
             (λ (id a b c todo done state tc)
                ; (system-println "mcp: syscall 5 -- user poof")
-               (drop-delivering todo done state id 
+               (drop-delivering todo done state id
                   (tuple id (tuple 'error a b c)) tc))
 
             ;; return mails to my own inbox (in reverse order, newest on top)
@@ -174,19 +174,19 @@
 
             ; 7, am i the only thread?
             (λ (id cont b c todo done state tc)
-               (tc tc 
+               (tc tc
                   (cons (tuple id (λ () (cont (and (null? todo) (null? done))))) todo)
                   done state))
 
             ; 8, get running thread ids (sans self)
             (λ (id cont b c todo done state tc)
-               (let 
+               (let
                   ((ids
                      (append
-                        (map (c ref 1) todo)
-                        (map (c ref 1) done))))
-                  (tc tc 
-                     (cons 
+                        (map (C ref 1) todo)
+                        (map (C ref 1) done))))
+                  (tc tc
+                     (cons
                         (tuple id (λ () (cont ids)))
                         todo)
                      done state)))
@@ -216,7 +216,7 @@
 
             ; 12, set break action
             (λ (id cont choice x todo done state tc)
-               (tc tc  
+               (tc tc
                   (cons (tuple id (λ () (cont #true))) todo)
                   done (put state signal-tag choice)))
 
@@ -237,7 +237,7 @@
             (λ (id a b c todo done state tc)
                (system-println "syscall 14 - memlimit exceeded, dropping a thread")
                ; for now, kill the currently active thread (a bit dangerous) 
-               (drop-delivering todo done state id 
+               (drop-delivering todo done state id
                   (tuple id (tuple 'crashed 'memory-limit b c)) tc))
 
             ; 15, drop local thread
@@ -282,16 +282,16 @@
             ;;; 20 & 21 change during profiling 
 
             ; 20, start profiling, no-op during profiling returning 'already-profiling
-            (λ (id cont b c todo done state tc) 
+            (λ (id cont b c todo done state tc)
                (tc tc (cons (tuple id (λ () (cont 'already-profiling))) todo) done state))
 
             ; 21, end profiling, resume old ones, pass profiling info 
-            (λ (id cont b c todo done state tc) 
+            (λ (id cont b c todo done state tc)
                (lets
                   ((prof (get state 'prof #false)) ;; ff storing profiling info
                    (tc (get prof 'tc #false))      ;; normal thread scheduler
                    (prof (del prof 'tc)))         ;; give just the collected data to thread
-                  (tc tc (cons (tuple id (λ () (cont prof))) todo) done 
+                  (tc tc (cons (tuple id (λ () (cont prof))) todo) done
                      (del state 'prof))))
 
             ; 22, nestable parallel computation
@@ -302,14 +302,14 @@
 
             ; 23, link thread
             (λ (id cont target c todo done state tc)
-               (lets 
+               (lets
                   ((links (get state link-tag empty))
                    (followers (get links target null))
                    (links
                      (if (has? followers id)
                         links
                         (put links target (cons id followers)))))
-                  (tc tc 
+                  (tc tc
                      (cons (tuple id (λ () (cont target))) todo)
                      done
                      (put state link-tag links))))
@@ -355,7 +355,7 @@
                            (if (null? done)
                               (halt-thread-controller state)
                               (self self done null state))
-                           (lets 
+                           (lets
                               ((this todo todo)
                                (id st this)
                                (state (update-state state st))
@@ -365,20 +365,20 @@
                                  (self self todo (cons (tuple id a) done) state)
                                  ((ref mcp-syscalls-during-profiling op) id a b c todo done state self))))) ; <- difference here
 
-                     (scheduler scheduler (cons (tuple id (λ () (cont 'started-profiling))) todo) done 
+                     (scheduler scheduler (cons (tuple id (λ () (cont 'started-profiling))) todo) done
                         (put state 'prof           ;; profiling data is stored under key 'prof
                            (put empty 'tc tc)))))) ;; store normal scheduler there for resuming on syscall 21
              (syscalls
                (set syscalls 21 ;; end-profiling syscall doesn't do anything when not profiling
-                  (λ (id cont b c todo done state tc) 
+                  (λ (id cont b c todo done state tc)
                      (tc tc (cons (tuple id (λ () (cont 'not-profiling-you-fool))) todo) done state)))))
             syscalls))
 
       (define (enter-mcp controller threads state)
          ; could break here also when threads is just repl-input
          (controller controller
-            (list 
-               (tuple 'mcp 
+            (list
+               (tuple 'mcp
                   (λ ()
                      ((get state signal-tag signal-halt) ; exit by default
                         threads state controller))))
@@ -414,13 +414,13 @@
                      (lets ((op a b c (run state thread-quantum)))
                         (cond
                            ((eq? op 1) ;; out of time, a is new state
-                              (values #false 
+                              (values #false
                                  (tuple cont todo (cons a done))))
                            ((eq? op 2) ;; finished, return value and thunk to continue computation
                               (values #true
                                  (λ () (cont (cons a (λ () (syscall 22 todo done)))))))
                            ((eq? op 22) ;; start nested parallel computation
-                              (lets ((contp a) (todop b) (donep c) 
+                              (lets ((contp a) (todop b) (donep c)
                                      (por-state (tuple contp todop donep)))
                                  (values #false
                                     (tuple cont todo (cons por-state done)))))
@@ -434,7 +434,7 @@
             (if (null? done)
                (halt-thread-controller state)  ;; nothing left to run
                (self self done null state))    ;; new scheduler round
-            (lets 
+            (lets
                ((this todo todo)
                 (id st this))
                (lets ((op a b c (run st thread-quantum)))

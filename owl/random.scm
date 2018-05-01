@@ -31,7 +31,7 @@
 
 (define-library (owl random)
 
-   (export   
+   (export
       ;; prngs
       lcg-rands           ;; seed (int32) → rands
 
@@ -116,7 +116,7 @@
                (nrev-iter ds (ncons d to)))))
 
       (define (nrev-fix ds)
-         (if (null? ds) 
+         (if (null? ds)
             0
             (lets ((d ds ds))
                (cond
@@ -130,16 +130,16 @@
       (define word32 #xffffffff)
 
       (define (xorshift-128 x y z w)
-         (lets 
+         (lets
             ((t (bxor x (band word32 (<< x 11))))
              (x y)
              (y z)
              (z w)
              (w (bxor w (bxor (>> w 19) (bxor t (>> t 8))))))
             (if (eq? (type w) type-fix+)
-               (cons w (cons 0 
+               (cons w (cons 0
                   (λ () (xorshift-128 x y z w))))
-               (cons (ncar w) (cons (ncar (ncdr w)) 
+               (cons (ncar w) (cons (ncar (ncdr w))
                   (λ () (xorshift-128 x y z w)))))))
 
       (define xors (xorshift-128 123456789 362436069 521288629 88675123))
@@ -194,7 +194,7 @@
          (if (eq? 0 (fxband x n)) 0 1))
 
       (define (rands->bits rs)
-         (lets 
+         (lets
             ((d rs (uncons rs 0))
              (tl (λ () (rands->bits rs))))
             (let loop ((p #b1000000000000000))
@@ -204,23 +204,23 @@
 
       ;; assumes 24-bit fixnums
       (define (rands->bytes rs)
-         (lets 
+         (lets
             ((digit rs (uncons rs 0))
              (lo (fxband digit #xff))
              (digit _ (fx>> digit 8))
              (mid (fxband digit #xff))
              (hi _ (fx>> digit 8)))
-            (ilist lo mid hi 
+            (ilist lo mid hi
                (λ () (rands->bytes rs)))))
 
       ;; passed dieharder tests surprisingly well
       (define seed->rands adhoc-seed->rands)
 
-      (define seed->bits 
-         (o rands->bits seed->rands))
+      (define seed->bits
+         (B rands->bits seed->rands))
 
       (define seed->bytes
-         (o rands->bytes seed->rands))
+         (B rands->bytes seed->rands))
 
       ;; note, a custom uncons could also promote random seeds to streams, but probably better to force 
       ;; being explicit about the choice of prng and require all functions to receive just digit streams.
@@ -234,7 +234,7 @@
       (define (rand-big rs n)
          (if (null? n)
             (values rs null #true)
-            (lets 
+            (lets
                ((rs head eq (rand-big rs (ncdr n)))
                 (this rs (uncons rs 0)))
                (if eq
@@ -293,7 +293,7 @@
                (else (error "bad rand limit: " max)))))
 
       ;; a quick skew check. definite doom if delta percent > 0, but please do dieharder later.
-      '(let 
+      '(let
          ((lim #b11111111111111111111111111))
          ;((lim #b10000000000000000000000000))
          ;((lim #b1000000000000000000000000))
@@ -304,7 +304,7 @@
             (if (eq? 0 (band 1023 n))
                (let ((avg (div sum (max n 1))))
                   (print
-                     (list "at " n " sum " sum " avg " avg " delta percent " 
+                     (list "at " n " sum " sum " avg " avg " delta percent "
                         (let ((perc (div (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
                            perc)))))
             (lets ((rs val (rand rs lim)))
@@ -334,7 +334,7 @@
          (cond
             ((null? lst) out)
             ((eq? this (band bits this))
-               (select-members lst (- bits this) this 
+               (select-members lst (- bits this) this
                   (cons (car lst) out)))
             ((eq? this #x8000) ; highest fixnum bit
                (select-members (cdr lst) (ncdr bits) 1 out))
@@ -373,19 +373,19 @@
             ((null? ll)
                (values rs (return-selection res)))
             ((pair? ll)
-               (lets 
+               (lets
                   ((rs x (rand rs p))
                    (res (if (< x n) (rset res x (car ll)) res)))
                   (reservoir-sampler rs (cdr ll) n (+ p 1) res)))
-            (else 
+            (else
                (reservoir-sampler rs (ll) n p res))))
 
       ;; populate initial n elements to reservoir and start sampler if full
       (define (reservoir-init rs ll n p res)
          (cond
-            ((null? ll) 
+            ((null? ll)
                (values rs (return-selection res)))
-            ((= n p) 
+            ((= n p)
                (reservoir-sampler rs ll n (+ n 1) res))
             ((pair? ll) (reservoir-init rs (cdr ll) n (+ p 1) (rcons (car ll) res)))
             (else (reservoir-init rs (ll) n p res))))
@@ -416,7 +416,7 @@
                (values rs n))))
 
       (define (rand-range rs lo hi)
-         (if (< lo hi) 
+         (if (< lo hi)
             ;; fixme: is this indeed ok?
             (lets ((rs o (rand rs (- hi lo))))
                (values rs (+ o lo)))
@@ -455,7 +455,7 @@
 
       (define (shuffler rs lst tail)
          (if (null? lst)
-            (values rs tail) 
+            (values rs tail)
             (lets
                ((rs opts (fold2 shuffle-label rs null lst))
                 (opts (sort carless opts)))
@@ -482,11 +482,11 @@
                (values rs (raw (reverse out) type-vector-raw)) ; reverses to keep order
                (lets
                   ((d rs (uncons rs 0))
-                   (n _ (fx- n 1))) 
+                   (n _ (fx- n 1)))
                   (loop rs (cons (fxband d 255) out) n)))))
 
       (define (random-data-file rs path)
-         (let 
+         (let
             ((port (open-output-file path))
              (block (* 1024 32)) ; write in 32kb blocks
              (megs (* 1024 500))) ; ~1GB is enough for dieharder and smallcrush, 500 might be enough for crush?
@@ -528,7 +528,7 @@
       ;;;
 
       (define (prng-speed str)
-         (let 
+         (let
             ((start (time-ms))
              (ndigits (* 1024 64))) ; make 1mb 
             (let loop ((str str) (n ndigits))

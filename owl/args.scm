@@ -1,6 +1,6 @@
 ;;;
 ;;; COMMAND LINE ARGUMENT HANDLER
-;;; 
+;;;
 
 (define-library (owl args)
 
@@ -27,13 +27,13 @@
       (scheme cxr))
 
    (begin
-      ;; cl-rules is a ff of 
+      ;; cl-rules is a ff of
       ;;   'short -> -x
       ;;   'long  -> --xylitol
 
       ;; str (rule-ff ..) → #false | rule-ff
       (define (select-rule string rules)
-         (if (null? rules) 
+         (if (null? rules)
             #false
             (let ((this (car rules)))
                (if (or (equal? string (getf this 'short))
@@ -58,7 +58,7 @@
       (define (undefined? ff key)
          (eq? blank (get ff key blank)))
 
-      (define (defined? ff key) 
+      (define (defined? ff key)
          (not (undefined? ff key)))
 
       ;; check that all rules which are marked mandatory have the corresponding id defined in dict
@@ -69,8 +69,8 @@
                   (if (defined? dict (getf rule 'id))
                      ok?
                      (begin
-                        (write-bytes stderr 
-                           (foldr render '(10) 
+                        (write-bytes stderr
+                           (foldr render '(10)
                               (list "mandatory option not given: " (get rule 'long "(missing)"))))
                         #false))
                   ok?))
@@ -78,11 +78,11 @@
 
       ;; set set all default which are not set explicitly
       (define (fill-defaults dict rules)
-         (fold 
+         (fold
             (λ (dict rule)
                (let ((id (getf rule 'id)))
                   (if (and (undefined? dict id) (defined? rule 'default))
-                     (put dict id 
+                     (put dict id
                         (let ((cookd ((getf rule 'cook) (getf rule 'default))))
                            (if (getf rule 'plural) (list cookd) cookd))) ; <- a single plural default value needs to be listed
                      dict)))
@@ -96,7 +96,7 @@
                (eq? 45 (refb str 0)))))
 
       (define (walk rules args dict others)
-         (cond 
+         (cond
             ((null? args)
                (if (mandatory-args-given? dict rules)
                   (tuple (fill-defaults dict rules) (reverse others))
@@ -117,11 +117,11 @@
                                     ((value (cook (cadr args)))
                                      (ok? ((get rule 'pred self) value)))
                                     (if ok?
-                                       (walk rules 
+                                       (walk rules
                                           ;; instert an implicit -- after terminal rules to stop
                                           (if (getf rule 'terminal) (cons "--" (cddr args)) (cddr args))
                                           (put dict id
-                                             (if (getf rule 'plural) 
+                                             (if (getf rule 'plural)
                                                 ;; put values to a list if this is a multi argument
                                                 (append (get dict id null) (list value))
                                                 value))
@@ -129,7 +129,7 @@
                                        (fail
                                           (list "The argument '" (car args) "' did not accept '" (cadr args) "'.")))))
                               ;; this doesn't have an argument, just count them
-                              (walk rules (cdr args) 
+                              (walk rules (cdr args)
                                  (put dict id (+ 1 (get dict id 0)))
                                  others)))))
                   ((explode (car args)) =>
@@ -190,7 +190,7 @@
          (map
             (λ (lst)
                (if (and (>= (length lst) 3) (symbol? (car lst)))
-                  (cl-rule 
+                  (cl-rule
                      (list->ff (zip cons '(id short long) lst))
                      (cdddr lst))
                   (error "cl-rules: funny option: " lst)))
@@ -204,14 +204,14 @@
       ;; rules → string
       (define (format-rules rules)
          (runes->string
-            (foldr 
-               (λ (rule tl) 
-                  (foldr 
+            (foldr
+               (λ (rule tl)
+                  (foldr
                      render
                      tl
-                     (list "  " 
+                     (list "  "
                         (let ((short (getf rule 'short)))
-                           (if short 
+                           (if short
                               (string-append short " | ")
                               "     "))
                         (getf rule 'long)
@@ -220,7 +220,7 @@
                            (string-append ", " (getf rule 'comment))
                            "")
                         (if (getf rule 'default)
-                           (foldr string-append "]" 
+                           (foldr string-append "]"
                               (list " [" (getf rule 'default)))
                            "")
                         (if (getf rule 'mandatory) " (mandatory)" "")
@@ -229,6 +229,6 @@
                         nl)))
                null rules)))
 
-      (define print-rules 
-         (o display format-rules))
+      (define print-rules
+         (B display format-rules))
 ))

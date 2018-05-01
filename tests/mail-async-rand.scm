@@ -43,4 +43,4 @@
    (seed->rands (* (time-ms) (<< (time-ms) 9)))
    (iota 0 2 n-threads))
 
-(for-each (c mail 'start) (iota 0 1 n-threads))
+(for-each (C mail 'start) (iota 0 1 n-threads))

@@ -572,7 +572,7 @@
                ((string? target)
                   (let ((res (rex-full-match (str-iter target) rex)))
                      (if res
-                        (map (o runes->string cdr)
+                        (map (B runes->string cdr)
                            (cdr (reverse res)))
                         #false)))
                (else
@@ -887,13 +887,13 @@
                   get-plus
                   get-quest
                   get-range
-                  (get-epsilon i)))
+                  (get-epsilon self)))
              (tail
                (any
                   (let-parses ;; join tail of exp with implicit catenation
                      ((tl (get-catn get-regex)))
-                     (c rex-and tl))
-                  (get-epsilon i)))) ;; nothing
+                     (C rex-and tl))
+                  (get-epsilon self)))) ;; nothing
            (tail (repetition regex))))
 
       ;; get a sequence of regexps with zero or more | in between and merge them
