@@ -1,5 +1,5 @@
-;;; This library exports some read-eval-print-loop functions, such as evaluate. 
-;;; It is typically called through eval. The `*toplevel*` variable is updated 
+;;; This library exports some read-eval-print-loop functions, such as evaluate.
+;;; It is typically called through eval. The `*toplevel*` variable is updated
 ;;; after each definition, so it can be used to evaluate a term in the corresponding
 ;;; environment.
 ;;;
@@ -422,7 +422,7 @@
                #false)))
 
       ;; todo: this uses direct environment access - move to lib-env or handle here?
-      ;; <export spec> = <identifier> 
+      ;; <export spec> = <identifier>
       ;;               | (rename <identifier_1> <identifier_2>)
       ;;               | (exports <lib)
       ;; TODO - use env-keep and check bindings from result instead to avoid absraction violation
@@ -467,7 +467,7 @@
       (define (library-definition? x)
          (and (pair? x) (list? x) (eq? (car x) '_define-library)))
 
-      ;; a simple eval 
+      ;; a simple eval
 
       (define (exported-eval exp env)
          (tuple-case (macro-expand exp env)
@@ -489,7 +489,7 @@
          (and (pair? exp) (eq? val (car exp)) (list? exp)))
 
       ;; (import <import set> ...)
-      ;; <import set> = <library name> 
+      ;; <import set> = <library name>
       ;;              | (only <import set> <identifier> ...)
       ;;              | (except <import set> <identifier> ...)
       ;;              | (prefix <import set> <identifier>)
@@ -567,11 +567,11 @@
                      (fail (list "Failed to parse contents of " path))))
                (fail (list "Couldn't find " path "from any of" include-dirs)))))
 
-      ;; nonempty list of symbols or integers 
+      ;; nonempty list of symbols or integers
       (define (valid-library-name? x)
          (and (list? x) (pair? x) (all (λ (x) (or (integer? x) (symbol? x))) x)))
 
-      ;; try to load a library based on it's name and current include prefixes if 
+      ;; try to load a library based on it's name and current include prefixes if
       ;; it is required by something being loaded and we don't have it yet
       ;; → 'ok x env | 'error x reason | 'not-found x _
       (define (try-autoload env repl iset)
@@ -685,7 +685,7 @@
             (else
                (fail (list "unknown library term: " (car exp))))))
 
-      ;; variables which are added to *owl-core* when evaluating libraries   
+      ;; variables which are added to *owl-core* when evaluating libraries
       (define library-exports
          (list
             library-key     ;; loaded libraries
@@ -852,7 +852,7 @@
                   (if bounced?
                      (begin ;; we may need to reprint a prompt here
                         (if (env-get env '*interactive* #false)
-                           (display "* "))  ;; reprint prompt
+                           (display "> "))  ;; reprint prompt
                         stdin)
                      stdin))
                 (env (bind-toplevel env)))
