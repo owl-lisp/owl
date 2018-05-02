@@ -42,7 +42,7 @@
       (cat a b)))
 
 (try "x" (ε 42) 42 "x")
-   
+
 (try "x" (imm #\x)
    #\x "")
 
@@ -54,7 +54,7 @@
 
 (try "ababax" (star (seq (imm #\a) (imm #\b)))
    '("ab" "ab") "ax")
-   
+
 (try "abax" (plus (seq (imm #\a) (imm #\b)))
    '("ab") "ax")
 
@@ -79,14 +79,14 @@
       (imm #\a))
    "*a"
    "x")
-      
+
 (try "abc"
    (seq (imm #\a)
       (seq (imm #\b)
          (imm #\d)))
    #false
    #false)
-      
+
 (try "abc"
    (either
       (let-parses
@@ -124,7 +124,7 @@
 (define ws
    (star
       (byte-if
-         (λ (x) (has? '(#\space #\tab #\newline #\return) x)))))
+         (H has? '(#\space #\tab #\newline #\return)))))
 
 (define get-exp
    (let-parses
@@ -141,7 +141,7 @@
        (drop ws)
        (right (imm #\})))
       ns))
-      
+
 (try "           {  11 22   33 44 }x"
    get-list
    (list 11 22 33 44)
@@ -153,7 +153,7 @@
       (imm #\a))
    '((#\a #\a) "a")
    "x")
-   
+
 (try "aaax"
    (seq
       (greedy-star (imm #\a))

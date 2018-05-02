@@ -340,8 +340,8 @@
                   (dump-fasl maybe-world path)
                   'saved))))
 
-      (define (with-args func)
-         (B func mem-strings))
+      (define with-args
+         (C B mem-strings))
 
       ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
       ; dump entry object to path, or stdout if path is "-"

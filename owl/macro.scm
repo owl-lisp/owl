@@ -198,8 +198,7 @@
                ((pair? form)
                   (if (and (pair? (cdr form)) (eq? (cadr form) '...))
                      (lets
-                        ((syms (symbols-of (car form)))
-                         (dict (keep (λ (node) (has? syms (car node))) dictionary))
+                        ((dict (keep (B (H has? (symbols-of (car form))) car) dictionary))
                          (len (repetition-length dict)))
                         (let rep-loop ((dict dict) (n len))
                            (if (= n 0)

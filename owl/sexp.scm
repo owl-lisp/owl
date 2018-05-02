@@ -67,7 +67,7 @@
                   (get-greedy*
                      (get-either
                         (let-parses ((skip (get-imm #\\)) (rune get-rune)) rune)
-                        (get-rune-if (λ (x) (not (eq? x #\|)))))))
+                        (get-rune-if (B not (C eq? #\|))))))
                 (skip (get-imm #\|)))
                (string->uninterned-symbol (runes->string chars)))))
 
@@ -201,7 +201,7 @@
 
       (define get-rest-of-line
          (let-parses
-            ((chars (get-greedy* (get-byte-if (lambda (x) (not (eq? x 10))))))
+            ((chars (get-greedy* (get-byte-if (B not (C eq? 10)))))
              (skip (get-imm 10))) ;; <- note that this won't match if line ends to eof
             chars))
 
@@ -228,7 +228,7 @@
       (define get-a-whitespace
          (any
             ;get-hashbang   ;; actually probably better to make it a symbol as above
-            (get-byte-if (lambda (x) (has? '(9 10 32 13) x)))
+            (get-byte-if (H has? '(9 10 32 13)))
             (let-parses
                ((skip (get-imm #\;))
                 (skip get-rest-of-line))
@@ -293,7 +293,7 @@
                (get-kleene*
                   (get-either
                      get-quoted-string-char
-                     (get-rune-if (lambda (x) (not (has? '(#\" #\\) x)))))))
+                     (get-rune-if (B not (H has? '(#\" #\\)))))))
              (skip (get-imm #\")))
             (runes->string chars)))
 

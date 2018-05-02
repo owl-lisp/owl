@@ -185,7 +185,7 @@
    (bind-toplevel
       (library-import initial-environment-sans-macros
          '((owl base))
-         (λ (reason) (error "bootstrap import error: " reason))
+         (H error "bootstrap import error: ")
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
 
 (define (path->string path)
@@ -411,7 +411,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
    (runes->string
       (reverse
          (drop-while
-            (λ (x) (not (eq? x #\/)))
+            (B not (C eq? #\/))
             (reverse
                (string->runes path))))))
 

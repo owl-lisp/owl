@@ -15,21 +15,21 @@
 ;;; ``` 
 
 ; protocol
-;	<obj> = 0 <type> <value> 				-- immediate object
-;			= 1 <type> <size> <field> ... -- allocated
-;			= 2 <type> <size> <byte>  ... -- allocated, raw data
+;	<obj>	= 0 <type> <value>		-- immediate object
+;		= 1 <type> <size> <field> ...	-- allocated
+;		= 2 <type> <size> <byte>  ...	-- allocated, raw data
 ; now used
 ;		00 - imm
 ;		01 - alloc
 ;		10 - alloc raw
 ;		11 - free -> use as tag for allocs where the type fits 6 bits (not in use atm)
-;	
-;	<field> = 0 <type> <val> -- immediate
-;			  = <N> -- pointer to nth last object (see hack warning below)
+;
+;	<field>	= 0 <type> <val> -- immediate
+;		= <N> -- pointer to nth last object (see hack warning below)
 
 (define-library (owl fasl)
 
-   (export 
+   (export
       fasl-encode          ; ; obj -> (byte ... 0)
       fasl-encode-cooked   ; obj cook -> (byte ... 0), with (cook alloc-obj) -> alloc-obj' 
       fasl-encode-stream   ; obj cook -> (bvec ...) stream
@@ -112,10 +112,10 @@
          (ff->list
             (partial-object-closure empty root)))
 
-      (define (object-closure obj)
-         (partial-object-closure empty obj))
+      (define object-closure
+         (H partial-object-closure empty))
 
-      (define (objects-below obj)	
+      (define (objects-below obj)
          (ff-fold
             (λ (out obj _) (cons obj out))
             null (object-closure obj)))
@@ -167,8 +167,8 @@
                      ((t (type-byte-of val))
                       (s (size val)))
                      ; options for optimization
-                     ;	t and s fit in 6 bits -> pack (seems to be only about 1/20 compression)
-                     ;	t fits in 6 bits -> (+ (<< t 2) 3) (ditto)
+                     ; t and s fit in 6 bits -> pack (seems to be only about 1/20 compression)
+                     ; t fits in 6 bits -> (+ (<< t 2) 3) (ditto)
                      (ilist 1 t
                         (send-number s
                            (render-fields out (tuple->list val) pos clos))))))))
@@ -177,7 +177,7 @@
 
       ;; produce tail-first eagerly
       ;(define (encoder-output clos cook)
-      ;	(ff-foldr (encode-allocated clos cook) fasl-finale clos))
+      ;   (ff-foldr (encode-allocated clos cook) fasl-finale clos))
 
       (define (encoder-output clos cook)
          (let ((enc (encode-allocated clos cook)))
@@ -343,7 +343,7 @@
       (define (decode-or ll err) ; -> ll obj | null (err why)
          (call/cc ; setjmp2000
             (λ (ret)
-               (lets ((fail (λ (why) (ret null (err why)))))
+               (lets ((fail (B (H ret null) err)))
                   (cond
                      ((null? ll) (fail enodata))
                      ((pair? ll)

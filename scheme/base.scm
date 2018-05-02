@@ -322,7 +322,7 @@
 
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
-      (define (rationalize n max-delta) n)
+      (define rationalize K)
 
       (define string->number
          (case-lambda

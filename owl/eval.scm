@@ -208,7 +208,7 @@
 
       ;; values used by the repl to signal they should be printed as such, not rendered as a value
       (define repl-message-tag "foo")
-      (define (repl-message foo) (cons repl-message-tag foo))
+      (define repl-message (H cons repl-message-tag))
       (define (repl-message? foo) (and (pair? foo) (eq? repl-message-tag (car foo))))
 
       (define (maybe-show-metadata env val)

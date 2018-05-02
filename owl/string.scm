@@ -112,7 +112,7 @@
             (else
                (error "str-iter: not a string: " str))))
 
-      (define (str-iter str) (str-iter-any str null))
+      (define str-iter (C str-iter-any null))
 
       ;;; iterate backwards 
 
@@ -149,7 +149,7 @@
             (else
                (error "str-iterr: not a string: " str))))
 
-      (define (str-iterr str) (str-iterr-any str null))
+      (define str-iterr (C str-iterr-any null))
 
       ;; string folds
 
@@ -368,9 +368,8 @@
          (runes->string
             (lmap op (str-iter str))))
 
-      (define (str-rev str)
-         (runes->string
-            (str-iterr str)))
+      (define str-rev
+         (B runes->string str-iterr))
 
       (define string-copy self)
 

@@ -67,7 +67,7 @@
 
       (define month-durations 
          (tuple 31 #false 31 30 31 30 31 31 30 31 30 31))
-      
+
       (define (days-in-month month year)
          (if (eq? month 2)
             (if (leap-year? year) 29 28)
@@ -83,7 +83,7 @@
                   (values 1 (+ month 1) year)))
             (else
                (values (+ day 1) month year))))
-      
+
 
       ;; date is valid *and* date computations work for it
       (define (valid-date? d m y)
@@ -142,8 +142,8 @@
           (- 4 d)
           (+ 4 (- 7 d))))
 
-      (define (days-to-sunday d)
-         (- 7 d))
+      (define days-to-sunday
+         (H - 7))
 
       (define (maybe-swap-year y md week day)
          (cond
@@ -184,18 +184,17 @@
                   (lets ((wn wd (week-info d m y)))
                      (values d m y wd wn)))
                (values d m y (+ week-day 1) week-num))))
-      
+
       (example
          (next-date-with-week 31 12 1971 5 1) = (values 1 1 1972 6 1)
          (next-date-with-week 27 12 1970 7 52) = (values 28 12 1970 1 53))
-      
+
       ;;;
       ;;; UNIXish time
       ;;;
 
-      (define leap-years-since-epoch   
-         (let ((before-epoch (leap-years-before 1970)))
-            (lambda (y) (- (leap-years-before y) before-epoch))))
+      (define leap-years-since-epoch
+         (B (C - (leap-years-before 1970)) leap-years-before))
 
       (define (seek-year s)
          (let loop ((s s) (y 1970))
@@ -225,7 +224,7 @@
 
       (define (hours->secs h)
          (floor (* h 3600)))
-          
+
       (define (date-str-tz s tz)
          (lets ((d m y H M S (naive-date (+ s tz)))
                 (tz-sign (if (< tz 0) "-" "+"))
@@ -235,12 +234,12 @@
             (str (zpad H) H ":" (zpad M) M ":" (zpad S) S 
                  " " d "." m "." y
                  " UTC" tz-sign (zpad tz-hours) tz-hours ":" (zpad tz-mins) tz-mins)))
-     
+
       (define (date-str s . tz)
          (if (null? tz)
             (date-str-tz s 0)
             (date-str-tz s (hours->secs (car tz)))))
-     
+
       ; TZ=GMT date -d @1234567890 
       (example
          (date-str 0)            = "00:00:00 1.1.1970 UTC+00:00"

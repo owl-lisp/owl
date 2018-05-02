@@ -105,8 +105,8 @@
                 (λ (l r val)
                    ((star-vals a (cons val vals)) l r ok)))))
 
-      (define (star a)
-         (star-vals a null))
+      (define star
+         (C star-vals null))
 
       (define (drop l x)
          (if (eq? (car l) x)
@@ -142,8 +142,8 @@
                (λ (l r ok)
                   (let-parses 42 l r ok ((a . b) ...) body)))))
 
-      (define (greedy-star a)
-         (greedy-star-vals a null) )
+      (define greedy-star
+         (C greedy-star-vals null))
 
       (define (greedy-plus a)
          (let-parses
