@@ -58,7 +58,7 @@
                ((head (get-rune-if symbol-lead-char?))
                 (tail (get-greedy* (get-rune-if symbol-char?)))
                 ;(next (peek get-byte))
-                ;(foo (assert (lambda (b) (not (symbol-char? b))) next))
+                ;(foo (assert (B not symbol-char?) next))
                 )
                (string->uninterned-symbol (runes->string (cons head tail))))
             (let-parses
@@ -143,9 +143,7 @@
 
       (define get-signer
          (let-parses ((char get-sign))
-            (if (eq? char 43)
-               self
-               (λ (x) (- 0 x)))))
+            (if (eq? char 43) self (H - 0))))
 
 
       ;; separate parser with explicitly given base for string->number
@@ -499,5 +497,4 @@
                (ll (lcar ll))
                ((null? rest) (error "read: bad data in " thing))
                (else (car rest)))))
-
 ))

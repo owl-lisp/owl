@@ -571,7 +571,7 @@
       ; code .. → code' ...
       (define (rtl-literals rtl-procedure lits)
          ;;; convert all uncompiled closures to procedures
-         (map (λ (lit) (rtl-literal rtl-procedure lit)) lits))
+         (map (H rtl-literal rtl-procedure) lits))
 
       (define (list->proc lst)
          (listuple type-proc (length lst) lst))
@@ -601,7 +601,7 @@
       (define (bytecode->list thing)
          (cond
             ((bytecode? thing)
-               (map (λ (p) (refb thing p)) (iota 0 1 (sizeb thing))))
+               (map (H refb thing) (iota 0 1 (sizeb thing))))
             ((function? thing)
                ;; get the bytecode
                (bytecode->list (ref thing 1)))
@@ -658,5 +658,4 @@
       ;; todo: exit via fail cont on errors
       (define (compile exp env)
          (ok (rtl-exp exp) env))
-
 ))

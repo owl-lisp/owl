@@ -122,7 +122,7 @@
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) type-vector-raw))
+         (raw (map (H refb bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
          (cond
@@ -884,5 +884,4 @@
                   (close-port port)
                   end)
                port)))
-
 ))

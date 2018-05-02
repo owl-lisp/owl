@@ -73,7 +73,7 @@
          (lset '(a b c) 1 'x) = '(a x c)
          (ldel '(a b c) 1)  = '(a c)
          (led '(1 2 3) 1 (C * 10)) =  '(1 20 3)
-         (ledn '(1 2 3) 1 (λ (lst) (cons 'x lst))) = '(1 x 2 3)
+         (ledn '(1 2 3) 1 (H cons 'x)) = '(1 x 2 3)
          (lins '(a b c) 1 'x) = '(a x b c))
 
       (define (length lst)

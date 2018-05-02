@@ -218,12 +218,8 @@
       ; exp env free -> status exp' free'
 
       (define toplevel-macro-definition?
-         (let 
-            ((pattern 
-               `(quote syntax-operation add #false (,symbol? ,list? ,list? ,list?))))
-            ;; -> keyword literals patterns templates
-            (lambda (exp)
-               (match pattern exp))))
+         ;; -> keyword literals patterns templates
+         (H match `(quote syntax-operation add #false (,symbol? ,list? ,list? ,list?))))
 
       ; fold w/ 2 state variables
       (define (fold2 op s1 s2 lst)
@@ -401,7 +397,7 @@
 
       (define (macro-expand exp env)
          (lets/cc exit
-            ((abort (lambda (why) (exit (fail why))))
+            ((abort (B exit fail))
              (free (gensym exp))
              (exp free (expand exp env free abort)))
             (post-macro-expand exp env abort)))

@@ -214,6 +214,6 @@
          (call/cc
             (lambda (drop)
                (tuple 'ok
-                  (translate exp env
-                     (lambda (reason) (drop (fail reason))))
-                  env))))))
+                  (translate exp env (B drop fail))
+                  env))))
+))

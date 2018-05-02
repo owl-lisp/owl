@@ -167,12 +167,10 @@
       (define includes-key '*include-dirs*) ;; paths where to try to load includes from
 
       (define definition?
-         (let ((pat (list '_define symbol? ?)))
-            (λ (exp) (match pat exp))))
+         (H match (list '_define symbol? ?)))
 
       (define multi-definition?
-         (let ((pat (list '_define list? ?)))
-            (λ (exp) (match pat exp))))
+         (H match (list '_define list? ?)))
 
       ;; toplevel variable which holds currently loaded (r7rs-style) libraries
       (define libraries-var '*libs*)
@@ -199,8 +197,7 @@
       ; -> (ok value env), (error reason env)
 
       (define repl-op?
-         (let ((pattern (list 'unquote symbol?)))
-            (λ (exp) (match pattern exp))))
+         (H match (list 'unquote symbol?)))
 
       (define (mark-loaded env path)
          (let ((loaded (env-get env '*loaded* null)))
@@ -380,7 +377,7 @@
                   (cond
                      ((function? rex)
                         (define (seek env)
-                           (keep (λ (sym) (rex (symbol->string sym))) (env-keys env)))
+                           (keep (B rex symbol->string) (env-keys env)))
                         (print "current toplevel: "
                            (apply str (interleave ", " (seek env))))
                         (for-each
@@ -460,15 +457,12 @@
       (define (symbol-list? l) (and (list? l) (all symbol? l)))
 
       (define export?
-         (let ((pat `(export . ,symbol-list?)))
-            (λ (exp) (match pat exp))))
+         (H match `(export . ,symbol-list?)))
 
       (define (_ x) #true)
 
       (define import?  ; toplevel import using the new library system
-         (let
-            ((patternp `(import . ,(λ (x) #true))))
-            (λ (exp) (match patternp exp))))
+         (H match `(import . ,(λ (x) #true))))
 
       (define (library-definition? x)
          (and (pair? x) (list? x) (eq? (car x) '_define-library)))

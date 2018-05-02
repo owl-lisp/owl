@@ -1,4 +1,4 @@
-(import 
+(import
   (owl variable))
 
 (define foo (make-variable))
@@ -16,8 +16,8 @@
 
 (foo 0)
 (print (fold + 0 (iota 0 1 1000)))
-(for-each 
-  (lambda (x) (foo 'call (lambda (y) (+ x y))))
+(for-each
+  (lambda (x) (foo 'call (C + x)))
   (iota 0 1 1000))
 (print (foo))
 
