@@ -9,7 +9,7 @@
       par por* por
       thread thunk->thread)
 
-   (import 
+   (import
       (owl defmac)
       (owl primop))
 
@@ -23,7 +23,7 @@
 
       ;; 3 = vm thrown error
       (define (fork-named name thunk)
-         (syscall 4 (list name) thunk))
+         (syscall 4 name thunk))
 
       (define (error reason info)
          (syscall 5 reason info))
@@ -37,7 +37,7 @@
       (define (mail id msg)
          (syscall 9 id msg))
 
-      (define (kill id) 
+      (define (kill id)
          (syscall 15 id #false))
 
       (define (single-thread?)
@@ -107,7 +107,7 @@
                   (if (eq? rounds 0)
                      (return-from-wait default spam)
                      ;; no mail, request a thread switch and recurse, at which point all other threads have moved
-                     (begin   
+                     (begin
                         ;(set-ticker 0) ;; FIXME restore this when librarized
                         ;; no bignum math yet at this point
                         (lets ((rounds _ (fx- rounds 1)))
@@ -119,7 +119,7 @@
                   ;; got spam, keep waiting
                   (loop (check-mail) (cons envp spam) rounds)))))
 
-      (define thunk->thread 
+      (define thunk->thread
          (case-lambda
             ((id thunk)
                (fork-named id thunk))
@@ -140,9 +140,9 @@
       ;; (wait-thread (thread (op . args)) [default]) → value
       ;; thread scheduler should keep the exit value
 
-      ; Message passing (aka mailing) is asynchronous, and at least 
-      ; in a one-core environment order-preserving. interact is like 
-      ; mail, but it blocks the thread until the desired response 
+      ; Message passing (aka mailing) is asynchronous, and at least
+      ; in a one-core environment order-preserving. interact is like
+      ; mail, but it blocks the thread until the desired response
       ; arrives. Messages are of the form #(<sender-id> <message>).
 
       (define (interact whom message)

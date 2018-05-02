@@ -2,10 +2,10 @@
 ;;; Thread controller
 ;;;
 
-;; thread controller is like the kernel of owl lisp. it handles 
-;; activation and suspension of threads, and has a tuple of 
+;; thread controller is like the kernel of owl lisp. it handles
+;; activation and suspension of threads, and has a tuple of
 ;; functions which are like the system calls, via which a thread
-;; send requests via the thread scheduler to other threads or 
+;; send requests via the thread scheduler to other threads or
 ;; the underlying system.
 
 (define-library (owl thread)
@@ -42,20 +42,17 @@
          (let ((st (get state to #false)))
             (cond
                ((pair? st) ;; currently working, leave a mail to inbox queue
-                  (values (fupd state to (qsnoc envelope st)) #false))
-               ((not st) ;; no current state, start the server + leave first mail
-                  ;(print-to stderr "No inbox for " to " for mail from " (ref envelope 1))
+                  (values
+                     (fupd state to (qsnoc envelope st))
+                     #false))
+               ((not st) ;; no current state, message to an inbox
                   (values
                      (put state to (qcons envelope qnull))
-                     #false)
-                  ;; drop  mail to non-receptive thread 
-                  ;(values state #false)
-                  )
-               (else ;; activate the state function
+                     #false))
+               (else ;; thread was waiting activate it
                   (values
                      (fupd state to qnull) ;; leave an inbox
                      (tuple to (λ () (st envelope)))))))) ;; activate it
-
 
       (define (deliver-messages todo done state subs msg tc)
          (if (null? subs)
@@ -70,7 +67,7 @@
       (define (subscribers-of state id)
          (get (get state link-tag empty) id null))
 
-      ; remove the thread and report to any interested parties about the event 
+      ; remove the thread and report to any interested parties about the event
       (define (drop-delivering todo done state id msg tc)
          (let ((subs (subscribers-of state id)))
             (if (null? subs)
@@ -91,7 +88,7 @@
                (cons (car lst)
                   (drop-from-list (cdr lst) tid)))))
 
-      ; drop a possibly running thread and notify linked 
+      ; drop a possibly running thread and notify linked
       (define (drop-thread id todo done state msg tc) ; -> todo' x done' x state'
          (drop-delivering
             (drop-from-list todo id)
@@ -110,7 +107,7 @@
 
       (define return-value-tag "rval") ; a unique key if thread state ff
 
-      ; mcp syscalls grab the functions from here to transform the state 
+      ; mcp syscalls grab the functions from here to transform the state
 
       ;; syscalls used when profiler is running
       (define mcp-syscalls-during-profiling
@@ -130,33 +127,19 @@
             ; 3, vm thrown error
             (λ (id a b c todo done state tc)
                ;(system-println "mcp: syscall 3 -- vm error")
-               ;; set crashed exit value proposal 
+               ;; set crashed exit value proposal
                (let ((state (put state return-value-tag 126)))
                   (drop-delivering todo done state id
                      (tuple id (tuple 'crashed a b c)) tc)))
 
             ; 4, fork
-            (λ (id cont opts thunk todo done state tc)
-               (lets
-                  ((new-id (car opts))
-                   (todo (ilist (tuple new-id thunk) (tuple id (λ () (cont new-id))) todo))
-                   (state
-                      (fold
-                        (λ (state req)
-                           (cond
-                              ((eq? req 'link)
-                                 ;; forker wants to receive any issues the thread runs into
-                                 (let ((links (get state link-tag empty)))
-                                    (put state link-tag
-                                       (put links new-id (list id)))))
-                              ((eq? req 'mailbox)
-                                 ;; the thread should have a mailbox for communication in state
-                                 (put state new-id qnull))
-                              (else
-                                 (system-println "fork: bad parameter")
-                                 state)))
-                        state (cdr opts))))
-                  (tc tc todo done state)))
+            (λ (id cont new-id thunk todo done state tc)
+               (tc tc
+                  (ilist
+                     (tuple new-id thunk)
+                     (tuple id (λ () (cont new-id)))
+                     todo)
+                  done state))
 
             ; 5, user thrown error
             (λ (id a b c todo done state tc)
@@ -165,7 +148,6 @@
                   (tuple id (tuple 'error a b c)) tc))
 
             ;; return mails to my own inbox (in reverse order, newest on top)
-
             ; 6, (return-mails rl)
             (λ (id cont rmails foo todo done state tc)
                (let ((queue (get state id qnull)))
@@ -193,9 +175,7 @@
 
             ; 9, send mail
             (λ (id cont to msg todo done state tc)
-               ;(system-println "syscall 9 - mail")
                (let ((todo (cons (tuple id (λ () (cont 'delivered))) todo)))
-                  ; send a normal mail
                   (lets ((state waked (deliver-mail state to (tuple id msg))))
                      (if waked
                         (tc tc (ilist (car todo) waked (cdr todo)) done state)
@@ -206,7 +186,7 @@
                ; (system-println "syscall 10 - break")
                (let ((all-threads (cons (tuple id a) (append todo done))))
                   ;; tailcall signal handler and pass controller to allow resuming operation
-                  ((get state signal-tag signal-halt) ; default to standard mcp 
+                  ((get state signal-tag signal-halt) ; default to standard mcp
                      all-threads state thread-controller)))
 
             ; 11, reset mcp state (usually means exit from mcp repl)
@@ -233,10 +213,10 @@
                         (tc tc todo done (put state id cont))))))
 
             ;; todo: switch memory limit to a hard one in ovm.c
-            ; 14, memory limit was exceeded 
+            ; 14, memory limit was exceeded
             (λ (id a b c todo done state tc)
                (system-println "syscall 14 - memlimit exceeded, dropping a thread")
-               ; for now, kill the currently active thread (a bit dangerous) 
+               ; for now, kill the currently active thread (a bit dangerous)
                (drop-delivering todo done state id
                   (tuple id (tuple 'crashed 'memory-limit b c)) tc))
 
@@ -279,13 +259,13 @@
             (λ (id cont b c todo done state tc)
                (tc tc (cons (tuple id (λ () (cont b))) todo) done (put state return-value-tag b)))
 
-            ;;; 20 & 21 change during profiling 
+            ;;; 20 & 21 change during profiling
 
             ; 20, start profiling, no-op during profiling returning 'already-profiling
             (λ (id cont b c todo done state tc)
                (tc tc (cons (tuple id (λ () (cont 'already-profiling))) todo) done state))
 
-            ; 21, end profiling, resume old ones, pass profiling info 
+            ; 21, end profiling, resume old ones, pass profiling info
             (λ (id cont b c todo done state tc)
                (lets
                   ((prof (get state 'prof #false)) ;; ff storing profiling info
@@ -326,9 +306,9 @@
             (else default)))
 
       ;; store profiling info about this call
-      ;; the exec is either a thunk to be run in a thread as a result of 
-      ;; forking or a syscall being answered, or a vm-generated tuple which 
-      ;; has arguments for the next function call and the function at the 
+      ;; the exec is either a thunk to be run in a thread as a result of
+      ;; forking or a syscall being answered, or a vm-generated tuple which
+      ;; has arguments for the next function call and the function at the
       ;; *last* slot of the tuple.
 
       (define (update-state state exec)
@@ -389,7 +369,7 @@
 
       ;; nested thread steps cause
       ;;    - exit and false -> forget todo & done
-      ;;    - crash -> forget 
+      ;;    - crash -> forget
 
       ;; st=#(cont todo done) → finished? st'
       ;; finished? = #f -> new state but no result yet, #t = result found and state is thunk, else error
@@ -408,7 +388,7 @@
                         (if (eq? fini null)
                            ;; crashed, propagate
                            (values null state)
-                           ;; either par->single or single->value state change, 
+                           ;; either par->single or single->value state change,
                            ;; but consumed a quantum already so handle it in next round
                            (values #false (tuple cont todo (cons state done)))))
                      (lets ((op a b c (run state thread-quantum)))
@@ -468,7 +448,7 @@
                   (print-to stderr (list "que? " bad))
                   fail-val))))
 
-      ;; signal handler which kills the 'repl-eval thread if there, or repl 
+      ;; signal handler which kills the 'repl-eval thread if there, or repl
       ;; if not, meaning we are just at toplevel minding our own business.
       (define (repl-signal-handler threads state controller)
          (if (first (λ (x) (eq? (ref x 1) 'repl-eval)) threads #false)
