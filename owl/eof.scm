@@ -9,11 +9,13 @@
 
    (begin
 
-      (define eof-object
-         (let ((eof (cast 4 13)))
-            (λ () eof)))
+      (define *eof-object*
+         (cast 4 13))
 
-      (define (eof-object? obj)
-         (eq? (eof-object) obj))
+      (define (eof-object)
+         *eof-object*)
+
+      (define eof-object?
+         (H eq? *eof-object*))
 
 ))
