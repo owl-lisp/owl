@@ -30,8 +30,8 @@
 
    (begin
       ; now in lib-intern
-      ;(define (string->symbol str) (interact 'intern str))
-      ;(define (symbol->string x) (ref x 1))
+      ;(define string->symbol (H interact 'intern))
+      ;(define symbol->string (C ref 1))
 
       ; return the gensym id of exp (number) or #false
 

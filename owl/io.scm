@@ -429,15 +429,16 @@
       (define (display-to to obj)
          (printer (render obj '()) 0 null to))
 
-      (define (display x)
-         (display-to stdout x))
+      (define display
+         (H display-to stdout))
 
       (define print
          (case-lambda
             ((obj) (print-to stdout obj))
             (xs (printer (foldr render '(#\newline) xs) 0 null stdout))))
 
-      (define (write obj) (write-to stdout obj))
+      (define write
+         (H write-to stdout))
 
       (define (print*-to to lst)
          (printer (foldr render '(10) lst) 0 null to))
@@ -551,8 +552,8 @@
                   outcome)
                #false)))
 
-      (define (wait-write fd)
-         (interact fd 'wait))
+      (define wait-write
+         (C interact 'wait))
 
       (define (stream-chunk buff pos tail)
          (if (eq? pos 0)
@@ -584,12 +585,12 @@
                         (block-stream fd tail?)))))))
 
       ;; stream blocks close at eof
-      (define (port->block-stream fd)
-         (block-stream fd #true))
+      (define port->block-stream
+         (C block-stream #true))
 
       ;; stream blocks, wait for more at eof
-      (define (port->tail-block-stream fd)
-         (block-stream fd #false))
+      (define port->tail-block-stream
+         (C block-stream #false))
 
       ;; include metadata symbols
       (define (port->meta-block-stream fd)

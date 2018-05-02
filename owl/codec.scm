@@ -21,7 +21,7 @@
     hex-decode-list) ;; str → (byte ...) | #false
 
   (begin
-  
+
     (define hex-chars
       (vector #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9
               #\a #\b #\c #\d #\e #\f))
@@ -63,10 +63,9 @@
                               #false))))
                   (else #false))))))
 
-   (define (hex-encode-list lst)
-      (list->string
-         (hex-encode-bytes lst)))
-   
+   (define hex-encode-list
+      (B list->string hex-encode-bytes))
+
    (define (hex-encode str)
       (cond
          ((string? str)
@@ -79,9 +78,9 @@
          (else
             (error "hex-encode: " str))))
 
-   (define (hex-decode-list str)
-      (hex-decode-bytes (string->bytes str)))
-   
+   (define hex-decode-list
+      (B hex-decode-bytes string->bytes))
+
    (define (hex-decode str)
       (maybe bytes->string
          (hex-decode-list str)))
@@ -90,5 +89,5 @@
       (hex-decode (hex-encode "")) = ""
       (hex-decode (hex-encode "foo")) = "foo"
       (hex-decode (hex-encode "λä.ä")) = "λä.ä")))
-      
+
 

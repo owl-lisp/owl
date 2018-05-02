@@ -74,8 +74,8 @@
          (eq? (ref exp 1) 'lambda))
 
       (define (set-deps node deps) (set node 3 deps))
-      (define (deps-of node) (ref node 3))
-      (define (name-of node) (ref node 1))
+      (define deps-of (C ref 3))
+      (define name-of (C ref 1))
 
       ; pick a set of bindings for binding
       (define (pick-binding deps env)
@@ -260,8 +260,8 @@
       ; bind all things from deps using possibly several nested head lambda calls
 
       (define (generate-bindings deps body env)
-         (define (second x) (ref x 2))
-         (define (first x) (ref x 1))
+         (define second (C ref 2))
+         (define first (C ref 1))
          (if (null? deps)
             body
             (tuple-case (pick-binding deps env)
@@ -354,7 +354,7 @@
 
       (define (dependency-closure deps)
 
-         (define (third x) (ref x 3))
+         (define third (C ref 3))
          (define (grow current deps)
             (lets
                ((related

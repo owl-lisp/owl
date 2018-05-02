@@ -218,8 +218,8 @@
       (define empty-vector
          (raw null type-vector-raw))
 
-      (define (list->byte-vector bs)
-         (raw bs type-vector-raw))
+      (define list->byte-vector
+         (C raw type-vector-raw))
 
       (define (make-leaf rvals n raw?)
          (if raw?
@@ -552,9 +552,8 @@
                (vector->list a)
                (vector->list b))))
 
-      (define (vec-rev a)
-         (list->vector
-            (vec-iterr a)))
+      (define vec-rev
+         (B list->vector vec-iterr))
 
       ;; fixme: make-vector does not share the nodes despite most being equal
       (define make-vector

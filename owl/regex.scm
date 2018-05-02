@@ -189,7 +189,7 @@
       (define (plus rx) (rex-and rx (star rx)))
 
       ;; <rx>?
-      (define (quest rx) (rex-or rx epsilon))
+      (define quest (C rex-or epsilon))
 
       ;;; non-greedy (altruistic?) quantifiers
 
@@ -204,7 +204,7 @@
       (define (alt-plus rx) (rex-and rx (alt-star rx)))
 
       ;; <rx>??
-      (define (alt-quest rx) (rex-or epsilon rx))
+      (define alt-quest (H rex-or epsilon))
 
       ;;; repetitions
 
@@ -631,7 +631,7 @@
       (define big-alpha? (λ (b) (and (lesser? 64 b) (lesser? b 91)))) ;; A-Z
       (define alnum? (λ (b) (or (alpha? b) (big-alpha? b) (digit? b))))
       (define word? (λ (b) (or (eq? b 95) (alnum? b))))
-      (define space? (λ (b) (has? '(32 9 13 10 11 12) b)))
+      (define space? (H has? '(32 9 13 10 11 12)))
 
       ;; shared automata parts corresponding to predefined character classes
       (define accept-digit (pred digit?))

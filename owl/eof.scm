@@ -16,6 +16,6 @@
          *eof-object*)
 
       (define eof-object?
-         (H eq? *eof-object*))
+         (C eq? *eof-object*))
 
 ))

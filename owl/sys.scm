@@ -119,8 +119,8 @@
                null
                (cons this (mem-string-bytes (+ ptr 1))))))
 
-      (define (raw-string x)
-         (raw x type-string))
+      (define raw-string
+         (C raw type-string))
 
       (define (mem-string ptr)
          (if (eq? ptr 0)
@@ -140,8 +140,8 @@
                            (func next)
                            (loop (+ ptr nb)))))))))
 
-      (define (mem-strings ptr)
-         (mem-array-map ptr mem-string))
+      (define mem-strings
+         (C mem-array-map mem-string))
 
       (sc E2BIG 9)
       (sc EACCES 10)
@@ -447,8 +447,8 @@
       (define (setenv var val)
          (sys 28 var val))
 
-      (define (unsetenv var)
-         (setenv var #false))
+      (define unsetenv
+         (C setenv #false))
 
       (define (get-environment-pointer)
          (sys 9 1))

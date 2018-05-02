@@ -109,7 +109,7 @@
       ff-ok?
       empty
       empty?
-      
+
       getf       ; (getf ff key) == (get ff key #false)
 
       )
@@ -129,7 +129,7 @@
 
       (define empty #empty)
 
-      (define (empty? x) (eq? x empty))
+      (define empty? (C eq? empty))
 
       ;; shadowed below
       (define (black l k v r)
@@ -164,7 +164,7 @@
       (define-syntax red?
          (syntax-rules ()
             ((red? node) (eq? redness (fxband (type node) redness))))) ;; false for black nodes and #empty
-     
+
       ;; does a (non-empty) red or black node of size 3 have a right child? 2 never does and 4 always has
       (define-syntax right?
          (syntax-rules ()
@@ -207,7 +207,7 @@
                   (and (red? ff) (or (red? l) (red? r)))
                   (red-red-violation? l)
                   (red-red-violation? r)))))
-   
+
       ;; fixnum addition, math not defined yte
       (define (f+ a b)
          (lets ((c _ (fx+ a b))) c))
@@ -322,7 +322,7 @@
                   (else
                      (black left key val right))))
             (black left key val right)))
-                  
+
       (define (putn node key val)
          (if (eq? node #empty)
             (red #empty key val #empty)
@@ -349,13 +349,13 @@
             def
             (with-ff (node left key _ right)
                (ff-max right key))))
-      
+
       (define (ff-min node def)
          (if (eq? node #empty)
             def
             (with-ff (node left key _ right)
                (ff-min left key))))
-        
+
       ;; bytecoded get
       '(define (get ff key def)
          (if (eq? ff #empty)
@@ -454,7 +454,7 @@
                         (ff-fold op state r))
                      (op state k v))))
             state))
-      
+
        ;; iterate key-value pairs in order
        (define (ff-iterate tree tl)
          (if (nonempty? tree)
@@ -473,8 +473,8 @@
                      (λ () (ff-iterrate l tl)))))
             tl))
 
-      (define (ff-iter  tree) (ff-iterate  tree null))
-      (define (ff-iterr tree) (ff-iterrate tree null))
+      (define ff-iter (C ff-iterate null))
+      (define ff-iterr (C ff-iterrate null))
 
       ;; note: ff-map will switch argument order in the generic equivalent
       ;; fixme, also much faster if types are used directly
@@ -612,7 +612,7 @@
             (if (red? ff)
                (color-black ff)
                ff)))
-         
+
 
       ;;;
       ;;; FIXME bad hacks

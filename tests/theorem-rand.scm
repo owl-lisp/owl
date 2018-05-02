@@ -139,8 +139,8 @@
       ;; get one rand, pick low bit
       (values rs (eq? 1 (band d 1)))))
 
-(define (Byte rs)
-   (rand rs 256))
+(define Byte
+   (C rand 256))
 
 (define (Short rs)
    (lets ((digit rs (uncons rs 0)))
@@ -232,8 +232,8 @@
                (loop rs (iput out x x)))))))
 
 ;; FIXME: have full range and correct holes
-(define (UChar rs)
-   (rand rs #xffff))
+(define UChar
+   (C rand #xffff))
 
 (define (String rs)
    (let loop ((rs rs) (out null))

@@ -62,8 +62,8 @@
                      (list h g f e d c b a))
                   (cons 0 (loop (band (+ pos 8)  511)))))))
 
-      (define (word x) 
-         (band x #xffffffff))
+      (define word
+         (C band #xffffffff))
 
       (define (rol x n)
          (word
@@ -120,8 +120,8 @@
       (define (sha1-step a b c d e f k w)
          (values (word (+ (rol a 5) f e k w)) a (word (rol b 30)) c d))
 
-      (define (bnot w)
-         (bxor w #xffffffff))
+      (define bnot
+         (C bxor #xffffffff))
 
       (define (sha1-chunk h0 h1 h2 h3 h4 ws)
          (let loop ((i 0) (a h0) (b h1) (c h2) (d h3) (e h4) (ws (reverse ws)))

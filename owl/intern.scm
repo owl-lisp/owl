@@ -61,7 +61,7 @@
                   ((null? s2) 1)
                   (else (walk s1 (s2)))))
             (else (walk (s1) s2))))
-               
+
       (define (compare s1 s2)
          (walk (str-iter s1) (str-iter s2)))
 
@@ -70,8 +70,8 @@
       (define (string->uninterned-symbol str)
          (mkt type-symbol str))
 
-      (define (symbol->string ob)
-         (ref ob 1))
+      (define symbol->string
+         (C ref 1))
 
       ; lookup node str sym -> node' sym'
 
@@ -105,7 +105,7 @@
                      (set node 3
                         (put-symbol (ref node 3) sym)))))
             (tuple #false sym #false)))
-         
+
       ;; note, only leaf strings for now
       (define (string->interned-symbol root str)
          (let ((old (maybe-lookup-symbol root str)))
@@ -114,8 +114,8 @@
                (let ((new (string->uninterned-symbol str)))
                   (values (put-symbol root new) new)))))
 
-      (define (string->symbol str)
-         (interact 'intern str))
+      (define string->symbol
+         (H interact 'intern))
 
       ;;;
       ;;; BYTECODE INTERNING

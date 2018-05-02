@@ -56,7 +56,7 @@
       (define (qcons a cl)
          (lets ((hd rtl cl))
             (cons (cons a hd) rtl)))
-      
+
       ; cons to tail
       (define (qsnoc a cl)
          (lets ((hd rtl cl))
@@ -114,7 +114,7 @@
                         (values (car rtl) (cons hd (cdr rtl))))))
                (values (car rtl) (cons hd (cdr rtl))))))
 
-      (define (list->queue lst) (cons lst null))
+      (define list->queue (C cons null))
 
       (define (queue->list cl)
          (lets ((hd rtl cl))

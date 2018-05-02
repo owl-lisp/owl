@@ -11,9 +11,9 @@
       variable-input-arity?
       special-bind-primop?
       ;; primop wrapper functions
-      run 
+      run
       set-ticker
-      clock 
+      clock
       sys-prim
       bind
       ff-bind
@@ -25,7 +25,7 @@
       eq?
 
       apply apply-cont ;; apply post- and pre-cps
-      call/cc call-with-current-continuation 
+      call/cc call-with-current-continuation
       lets/cc
 
       _poll2
@@ -38,11 +38,11 @@
 
    (begin
 
-      (define (bytes->bytecode bytes)
-         (raw bytes type-bytecode))
+      (define bytes->bytecode
+         (C raw type-bytecode))
 
-      (define eq? 
-         (bytes->bytecode 
+      (define eq?
+         (bytes->bytecode
             '(25 3 0 6 54 4 5 6 24 6 17)))
 
       (define (app a b)
@@ -126,7 +126,7 @@
       (define multiple-return-variable-primops
          '(49 11 26 38 39 40 58 59 37 61))
 
-      (define (variable-input-arity? op) (eq? op 23)) ;; mkt
+      (define variable-input-arity? (C eq? 23)) ;; mkt
 
       (define primops-1
          (list

@@ -52,6 +52,9 @@
 
    (begin
 
+      (define zero?
+         (C eq? 0))
+
       ;; check how many fixnum bits the vm supports with fx<<
       ;; idea is to allow the vm to be compiled with different ranges, initially fixed to 24
       (define *max-fixnum*
@@ -84,8 +87,6 @@
 
       (define *first-bignum*
          (ncons 0 *big-one*))
-
-      (define (zero? x) (eq? x 0))
 
       (define (fixnum? x)
          (let ((t (type x)))

@@ -446,8 +446,7 @@
          (if (null? pairs)
             (values rs tail)
             (lets
-               ((this (caar pairs))
-                (these pairs (take-while (λ (x) (eq? (car x) this)) pairs)))
+               ((these pairs (take-while (B (C eq? (caar pairs)) car) pairs)))
                (if (null? (cdr these)) ; leaf case, just one
                   (shuffle-merge rs pairs (cons (cdar these) tail) rec)
                   (lets ((rs tail (shuffle-merge rs pairs tail rec)))

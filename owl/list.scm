@@ -38,7 +38,7 @@
       (define (pair? x) (eq? type-pair (type x)))
 
       ;; any -> bool
-      (define (null? x) (eq? x null))
+      (define null? (C eq? null))
 
       (define-syntax withcc
          (syntax-rules ()
@@ -46,13 +46,13 @@
                (call/cc (λ (name) proc)))))
 
       ;; '((a . b) . c) -> a
-      (define (caar x) (car (car x)))
+      (define caar (B car car))
       ;; '(a . (b . c)) -> b
-      (define (cadr x) (car (cdr x)))
+      (define cadr (B car cdr))
       ;; '((a . b) . c) -> b
-      (define (cdar x) (cdr (car x)))
+      (define cdar (B cdr car))
       ;; '(a . (b . c)) -> c
-      (define (cddr x) (cdr (cdr x)))
+      (define cddr (B cdr cdr))
 
       ;; any -> bool, check if a thing is a linked list, O(n)
       (define (list? l)
@@ -199,7 +199,7 @@
             (rev-loop (cdr a) (cons (car a) b))))
 
       ;; lst -> lst', reverse a list
-      (define (reverse l) (rev-loop l null))
+      (define reverse (C rev-loop null))
 
       (example
          (reverse '(1 2 3)) = '(3 2 1))
