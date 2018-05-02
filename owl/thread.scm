@@ -14,7 +14,7 @@
       start-thread-controller
       thread-controller
       repl-signal-handler
-      try)
+      try-thunk try)
 
    (import
       (owl defmac)
@@ -426,27 +426,33 @@
          (thread-controller thread-controller threads
             null (list->ff state-alist)))
 
-      ; todo: get a fail-func instead
-      (define (try thunk fail-val)
-         ; run the compiler chain in a new task
+      (define (try-thunk thunk fail-fn)
          (let ((id (list 'thread)))
             (link id)
             (thunk->thread id thunk)
-            (tuple-case (ref (accept-mail (λ (env) (eq? (ref env 1) id))) 2)
-               ((finished result not used)
-                  result)
+            (let ((outcome (ref (accept-mail (λ (env) (eq? (ref env 1) id))) 2)))
+               (if (eq? (ref outcome 1) 'finished)
+                  (ref outcome 2)
+                  (fail-fn outcome)))))
+
+      (define (default-failure retval)
+         (λ (outcome)
+            (tuple-case outcome
                ((crashed opcode a b)
                   (print-to stderr (verbose-vm-error empty opcode a b))
-                  fail-val)
+                  retval)
                ((error cont reason info)
-                  ; note, these could easily be made resumable by storing cont
+                  ;; note: these could be restored via cont
                   (print-to stderr
                      (list->string
                         (foldr render '(10) (list "error: " reason info))))
-                  fail-val)
-               (else is bad ;; should not happen
-                  (print-to stderr (list "que? " bad))
-                  fail-val))))
+                  retval)
+               (else
+                  (print-to stderr (list "bug: " outcome))
+                  retval))))
+
+      (define (try thunk retval)
+         (try-thunk thunk (default-failure retval)))
 
       ;; signal handler which kills the 'repl-eval thread if there, or repl
       ;; if not, meaning we are just at toplevel minding our own business.
