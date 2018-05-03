@@ -98,6 +98,7 @@
    (owl sys)
    (owl char)
    (owl eval)
+   (owl repl)
    (owl digest)
    (owl base)
    (owl date)
