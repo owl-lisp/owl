@@ -665,31 +665,31 @@ static word prim_sys(int op, word a, word b, word c) {
 #ifdef EMULTIHOP
             EMULTIHOP,
 #else
-            ~(word)0,
+            -1,
 #endif
             ENAMETOOLONG, ENETDOWN, ENETRESET,
             ENETUNREACH, ENFILE, ENOBUFS,
 #ifdef ENODATA
             ENODATA,
 #else
-            ~(word)0,
+            -1,
 #endif
             ENODEV, ENOENT, ENOEXEC, ENOLCK,
 #ifdef ENOLINK
             ENOLINK,
 #else
-            ~(word)0,
+            -1,
 #endif
             ENOMEM, ENOMSG, ENOPROTOOPT, ENOSPC,
 #ifdef ENOSR
             ENOSR,
 #else
-            ~(word)0,
+            -1,
 #endif
 #ifdef ENOSTR
             ENOSTR,
 #else
-            ~(word)0,
+            -1,
 #endif
             ENOSYS,
             ENOTCONN, ENOTDIR, ENOTEMPTY, ENOTRECOVERABLE, ENOTSOCK, ENOTSUP, ENOTTY, ENXIO,
@@ -698,7 +698,7 @@ static word prim_sys(int op, word a, word b, word c) {
 #ifdef ETIME
             ETIME,
 #else
-            ~(word)0,
+            -1,
 #endif
             ETIMEDOUT, ETXTBSY,
             EWOULDBLOCK, EXDEV
@@ -739,17 +739,8 @@ static word prim_sys(int op, word a, word b, word c) {
          return ITRUE;
       case 14: /* strerror errnum → pointer */
          return onum((word)strerror(immval(a)), 0);
-      case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
-         int fd = immval(a);
-         word *buff = (word *)b;
-         int wrote, size, len = cnum(c);
-         if (immediatep(buff)) return IFALSE;
-         size = (hdrsize(*buff)-1)*W;
-         if (len > size) return IFALSE;
-         wrote = send(fd, buff + 1, len, 0);
-         if (wrote > 0) return onum(wrote, 0);
-         if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
-         return IFALSE; }
+      case 15: /* unused */
+         exit(42);
       case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
          return stringp(a) ? onum((word)getenv((char *)a + W), 0) : IFALSE;
       case 17: { /* exec[v] path argl ret */

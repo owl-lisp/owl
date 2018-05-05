@@ -29,7 +29,7 @@
       (owl render)
       (owl lazy)
       (owl cgen)
-      (owl sys)
+      (only (owl sys) mem-strings)
       (only (owl syscall) error mail exit-owl)
       (only (owl env) signal-halt signal-tag)
       (only (owl unicode) utf8-decode)

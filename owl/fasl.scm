@@ -89,7 +89,6 @@
 
       (define type-byte-of type)
          ;(type-byte-of val)
-         ;(fxband (>> (type-old val) 3) 255)
 
       (define (enc-immediate val tail)
          (cons 0

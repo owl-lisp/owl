@@ -1,4 +1,4 @@
-(import 
+(import
    (owl sys)
    (owl date))
 
@@ -14,7 +14,7 @@
 
 (define (child infd outfd)
    (write-bytes outfd
-      (cons 42 
+      (cons 42
          (vector->list (get-block infd #xffff)))))
 
 (define (main sub in out)
@@ -26,16 +26,14 @@
             (print "Subprocess echo with star ok")
             (print "Closing parent end of port " (close-port out))
             (print "Waiting child: " (waitpid sub)))
-            
+
          (print "Echo failed"))))
-   
+
 (cond
    ((eq? sub #true)
       (child (car p2) (cdr p1)))
-   ((number? sub)
+   ((integer? sub)
       (print "Subprocess forked")
       (main sub (car p1) (cdr p2)))
-   (else 
+   (else
       (print "Fork failed")))
-   
-
