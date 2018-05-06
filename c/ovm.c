@@ -611,26 +611,7 @@ static word prim_sys(int op, word a, word b, word c) {
       case 1: /* open path flags mode → port | #f */
          if (stringp(a)) {
             int fd;
-if (c != IFALSE) { /* compatibility */
             fd = open((const char *)a + W, cnum(b), immval(c));
-} else { /* this block can removed after the next fasl update */
-         char *path = (char *)a;
-         int mode = immval(b);
-         int val = 0;
-         struct stat sb;
-         if (!stringp(a))
-            return IFALSE;
-         val |= (mode & 1 ? O_WRONLY : O_RDONLY) \
-              | (mode & 2 ? O_TRUNC : 0) \
-              | (mode & 4 ? O_APPEND : 0) \
-              | (mode & 8 ? O_CREAT : 0);
-         val = open(path + W, val, S_IRUSR | S_IWUSR);
-         if (val < 0 || fstat(val, &sb) == -1 || sb.st_mode & S_IFDIR) {
-            close(val);
-            return IFALSE;
-         }
-   fd = val;
-}
             if (fd != -1) {
                toggle_blocking(fd, 0);
                return make_immediate(fd, TPORT);
