@@ -116,7 +116,7 @@
                ;; stdio ports are not in non-blocking mode, so poll always
                (if (or (eq? fd stdout) (eq? fd stderr))
                   (interact 'iomux (tuple 'write fd)))
-               (sys-prim 0 fd bvec len))))
+               (sys-write fd bvec len))))
 
       ;; bvec port → bool
       (define (write-really bvec fd)
@@ -137,31 +137,22 @@
       ;; how many bytes (max) to add to output buffer before flushing it to the fd
       (define output-buffer-size 4096)
 
-      (define mode/read     #b0000)
-      (define mode/write    #b0001)
-      (define mode/truncate #b0010)
-      (define mode/append   #b0100)
-      (define mode/create   #b1000)
-
-      (define read-mode mode/read)
-      (define output-mode (foldr bor 0 (list mode/write mode/truncate mode/create)))
-      (define append-mode (foldr bor 0 (list mode/write mode/create mode/append)))
+      (define read-mode
+         sys-O_RDONLY)
+      (define (output-mode)
+         (bor (bor (sys-O_WRONLY) (sys-O_CREAT)) (sys-O_TRUNC)))
+      (define (append-mode)
+         (bor (bor (sys-O_WRONLY) (sys-O_CREAT)) (sys-O_APPEND)))
 
       (define (open-input-file path)
-         (let ((fd (sys-open path read-mode)))
-            (if fd (fd->port fd) fd)))
+         (sys-open path (read-mode) 0))
 
       (define (open-output-file path)
-         (let ((fd (sys-open path output-mode))) ;; temporarily also applies others
-            (if fd (fd->port fd) fd)))
+         (sys-open path (output-mode) #o600)) ;; temporarily also applies others
 
       (define (open-append-file path)
-         (let ((fd (sys-open path append-mode)))
-            (if fd
-               (let ((port (fd->port fd)))
-                  (sys-seek-end port)
-                  port)
-               #false)))
+         (let ((port (sys-open path (append-mode) #o600)))
+            (and port (begin (sys-seek-end port) port))))
 
       ;;; Reading
 
@@ -175,7 +166,7 @@
          ;; stdin is not in nonblocking mode, so always poll
          (if (eq? fd stdin)
             (interact 'iomux (tuple 'read fd)))
-         (let ((res (sys-prim 5 fd block-size 0)))
+         (let ((res (sys-read fd block-size)))
             (if (eq? res #true) ;; would block
                (if block?
                   (begin
@@ -430,7 +421,7 @@
 
       ;; fixme: system-X do not belong here
       (define (system-print str)
-         (sys-prim 0 1 str (sizeb str)))
+         (sys-write stdout str #f))
 
       (define (system-println str)
          (system-print str)
@@ -438,7 +429,7 @@
       "))
 
       (define (system-stderr str) ; <- str is a raw or pre-rendered string
-         (sys-prim 0 2 str (sizeb str)))
+         (sys-write stderr str #f))
 
       ;;;
       ;;; Files <-> vectors

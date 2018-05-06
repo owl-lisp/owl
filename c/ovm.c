@@ -17,6 +17,42 @@
 #include <termios.h>
 #include <stdio.h>
 
+#ifndef EMULTIHOP
+#define EMULTIHOP -1
+#endif
+#ifndef ENODATA
+#define ENODATA -1
+#endif
+#ifndef ENOLINK
+#define ENOLINK -1
+#endif
+#ifndef ENOSR
+#define ENOSR -1
+#endif
+#ifndef ENOSTR
+#define ENOSTR -1
+#endif
+#ifndef ETIME
+#define ETIME -1
+#endif
+#ifndef O_CLOEXEC
+#define O_CLOEXEC -1
+#endif
+#ifndef O_EXEC
+#define O_EXEC -1
+#endif
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW -1
+#endif
+#ifndef O_RSYNC
+#define O_RSYNC -1
+#endif
+#ifndef O_SEARCH
+#define O_SEARCH -1
+#endif
+#ifndef O_TTY_INIT
+#define O_TTY_INIT -1
+#endif
 #ifdef __APPLE__
 #define st_atim st_atimespec
 #define st_mtim st_mtimespec
@@ -50,6 +86,7 @@ typedef intptr_t wdiff;
 #define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
+#define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
 #define hdrsize(x)                  (((word)(x) >> SPOS) & MAXOBJ)
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
@@ -358,6 +395,13 @@ int llen(word *ptr) {
    return len;
 }
 
+static word payl_len(word hdr) {
+   word len = (hdrsize(hdr) - 1) * W;
+   if (rawp(hdr))
+      len -= (hdr >> 8) & 7;
+   return len;
+}
+
 void set_signal_handler() {
    struct sigaction sa;
    sa.sa_handler = signal_handler;
@@ -465,15 +509,9 @@ static word prim_cast(word *ob, int type) {
 }
 
 static word prim_refb(word pword, unsigned int pos) {
-   word *ob = (word *)pword;
-   word hdr, hsize;
-   if (immediatep(ob))
+   if (immediatep(pword) || pos >= payl_len(header(pword)))
       return IFALSE;
-   hdr = *ob;
-   hsize = (hdrsize(hdr) - 1) * W - ((hdr >> 8) & 7); /* bytes - pads */
-   if (pos >= hsize)
-      return IFALSE;
-   return F(((byte *) ob)[pos+W]);
+   return F(((byte *)pword)[W + pos]);
 }
 
 static word prim_ref(word pword, word pos) {
@@ -484,7 +522,7 @@ static word prim_ref(word pword, word pos) {
       return IFALSE;
    hdr = *ob;
    if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */
-      size = (hdrsize(hdr) - 1) * W - ((hdr >> 8) & 7);
+      size = payl_len(hdr);
       if (pos >= size)
          return IFALSE;
       return F(((byte *) ob)[pos+W]);
@@ -509,7 +547,7 @@ static int64_t cnum(word a) {
       return header(a) == NUMNHDR ? -x : x;
    }
    x = immval(a);
-   return imm_type(a) == TNUMN ? -x : x;
+   return is_type(a, TNUMN) ? -x : x;
 }
 
 static word onum(int64_t a, int s) {
@@ -559,18 +597,23 @@ void setdown() {
 /* system- and io primops */
 static word prim_sys(int op, word a, word b, word c) {
    switch(op) {
-      case 0: { /* 0 fsend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
-         int fd = immval(a);
-         word *buff = (word *)b;
-         int wrote, size, len = cnum(c);
-         if (immediatep(buff)) return IFALSE;
-         size = (hdrsize(*buff)-1)*W;
-         if (len > size) return IFALSE;
-         wrote = write(fd, buff + 1, len);
-         if (wrote > 0) return onum(wrote, 0);
-         if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
-         return IFALSE; }
-      case 1: { /* 1 = fopen <str> <mode> <to> */
+      case 0: /* write fd data len | #f → nbytes | #f */
+         if (is_type(a, TPORT) && allocp(b)) {
+            size_t len, size = payl_len(header(b));
+            len = c != IFALSE ? cnum(c) : size;
+            if (len <= size) {
+               len = write(immval(a), (const word *)b + 1, len);
+               if (len != (size_t)-1)
+                  return onum(len, 0);
+            }
+         }
+         return IFALSE;
+      case 1: /* open path flags mode → port | #f */
+         if (stringp(a)) {
+            int fd;
+if (c != IFALSE) { /* compatibility */
+            fd = open((const char *)a + W, cnum(b), immval(c));
+} else { /* this block can removed after the next fasl update */
          char *path = (char *)a;
          int mode = immval(b);
          int val = 0;
@@ -586,8 +629,14 @@ static word prim_sys(int op, word a, word b, word c) {
             close(val);
             return IFALSE;
          }
-         toggle_blocking(val, 0);
-         return F(val); }
+   fd = val;
+}
+            if (fd != -1) {
+               toggle_blocking(fd, 0);
+               return make_immediate(fd, TPORT);
+            }
+         }
+         return IFALSE;
       case 2:
          return BOOL(close(immval(a)) == 0);
       case 3: { /* 3 = sopen port 0=tcp|1=udp -> False | fd  */
@@ -630,24 +679,18 @@ static word prim_sys(int op, word a, word b, word c) {
          ipa = mkbvec(4, TBVEC);
          bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
          return cons((word)ipa, F(fd)); }
-      case 5: { /* fread fd max -> obj | eof | F (read error) | T (would block) */
-         word fd = immval(a);
-         word max = cnum(b);
-         word *res;
-         int n, nwords = (max/W) + 2;
-         allocate(nwords, res);
-         n = read(fd, res + 1, max);
-         if (n > 0) { /* got some bytes */
-            word read_nwords = OBJWORDS(n);
-            int pads = (read_nwords-1)*W - n;
-            fp = res + read_nwords;
-            *res = make_raw_header(read_nwords, TBVEC, pads);
-            return (word)res;
+      case 5: /* read fd len -> bvec | EOF | #f */
+         if (is_type(a, TPORT)) {
+            size_t len = memend - fp;
+            const size_t max = len > MAXOBJ ? MAXPAYL : (len - 1) * W;
+            len = cnum(b);
+            len = read(immval(a), fp + 1, len < max ? len : max);
+            if (len == 0)
+               return IEOF;
+            if (len != (size_t)-1)
+               return (word)mkbvec(len, TBVEC);
          }
-         fp = res;
-         if (n == 0)
-            return IEOF;
-         return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
+         return IFALSE;
       case 6:
          setdown();
          exit(immval(a)); /* stop the press */
@@ -661,47 +704,15 @@ static word prim_sys(int op, word a, word b, word c) {
             EBADF, EBADMSG, EBUSY, ECANCELED, ECHILD, ECONNABORTED, ECONNREFUSED, ECONNRESET,
             EDEADLK, EDESTADDRREQ, EDOM, EDQUOT, EEXIST, EFAULT, EFBIG, EHOSTUNREACH,
             EIDRM, EILSEQ, EINPROGRESS, EINTR, EINVAL, EIO, EISCONN, EISDIR,
-            ELOOP, EMFILE, EMLINK, EMSGSIZE,
-#ifdef EMULTIHOP
-            EMULTIHOP,
-#else
-            -1,
-#endif
-            ENAMETOOLONG, ENETDOWN, ENETRESET,
-            ENETUNREACH, ENFILE, ENOBUFS,
-#ifdef ENODATA
-            ENODATA,
-#else
-            -1,
-#endif
-            ENODEV, ENOENT, ENOEXEC, ENOLCK,
-#ifdef ENOLINK
-            ENOLINK,
-#else
-            -1,
-#endif
-            ENOMEM, ENOMSG, ENOPROTOOPT, ENOSPC,
-#ifdef ENOSR
-            ENOSR,
-#else
-            -1,
-#endif
-#ifdef ENOSTR
-            ENOSTR,
-#else
-            -1,
-#endif
-            ENOSYS,
+            ELOOP, EMFILE, EMLINK, EMSGSIZE, EMULTIHOP, ENAMETOOLONG, ENETDOWN, ENETRESET,
+            ENETUNREACH, ENFILE, ENOBUFS, ENODATA, ENODEV, ENOENT, ENOEXEC, ENOLCK,
+            ENOLINK, ENOMEM, ENOMSG, ENOPROTOOPT, ENOSPC, ENOSR, ENOSTR, ENOSYS,
             ENOTCONN, ENOTDIR, ENOTEMPTY, ENOTRECOVERABLE, ENOTSOCK, ENOTSUP, ENOTTY, ENXIO,
             EOPNOTSUPP, EOVERFLOW, EOWNERDEAD, EPERM, EPIPE, EPROTO, EPROTONOSUPPORT, EPROTOTYPE,
-            ERANGE, EROFS, ESPIPE, ESRCH, ESTALE,
-#ifdef ETIME
-            ETIME,
-#else
-            -1,
-#endif
-            ETIMEDOUT, ETXTBSY,
-            EWOULDBLOCK, EXDEV
+            ERANGE, EROFS, ESPIPE, ESRCH, ESTALE, ETIME, ETIMEDOUT, ETXTBSY,
+            EWOULDBLOCK, EXDEV, SEEK_SET, SEEK_CUR, SEEK_END, O_EXEC, O_RDONLY, O_RDWR,
+            O_SEARCH, O_WRONLY, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_DSYNC, O_EXCL,
+            O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_RSYNC, O_SYNC, O_TRUNC, O_TTY_INIT
          };
          return onum(sysconst[immval(a) % (sizeof sysconst / W)], 0); }
       case 9: /* return process variables */
@@ -734,15 +745,14 @@ static word prim_sys(int op, word a, word b, word c) {
          errno = 0;
          ent = readdir((DIR *)(intptr_t)cnum(a));
          return onum(ent != NULL ? (word)&ent->d_name : 0, 0); }
-      case 13: /* sys-closedir dirp _ _ -> ITRUE */
-         closedir((DIR *)(intptr_t)cnum(a));
-         return ITRUE;
+      case 13: /* close-dir dirp → bool */
+         return BOOL(closedir((DIR *)(intptr_t)cnum(a)) == 0);
       case 14: /* strerror errnum → pointer */
          return onum((word)strerror(immval(a)), 0);
       case 15: /* unused */
          exit(42);
-      case 16: /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
-         return stringp(a) ? onum((word)getenv((char *)a + W), 0) : IFALSE;
+      case 16: /* getenv key → pointer */
+         return onum(stringp(a) ? (word)getenv((const char *)a + W) : 0, 0);
       case 17: { /* exec[v] path argl ret */
          char *path = (char *)a + W;
          int nargs = llen((word *)b);
@@ -758,13 +768,9 @@ static word prim_sys(int op, word a, word b, word c) {
          execv(path, args); /* may return -1 and set errno */
          free(args);
          return IFALSE; }
-      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
+      case 18: { /* fork → #f: failed, 0: we're in child process, integer: we're in parent process */
          pid_t pid = fork();
-         if (pid == -1) /* fork failed */
-            return IFALSE;
-         if (pid == 0) /* we're in child, return true */
-            return ITRUE;
-         return onum(pid, 1); }
+         return pid != -1 ? onum(pid, 1) : IFALSE; }
       case 19: { /* wait <pid> <respair> _ */
          pid_t pid = a != IFALSE ? cnum(a) : -1;
          int status;
@@ -800,17 +806,19 @@ static word prim_sys(int op, word a, word b, word c) {
          return BOOL(stringp(a) && rmdir((char *)a + W) == 0);
       case 24: /* mknod path (type . mode) dev → bool */
          if (stringp(a) && pairp(b)) {
-            const mode_t nods[4] = { S_IFIFO, S_IFCHR, S_IFBLK, S_IFREG };
             const char *path = (const char *)a + W;
-            const mode_t type = immval(G(b, 1)), mode = immval(G(b, 2));
-            if ((type & ~3 ? mkdir(path, mode) : mknod(path, nods[type] | mode, cnum(c))) == 0)
+            const mode_t type = cnum(G(b, 1)), mode = immval(G(b, 2));
+            if ((type == S_IFDIR ? mkdir(path, mode) : mknod(path, type | mode, cnum(c))) == 0)
                return ITRUE;
          }
          return IFALSE;
-      case 25: {
-         int whence = immval(c);
-         off_t p = lseek(immval(a), cnum(b), whence == 0 ? SEEK_SET : (whence == 1 ? SEEK_CUR : SEEK_END));
-         return p != -1 ? onum(p, 1) : IFALSE; }
+      case 25: /* lseek port offset whence → offset | #f */
+         if (is_type(a, TPORT)) {
+            off_t o = lseek(immval(a), cnum(b), cnum(c));
+            if (o != -1)
+               return onum(o, 1);
+         }
+         return IFALSE;
       case 26:
          if (a != IFALSE) {
             static struct termios old;
@@ -827,16 +835,14 @@ static word prim_sys(int op, word a, word b, word c) {
          int sock = immval(a);
          int port;
          struct sockaddr_in peer;
-         byte* data = (byte *)c + W;
-         byte *ip;
-         word hdr = header(c);
-         int nbytes = (hdrsize(hdr) - 1) * W - ((hdr >> 8) & 7);
+         byte *ip, *data = (byte *)c + W;
+         size_t len = payl_len(header(c));
          port = immval(G(b, 1));
          ip = (byte *)G(b, 2) + W;
          peer.sin_family = AF_INET;
          peer.sin_port = htons(port);
          peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
-         return BOOL(sendto(sock, data, nbytes, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
+         return BOOL(sendto(sock, data, len, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
       case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
          if (stringp(a) && (b == IFALSE || stringp(b))) {
             const char *name = (const char *)a + W;
@@ -846,21 +852,24 @@ static word prim_sys(int op, word a, word b, word c) {
          return IFALSE;
       case 29:
          return prim_connect((word *) a, b, c);
-      case 30: { /* dupfd old-fd new-fd fixed → new-fd | #false */
-         int fd0 = immval(a), fd1 = immval(b);
-         fd1 = c != IFALSE ? dup2(fd0, fd1) : fcntl(fd0, F_DUPFD, fd1);
-         if (fd1 == -1)
-            return IFALSE;
-         if (fd1 < 3)
-            toggle_blocking(fd1, 1);
-         return F(fd1); }
-      case 31: { /* pipe → (read-fd . write-fd) | #false */
+      case 30: /* dupfd old-port new-fd fixed? → new-port | #f */
+         if (is_type(a, TPORT)) {
+            int fd0 = immval(a), fd1 = immval(b);
+            fd1 = c != IFALSE ? dup2(fd0, fd1) : fcntl(fd0, F_DUPFD, fd1);
+            if (fd1 != -1) {
+               if (fd1 < 3)
+                  toggle_blocking(fd1, 1);
+               return make_immediate(fd1, TPORT);
+            }
+         }
+         return IFALSE;
+      case 31: { /* pipe → '(read-port . write-port) | #f */
          int fd[2];
          if (pipe(fd) != 0)
             return IFALSE;
          toggle_blocking(fd[0], 0);
          toggle_blocking(fd[1], 0);
-         return cons(F(fd[0]), F(fd[1])); }
+         return cons(make_immediate(fd[0], TPORT), make_immediate(fd[1], TPORT)); }
       case 32: /* rename src dst → bool */
          return BOOL(stringp(a) && stringp(b) && rename((char *)a + W, (char *)b + W) == 0);
       case 33: /* link src dst → bool */
@@ -1072,7 +1081,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if (imm_type(hdr) != TBYTECODE) { /* not even code, extend bits later */
+      } else if (!is_type(hdr, TBYTECODE)) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
       if (!ticker--) goto switch_thread;
@@ -1335,8 +1344,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       if (immediatep(ob)) {
          A1 = IFALSE;
       } else {
-         word hdr = V(ob);
-         A1 = rawp(hdr) ? F((hdrsize(hdr) - 1) * W - ((hdr >> 8) & 7)) : IFALSE;
+         word hdr = header(ob);
+         A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
       }
       NEXT(2); }
    op29: { /* ncons a b r */
@@ -1467,7 +1476,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       bank = 0;
       assert(allocp(ob), ob, 50);
       hdr = *ob;
-      if (imm_type(hdr) == TTHREAD) {
+      if (is_type(hdr, TTHREAD)) {
          int pos = hdrsize(hdr) - 1;
          word code = ob[pos];
          acc = pos - 3;

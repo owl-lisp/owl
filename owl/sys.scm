@@ -49,12 +49,19 @@
       sigpipe
       sigalrm
       sigterm
+      O_RDONLY
+      O_WRONLY
+      O_APPEND
+      O_CREAT
+      O_TRUNC
       stdin
       stdout
       stderr
       open
       close
       dupfd
+      read
+      write
       set-terminal-rawness
       mem-string      ;; pointer to null terminated string → raw string
       mem-strings     ;; **string → (raw-string ...)
@@ -77,8 +84,11 @@
    (begin
 
       (define-syntax sc
-         (syntax-rules ()
-            ((sc name index) (define (name) (sys 8 index)))))
+         (syntax-rules (sys-const)
+            ((sc name index) (define name (sys-const index)))))
+
+      (define (sys-const i)
+         (lambda () (sys-prim 8 i #f #f)))
 
       (define stdin  (fd->port 0))
       (define stdout (fd->port 1))
@@ -231,15 +241,48 @@
       (define (strerror errnum)
          (mem-string (sys 14 errnum)))
 
+      (sc O_EXEC 93)
+      (sc O_RDONLY 94)
+      (sc O_RDWR 95)
+      (sc O_SEARCH 96)
+      (sc O_WRONLY 97)
+      (sc O_APPEND 98)
+      (sc O_CLOEXEC 99)
+      (sc O_CREAT 100)
+      (sc O_DIRECTORY 101)
+      (sc O_DSYNC 102)
+      (sc O_EXCL 103)
+      (sc O_NOCTTY 104)
+      (sc O_NOFOLLOW 105)
+      (sc O_NONBLOCK 106)
+      (sc O_RSYNC 107)
+      (sc O_SYNC 108)
+      (sc O_TRUNC 109)
+      (sc O_TTY_INIT 110)
+
       (define (close fd)
          (sys 2 fd))
 
-      (define (open path mode)
-         (sys 1 path mode))
+      (define (open path flags mode)
+         (sys 1 path flags mode))
 
       ;; → (fixed ? fd == new-fd : fd >= new-fd) | #false
       (define (dupfd old-fd new-fd fixed)
          (sys 30 old-fd new-fd fixed))
+
+      (define (read fd len)
+         (or
+            (sys 5 fd len)
+            (let ((err (errno)))
+               (or (eq? (EAGAIN) err) (eq? (EWOULDBLOCK) err)))))
+
+      (define (write fd data len)
+         (or
+            (sys 0 fd data len)
+            (and
+               (let ((err (errno)))
+                  (or (eq? (EAGAIN) err) (eq? (EWOULDBLOCK) err)))
+               0)))
 
       ;;;
       ;;; Unsafe operations not to be exported
@@ -257,7 +300,6 @@
                (mem-string (sys 12 obj))
                (and (zero? (errno)) (eof-object)))))
 
-      ;; _ → #true
       (define (close-dir obj)
          (sys 13 obj))
 
@@ -309,17 +351,14 @@
                (sys 17 path args)
                #false)))
 
-      ;; → #false on failure, else '(read-fd . write-fd)
+      ;; → #false on failure, else '(read-port . write-port)
       (define (pipe)
-         (let ((fdpair (sys 31)))
-            (if fdpair
-               (cons (fd->port (car fdpair))
-                     (fd->port (cdr fdpair)))
-               #false)))
+         (sys 31))
 
       ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
       (define (fork)
-         (sys 18))
+         (let ((pid (sys 18)))
+            (or (eq? pid 0) pid)))
 
       ;; warning, easily collides with owl wait
       (define (waitpid pid)
@@ -395,7 +434,7 @@
          (sys 24 path (cons type mode) dev))
 
       (define (mkdir path mode)
-         (mknod path 4 mode 0))
+         (mknod path (S_IFDIR) mode 0))
 
       (define (mkfifo path mode)
          (mknod path 0 mode 0))
@@ -421,21 +460,21 @@
       (define (chown arg uid gid follow)
          (sys 40 arg (cons uid gid) follow))
 
-      (define seek/set 0) ;; set position to pos
-      (define seek/cur 1) ;; increment position by pos
-      (define seek/end 2) ;; set position to file end + pos
+      (sc SEEK_SET 90)
+      (sc SEEK_CUR 91)
+      (sc SEEK_END 92)
 
       (define (lseek fd pos whence)
          (sys 25 fd pos whence))
 
       (define (seek-end fd)
-         (lseek fd 0 seek/end))
+         (lseek fd 0 (SEEK_END)))
 
       (define (seek-current fd)
-         (lseek fd 0 seek/cur))
+         (lseek fd 0 (SEEK_CUR)))
 
       (define (seek-set fd pos)
-         (lseek fd pos seek/set))
+         (lseek fd pos (SEEK_SET)))
 
       ;;;
       ;;; Environment variables
