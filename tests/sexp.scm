@@ -19,7 +19,7 @@
 
 (define fd (open-input-file "tests/sexp.scm"))
 
-(define es (fd->exp-stream fd sexp-parser #f))
+(define es (fd->exp-stream fd sexp-parser (silent-syntax-fail null)))
 
 (print (force-ll (ltake es 3)))
 

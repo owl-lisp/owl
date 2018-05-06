@@ -33,10 +33,12 @@
       ;; old ones
       fd->exp-stream
       file->exp-stream
+      silent-syntax-fail
       )
 
    (import
       (owl defmac)
+      (owl function)
       (owl lazy)
       (owl list)
       (owl string)
@@ -231,24 +233,33 @@
          (lets ((l r val (parser null ll parser-succ)))
             (if l (cons val r) def)))
 
+      ;; computes rest of parser stream
+      (define (silent-syntax-fail val)
+         (λ (cont ll msg) val))
+            
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
       ;; prompt removed from here - it belongs elsewhere
       (define (fd->exp-stream fd parser fail)
-         (let loop ((ll (port->byte-stream fd)))
-            (lets
-               ((lp r val
-                   (parser null ll parser-succ)))
-               (cond
-                  (lp ;; something parsed successfully
-                     (pair val (loop r)))
-                  ((null? r) ;; end of input
-                     ;; typically there is whitespace, so this does not happen
-                     null)
-                  (else
-                     ;; error handling being converted
-                     ;(print-to stderr "fd->exp-stream: syntax error")
-                     null)))))
+         (λ ()
+            (let loop ((ll (port->byte-stream fd)))
+               (lets
+                  ((lp r val
+                      (parser null ll parser-succ)))
+                  (cond
+                     (lp ;; something parsed successfully
+                        (pair val (loop r)))
+                     ((null? r) ;; end of input
+                        ;; typically there is whitespace, so this does not happen
+                        null)
+                     ((function? fail)
+                        ;null
+                        (fail loop r val)
+                        )
+                     (else
+                        ;; error handling being converted
+                        ;(print-to stderr "fd->exp-stream: syntax error")
+                        null))))))
 
       (define (file->exp-stream path parser fail)
          ;(print "file->exp-stream: trying to open " path)
