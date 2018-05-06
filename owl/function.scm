@@ -1,7 +1,10 @@
 
 (define-library (owl function)
 
-   (export function? procedure? bytecode?)
+   (export
+      bytecode?
+      function?
+      procedure?)
 
    (import
       (owl defmac)
@@ -10,7 +13,7 @@
 
    (begin
 
-      (define (bytecode? x) 
+      (define (bytecode? x)
          (eq? type-bytecode (type x)))
 
       ;; raw bytecode vector, 1-level (proc) or 2-level (clos) function
@@ -18,13 +21,10 @@
          (or
             (bytecode? x)
             (eq? (type x) type-proc)
-            (eq? (type x) type-clos)
-            ;(eq? #b010 (fxband (type-old x) #b11111010))
-            ))
+            (eq? (type x) type-clos)))
 
       ;; something executable? being a function or a finite function
       (define (procedure? obj)
          (or (function? obj)
-             (ff? obj)))))
-
-
+             (ff? obj)))
+))

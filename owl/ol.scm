@@ -95,7 +95,6 @@
    (owl args)
    (owl cgen)
    (only (owl dump) make-compiler dump-fasl load-fasl suspend)
-   (owl sys)
    (owl char)
    (owl eval)
    (owl repl)
@@ -125,14 +124,13 @@
       (string->symbol (string-append "owl-lisp-" *owl-version*))
       '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
 
-(define shared-misc
+(define shared-bindings
    (share-bindings
       run syscall error
       pair? boolean? fixnum? eof-object? symbol?
       tuple? string? function? procedure? equal? eqv? bytecode?
       not
       null? null
-      B
       time
       time-ms
       halt
@@ -146,7 +144,6 @@
       list->tuple
       exit-thread
       number->string
-      fork
       exit-owl
       single-thread?
       set-ticker
@@ -161,7 +158,7 @@
       set-signal-action
       byte-vector?
       string->symbol
-      close-port flush-port
+      close-port
       set-memory-limit
       gensym
       get-word-size
@@ -173,8 +170,6 @@
       *include-dirs*
       *libraries*      ;; all currently loaded libraries
       ))
-
-(define shared-bindings shared-misc)
 
 (define initial-environment-sans-macros
    (fold

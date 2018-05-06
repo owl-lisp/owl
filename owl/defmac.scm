@@ -40,9 +40,6 @@
       type-rlist-spine
       type-rlist-node
       type-port
-      type-tcp-socket
-      type-udp-socket
-      type-tcp-client
       type-string
       type-string-wide
       type-string-dispatch
@@ -495,9 +492,6 @@
       (define type-complex          43) ;; 3 free below
       (define type-const            13) ;; old type-null, moved from 1, clashing with pairs
       (define type-port             12)
-      (define type-tcp-socket       44) ;; port | 1<<5
-      (define type-udp-socket       76) ;; port | 2<<5
-      (define type-tcp-client       62)
 
 
       ;;           allocated/pointers     allocated/rawdata    immediate

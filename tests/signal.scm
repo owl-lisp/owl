@@ -1,12 +1,12 @@
 
-(import 
+(import
    (prefix (owl sys) sys-))
 
 (define (loop) (loop))
 
 (define (fork-inf)
    (let ((r (sys-fork)))
-      (if (number? r)
+      (if (integer? r)
          r ;; return pid
          (loop)))) ;; get stuck
 

@@ -17,7 +17,6 @@
       port->fd                ;; port → fixnum
       fd->port                ;; fixnum → port
       port?                   ;; _ → bool
-      flush-port              ;; fd → _
       close-port              ;; fd → _
       start-base-threads      ;; start stdio and sleeper threads
       wait-write              ;; fd → ? (no failure handling yet)
@@ -47,9 +46,6 @@
       byte-stream->port       ;; bs fd → bool
       port->block-stream      ;; fd → (bvec ...)
       block-stream->port      ;; (bvec ...) fd → bool
-
-      ;; temporary exports
-      fclose                 ;; fd → _
 
       stdin stdout stderr
       display-to        ;; port val → bool
@@ -103,20 +99,9 @@
    (begin
 
       ;; standard io ports
-      (define stdin  (fd->port 0))
-      (define stdout (fd->port 1))
-      (define stderr (fd->port 2))
-
-      ;; use type 12 for fds 
-
-      (define (fclose fd)
-         (sys-prim 2 fd #false #false))
-
-      (define (fopen path mode)
-         (cond
-            ((c-string path) =>
-               (λ (raw) (sys-prim 1 raw mode #false)))
-            (else #false)))
+      (define stdin sys-stdin)
+      (define stdout sys-stdout)
+      (define stderr sys-stderr)
 
       ;;; Writing
 
@@ -125,16 +110,13 @@
          (raw (map (H refb bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
-         (cond
-            ;; one does not simply write() on all platforms
-            ((tcp? fd)  (sys-prim 15 fd bvec len))
-            ((port? fd)
+         (and
+            (port? fd)
+            (begin
                ;; stdio ports are not in non-blocking mode, so poll always
                (if (or (eq? fd stdout) (eq? fd stderr))
                   (interact 'iomux (tuple 'write fd)))
-               (sys-prim 0 fd bvec len))
-            (else
-               #false)))
+               (sys-prim 0 fd bvec len))))
 
       ;; bvec port → bool
       (define (write-really bvec fd)
@@ -166,15 +148,15 @@
       (define append-mode (foldr bor 0 (list mode/write mode/create mode/append)))
 
       (define (open-input-file path)
-         (let ((fd (fopen path read-mode)))
+         (let ((fd (sys-open path read-mode)))
             (if fd (fd->port fd) fd)))
 
       (define (open-output-file path)
-         (let ((fd (fopen path output-mode))) ;; temporarily also applies others
+         (let ((fd (sys-open path output-mode))) ;; temporarily also applies others
             (if fd (fd->port fd) fd)))
 
       (define (open-append-file path)
-         (let ((fd (fopen path append-mode)))
+         (let ((fd (sys-open path append-mode)))
             (if fd
                (let ((port (fd->port fd)))
                   (sys-seek-end port)
@@ -315,12 +297,7 @@
       (define (udp-client-socket)
          (sys-prim 29 #f #f socket-type-udp))
 
-      ;; deprecated
-      (define (flush-port fd)
-         ;(mail fd 'flush)
-         42)
-
-      (define close-port fclose)
+      (define close-port sys-close)
 
 
       ;;;
@@ -351,7 +328,7 @@
 
       (define (closing-blocks->port ll fd)
          (lets ((r n (blocks->port ll fd)))
-            (fclose fd)
+            (close-port fd)
             (values r n)))
 
       ;; sock → #f #f | ip client

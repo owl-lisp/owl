@@ -52,8 +52,8 @@
       stdin
       stdout
       stderr
-      fopen
-      fclose
+      open
+      close
       dupfd
       set-terminal-rawness
       mem-string      ;; pointer to null terminated string → raw string
@@ -231,10 +231,10 @@
       (define (strerror errnum)
          (mem-string (sys 14 errnum)))
 
-      (define (fclose fd)
+      (define (close fd)
          (sys 2 fd))
 
-      (define (fopen path mode)
+      (define (open path mode)
          (sys 1 path mode))
 
       ;; → (fixed ? fd == new-fd : fd >= new-fd) | #false
@@ -355,6 +355,15 @@
       ;;; Filesystem operation
       ;;;
 
+      (sc S_IFMT 0)
+      (sc S_IFBLK 2)
+      (sc S_IFCHR 3)
+      (sc S_IFIFO 4)
+      (sc S_IFREG 5)
+      (sc S_IFDIR 6)
+      (sc S_IFLNK 7)
+      (sc S_IFSOCK 8)
+
       (define (umask mask)
          (sys 37 mask))
 
@@ -390,15 +399,6 @@
 
       (define (mkfifo path mode)
          (mknod path 0 mode 0))
-
-      (sc S_IFMT 0)
-      (sc S_IFBLK 2)
-      (sc S_IFCHR 3)
-      (sc S_IFIFO 4)
-      (sc S_IFREG 5)
-      (sc S_IFDIR 6)
-      (sc S_IFLNK 7)
-      (sc S_IFSOCK 8)
 
       (define (stat arg follow)
          (zip cons
@@ -447,8 +447,8 @@
       (define (setenv var val)
          (sys 28 var val))
 
-      (define unsetenv
-         (C setenv #false))
+      (define (unsetenv var)
+         (sys 28 var))
 
       (define (get-environment-pointer)
          (sys 9 1))

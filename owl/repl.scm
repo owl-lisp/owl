@@ -75,12 +75,12 @@
                         (keyword literals (pattern ...)
                         (template ...)))))))
             ;; note that these could now come straight from primops
-            '(cons car cdr eq? type type-old size cast fetch ref sys-prim refb
-              pick mk mkr sys fxbor fxbxor fread _fopen fclose fsend lraw
-              raw _sopen accept mkt bind set lesser? call-native
+            '(cons car cdr eq? type size cast ref sys-prim refb
+              mk mkr sys fxbor fxbxor lraw
+              raw accept mkt bind set lesser?
               mkred mkblack ff-bind ff-toggle ffcar ffcdr red? listuple
               fxband fx+ fxqr fx* fx- fx<< fx>> ncons ncar ncdr raw-mode
-              iomux clock time sizeb getev type-byte)))
+              iomux clock time sizeb type-byte)))
 
       ;; toplevel variable to which loaded libraries are added
 

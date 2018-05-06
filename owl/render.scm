@@ -113,9 +113,6 @@
                ((tuple? obj)
                   (ilist #\# #\[ (render (tuple->list obj) (cons #\] tl))))
 
-               ;; port = socket | tcp | fd
-               ((socket? obj) (ilist #\# #\[ #\s #\o #\c #\k #\e #\t #\space (render (port->fd obj) (cons #\] tl))))
-               ((tcp? obj) (ilist #\# #\[ #\t #\c #\p #\space (render (port->fd obj) (cons #\] tl))))
                ((port? obj) (ilist #\# #\[ #\f #\d #\space (render (port->fd obj) (cons #\] tl))))
                ((eof-object? obj) (ilist #\# #\e #\o #\f tl))
                ((eq? obj #empty) (ilist #\# #\e #\m #\p #\t #\y tl))
@@ -241,8 +238,6 @@
                      (ser sh (tuple->list obj)
                         (λ (sh) (pair #\] (k sh))))))
 
-               ((socket? obj) (render obj (λ () (k sh))))
-               ((tcp? obj)    (render obj (λ () (k sh))))
                ((port? obj)   (render obj (λ () (k sh))))
                ((eof-object? obj) (render obj (λ () (k sh))))
                ((eq? obj #empty)    (render obj (λ () (k sh))))
@@ -255,7 +250,6 @@
          (or
             (immediate? val)
             (number? val) (string? val) (function? val)
-            (tcp? val) (socket? val) (rlist? val)
             (ff? val)))
 
       ;; could drop val earlier to possibly gc it while rendering 
@@ -266,7 +260,7 @@
 
       ;; a value worth checking for sharing in datum labeler
       (define (shareable? x)
-         (not (or (function? x) (symbol? x) (port? x) (tcp? x) (socket? x))))
+         (not (or (function? x) (symbol? x) (port? x))))
 
       (define (partial-object-closure seen obj)
          (cond
