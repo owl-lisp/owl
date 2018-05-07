@@ -437,7 +437,7 @@ static word prim_connect(word *host, word port, word type) {
    if ((sock = socket(PF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0))) == -1)
       return IFALSE;
    if (udp)
-      return F(sock);
+      return make_immediate(sock, TPORT);
    if (!allocp(host)) /* bad host type */
       return IFALSE;
    addr.sin_family = AF_INET;
@@ -449,7 +449,7 @@ static word prim_connect(word *host, word port, word type) {
       close(sock);
       return IFALSE;
    }
-   return F(sock);
+   return make_immediate(sock, TPORT);
 }
 
 static word prim_less(word a, word b) {
@@ -633,7 +633,7 @@ static word prim_sys(int op, word a, word b, word c) {
                return IFALSE;
             }
          }
-         return F(s); }
+         return make_immediate(s, TPORT); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = immval(a);
          struct sockaddr_in addr;
@@ -644,7 +644,7 @@ static word prim_sys(int op, word a, word b, word c) {
          if (fd < 0) return IFALSE;
          ipa = mkbvec(4, TBVEC);
          bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
-         return cons((word)ipa, F(fd)); }
+         return cons((word)ipa, make_immediate(fd, TPORT)); }
       case 5: /* read fd len -> bvec | EOF | #f */
          if (is_type(a, TPORT)) {
             size_t len = memend - fp;
@@ -719,7 +719,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return onum((word)strerror(immval(a)), 0);
       case 15: /* fcntl port cmd arg → integer | #f */
          if (is_type(a, TPORT)) {
-            int res = fcntl(immval(a), cnum(b), cnum(c));
+            int res = fcntl(immval(a), cnum(b), (intptr_t)cnum(c));
             if (res != -1)
                return onum(res, 1);
          }
