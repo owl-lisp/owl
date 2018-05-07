@@ -57,6 +57,7 @@
       stdin
       stdout
       stderr
+      stdio?
       close
       fcntl
       open
@@ -286,16 +287,13 @@
          (sys 15 port cmd arg))
 
       (define (toggle-file-status-flag port flag on?)
-         (let ((flags (fcntl port (F_GETFL) 0)))
-            (and
-               flags
-               (or
-                  (eq? (band flags flag) (if on? flag 0))
-                  (fcntl port (F_SETFL) (bxor flags flag))))))
+         (if-lets ((flags (fcntl port (F_GETFL) 0)))
+            (or
+               (eq? (band flags flag) (if on? flag 0))
+               (fcntl port (F_SETFL) (bxor flags flag)))))
 
       (define (port->non-blocking port)
-         (and
-            port
+         (if port
             (toggle-file-status-flag port (O_NONBLOCK) (not (stdio? port))))
          port)
 

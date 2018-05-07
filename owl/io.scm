@@ -110,13 +110,10 @@
          (raw (map (H refb bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
-         (and
-            (port? fd)
-            (begin
-               ;; stdio ports are not in non-blocking mode, so poll always
-               (if (or (eq? fd stdout) (eq? fd stderr))
-                  (interact 'iomux (tuple 'write fd)))
-               (sys-write fd bvec len))))
+         ;; stdio ports are in blocking mode, so poll always
+         (if (sys-stdio? fd)
+            (interact 'iomux (tuple 'write fd)))
+         (sys-write fd bvec len))
 
       ;; bvec port → bool
       (define (write-really bvec fd)
@@ -163,8 +160,8 @@
          #x8000)
 
       (define (try-get-block fd block-size block?)
-         ;; stdin is not in nonblocking mode, so always poll
-         (if (eq? fd stdin)
+         ;; stdio ports are in blocking mode, so poll always
+         (if (sys-stdio? fd)
             (interact 'iomux (tuple 'read fd)))
          (let ((res (sys-read fd block-size)))
             (if (eq? res #true) ;; would block
@@ -219,7 +216,7 @@
             (let ((res (sys-prim 4 fd #false #false)))
                (if res ; did get connection
                   (lets ((ip fd res))
-                     (mail thread fd)
+                     (mail thread (sys-port->non-blocking fd))
                      #true)
                   (begin
                      ;(interact sid 5) ;; delay rounds
@@ -230,12 +227,10 @@
       (define socket-type-udp 1)
 
       (define (open-tcp-socket port)
-         (let ((sock (sys-prim 3 port socket-type-tcp #false)))
-            (and sock (sys-port->non-blocking (fd->port sock)))))
+         (sys-port->non-blocking (sys-prim 3 port socket-type-tcp #false)))
 
       (define (open-udp-socket port)
-         (let ((sock (sys-prim 3 port socket-type-udp #false)))
-            (and sock (sys-port->non-blocking (fd->port sock)))))
+         (sys-port->non-blocking (sys-prim 3 port socket-type-udp #false)))
 
       ;; port → (ip . bvec) | #false, nonblocking
       (define (check-udp-packet port)
@@ -273,8 +268,7 @@
             ((not (eq? (type port) type-fix+))
                #false)
             ((and (eq? (type ip) type-vector-raw) (eq? 4 (sizeb ip))) ;; silly old formats
-               (let ((fd (sys-prim 29 ip port socket-type-tcp)))
-                  (and fd (sys-port->non-blocking (fd->port fd)))))
+               (sys-port->non-blocking (sys-prim 29 ip port socket-type-tcp)))
             (else
                ;; note: could try to autoconvert formats to be a bit more user friendly
                #false)))
@@ -321,7 +315,7 @@
          (let ((res (sys-prim 4 sock #false #false)))
             (if res
                (lets ((ip fd res))
-                  (values ip (sys-port->non-blocking (fd->port fd))))
+                  (values ip (sys-port->non-blocking fd)))
                (begin
                   ;(interact sid socket-read-delay)
                   (interact 'iomux (tuple 'read sock))
