@@ -126,46 +126,9 @@
 
 (define shared-bindings
    (share-bindings
-      run syscall error
-      pair? boolean? fixnum? eof-object? symbol?
-      tuple? string? function? procedure? equal? eqv? bytecode?
-      not
-      null? null
-      time
-      time-ms
       halt
-      apply
-      call/cc
-      call-with-current-continuation
-      display print-to print print*
-      render
-      system-println
-      sleep
-      list->tuple
-      exit-thread
-      number->string
-      exit-owl
-      single-thread?
-      set-ticker
-      kill
-      catch-thread
-      release-thread
       suspend
-      mail interact
-      string->number
-      wait
-      wait-mail accept-mail check-mail return-mails
-      set-signal-action
-      byte-vector?
-      string->symbol
-      close-port
-      set-memory-limit
-      gensym
-      get-word-size
-      get-memory-limit
-      string->sexp
       read read-ll
-      make-variable
       *features*
       *include-dirs*
       *libraries*      ;; all currently loaded libraries
