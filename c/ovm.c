@@ -35,23 +35,26 @@
 #ifndef ETIME
 #define ETIME -1
 #endif
+#ifndef F_DUPFD_CLOEXEC
+#define F_DUPFD_CLOEXEC -1
+#endif
 #ifndef O_CLOEXEC
-#define O_CLOEXEC -1
+#define O_CLOEXEC 0
 #endif
 #ifndef O_EXEC
-#define O_EXEC -1
+#define O_EXEC 0
 #endif
 #ifndef O_NOFOLLOW
-#define O_NOFOLLOW -1
+#define O_NOFOLLOW 0
 #endif
 #ifndef O_RSYNC
-#define O_RSYNC -1
+#define O_RSYNC 0
 #endif
 #ifndef O_SEARCH
-#define O_SEARCH -1
+#define O_SEARCH 0
 #endif
 #ifndef O_TTY_INIT
-#define O_TTY_INIT -1
+#define O_TTY_INIT 0
 #endif
 #ifdef __APPLE__
 #define st_atim st_atimespec
@@ -353,18 +356,6 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-void toggle_blocking(int fd, int blockp) {
-   int fl0 = fcntl(fd, F_GETFL);
-   if (fl0 != -1) {
-      int fl1 = fl0 & ~O_NONBLOCK;
-      /* make sure, stdio stays in blocking mode */
-      if (!blockp && fd > 2)
-         fl1 |= O_NONBLOCK;
-      if (fl0 != fl1)
-         fcntl(fd, F_SETFL, fl1);
-   }
-}
-
 void signal_handler(int signal) {
    switch(signal) {
       case SIGINT:
@@ -458,7 +449,6 @@ static word prim_connect(word *host, word port, word type) {
       close(sock);
       return IFALSE;
    }
-   toggle_blocking(sock, 0);
    return F(sock);
 }
 
@@ -610,12 +600,9 @@ static word prim_sys(int op, word a, word b, word c) {
          return IFALSE;
       case 1: /* open path flags mode → port | #f */
          if (stringp(a)) {
-            int fd;
-            fd = open((const char *)a + W, cnum(b), immval(c));
-            if (fd != -1) {
-               toggle_blocking(fd, 0);
+            int fd = open((const char *)a + W, cnum(b), immval(c));
+            if (fd != -1)
                return make_immediate(fd, TPORT);
-            }
          }
          return IFALSE;
       case 2:
@@ -646,7 +633,6 @@ static word prim_sys(int op, word a, word b, word c) {
                return IFALSE;
             }
          }
-         toggle_blocking(s, 0);
          return F(s); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
          int sock = immval(a);
@@ -656,7 +642,6 @@ static word prim_sys(int op, word a, word b, word c) {
          word *ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
-         toggle_blocking(fd, 0);
          ipa = mkbvec(4, TBVEC);
          bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
          return cons((word)ipa, F(fd)); }
@@ -693,7 +678,9 @@ static word prim_sys(int op, word a, word b, word c) {
             ERANGE, EROFS, ESPIPE, ESRCH, ESTALE, ETIME, ETIMEDOUT, ETXTBSY,
             EWOULDBLOCK, EXDEV, SEEK_SET, SEEK_CUR, SEEK_END, O_EXEC, O_RDONLY, O_RDWR,
             O_SEARCH, O_WRONLY, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_DSYNC, O_EXCL,
-            O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_RSYNC, O_SYNC, O_TRUNC, O_TTY_INIT
+            O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_RSYNC, O_SYNC, O_TRUNC, O_TTY_INIT, O_ACCMODE,
+            FD_CLOEXEC, F_DUPFD, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, F_GETFL, F_SETFL, F_GETOWN,
+            F_SETOWN, F_GETLK, F_SETLK, F_SETLKW, F_RDLCK, F_UNLCK, F_WRLCK
          };
          return onum(sysconst[immval(a) % (sizeof sysconst / W)], 0); }
       case 9: /* return process variables */
@@ -730,8 +717,13 @@ static word prim_sys(int op, word a, word b, word c) {
          return BOOL(closedir((DIR *)(intptr_t)cnum(a)) == 0);
       case 14: /* strerror errnum → pointer */
          return onum((word)strerror(immval(a)), 0);
-      case 15: /* unused */
-         exit(42);
+      case 15: /* fcntl port cmd arg → integer | #f */
+         if (is_type(a, TPORT)) {
+            int res = fcntl(immval(a), cnum(b), cnum(c));
+            if (res != -1)
+               return onum(res, 1);
+         }
+         return IFALSE;
       case 16: /* getenv key → pointer */
          return onum(stringp(a) ? (word)getenv((const char *)a + W) : 0, 0);
       case 17: { /* exec[v] path argl ret */
@@ -833,23 +825,17 @@ static word prim_sys(int op, word a, word b, word c) {
          return IFALSE;
       case 29:
          return prim_connect((word *) a, b, c);
-      case 30: /* dupfd old-port new-fd fixed? → new-port | #f */
+      case 30: /* dup2 old-port new-fd → new-port | #f */
          if (is_type(a, TPORT)) {
-            int fd0 = immval(a), fd1 = immval(b);
-            fd1 = c != IFALSE ? dup2(fd0, fd1) : fcntl(fd0, F_DUPFD, fd1);
-            if (fd1 != -1) {
-               if (fd1 < 3)
-                  toggle_blocking(fd1, 1);
-               return make_immediate(fd1, TPORT);
-            }
+            int fd = dup2(immval(a), immval(b));
+            if (fd != -1)
+               return make_immediate(fd, TPORT);
          }
          return IFALSE;
       case 31: { /* pipe → '(read-port . write-port) | #f */
          int fd[2];
          if (pipe(fd) != 0)
             return IFALSE;
-         toggle_blocking(fd[0], 0);
-         toggle_blocking(fd[1], 0);
          return cons(make_immediate(fd[0], TPORT), make_immediate(fd[1], TPORT)); }
       case 32: /* rename src dst → bool */
          return BOOL(stringp(a) && stringp(b) && rename((char *)a + W, (char *)b + W) == 0);

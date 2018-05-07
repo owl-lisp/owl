@@ -48,7 +48,7 @@
       (else => (λ (pid)
          ;; parent: close write end
          (close-port (cdr pipefd))
-         (print (car ((lines (fd->port (car pipefd))))) " from sub-process")
+         (print (car ((lines (car pipefd)))) " from sub-process")
          (wait-pid pid))))
    (print "pipe creation failed"))
 

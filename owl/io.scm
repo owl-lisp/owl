@@ -231,15 +231,11 @@
 
       (define (open-tcp-socket port)
          (let ((sock (sys-prim 3 port socket-type-tcp #false)))
-            (if sock
-               (fd->port sock)
-               #false)))
+            (and sock (sys-port->non-blocking (fd->port sock)))))
 
       (define (open-udp-socket port)
          (let ((sock (sys-prim 3 port socket-type-udp #false)))
-            (if sock
-               (fd->port sock)
-               #false)))
+            (and sock (sys-port->non-blocking (fd->port sock)))))
 
       ;; port → (ip . bvec) | #false, nonblocking
       (define (check-udp-packet port)
@@ -278,9 +274,7 @@
                #false)
             ((and (eq? (type ip) type-vector-raw) (eq? 4 (sizeb ip))) ;; silly old formats
                (let ((fd (sys-prim 29 ip port socket-type-tcp)))
-                  (if fd
-                     (fd->port fd)
-                     #false)))
+                  (and fd (sys-port->non-blocking (fd->port fd)))))
             (else
                ;; note: could try to autoconvert formats to be a bit more user friendly
                #false)))
@@ -327,7 +321,7 @@
          (let ((res (sys-prim 4 sock #false #false)))
             (if res
                (lets ((ip fd res))
-                  (values ip (fd->port fd)))
+                  (values ip (sys-port->non-blocking (fd->port fd))))
                (begin
                   ;(interact sid socket-read-delay)
                   (interact 'iomux (tuple 'read sock))
