@@ -57,11 +57,13 @@
       stdin
       stdout
       stderr
-      open
       close
+      fcntl
+      open
       dupfd
       read
       write
+      port->non-blocking
       set-terminal-rawness
       mem-string      ;; pointer to null terminated string → raw string
       mem-strings     ;; **string → (raw-string ...)
@@ -93,6 +95,7 @@
       (define stdin  (fd->port 0))
       (define stdout (fd->port 1))
       (define stderr (fd->port 2))
+      (define stdio? (H has? (list stdin stdout stderr)))
 
       ;; owl value → value processable in vm (mainly string conversion)
       (define (sys-arg x)
@@ -259,26 +262,66 @@
       (sc O_SYNC 108)
       (sc O_TRUNC 109)
       (sc O_TTY_INIT 110)
+      (sc O_ACCMODE 111)
+      (sc FD_CLOEXEC 112)
+      (sc F_DUPFD 113)
+      (sc F_DUPFD_CLOEXEC 114)
+      (sc F_GETFD 115)
+      (sc F_SETFD 116)
+      (sc F_GETFL 117)
+      (sc F_SETFL 118)
+      (sc F_GETOWN 119)
+      (sc F_SETOWN 120)
+      (sc F_GETLK 121)
+      (sc F_SETLK 122)
+      (sc F_SETLKW 123)
+      (sc F_RDLCK 124)
+      (sc F_UNLCK 125)
+      (sc F_WRLCK 126)
 
       (define (close fd)
          (sys 2 fd))
 
+      (define (fcntl port cmd arg)
+         (sys 15 port cmd arg))
+
+      (define (toggle-file-status-flag port flag on?)
+         (let ((flags (fcntl port (F_GETFL) 0)))
+            (and
+               flags
+               (or
+                  (eq? (band flags flag) (if on? flag 0))
+                  (fcntl port (F_SETFL) (bxor flags flag))))))
+
+      (define (port->non-blocking port)
+         (and
+            port
+            (toggle-file-status-flag port (O_NONBLOCK) (not (stdio? port))))
+         port)
+
       (define (open path flags mode)
-         (sys 1 path flags mode))
+         (port->non-blocking (sys 1 path flags mode)))
 
       ;; → (fixed ? fd == new-fd : fd >= new-fd) | #false
-      (define (dupfd old-fd new-fd fixed)
-         (sys 30 old-fd new-fd fixed))
+      (define (dupfd port new-fd fixed?)
+         (let ((port
+                  (if fixed?
+                     (sys 30 port new-fd)
+                     (let ((fd (fcntl port (F_DUPFD) new-fd)))
+                        (and fd (fd->port fd))))))
+            (if (stdio? port)
+               (toggle-file-status-flag port (O_NONBLOCK) #f))
+            port))
 
-      (define (read fd len)
+      (define (read port len)
          (or
-            (sys 5 fd len)
+            (sys 5 port len)
             (let ((err (errno)))
                (or (eq? (EAGAIN) err) (eq? (EWOULDBLOCK) err)))))
 
-      (define (write fd data len)
+      (define (write port data len)
          (or
-            (sys 0 fd data len)
+            (sys 0 port data len)
             (and
                (let ((err (errno)))
                   (or (eq? (EAGAIN) err) (eq? (EWOULDBLOCK) err)))
@@ -353,7 +396,12 @@
 
       ;; → #false on failure, else '(read-port . write-port)
       (define (pipe)
-         (sys 31))
+         (let ((ports (sys 31)))
+            (if (pair? ports)
+               (begin
+                  (port->non-blocking (car ports))
+                  (port->non-blocking (cdr ports))))
+            ports))
 
       ;; → #false = fork failed, #true = ok, we're in child, n = ok, child pid is n
       (define (fork)
@@ -464,17 +512,17 @@
       (sc SEEK_CUR 91)
       (sc SEEK_END 92)
 
-      (define (lseek fd pos whence)
-         (sys 25 fd pos whence))
+      (define (lseek port pos whence)
+         (sys 25 port pos whence))
 
-      (define (seek-end fd)
-         (lseek fd 0 (SEEK_END)))
+      (define (seek-end port)
+         (lseek port 0 (SEEK_END)))
 
-      (define (seek-current fd)
-         (lseek fd 0 (SEEK_CUR)))
+      (define (seek-current port)
+         (lseek port 0 (SEEK_CUR)))
 
-      (define (seek-set fd pos)
-         (lseek fd pos (SEEK_SET)))
+      (define (seek-set port pos)
+         (lseek port pos (SEEK_SET)))
 
       ;;;
       ;;; Environment variables
