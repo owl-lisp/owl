@@ -719,7 +719,7 @@ static word prim_sys(int op, word a, word b, word c) {
          return onum((word)strerror(immval(a)), 0);
       case 15: /* fcntl port cmd arg → integer | #f */
          if (is_type(a, TPORT)) {
-            int res = fcntl(immval(a), cnum(b), cnum(c));
+            int res = fcntl(immval(a), cnum(b), (intptr_t)cnum(c));
             if (res != -1)
                return onum(res, 1);
          }
