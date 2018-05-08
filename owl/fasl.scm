@@ -53,7 +53,6 @@
       (only (owl syscall) error)
       (owl proof)
       (owl list)
-      (owl intern)
       (owl rlist))
 
    (begin
@@ -104,7 +103,7 @@
                (let ((seen (put seen obj 1)))
                   (if (raw? obj)
                      seen
-                     (fold partial-object-closure seen 
+                     (fold partial-object-closure seen
                         (tuple->list obj)))))))
 
       (define (sub-objects root pred)
@@ -216,7 +215,7 @@
       (define (chunk-stream bs n buff)
          (cond
             ((eq? n chunk-size)
-               (cons 
+               (cons
                   (list->byte-vector (reverse buff))
                   (chunk-stream bs 0 null)))
             ((null? bs)
@@ -232,7 +231,7 @@
       (define (fasl-encode-stream obj cook)
          (chunk-stream (encode obj cook) 0 null))
 
-      ;;; 
+      ;;;
       ;;; Decoder
       ;;;
 
@@ -249,7 +248,7 @@
                (get-nat ll fail (bor (<< top 7) (band b low7))))))
 
       (define (decode-immediate ll fail)
-         (lets 
+         (lets
             ((ll type (grab ll fail))
              (ll val  (get-nat ll fail 0)))
             (values ll (cast val type))))
@@ -301,7 +300,7 @@
                            (cond
                               ((symbol? obj)
                                  ;; symbols must be (re)interned. they are only valid up to equalit within the fasl.
-                                 (decoder ll 
+                                 (decoder ll
                                     (rcons
                                        (string->symbol (symbol->string obj))
                                        got)
@@ -347,7 +346,7 @@
                      ((null? ll) (fail enodata))
                      ((pair? ll)
                         ; a leading 0 is special and means the stream has no allocated objects, just one immediate one
-                        (if (eq? 0 (car ll)) 
+                        (if (eq? (car ll) 0)
                            (decode-immediate (cdr ll) fail)
                            (decoder ll null fail)))
                      (else (decode-or (ll) err)))))))

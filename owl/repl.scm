@@ -38,7 +38,6 @@
       (scheme base)
       (owl lazy)
       (owl macro)
-      (owl intern)
       (only (owl regex) string->regex)
       (scheme cxr))
 
@@ -75,12 +74,9 @@
                         (keyword literals (pattern ...)
                         (template ...)))))))
             ;; note that these could now come straight from primops
-            '(cons car cdr eq? type size cast ref sys-prim refb
-              sys fxbor fxbxor
-              raw mkt bind set lesser?
-              mkred mkblack ff-bind listuple
-              fxband fx+ fxqr fx* fx- fx<< fx>> ncons ncar ncdr
-              clock sizeb type-byte)))
+            '(cons car cdr eq? type size cast ref sys-prim refb sys fxbor fxbxor
+              raw mkt bind set lesser? mkred mkblack ff-bind listuple fxband fx+
+              fxqr fx* fx- fx<< fx>> ncons ncar ncdr clock sizeb type-byte)))
 
       ;; toplevel variable to which loaded libraries are added
 
@@ -210,7 +206,7 @@
                   (file->exp-stream path sexp-parser (silent-syntax-fail null))
                   (file->exp-stream
                      (string-append (env-get env '*owl* "NA") path)
-                     sexp-parser 
+                     sexp-parser
                      (silent-syntax-fail null)))))
             (if exps
                (begin

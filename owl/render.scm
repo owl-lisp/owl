@@ -10,7 +10,6 @@
       (owl list)
       (owl list-extra)
       (owl boolean)
-      (owl symbol)
       (owl ff)
       (owl tuple)
       (owl function)
@@ -19,7 +18,7 @@
       (owl lazy)
       (owl math)
       (owl port)
-      ;(only (owl fasl) sub-objects)
+      (only (owl symbol) render-symbol symbol?)
       (only (owl vector) byte-vector? vector? vector->list)
       (only (owl math) render-number number?)
       (only (owl string) render-string string?))
@@ -67,7 +66,7 @@
                   (append (string->list (if obj "#true" "#false")) tl))
 
                ((symbol? obj)
-                  (render (symbol->string obj) tl))
+                  (render-symbol obj tl))
 
                ;; these are a subclass of vectors in owl
                ;((byte-vector? obj)
@@ -200,7 +199,7 @@
                      (delay (k sh))))
 
                ((symbol? obj)
-                  (render (symbol->string obj) (delay (k sh))))
+                  (render-symbol obj (delay (k sh))))
 
                ((vector? obj)
                   (cons #\#

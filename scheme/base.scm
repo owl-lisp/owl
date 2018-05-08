@@ -249,7 +249,6 @@
       (owl string)
       (owl primop)
       (owl math-extra)
-      (owl intern)
       (owl vector)
       (owl port)
       (owl symbol)
@@ -333,12 +332,7 @@
 
       (define (string->integer str)
          (let ((n (string->number str 10)))
-            (cond
-               ((eq? (type n) type-fix+) n)
-               ((eq? (type n) type-fix-) n)
-               ((eq? (type n) type-int+) n)
-               ((eq? (type n) type-int-) n)
-               (else #false))))
+            (and (integer? n) n)))
 
       (define (number->string/base n base)
          (list->string (render-number n null base)))
@@ -376,8 +370,6 @@
       (define-missing-bad truncate-quotient)
       (define-missing-bad textual-port?)
       (define-missing-bad syntax-rules)
-      (define-missing-bad symbol=?)
-      (define-missing-bad symbol->string)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
       (define-missing-bad string-for-each)

@@ -15,7 +15,9 @@
 
 (define-library (owl gensym)
 
-   (export gensym fresh)
+   (export
+      fresh
+      gensym)
 
    (import
       (owl defmac)
@@ -25,20 +27,16 @@
       (owl list)
       (owl tuple)
       (owl render)
-      (owl intern)
       (owl math))
 
    (begin
-      ; now in lib-intern
-      ;(define string->symbol (H interact 'intern))
-      ;(define symbol->string (C ref 1))
 
       ; return the gensym id of exp (number) or #false
 
       (define (count-gensym-id str pos end n)
          (if (= pos end)
             n
-            (let ((this (refb str pos)))   
+            (let ((this (refb str pos)))
                (cond
                   ((and (< 47 this) (< this 58))
                      (count-gensym-id str (+ pos 1) end (+ (* n 10) (- this 48))))
@@ -54,7 +52,7 @@
             #false))
 
       (define (max-gensym-id exp max)
-         (cond  
+         (cond
             ((pair? exp)
                (if (eq? (car exp) 'quote)
                   max
@@ -77,7 +75,7 @@
                   (max-gensym-id formals max)))
             ((call rator rands)
                (max-ast-id rator
-                  (fold 
+                  (fold
                      (lambda (max exp) (max-ast-id exp max))
                      max rands)))
             ((value val) max)
@@ -90,14 +88,14 @@
             ((values vals)
                (fold (lambda (max exp) (max-ast-id exp max)) max vals))
             ((case-lambda fn else)
-               (max-ast-id fn 
+               (max-ast-id fn
                   (max-ast-id else max)))
             (else
                (error "gensym: max-ast-id: what is this: " exp))))
 
 
       (define (gensym exp)
-         (lets 
+         (lets
             ((id (+ 1 (if (tuple? exp) (max-ast-id exp 0) (max-gensym-id exp 0))))
              (digits (cons 103 (render id null))))
             (string->symbol (runes->string digits))))
@@ -108,5 +106,4 @@
       ;(gensym 1)
       ;(gensym '(1 2 3))
       ;(gensym '(g1 (g2 g9999) . g10000000000000))
-   ))
-
+))
