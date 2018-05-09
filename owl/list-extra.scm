@@ -11,10 +11,10 @@
       )
 
    (import
+      (owl defmac)
       (owl math)
       (owl list)
       (owl proof)
-      (owl defmac)
       (owl syscall))
 
    (begin

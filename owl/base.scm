@@ -3,6 +3,7 @@
 (define-library (owl base)
 
    (export
+      (exports (owl defmac))
       (exports (owl list))
       (exports (owl rlist))
       (exports (owl list-extra))
@@ -10,13 +11,11 @@
       (exports (owl io))
       (exports (owl lazy))
       (exports (owl string))
-      (exports (scheme base))
       (exports (owl symbol))
       (exports (owl sort))
       (exports (owl vector))
       (exports (owl equal))
       (exports (owl random))
-      (exports (owl defmac))
       (exports (owl render))
       (exports (owl syscall))
       (exports (owl bisect))
@@ -30,26 +29,28 @@
       (exports (owl math))
       (exports (owl tuple))
       (exports (owl digest))
-      (exports (scheme cxr))
-      (exports (scheme time))
+      halt
+      lets/cc
+      read
+      read-ll
+      suspend
       wait
-      call/cc
-      lets/cc)
+      (exports (scheme base))
+      (exports (scheme cxr)))
 
    (import
+      (owl defmac)
       (owl list)
       (owl rlist)
       (owl list-extra)
       (owl tuple)
       (owl ff)
-      (owl primop)
       (owl io)
       (owl port)
       (owl time)
       (owl lazy)
       (owl math-extra)
       (owl string)
-      (scheme base)
       (owl symbol)
       (owl sort)
       (owl fasl)
@@ -59,11 +60,22 @@
       (owl equal)
       (owl random)
       (owl regex)
-      (owl defmac)
       (owl suffix)
       (owl render)
       (owl syscall)
       (owl math)
       (owl digest)
+      (only (owl dump) suspend)
+      (only (owl primop) halt lets/cc wait)
+      (only (owl sexp) read read-ll)
+      (scheme base)
       (scheme cxr)
-      (scheme time)))
+
+      ;; just pull into the fasl
+      (owl codec)
+      (owl date)
+      (scheme case-lambda)
+      (scheme complex)
+      (scheme process-context)
+      (scheme time)
+      (scheme write)))

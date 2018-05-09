@@ -22,9 +22,9 @@
       valid-code-point?)
 
    (import
+      (owl defmac)
       (except (owl list) render)
       (owl list-extra)
-      (owl defmac)
       (owl lazy)
       (owl math)
       (only (owl syscall) error))
@@ -98,7 +98,7 @@
 
       ; grab low 6 bits of a number
       (define (ext n)
-         (fxbor extension 
+         (fxbor extension
             (band n #b111111)))
 
       (define (encode-point point tl)
@@ -245,16 +245,12 @@
          (bor (<< (fxband a #x1f) 6) (fxband b #x3f)))
 
       (define (three-byte-point a b c)
-         (bor (bor (<< (fxband a #x0f) 12) (<< (fxband b #x3f) 6)) 
+         (bor (bor (<< (fxband a #x0f) 12) (<< (fxband b #x3f) 6))
             (fxband c #x3f)))
 
       (define (four-byte-point a b c d)
-         (bor 
-            (bor (<< (fxband a #x07) 18) (<< (fxband b #x3f) 12)) 
+         (bor
+            (bor (<< (fxband a #x07) 18) (<< (fxband b #x3f) 12))
             (bor (<< (fxband c #x3f)  6)     (fxband d #x3f))))
 
 ))
-
-
-
-         

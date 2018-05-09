@@ -1,8 +1,8 @@
 (define-library (scheme time)
 
    (import
-      (owl defmac)
-      (owl time))
+      (scheme base)
+      (only (owl time) time time-ms))
 
    (export
       current-jiffy
@@ -14,7 +14,8 @@
       ;; note: not using clock() and CLOCKS_PER_SEC, because the bytecode must be portable
 
       (define jiffies-per-second 1000)
+
       (define current-jiffy time-ms)
 
-      (define current-second time)))
-
+      (define current-second time)
+))

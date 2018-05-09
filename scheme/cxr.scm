@@ -1,16 +1,16 @@
 (define-library (scheme cxr)
 
-   (import 
-      (owl defmac))
+   (import
+      (scheme base))
 
-   (export      
-      caaar 
-      caadr 
-      cadar 
+   (export
+      caaar
+      caadr
+      cadar
       caddr
-      cdaar 
-      cdadr 
-      cddar 
+      cdaar
+      cdadr
+      cddar
       cdddr
       caaaar
       caaadr
@@ -29,7 +29,7 @@
       cdddar
       cddddr)
 
-   (begin  
+   (begin
       (define (caaar x) (car (car (car x))))
       (define (caadr x) (car (car (cdr x))))
       (define (cadar x) (car (cdr (car x))))
@@ -54,6 +54,5 @@
       (define (cddaar x) (cdr (cdr (car (car x)))))
       (define (cddadr x) (cdr (cdr (car (cdr x)))))
       (define (cdddar x) (cdr (cdr (cdr (car x)))))
-      (define (cddddr x) (cdr (cdr (cdr (cdr x)))))))
-
-
+      (define (cddddr x) (cdr (cdr (cdr (cdr x)))))
+))

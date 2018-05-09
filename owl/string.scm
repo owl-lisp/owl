@@ -51,12 +51,12 @@
       )
 
    (import
+      (owl defmac)
       (owl iff)
       (only (owl syscall) error)
       (owl unicode)
       (owl list)
       (owl list-extra)
-      (owl defmac)
       (owl lazy)
       (owl math))
 

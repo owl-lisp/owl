@@ -1,12 +1,12 @@
 (define-library (scheme process-context)
 
    (import
+      (scheme base)
       (only (owl primop) halt)
       (only (owl ff) get)
       (only (owl syscall) error)
       (only (owl sys) getenv get-environment)
-      (only (owl variable) link-variable)
-      (scheme base))
+      (only (owl variable) link-variable))
 
    (export
       command-line
@@ -18,9 +18,9 @@
    (begin
 
       ;; link to app state variable started at repl startup
-      (define owl-state 
+      (define owl-state
          (link-variable '*state*))
-      
+
       (define (command-line)
          (get (owl-state) 'command-line-arguments #false))
 
@@ -32,7 +32,7 @@
 
       (define emergency-exit exit)
 
-      (define get-environment-variable 
+      (define get-environment-variable
          getenv)
 
       (define get-environment-variables

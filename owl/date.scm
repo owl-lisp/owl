@@ -21,8 +21,12 @@
 (define-library (owl date)
 
    (import
-      (owl base)
-      (owl proof))
+      (owl defmac)
+      (owl math)
+      (owl proof)
+      (owl render)
+      (owl time)
+      (owl syscall))
 
    (export
       date
@@ -65,7 +69,7 @@
                      #true))
                #false)))
 
-      (define month-durations 
+      (define month-durations
          (tuple 31 #false 31 30 31 30 31 31 30 31 30 31))
 
       (define (days-in-month month year)
@@ -90,7 +94,7 @@
          (and
             (and (fixnum? m) (<= 1 m 12))
             (and (integer? y) (> y 1200)) ;; check prior years also
-            (and (fixnum? d) (>= d 1) 
+            (and (fixnum? d) (>= d 1)
                (<= d (days-in-month m y)))))
 
       ;;;
@@ -99,7 +103,7 @@
 
       (define (leap-years-before y)
          (cond
-            ((< y 5) 
+            ((< y 5)
                (if (< y 1)
                   (error "year must be >=1, but was  " y)
                   1))
@@ -148,7 +152,7 @@
       (define (maybe-swap-year y md week day)
          (cond
             ((< week 52) (values week day))
-            ((> day 3) 
+            ((> day 3)
               ;; thursday already contained in this week
               (values week day))
             ((< (+ md (days-to-sunday day)) 32)
@@ -219,7 +223,7 @@
 
       (define date
          (case-lambda
-            (() (naive-date (time))) 
+            (() (naive-date (time)))
             ((sec) (naive-date sec))))
 
       (define (hours->secs h)
@@ -231,7 +235,7 @@
                 (tz (abs tz))
                 (tz-mins _ (quotrem tz 60))
                 (tz-hours tz-mins (quotrem tz-mins 60)))
-            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S 
+            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S
                  " " d "." m "." y
                  " UTC" tz-sign (zpad tz-hours) tz-hours ":" (zpad tz-mins) tz-mins)))
 
@@ -247,4 +251,3 @@
          (date-str 1234567890 0) = "23:31:30 13.2.2009 UTC+00:00")
 
 ))
-
