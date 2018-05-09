@@ -5,7 +5,7 @@ in the development:
 
    Jo Henke           A ton of improvements
    Doug Currie        GC improvements, data representation optimizations, etc.
-   Jown Cowan         A slew of filed bugs.
+   John Cowan         A slew of filed bugs.
    Pekka Pietikäinen  Portability suggestions and patches.
    Erno Kuusela       Portability suggestions and general insight.
 
