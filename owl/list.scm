@@ -5,7 +5,7 @@
       caar cadr cdar cddr
       list?
       zip fold foldr map for-each
-      memq getq last drop-while
+      memq assq last drop-while
       mem
       fold-map foldr-map
       append reverse keep remove
@@ -132,15 +132,15 @@
             (else (memq x (cdr lst)))))
 
       ;; lst k -> #false | value, get a value from an association list
-      (define (getq lst k)
+      (define (assq k lst)
          (cond
             ((null? lst) #false)
             ((eq? k (car (car lst))) (car lst))
-            (else (getq (cdr lst) k))))
+            (else (assq k (cdr lst)))))
 
       (example
-         (getq '((a . 1) (b . 2)) 'a) = '(a . 1)
-         (getq '((a . 1) (b . 2)) 'c) = #false)
+         (assq 'a '((a . 1) (b . 2))) = '(a . 1)
+         (assq 'c '((a . 1) (b . 2))) = #false)
 
 
       ;; last list default -> last-elem | default, get the last value of a list

@@ -267,7 +267,7 @@
       (define (rtl-moves-ok? moves)
          (cond
             ((null? moves) #true)
-            ((getq (cdr moves) (cdar moves))
+            ((assq (cdar moves) (cdr moves))
                #false)
             (else
                (rtl-moves-ok? (cdr moves)))))
@@ -295,7 +295,7 @@
          (let ((new (zip cons to-save safes)))
             (map
                (λ (reg)
-                  (let ((node (getq new reg)))
+                  (let ((node (assq reg new)))
                      (if node (cdr node) reg)))
                call)))
 

@@ -295,9 +295,6 @@
 
       (define memv member)
 
-      (define (assq k lst)
-         (getq lst k))
-
       (define (assv k l)
          (cond
             ((null? l) #f)

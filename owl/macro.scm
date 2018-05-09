@@ -107,10 +107,10 @@
                         ;;; append to dictionary
                         (push dictionary pattern form))
                      (else
-                        (let ((binding (getq dictionary pattern)))
+                        (let ((binding (assq pattern dictionary)))
                            (if binding
                               (if (equal? (cadr binding) form)
-                                 dictionary 
+                                 dictionary
                                  (fail pattern))
                               (cons (list pattern form) dictionary))))))
                ((null? pattern)
@@ -191,7 +191,7 @@
          (let loop ((form form))
             (cond
                ((symbol? form)
-                  (let ((binding (getq dictionary form)))
+                  (let ((binding (assq form dictionary)))
                      (if (and binding (pair? (cdr binding)))
                         (cadr binding)
                         form)))
