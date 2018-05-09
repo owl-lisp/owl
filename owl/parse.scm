@@ -15,7 +15,7 @@
       byte-if
       rune
       either
-      any
+      one-of
       star
       plus
       greedy-star
@@ -170,11 +170,11 @@
                         (loop l (r) left)))))))
 
 
-      (define-syntax any
+      (define-syntax one-of
          (syntax-rules ()
-            ((any a) a)
-            ((any a b) (either a b))
-            ((any a b . c) (either a (any b . c)))))
+            ((one-of a) a)
+            ((one-of a b) (either a b))
+            ((one-of a b . c) (either a (one-of b . c)))))
 
       (define (plus parser)
          (let-parses
@@ -202,7 +202,7 @@
                     (lesser? x hi)))))
 
       (define rune
-         (any
+         (one-of
             (byte-if (C lesser? 128))
             (let-parses
                ((a (byte-between 127 224))

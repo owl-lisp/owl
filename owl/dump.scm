@@ -172,10 +172,9 @@
                   (λ (tl func info)
                      (lets ((opcode new-func c-code info))
                         ;; render code if there (shared users do not have it)
-                        (if c-code 
+                        (if c-code
                            ;; all of these end to an implicit goto apply
-                           (ilist "      case " opcode ":" c-code "break; /* " func " */
-   " tl)
+                           (ilist "      case " opcode ":" c-code "break;\n" tl)
                            tl)))
                   null nops))))
 

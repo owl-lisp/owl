@@ -102,7 +102,7 @@
             0 digits))
 
       (define get-sign
-         (any (get-imm 43) (get-imm 45) (get-epsilon 43)))
+         (one-of (get-imm 43) (get-imm 45) (get-epsilon 43)))
 
       (define bases
          (list->ff
@@ -114,7 +114,7 @@
 
       ; fixme, # and cooked later
       (define get-base
-         (any
+         (one-of
             (let-parses
                ((skip (get-imm #\#))
                 (char (get-byte-if (λ (x) (getf bases x)))))
@@ -226,7 +226,7 @@
                skip)))
 
       (define get-a-whitespace
-         (any
+         (one-of
             ;get-hashbang   ;; actually probably better to make it a symbol as above
             (get-byte-if (H has? '(9 10 32 13)))
             (let-parses
@@ -310,7 +310,7 @@
             (list (get quotations type #false) value)))
 
       (define get-named-char
-         (any
+         (one-of
             (get-word "null" 0)
             (get-word "alarm" 7)
             (get-word "backspace" 8)
@@ -331,12 +331,12 @@
 
       ;; most of these are to go via type definitions later
       (define get-funny-word
-         (any
+         (one-of
             (get-word "..." '...)
             (let-parses
                ((skip (get-imm #\#))
                 (val
-                  (any
+                  (one-of
                      (get-word "true" #true)    ;; get the longer ones first if present
                      (get-word "false" #false)
                      (get-word "empty" #empty)
@@ -403,7 +403,7 @@
          (let-parses
             ((skip maybe-whitespace)
              (val
-               (any
+               (one-of
                   ;get-hashbang
                   get-number         ;; more than a simple integer
                   get-sexp-regex     ;; must be before symbols, which also may start with /
