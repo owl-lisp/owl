@@ -37,11 +37,10 @@
       (lets
          ((rst seed-1 (rand rst #xfffffffffffffff))
           (rst seed-2 (rand rst #xfffffffffffffff)))
-         (fork-server id (λ () (mailer (seed->rands seed-1) (+ id 1))))
-         (fork-server (+ id 1) (λ () (mailer (seed->rands seed-2) id)))
+         (thread id (mailer (seed->rands seed-1) (+ id 1)))
+         (thread (+ id 1) (mailer (seed->rands seed-2) id))
          rst))
    (seed->rands (* (time-ms) (<< (time-ms) 9)))
    (iota 0 2 n-threads))
 
-(for-each (λ (id) (mail id 'start)) (iota 0 1 n-threads))
-
+(for-each (C mail 'start) (iota 0 1 n-threads))

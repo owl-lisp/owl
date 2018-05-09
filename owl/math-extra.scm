@@ -22,14 +22,14 @@
       )
 
    (import 
+      (owl defmac)
       (owl math)
       (owl iff) 
       (owl list)
       (owl list-extra)
       (owl sort)
       (owl primop)
-      (only (owl syscall) por por*)
-      (owl defmac)
+      (only (owl syscall))
       (owl ff)
       (only (owl syscall) error))
 
@@ -367,7 +367,7 @@
 
       (define (factor n)   
          (if (> n 1)
-            (por
+            (or
                ;; prime check is relatively fast (for deterministic range) so try it first
                (if (prime? n)
                   (list (cons n 1))

@@ -169,7 +169,7 @@
                (riter-tree t 
                   (lambda () (riterator tl tail))))))
 
-      (define (riter rl) (riterator rl null))
+      (define riter (C riterator null))
 
       ;; riterr (backwards)
 
@@ -189,7 +189,7 @@
                   (lambda ()
                      (riterr-tree t tail))))))
 
-      (define (riterr rl) (riteratorr rl null))
+      (define riterr (C riteratorr null))
 
       ;; rfold (== (lfold op st (riter rl)))
 
@@ -224,7 +224,7 @@
             st
             (lets ((w t tl rl))
                (rfoldr-tree op (rfoldr op st tl) t))))
-      
+
       ;; conversions
 
       (define (list->rlist l) ; naive O(n log n)
@@ -295,11 +295,11 @@
 	(define-syntax same
 		(syntax-rules ()
 			((same a r) (mkt 14 a r))))
-	
+
    (define-syntax less
 		(syntax-rules ()
 			((less a r) (mkt 46 a r))))
-   
+
    (define-syntax node ;; in-tree node
       (syntax-rules () 
          ((node a b) (mkt 78 a b))))
@@ -329,9 +329,9 @@
             (same a r))))
 
    ; O(1)
-   (define (rcar r)
-      (ref r 1))
-   
+   (define rcar
+      (C ref 1))
+
    (define (ref-small-tree r p n)
       (if (eq? n 0) 
          r
@@ -425,7 +425,7 @@
    ;; O(n log n)
    (define (list->rlist lst) 
       (foldr rcons null lst)) 
-   
+
    ;; O(n)
    (define (rlist->list rl)
       (rfoldr cons null rl))

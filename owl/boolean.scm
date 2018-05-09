@@ -1,14 +1,14 @@
 (define-library (owl boolean)
 
-   (export boolean?)
+   (export
+      boolean?)
 
    (import
       (owl defmac))
 
    (begin
-      (define (boolean? x)
-         (cond
-            ((eq? x #true) #true)
-            ((eq? x #false) #true)
-            (else #false)))))
 
+      (define (boolean? x)
+         (or (eq? x #true) (eq? x #false)))
+
+))

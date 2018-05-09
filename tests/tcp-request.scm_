@@ -17,12 +17,11 @@
 
 (define message (render "hello there" null))
 
-(fork-server 'socket-thread
-   (lambda ()
+(thread 'socket-thread
       (let ((cli (interact sock 'accept))) ; <- blocks the thread
          (print "Client connected")
          (show "Client says: " (list->string (vector->list (interact cli 'input))))
-         (close-port cli))))
+         (close-port cli)))
 
 (let ((conn (open-connection (vector 127 0 0 1) port)))
    (if conn

@@ -119,16 +119,14 @@
 
 (define funny-numbers
 	(let*
-		((ns 
-			(map (lambda (x) (<< 1 x))
-				(map (lambda (x) (expt 2 x)) (iota 0 1 6))))
-		 (ns (append ns (map (lambda (x) (- x 1)) ns)))
-		 (ns (append ns (map (lambda (x) (- 0 x)) ns))))
+		((ns (map (H << 1) (map (H expt 2) (iota 0 1 6))))
+		 (ns (append ns (map (C - 1) ns)))
+		 (ns (append ns (map (H - 0) ns))))
 		; positive first
 		(sort > (cons 0 ns))))
 
 (define simple-numbers
-	(map (lambda (x) (expt 2 x)) (iota 0 1 17)))
+	(map (H expt 2) (iota 0 1 17)))
 
 ;;; 
 ;;;  Unit tests 
@@ -274,7 +272,7 @@
    (if (= step 0)
       (print "Tests complete.")
       (begin
-         (for-each (lambda (x) (run-test rst x)) math-tests)
+         (for-each (H run-test rst) math-tests)
          (lets ((rst n (rand rst 10000000)))
             (run-tests rst (- step 1))))))
 
@@ -341,5 +339,4 @@
 	; these occasionally dig out issues
 	(print "Running random tests:")
 	(run-tests (seed->rands seed) 50)
-	)
-
+)

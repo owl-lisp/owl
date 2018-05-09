@@ -19,15 +19,15 @@ fasl/boot.fasl: fasl/init.fasl
 	# start bootstrapping with the bundled init.fasl image
 	cp fasl/init.fasl fasl/boot.fasl
 
-fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm
+fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm tests/*.scm tests/*.sh
 	# selfcompile boot.fasl until a fixed point is reached
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
-	ls -la fasl/bootp.fasl
+	ls -l fasl/bootp.fasl
 	# check that the new image passes tests
-	CC="$(CC)" tests/run all bin/vm fasl/bootp.fasl
+	CC="$(CC)" sh tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
-	diff -q fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
-	
+	cmp -s fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
+
 
 ## building just the virtual machine to run fasl images
 
@@ -46,6 +46,12 @@ c/vm.c: c/ovm.c
 	echo "unsigned char *heap = 0;" > c/vm.c
 	cat c/ovm.c >> c/vm.c
 
+manual.md: doc/manual.md owl/*.scm scheme/*.scm
+	cat doc/manual.md > manual.md
+	bin/find-documentation.sh >> manual.md
+
+manual.pdf: manual.md
+	pandoc --latex-engine xelatex -o manual.pdf manual.md
 
 ## building standalone image out of the fixed point fasl image
 
@@ -59,7 +65,7 @@ c/diet-ol.c: fasl/ol.fasl
 bin/ol: c/ol.c
 	# compile the real owl repl binary
 	$(CC) $(CFLAGS) $(LDFLAGS) -o bin/olp c/ol.c
-	CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" tests/run all bin/olp
+	CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" sh tests/run all bin/olp
 	test -f bin/ol && mv bin/ol bin/ol-old || true
 	mv bin/olp bin/ol
 
@@ -67,14 +73,14 @@ bin/ol: c/ol.c
 ## running unit tests manually
 
 fasltest: bin/vm fasl/ol.fasl
-	CC="$(CC)" tests/run all bin/vm fasl/ol.fasl
+	CC="$(CC)" sh tests/run all bin/vm fasl/ol.fasl
 
 test: bin/ol
-	CC="$(CC)" tests/run all bin/ol
+	CC="$(CC)" sh tests/run all bin/ol
 
 random-test: bin/vm bin/ol fasl/ol.fasl
-	CC="$(CC)" tests/run random bin/vm fasl/ol.fasl
-	CC="$(CC)" tests/run random bin/ol
+	CC="$(CC)" sh tests/run random bin/vm fasl/ol.fasl
+	CC="$(CC)" sh tests/run random bin/ol
 
 
 ## data 
@@ -127,4 +133,3 @@ todo: bin/vm
 	bin/vm fasl/ol.fasl -n owl/*.scm | less
 
 .PHONY: all owl install uninstall todo test fasltest random-test owl standalone fasl-update clean simple-ol
-

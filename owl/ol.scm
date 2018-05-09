@@ -2,240 +2,98 @@
 ;;; ol.scm: an Owl read-eval-print loop.
 ;;;
 
-#| Copyright (c) 2012-2017 Aki Helin
+#| Copyright (c) 2012-2018 Aki Helin
  |
- | Permission is hereby granted, free of charge, to any person obtaining a 
+ | Permission is hereby granted, free of charge, to any person obtaining a
  | copy of this software and associated documentation files (the "Software"),
  | to deal in the Software without restriction, including without limitation
  | the rights to use, copy, modify, merge, publish, distribute, sublicense,
  | and/or sell copies of the Software, and to permit persons to whom the
  | Software is furnished to do so, subject to the following conditions
- | 
- | The above copyright notice and this permission notice shall be included 
+ |
+ | The above copyright notice and this permission notice shall be included
  | in all copies or substantial portions of the Software.
- | 
+ |
  | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  | IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- | FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+ | FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
  | THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- | LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- | FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ | LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ | FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  | DEALINGS IN THE SOFTWARE.
  |#
 
-;; check that (owl defmac) is indeed from last generation
-
 (define build-start (time-ms))
-
-; (import (owl defmac))
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
 ; forget all other libraries to have them be reloaded and rebuilt
 
 (define *libraries*
-   (keep 
+   (keep
       (λ (lib) (equal? (car lib) '(owl core)))
-       *libraries*))
+      *libraries*))
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (*vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run build-start)
+,forget-all-but (quote *vm-special-ops* *libraries* build-start)
 
-;;;
-;;; Time for a new REPL
-;;;
-
-;; this should later be just a sequence of imports followed by a fasl dump
+;; --------------------------------------------------------------------------------
 
 (import (owl core))     ;; get special forms, primops and define-syntax
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
 (define *interactive* #false) ;; be verbose 
-(define *include-dirs* (list ".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
+(define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
-(import (owl syscall))
-(import (owl primop))
+(define *owl-version* "0.1.15")
 
-;; shared parameters, librarize later or remove if possible
-
-(define *owl-version* "0.1.14")
-(define max-object-size #xffff)
-
-(define owl-ohai "You see a prompt.")
-(define owl-ohai-resume "Welcome back.")
-
-(import (owl boolean))
-(import (owl list))
-(import (owl ff))
-(import (only (owl iff)))
-(import (owl math))
-(import (owl list-extra))
-(import (owl sort))
-(import (owl lazy))
-(import (only (owl unicode) encode-point))
-(import (owl string))
-(import (owl vector))
-(import (owl symbol))
-(import (owl tuple))
-(import (owl function))
-(import (owl equal))
-(import (owl render))
-(import (owl intern))
-(import (owl io))
-(import (owl parse))
-(import (owl regex))
-(import (owl sexp))
-(import (only (owl math-extra)))
-(import (only (owl rlist)))
-(import (only (owl queue)))
-
-;; extremely old data structure being used between compler steps.
-;; replace later.
-(define (ok? x) (eq? (ref x 1) 'ok))
-(define (ok exp env) (tuple 'ok exp env))
-(define (fail reason) (tuple 'fail reason))
-
-(import (owl env))
-(import (owl gensym))
-(import (owl bisect))
-(import (owl macro))
-(import (owl ast))
-(import (owl fixedpoint))
-(import (owl cps))
-(import (owl alpha))
-(import (owl thread))
-(import (owl assemble))
-(import (owl closure))
-(import (owl compile))
-(import (owl suffix))
-(import (owl time))
-(import (owl random))
-(import (owl args))
-(import (owl cgen))
-(import (only (owl dump) make-compiler dump-fasl load-fasl))
-
-(define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
-   (make-compiler *vm-special-ops*))
-
-; path -> 'loaded | 'saved
-(define (suspend path)
-   (let ((maybe-world (syscall 16 #true #true)))
-      (if (eq? maybe-world 'resumed)
-         owl-ohai-resume
-         (begin
-            (dump-fasl maybe-world path)
-            'saved))))
-
-;(import (owl checksum))
-(import (owl sys))
-(import (owl char))
-
-;; implementation features, used by cond-expand
-(define *features*
-   (cons 
-      (string->symbol (string-append "owl-lisp-" *owl-version*))
-      '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
-      ;;          ^
-      ;;          '-- to be a fairly large subset of at least, so adding this
-
-(import (owl eval))
-(import (owl digest))
-(import (owl base))
-(import (owl date))
-(import (owl codec))
-
-(import (scheme cxr))
-(import (scheme base))
-(import (scheme case-lambda))
-(import (scheme write))
-
-
-;(define *libraries* 
-;   (cons 
-;      (cons '(owl core) *owl-core*)
-;      (keep (λ (x) (not (equal? (car x) '(owl core)))) *libraries*)))
+(import
+   (owl intern)
+   (owl env)
+   (owl ast)
+   (owl thread)
+   (owl args)
+   (only (owl dump) make-compiler load-fasl)
+   (owl eval)
+   (owl repl)
+   (owl base)
+   (owl variable))
 
 (define-syntax share-bindings
    (syntax-rules (defined)
       ((share-bindings) null)
       ((share-bindings this . rest)
          (cons
-            (cons 'this
-               (tuple 'defined (mkval this)))
+            (cons 'this (tuple 'defined (mkval this)))
             (share-bindings . rest)))))
 
-;; todo: share the modules instead later
-(define shared-misc
+;; implementation features, used by cond-expand
+(define *features*
+   (cons
+      (string->symbol (string-append "owl-lisp-" *owl-version*))
+      '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
+
+(define shared-bindings
    (share-bindings
-      run syscall error
-      pair?  boolean?  fixnum?  eof?  symbol?  
-      tuple?  string?  function? procedure? equal? eqv? bytecode?
-      not
-      null?  null 
-      o
-      time
-      time-ms
-      halt
-      apply
-      call/cc
-      call-with-current-continuation
-      display print-to print print* 
-      render 
-      system-println
-      sleep
-      list->tuple
-      exit-thread
-      number->string
-      fork
-      fork-named
-      fork-linked
-      fork-server
-      fork-linked-server
-      exit-owl
-      single-thread?
-      set-ticker
-      kill
-      catch-thread
-      release-thread
-      suspend
-      mail interact
-      string->number
-      wait
-      wait-mail accept-mail check-mail return-mails
-      set-signal-action
-      byte-vector?
-      string->symbol
-      close-port flush-port
-      set-memory-limit 
-      gensym
-      get-word-size
-      get-memory-limit
-      string->sexp
-      read read-ll
       *features*
       *include-dirs*
       *libraries*      ;; all currently loaded libraries
       ))
 
-
-(define shared-bindings shared-misc)
-
 (define initial-environment-sans-macros
-   (fold 
+   (fold
       (λ (env pair) (env-put-raw env (car pair) (cdr pair)))
       *owl-core*
       shared-bindings))
-     
+
 (define initial-environment
    (bind-toplevel
       (library-import initial-environment-sans-macros
          '((owl base))
-         (λ (reason) (error "bootstrap import error: " reason))
+         (H error "bootstrap import error: ")
          (λ (env exp) (error "bootstrap import requires repl: " exp)))))
-
-;; todo: after there are a few more compiler options than one, start using -On mapped to predefined --compiler-flags foo=bar:baz=quux
 
 (define (path->string path)
    (let ((data (file->vector path)))
@@ -252,11 +110,11 @@
        (test     "-t" "--test"     has-arg comment "evaluate given expression exit with 0 unless the result is #false")
        (quiet    "-q" "--quiet"    comment "be quiet (default in non-interactive mode)")
        (run      "-r" "--run"      has-arg comment "run the last value of the given foo.scm with given arguments" terminal)
-       (load     "-l" "--load"     has-arg  comment "resume execution of a saved program state saved with suspend")
-       (output   "-o" "--output"   has-arg  comment "where to put compiler output (default auto)")
+       (load     "-l" "--load"     has-arg comment "resume execution of a saved program state saved with suspend")
+       (output   "-o" "--output"   has-arg comment "where to put compiler output (default auto)")
        (output-format  "-x" "--output-format"   has-arg comment "output format when compiling (default auto)")
        (optimize "-O" "--optimize" cook ,string->number comment "optimization level in C-compilation (0-2)")
-       (custom-runtime  "-R" "--runtime" 
+       (custom-runtime "-R" "--runtime"
           cook ,path->string
           comment "use a custom runtime in C compilation")
        ;(interactive "-i" "--interactive" comment "use builtin interactive line editor")
@@ -280,68 +138,40 @@
       (tuple-case outcome
          ((ok val env)
             ;; be silent when all is ok
-            ;; exit with 127 and have error message go to stderr when the run crashes
-            (try (λ () (val args)) 127))
+            ;; exit with 126 and have error message go to stderr when the run crashes
+            (try (λ () (val args)) 126))
          ((error reason env)
             (print-repl-error
                (list "ol: cannot run" path "because there was an error during loading:" reason))
             2))
       1))
 
-(define about-owl 
+(define about-owl
 "Owl Lisp -- a functional scheme
-Copyright (c) 2016 Aki Helin
+Copyright (c) Aki Helin
 Check out https://github.com/aoh/owl-lisp for more information.")
 
 
-(define-library (owl usuals)
-
-   (export usual-suspects)
-   ; make sure the same bindings are visible that will be at the toplevel
-
-   (import
-      (owl defmac)
-      (owl suffix)
-      (owl math)
-      (owl random)
-      (owl bisect)
-      (owl thread)
-      (owl list)
-      (owl list-extra)
-      (owl syscall)
-      (owl vector)
-      (owl sort)
-      (owl equal)
-      (owl ff)
-      (owl lazy)
-      (owl sexp))
-
-   (begin
-      ; commonly needed functions 
-      (define usual-suspects
-         (list
-               put get del ff-fold fupd
-               - + * /
-               div gcd ediv
-               << < <= = >= > >> 
-               equal? has? mem
-               band bor bxor
-               sort
-               ; suffix-array bisect
-               fold foldr map reverse length zip append unfold
-               lref lset iota
-               ;vec-ref vec-len vec-fold vec-foldr
-               ;print 
-               mail interact 
-               take keep remove 
-               thread-controller
-               ;sexp-parser 
-               uncons lfold lmap
-               rand seed->rands
-               ))))
-
-(import (owl usuals))
-
+(define usual-suspects
+   (list
+         put get del ff-fold fupd
+         - + * /
+         div gcd ediv
+         << < <= = >= > >>
+         equal? has? mem
+         band bor bxor
+         sort
+         ; suffix-array bisect
+         fold foldr map reverse length zip append unfold
+         lref lset iota
+         ;vec-ref vec-len vec-fold vec-foldr
+         ;print
+         mail interact
+         take keep remove
+         thread-controller
+         uncons lfold lmap
+         rand seed->rands
+         ))
 
 ;; handles $ ol -c stuff
 (define (repl-compile compiler env path opts)
@@ -353,10 +183,10 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                ((ok val env)
                   (if (function? val)
                      (begin
-                        (compiler val 
+                        (compiler val
                            ;; output path
                            (cond
-                              ((get opts 'output #false) => (λ (given) given)) ; requested with -o
+                              ((get opts 'output #false) => self) ; requested with -o
                               ((equal? path "-") path) ; stdin → stdout
                               (else (c-source-name path)))
                            ;; inverse option on command line, add here if set
@@ -387,35 +217,37 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (try-load-state path args)
    (let ((val (load-fasl path #false)))
       (if (function? val)
-         (try (λ () (val (cons path args))) 127)
+         (try (λ () (val (cons path args))) 126)
          (begin
             (print "failed to load dump from " path)
             1))))
-  
+
 ;; -> vm exit with 0 on success, n>0 on error
 (define (try-repl-string env str)
    (tuple-case (repl-string env str)
       ((ok val env)
          (exit-owl
-            (if (print val) 0 127)))
+            (if (print val) 0 126)))
       ((error reason partial-env)
-         (print-repl-error 
+         (print-repl-error
             (list "An error occurred while evaluating:" str reason))
          (exit-owl 1))
       (else
          (exit-owl 2))))
 
-;; exit with 0 if value is non-false, 1 if it's false, 127 if error
+;; exit with 0 if value is non-false, 1 if it's false, 126 if error
 (define (try-test-string env str)
    (tuple-case (repl-string env str)
       ((ok val env)
          (exit-owl (if val 0 1)))
       ((error reason partial-env)
-         (print-repl-error 
+         (print-repl-error
             (list "An error occurred while evaluating:" str reason))
-         (exit-owl 127))
+         (exit-owl 126))
       (else
-         (exit-owl 127))))
+         (exit-owl 126))))
+
+(define owl-ohai "You see a prompt.")
 
 ;; say hi if interactive mode and fail if cannot do so (the rest are done using 
 ;; repl-prompt. this should too, actually)
@@ -425,7 +257,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          (and
             (print owl-ohai)
             (display "> "))
-         (halt 127))))
+         (halt 126))))
 
 ;; todo: this should probly be wrapped in a separate try to catch them all
 ; ... → program rval going to exit-owl
@@ -433,7 +265,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
    (or
       (process-arguments (cdr vm-args) command-line-rules error-usage-text
          (λ (dict others)
-            (lets 
+            (lets
                ((env ;; be quiet automatically if any of these are set
                   (if (fold (λ (is this) (or is (get dict this #false))) #false '(quiet test evaluate run output output-format))
                      (env-set env '*interactive* #false)
@@ -451,11 +283,10 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (print "Owl Lisp " *owl-version*)
                      0)
                   ((getf dict 'about) (print about-owl) 0)
-                  ((getf dict 'load) =>
-                     (λ (path) (try-load-state path others)))
+                  ((getf dict 'load) => (C try-load-state others))
                   ((or (getf dict 'output) (getf dict 'output-format))
                      (if (< (length others) 2) ;; can take just one file or stdin
-                        (repl-compile compiler env 
+                        (repl-compile compiler env
                            (if (null? others) "-" (car others)) dict)
                         (begin
                            (print "compile just one file for now please: " others)
@@ -463,15 +294,11 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   ((getf dict 'run) =>
                      (λ (path)
                         (owl-run (try (λ () (repl-file env path)) #false) (cons "ol" others) path)))
-                  ((getf dict 'evaluate) => 
-                     (λ (str)
-                        (try-repl-string env str))) ;; fixme, no error reporting
-                  ((getf dict 'test) => 
-                     (λ (str)
-                        (try-test-string env str)))
+                  ((getf dict 'evaluate) => (H try-repl-string env)) ;; FIXME: no error reporting
+                  ((getf dict 'test) => (H try-test-string env))
                   ((null? others)
                      (greeting env)
-                     (repl-trampoline repl 
+                     (repl-trampoline repl
                         (-> env
                            ;(env-set '*line-editor* (getf dict 'interactive))
                            )))
@@ -480,32 +307,23 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                      (define input
                         (foldr (λ (path tail) (ilist ',load path tail)) null others))
                      (tuple-case (repl (env-set env '*interactive* #false) input)
-                        ((ok val env)  
+                        ((ok val env)
                            0)
                         ((error reason partial-env)
                            (print-repl-error reason)
                            1)))))))
       2))
 
-
-
-; *owl* points to owl root directory
-; initally read from binary path (argv [0] )
-
 (define (directory-of path)
    (runes->string
       (reverse
-         (drop-while 
-            (lambda (x) (not (eq? x 47)))
+         (drop-while
+            (B not (C eq? #\/))
             (reverse
-               (string->bytes path))))))
+               (string->runes path))))))
 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; Dump a new repl image
-;;;
+(define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
+   (make-compiler *vm-special-ops*))
 
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
@@ -521,22 +339,25 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   (start-thread-controller
                      (list
                         (tuple 'init
-                           (λ () 
-                              (fork-server 'repl
-                                 (λ () 
+                           (λ ()
+                              (thread 'repl
+                                 (let ((state (make-variable '*state* #empty)))
                                     ;; get basic io running
                                     (start-base-threads)
 
+                                    ;; store initial state values
+                                    (state 'call (λ (st) (put st 'command-line-arguments vm-args)))
+
                                     ;; repl needs symbol etc interning, which is handled by this thread
-                                    (fork-server 'intern interner-thunk)
+                                    (thunk->thread 'intern interner-thunk)
 
                                     ;; set a signal handler which stop evaluation instead of owl 
                                     ;; if a repl eval thread is running
                                     (set-signal-action repl-signal-handler)
 
-                                    (exit-owl 
+                                    (exit-owl
                                        (repl-start vm-args repl compiler
-                                          (fold 
+                                          (fold
                                              (λ (env defn)
                                                 (env-set env (car defn) (cdr defn)))
                                              initial-environment
@@ -550,20 +371,11 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                                 (cons 'eval exported-eval)
                                                 (cons 'render render) ;; can be removed when all rendering is done via libraries
                                                 (cons '*vm-special-ops* vm-special-ops)
+                                                (cons '*state* state)
                                                 ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
                                                 )))))))))
                      null)))))))
 
-;; todo: dumping with fasl option should only dump the fasl and only fasl
-
-
-;;;
-;;; Dump the new repl
-;;;
-
-;; note, one one could use the compiler of the currently running system, but using 
-;; the rebuilt one here to make changes possible in 1 instead of 2 build cycles.
-;; (this may be changed later)
 
 (define command-line-rules
    (cl-rules
@@ -577,10 +389,6 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       ((equal? str "some") usual-suspects)
       ((equal? str "all") all)
       (else (print "Bad native selection: " str))))
-
-;;;
-;;; Step 3 - profit
-;;;
 
 (print "Code loaded at " (- (time-ms) build-start) "ms.")
 
@@ -598,9 +406,8 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                        (want-symbols . #true)
                        (want-codes . #true)
                        (want-native-ops . #true)))
-                  (choose-natives 
+                  (choose-natives
                      (get opts 'specialize "none")
                      heap-entry))
                (print "Output written at " (- (time-ms) build-start) "ms.")
                0)))))
-

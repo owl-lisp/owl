@@ -264,7 +264,7 @@
 
       ;; make bytecode and intern it (to improve sharing, not mandatory)
       (define (bytes->bytecode bytes)
-         (interact 'intern (raw bytes type-bytecode #false)))
+         (interact 'intern (raw bytes type-bytecode)))
 
       ; code rtl object -> executable code
       ;; todo: exit via fail cont
@@ -285,7 +285,7 @@
                            (error "too much bytecode: " len))
                         (bytes->bytecode
                            (if fixed?
-                              (ilist 25 arity 
+                              (ilist 34 arity 
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
                                  (append bytes

@@ -2,7 +2,7 @@
 
 (define-library (owl time)
 
-   (export 
+   (export
       elapsed-real-time
       timed
       time
@@ -18,7 +18,6 @@
 
       (define (elapsed-real-time thunk)
          (display "timing: ")
-         (flush-port 1)
          (lets
             ((ss sms (clock))
              (res (thunk))
@@ -48,7 +47,7 @@
       (define (time)
          (lets ((ss ms (clock))) ss))
 
-      (define (time-ms) 
-         (lets ((ss ms (clock))) 
-            (+ (* ss 1000) ms)))))
-
+      (define (time-ms)
+         (lets ((ss ms (clock)))
+            (+ (* ss 1000) ms)))
+))

@@ -1,3 +1,5 @@
 #!/bin/sh
 
-$@ -e '(import (owl sys)) (exec "/bin/echo" (list "/bin/echo" "foo")) (print "fail")'
+ECHO=$(which echo)
+
+$@ -e "(import (owl sys)) (exec \"$ECHO\" (list \"$ECHO\" \"foo\")) (print \"fail\")"

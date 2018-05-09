@@ -9,8 +9,8 @@
 
 (define-library (owl register)
 
-   (export 
-      allocate-registers 
+   (export
+      allocate-registers
       n-registers)
 
    (import
@@ -28,7 +28,7 @@
    (begin
       ;; fixme: temp register limit
       (define highest-register 95) ;; atm lower than NR in ovm.c
-      (define n-registers (+ highest-register 1)) 
+      (define n-registers (+ highest-register 1))
 
       ; reg-touch U r -> mark as live -> make sure it has a value 
       ; (must be in some register)
@@ -47,7 +47,7 @@
       ; return a list of registers from uses (where the value has been moved to), or 
       ; some list of low registers if this one is outside the available ones
       (define (use-list uses reg)
-         (let ((opts (keep (λ (x) (< x highest-register)) (get uses reg null))))
+         (let ((opts (keep (C < highest-register) (get uses reg null))))
             (cond
                ((< reg highest-register)
                   opts)
@@ -93,7 +93,7 @@
                            (tuple 'move a b (rtl-rename more op target fail)))))))
             ((prim opcode args to more)
                (if (fixnum? to)
-                  (if (bad? to target op) 
+                  (if (bad? to target op)
                      (fail)
                      (tuple 'prim opcode
                         (map op args)
@@ -102,7 +102,7 @@
                      (fail)
                      (tuple 'prim opcode (map op args) to (rtl-rename more op target fail)))))
             ((clos-proc lp off env to more)
-               (if (bad? to target op) 
+               (if (bad? to target op)
                   (fail)
                   (tuple 'clos-proc (op lp) off (map op env) to (rtl-rename more op target fail))))
             ((clos-code lp off env to more)
@@ -146,10 +146,10 @@
             (let ((new (car news)))
                (if (or (eq? old new) (get uses new #false))
                   (retarget-first code old (cdr news) uses cont)
-                  (let ((new-code 
+                  (let ((new-code
                      (call/cc
                         (λ (drop)
-                           (rtl-rename code 
+                           (rtl-rename code
                               (λ (reg) (if (eq? reg old) new reg))
                               new
                               (lambda () (drop #false)))))))
@@ -158,7 +158,7 @@
                         (retarget-first code old (cdr news) uses cont)))))))
 
       (define (rtl-retard-jump proc op a b then else)
-         (lets 
+         (lets
             ((then then-uses (proc then))
              (else else-uses (proc else))
              (uses (merge-usages then-uses else-uses))
@@ -203,7 +203,7 @@
                   ((> b highest-register)
                      (error "out of registers in move: " b))
                   (else
-                     (lets 
+                     (lets
                         ((more uses (rtl-retard more))
                          (uses (del uses b))
                          (targets (use-list uses a)))
@@ -214,9 +214,9 @@
                            (values (tuple 'move a b more) (put uses a (cons b targets))))))))
 
             ((prim op args to more)
-               (lets 
+               (lets
                   ((more uses (rtl-retard more))
-                   (pass 
+                   (pass
                      (λ () (values
                         (tuple 'prim op args to more)
                         (fold reg-touch (del uses to) args)))))
@@ -250,7 +250,7 @@
                         (pass)))))
 
             ((ld val to cont)
-               (lets 
+               (lets
                   ((cont uses (rtl-retard cont))
                    (good (use-list uses to))
                    (good (if (> to highest-register) (append good (iota 0 1 highest-register)) good))
@@ -261,19 +261,19 @@
                            (pass)
                            (rtl-retard (tuple 'ld val to-new cont-new)))))))
 
-            ((clos-proc lpos offset env to more)  
+            ((clos-proc lpos offset env to more)
                (rtl-retard-closure rtl-retard code))
 
-            ((clos-code lpos offset env to more) 
+            ((clos-code lpos offset env to more)
                (rtl-retard-closure rtl-retard code))
 
             ((refi from offset to more)
-               (lets 
+               (lets
                   ((more uses (rtl-retard more))
                    (uses (reg-touch uses from))
                    (good (use-list uses to))
-                   (uses (del uses to)) 
-                   (pass 
+                   (uses (del uses to))
+                   (pass
                      (λ () (values (tuple 'refi from offset to more)
                         (reg-touch uses from)))))
                   (retarget-first more to good uses
@@ -306,5 +306,4 @@
       (define (allocate-registers rtl)
          (lets ((rtl usages (rtl-retard rtl)))
             rtl))
-         
-   ))
+))

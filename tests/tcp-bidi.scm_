@@ -36,8 +36,8 @@
 
 ;; send chunks and drop read requests
 (define (sender fd)
-   (for-each (λ (x) (mail fd x)) elems))
-   
+   (for-each (H mail fd) elems))
+
 (fork-server 'socket-thread
    (λ ()
       (let ((cli (interact sock 'accept)))

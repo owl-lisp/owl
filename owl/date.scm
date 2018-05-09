@@ -1,3 +1,18 @@
+;;; This library attempts to implement date processing functions. Dates 
+;;; are typically represented as seconds or milliseconds since UNIX Epoch 1.1.1970. 
+;;; These are generally a good way to work with time, apart from assuming 
+;;; that an absolute time exists at all. Sometimes it is however necessary 
+;;; to convert time stamps to human readable form, which means splitting 
+;;; the time according to various more and less sensible rules. 
+;;;
+;;; ```
+;;;    (time)                → current time in seconds since epoch
+;;;    (time-ms)             → current time in milliseconds since epoch
+;;;    (date-str 0)          → "00:00:00 1.1.1970 UTC+00:00"
+;;;    (date-str (time) 2.5) → "20:49:08 19.3.2018 UTC+02:30"
+;;;    (date 0)              → 1 1 1970 0 0 0 ; as multiple values
+;;;    (leap-year? 2018)     → #false
+;;; ```
 
 ;; todo: check how far before 1970 these hold
 ;; todo: --rfc-2822
@@ -6,8 +21,12 @@
 (define-library (owl date)
 
    (import
-      (owl base)
-      (owl proof))
+      (owl defmac)
+      (owl math)
+      (owl proof)
+      (owl render)
+      (owl time)
+      (owl syscall))
 
    (export
       date
@@ -50,9 +69,9 @@
                      #true))
                #false)))
 
-      (define month-durations 
+      (define month-durations
          (tuple 31 #false 31 30 31 30 31 31 30 31 30 31))
-      
+
       (define (days-in-month month year)
          (if (eq? month 2)
             (if (leap-year? year) 29 28)
@@ -68,14 +87,14 @@
                   (values 1 (+ month 1) year)))
             (else
                (values (+ day 1) month year))))
-      
+
 
       ;; date is valid *and* date computations work for it
       (define (valid-date? d m y)
          (and
             (and (fixnum? m) (<= 1 m 12))
             (and (integer? y) (> y 1200)) ;; check prior years also
-            (and (fixnum? d) (>= d 1) 
+            (and (fixnum? d) (>= d 1)
                (<= d (days-in-month m y)))))
 
       ;;;
@@ -84,7 +103,7 @@
 
       (define (leap-years-before y)
          (cond
-            ((< y 5) 
+            ((< y 5)
                (if (< y 1)
                   (error "year must be >=1, but was  " y)
                   1))
@@ -127,13 +146,13 @@
           (- 4 d)
           (+ 4 (- 7 d))))
 
-      (define (days-to-sunday d)
-         (- 7 d))
+      (define days-to-sunday
+         (H - 7))
 
       (define (maybe-swap-year y md week day)
          (cond
             ((< week 52) (values week day))
-            ((> day 3) 
+            ((> day 3)
               ;; thursday already contained in this week
               (values week day))
             ((< (+ md (days-to-sunday day)) 32)
@@ -169,18 +188,17 @@
                   (lets ((wn wd (week-info d m y)))
                      (values d m y wd wn)))
                (values d m y (+ week-day 1) week-num))))
-      
+
       (example
          (next-date-with-week 31 12 1971 5 1) = (values 1 1 1972 6 1)
          (next-date-with-week 27 12 1970 7 52) = (values 28 12 1970 1 53))
-      
+
       ;;;
       ;;; UNIXish time
       ;;;
 
-      (define leap-years-since-epoch   
-         (let ((before-epoch (leap-years-before 1970)))
-            (lambda (y) (- (leap-years-before y) before-epoch))))
+      (define leap-years-since-epoch
+         (B (C - (leap-years-before 1970)) leap-years-before))
 
       (define (seek-year s)
          (let loop ((s s) (y 1970))
@@ -205,27 +223,27 @@
 
       (define date
          (case-lambda
-            (() (naive-date (time))) 
+            (() (naive-date (time)))
             ((sec) (naive-date sec))))
 
       (define (hours->secs h)
          (floor (* h 3600)))
-          
+
       (define (date-str-tz s tz)
          (lets ((d m y H M S (naive-date (+ s tz)))
                 (tz-sign (if (< tz 0) "-" "+"))
                 (tz (abs tz))
                 (tz-mins _ (quotrem tz 60))
                 (tz-hours tz-mins (quotrem tz-mins 60)))
-            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S 
+            (str (zpad H) H ":" (zpad M) M ":" (zpad S) S
                  " " d "." m "." y
                  " UTC" tz-sign (zpad tz-hours) tz-hours ":" (zpad tz-mins) tz-mins)))
-     
+
       (define (date-str s . tz)
          (if (null? tz)
             (date-str-tz s 0)
             (date-str-tz s (hours->secs (car tz)))))
-     
+
       ; TZ=GMT date -d @1234567890 
       (example
          (date-str 0)            = "00:00:00 1.1.1970 UTC+00:00"
@@ -233,4 +251,3 @@
          (date-str 1234567890 0) = "23:31:30 13.2.2009 UTC+00:00")
 
 ))
-

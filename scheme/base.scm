@@ -1,5 +1,5 @@
 (define-library (scheme base)
-  (export 
+  (export
       *
       +
       -
@@ -61,6 +61,7 @@
       current-input-port
       current-output-port
       define
+      define-library
       define-record-type
       define-syntax
       define-values
@@ -240,18 +241,19 @@
       string->integer ;; NOT R7RS but used currently in many places in owl stuff
       )
 
-   (import 
+   (import
       (owl defmac)
+      (owl eof)
       (owl equal)
       (owl list)
+      (only (owl function) procedure?)
       (only (owl syscall) error)
       (owl string)
       (owl primop)
       (owl math-extra)
-      (owl intern)
       (owl vector)
       (owl port)
-      (owl symbol)
+      (only (owl symbol) string->symbol symbol? symbol=? symbol->string)
       (only (owl sexp) list->number)
       (owl list-extra)
       (owl io)
@@ -261,26 +263,26 @@
    (begin
 
       (define-syntax define-symbols
-        (syntax-rules ()
-          ((define-symbols x ...)
-            (define-values (x ...) 
-              (values (quote x) ...)))))
+         (syntax-rules ()
+            ((define-symbols x ...)
+               (define-values (x ...)
+                  (values (quote x) ...)))))
 
       (define-symbols ... => unquote unquote-splicing)
 
-      (define-syntax define-missing-bad 
+      (define-syntax define-missing-bad
          (syntax-rules ()
             ((define-missing-bad name)
-               (define name 
+               (define name
                   (lambda args
                      (error "Implementation restriction:" (cons (quote name) args)))))))
 
-       (define-syntax define-missing-my-bad 
+      (define-syntax define-missing-my-bad
          (syntax-rules ()
             ((define-missing-my-bad name)
-               (define name 
+               (define name
                   (lambda args
-                     (error "Currently missing or incompatible:" (cons (quote name) args)))))))  
+                     (error "Currently missing or incompatible:" (cons (quote name) args)))))))
 
 
       ;; grr, scheme member functions don't follow the argument conventions of other functions used in owl...
@@ -294,17 +296,11 @@
       (define memv member)
 
       (define (memq x lst)
-         (cond
-            ((null? lst) #false)
-            ((eq? x (car lst)) lst)
-            (else (memq x (cdr lst)))))
+         (has? lst x))
 
-      (define (assq k l)
-         (cond
-            ((null? l) #f)
-            ((eq? (caar l) k) (car l))
-            (else (assq k (cdr l)))))
-      
+      (define (assq k lst)
+         (getq lst k))
+
       (define (assv k l)
          (cond
             ((null? l) #f)
@@ -327,7 +323,7 @@
 
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
-      (define (rationalize n max-delta) n)
+      (define rationalize K)
 
       (define string->number
          (case-lambda
@@ -338,20 +334,15 @@
 
       (define (string->integer str)
          (let ((n (string->number str 10)))
-            (cond
-               ((eq? (type n) type-fix+) n)
-               ((eq? (type n) type-fix-) n)
-               ((eq? (type n) type-int+) n)
-               ((eq? (type n) type-int-) n)
-               (else #false))))
+            (and (integer? n) n)))
 
       (define (number->string/base n base)
          (list->string (render-number n null base)))
 
       (define-syntax when
-        (syntax-rules ()
-          ((when test exp ...)
-            (if test (begin exp ...)))))
+         (syntax-rules ()
+            ((when test exp ...)
+               (if test (begin exp ...)))))
 
       (define number->string
          (case-lambda
@@ -381,8 +372,6 @@
       (define-missing-bad truncate-quotient)
       (define-missing-bad textual-port?)
       (define-missing-bad syntax-rules)
-      (define-missing-bad symbol=?)
-      (define-missing-bad symbol->string)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
       (define-missing-bad string-for-each)
@@ -402,7 +391,6 @@
       (define-missing-bad read-bytevector)
       (define-missing-bad raise-continuable)
       (define-missing-bad raise)
-      (define-missing-bad procedure?)
       (define-missing-bad peek-u8)
       (define-missing-bad peek-char)
       (define-missing-bad parameterize)
@@ -442,8 +430,6 @@
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
-      (define-missing-bad eof-object?)
-      (define-missing-bad eof-object)
       (define-missing-bad else)
       (define-missing-bad dynamic-wind)
       (define-missing-bad current-output-port)

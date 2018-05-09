@@ -1,6 +1,82 @@
+;;; A typical way to make data structures for holding key-value in 
+;;; Lisp systems is to make an association list. An association list 
+;;; is a list of pairs, where the car holds the key, and cdr holds the 
+;;; value. While easy to define and use, they have the downside of slowing
+;;; down linearly as the size of the association list grows.
 ;;;
-;;; Finite functions (or red-black key-value maps)
+;;; Owl has finite functions, or ffs, which behave like association
+;;; lists, but they slow down only logarithmically as they get more keys. 
+;;; They are internally represented as red-black trees.
 ;;;
+;;; `#empty` or `@()` can be used to refer to an empty finite function.
+;;; `put` adds or rewrites the value of a key, `get` fetches the value 
+;;; or returns the third argument if the key is not found. `del` removes 
+;;; a key from a ff. 
+;;;
+;;; ```
+;;;   > (define f (put (put #empty 'foo 100) 'bar 42))
+;;;   > f
+;;;   @(foo 100 bar 42)
+;;;   > (ff? f)
+;;;   #true
+;;;   > (get f 'foo #f)
+;;;   100
+;;;   > (get f 'x #f)
+;;;   #f
+;;;   > (get (del f 'foo) 'foo #f)
+;;;   #f
+;;; ```
+;;; A finite function maps keys to values. As the name implies, a ff
+;;; can also be called to do just that. If one argument is given and it 
+;;; is defined, the value is returned. In case of an undefined value, either
+;;; an error is signaled or the second default argument is returned, if 
+;;; it is specified.
+;;;
+;;; ```
+;;;   > (f 'foo)
+;;;   100
+;;;   > (f 'x 'not-there)
+;;;   'not-there
+;;;   > (map f '(foo bar))
+;;;   '(100 42)
+;;; ```
+;;; 
+;;; Many list functions have corresponding functions for ffs, where 
+;;; usually a function receiving the list element just receives two 
+;;; arguments, being a particular key and value pair. The name of the 
+;;; function is typically prefixed with ff-.
+;;;
+;;; ```
+;;;   (get @(a 1) 'a #f) → 1
+;;;
+;;;   (get @(a 1) 'x #f) → #f
+;;;
+;;;   (put @(a 1 b 2) 'c 3) → @(a 1 b 2 c 3)
+;;;
+;;;   (del @(a 1 b 2) 'a) → @(b 2)
+;;;
+;;;   (fupd ff key value) → ff', like put, but for an existing key
+;;;
+;;;   (keys @(foo 1 bar 2)) → '(foo bar)
+;;;
+;;;   (ff-union @(a 100 b 200) @(b 2 c 3) +) → @(a 100 b 202 c 3)
+;;;
+;;;   (ff-diff @(a 1 b 2 c 3) @(a 10 b 20)) → @(c 3)
+;;;  
+;;;   (ff-fold (λ (o k v) (cons (cons k v) o)) null @(foo 1 bar 2) → 
+;;;      '((bar . 2) (foo . 1))
+;;; 
+;;;   (ff-foldr (λ (o k v) (cons (cons k v) o)) null @(foo 1 bar 2) → 
+;;;      '((foo . 1) (bar . 2))
+;;;   (ff-map @(a 1 b 2 c 3) (λ (k v) (square v))) → @(a 1 b 4 c 9)      
+;;;   
+;;;   (ff-iter ff) → a lazy list of key-value pairs
+;;;   
+;;;   (list->ff '((a . 1) (b . 2))) → @(a 1 b 2)
+;;;
+;;;   (ff->list @(a 1 b 2)) → '((a . 1) (b . 2))
+;;;   
+;;; ```
 
 ;; fixme: ff unit tests went missing at some point. add with lib-compare vs naive alists.
 ;; fixme: ffc[ad]r are no longer needed as primitives
@@ -33,7 +109,7 @@
       ff-ok?
       empty
       empty?
-      
+
       getf       ; (getf ff key) == (get ff key #false)
 
       )
@@ -53,7 +129,7 @@
 
       (define empty #empty)
 
-      (define (empty? x) (eq? x empty))
+      (define empty? (C eq? empty))
 
       ;; shadowed below
       (define (black l k v r)
@@ -88,7 +164,7 @@
       (define-syntax red?
          (syntax-rules ()
             ((red? node) (eq? redness (fxband (type node) redness))))) ;; false for black nodes and #empty
-     
+
       ;; does a (non-empty) red or black node of size 3 have a right child? 2 never does and 4 always has
       (define-syntax right?
          (syntax-rules ()
@@ -131,7 +207,7 @@
                   (and (red? ff) (or (red? l) (red? r)))
                   (red-red-violation? l)
                   (red-red-violation? r)))))
-   
+
       ;; fixnum addition, math not defined yte
       (define (f+ a b)
          (lets ((c _ (fx+ a b))) c))
@@ -246,7 +322,7 @@
                   (else
                      (black left key val right))))
             (black left key val right)))
-                  
+
       (define (putn node key val)
          (if (eq? node #empty)
             (red #empty key val #empty)
@@ -273,13 +349,13 @@
             def
             (with-ff (node left key _ right)
                (ff-max right key))))
-      
+
       (define (ff-min node def)
          (if (eq? node #empty)
             def
             (with-ff (node left key _ right)
                (ff-min left key))))
-        
+
       ;; bytecoded get
       '(define (get ff key def)
          (if (eq? ff #empty)
@@ -378,7 +454,7 @@
                         (ff-fold op state r))
                      (op state k v))))
             state))
-      
+
        ;; iterate key-value pairs in order
        (define (ff-iterate tree tl)
          (if (nonempty? tree)
@@ -397,8 +473,8 @@
                      (λ () (ff-iterrate l tl)))))
             tl))
 
-      (define (ff-iter  tree) (ff-iterate  tree null))
-      (define (ff-iterr tree) (ff-iterrate tree null))
+      (define ff-iter (C ff-iterate null))
+      (define ff-iterr (C ff-iterrate null))
 
       ;; note: ff-map will switch argument order in the generic equivalent
       ;; fixme, also much faster if types are used directly
@@ -536,7 +612,7 @@
             (if (red? ff)
                (color-black ff)
                ff)))
-         
+
 
       ;;;
       ;;; FIXME bad hacks

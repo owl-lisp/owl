@@ -5,7 +5,7 @@
 
    (export sort isort quicksort mergesort)
 
-   (import 
+   (import
       (owl defmac)
       (owl math)
       (owl syscall)
@@ -17,12 +17,12 @@
       ;;; quicksort, never use this, worst case O(n^2) on sorted data
       ;;;
 
-      (define (quicksort op lst) 
+      (define (quicksort op lst)
          (let loop ((x lst))
-            (if (null? x) null 
-               (let ((this (car x))) 
+            (if (null? x) null
+               (let ((this (car x)))
                   (let diffx ((x (cdr x)) (left null) (right null))
-                     (cond 
+                     (cond
                         ((null? x)
                            (let ((left (loop left)))
                               (append left (cons this (loop right)))))
@@ -59,7 +59,7 @@
             (else (cons (car a) (merge op (cdr a) b)))))
 
       (define (merger op l)
-         (if (null? l) 
+         (if (null? l)
             null
             (let ((a (car l)) (l (cdr l)))
                (if (null? l)
@@ -67,7 +67,7 @@
                   (let ((b (car l)) (l (cdr l)))
                      (cons (merge op a b) (merger op l)))))))
 
-      ; as an optimization to (map (lambda (x) (list x)) l), chunk the list 
+      ; as an optimization to (map list l), chunk the list
       ; initially to <chunk-size> lists using insertion sort steps
 
       (define chunk-size 10)
@@ -89,7 +89,7 @@
             (merge-pairs op (merger op l))))
 
       (define (mergesort op l)
-         (if (null? l) 
+         (if (null? l)
             null
             (let ((l (chunker op l null 0)))
                (if (null? (cdr l))

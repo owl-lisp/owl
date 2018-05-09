@@ -1,13 +1,27 @@
-;;; 
-;;; Lazy lists (poor man's streams)
-;;; 
+;;; Lazy lists (or streams) are like lists, but they are computed only as far as needed.
+;;; You can for example define a lazy list of all integers below a million, and then 
+;;; proceed to run computations on them, without worrying whether you have enough memory
+;;; to hold a million numbers. Lazy lists are for example useful in computations, where 
+;;; you know how something is constructed, but don't yet know how many of them will be 
+;;; needed, or know that you only need them one at a time and don't want to waste memory.
+;;;
+;;; A lazy list is either null, a pair of a value and rest of the lazy list, or a 
+;;; function of zero arguments (a thunk) which when called will return the rest of the 
+;;; lazy list. Therefore, since normal lists are a subset of lazy lists, all lazy list 
+;;; functions can also take normal lists as arguments.
+;;;
+;;; `Scheme warning`: recall that Owl does not have mutable data structures, so lazy 
+;;; lists do not cache their results.
+;;;
+;;; ```
+;;;   (pair head exp) → ll, lazy equivalent of (cons head exp), but exp is not evaluated yet
+;;;   (force-ll ll) → list, turn a lazy list into a regular one
+;;; ```
 
-
-;; in owl a lazy list some nodes of which may be thunks that evaluate to lists or lazy lists
 
 (define-library (owl lazy)
 
-   (export 
+   (export
       lfold lfoldr lmap lappend    ; main usage patterns
       lfor liota liter lnums
       lzip ltake lsplit llast llen
@@ -20,18 +34,20 @@
       lunfold
       delay force
       avg
+      lnull?
+      lpair?                  ; ll → (head . ll-tail) | #false
       )
 
    (import
-      (owl math)
       (owl defmac)
       (owl list)
       (owl list-extra)
+      (owl math)
       (owl proof)
       (only (owl syscall) error))
 
    (begin
-      
+
       ;; convert an application to a thunk
       (define-syntax delay
          (syntax-rules ()
@@ -63,7 +79,7 @@
                   (if (null? tl) (car l) (llast tl))))
             ((null? l) (error "llast: empty list: " l))
             (else (llast (l)))))
-         
+
       ;; l → hd l' | error
       (define (uncons l d)
          (cond
@@ -71,15 +87,15 @@
             ((null? l) (values d l))
             (else (uncons (l) d))))
 
-      (define (lfold op state lst) 
+      (define (lfold op state lst)
          (cond
-            ((pair? lst) 
+            ((pair? lst)
                (lfold op (op state (car lst)) (cdr lst)))
             ((null? lst) state)
             (else (lfold op state (lst)))))
 
       ; only swaps argument order, useful for making folds out of iterators
-      (define (lfoldr op state lst) 
+      (define (lfoldr op state lst)
          (cond
             ((pair? lst) (lfoldr op (op (car lst) state) (cdr lst)))
             ((null? lst) state)
@@ -97,9 +113,9 @@
             ((pair? l)
                (cons (fn (car l))
                   (lmap fn (cdr l))))
-            ((null? l) 
+            ((null? l)
                null)
-            (else 
+            (else
                (λ () (lmap fn (l))))))
 
       ;; preserves laziness
@@ -108,11 +124,11 @@
             ((pair? a)
                (cons (car a) (lappend (cdr a) b)))
             ((null? a) b)
-            (else 
+            (else
                (λ () (lappend (a) b)))))
 
       (define (lunfold op st end?)
-         (if (end? st) 
+         (if (end? st)
             null
             (lets ((this st (op st)))
                (pair this
@@ -133,7 +149,7 @@
                 (d _ (fx+ c 1)))
                (ilist a b c (lambda () (lnums-fix d))))
             (lnums-other a)))
-      
+
       (define (lnums n)
          (case (type n)
             (type-fix+ (lnums-fix n))
@@ -171,7 +187,7 @@
 
       (define (liota pos step end)
          (if (eq? step 1)
-            (if (eq? (type pos) type-fix+) 
+            (if (eq? (type pos) type-fix+)
                (if (eq? (type end) type-fix+)
                   (liota-fix pos end)         ; positive fixnum range interval
                   (liota-walk-one pos end))    ; increment iota
@@ -185,7 +201,7 @@
                   (λ () (ledit op (cdr l)))))
             ((null? l)
                l)
-            (else 
+            (else
                (lambda ()
                   (ledit op (l))))))
 
@@ -210,7 +226,7 @@
                (error "llref: out of list: " p)
                val)))
 
-      (define (ltake l n) 
+      (define (ltake l n)
          (cond
             ((eq? n 0) null)
             ((null? l) l)
@@ -220,10 +236,10 @@
             (else
                (λ () (ltake (l) n)))))
 
-      (define (lsplit l n) 
+      (define (lsplit l n)
          (let loop ((l l) (o null) (n n))
             (cond
-               ((eq? n 0) 
+               ((eq? n 0)
                   (values (reverse o) l))
                ((pair? l)
                   (loop (cdr l) (cons (car l) o) (- n 1)))
@@ -232,10 +248,10 @@
                (else
                   (loop (l) o n)))))
 
-      (example 
+      (example
          (lsplit '(1 2 3 4) 2) = (values '(1 2) '(3 4)))
-            
-      (define (lkeep p l) 
+
+      (define (lkeep p l)
          (cond
             ((null? l) l)
             ((pair? l)
@@ -247,11 +263,11 @@
                (λ () (lkeep p (l))))))
 
       (define (lremove p l)
-         (lkeep (λ (x) (not (p x))) l))
+         (lkeep (B not p) l))
 
       ;; zip, preserves laziness of first argument
       (define (lzip op a b)
-         (cond   
+         (cond
             ((null? a) null)
             ((null? b) null)
             ((pair? a)
@@ -259,7 +275,7 @@
                   (pair (op (car a) (car b))
                      (lzip op (cdr a) (cdr b)))
                   (lzip op a (b))))
-            (else 
+            (else
                (λ () (lzip op (a) b)))))
 
       ; lst -> stream of (lst' ...)
@@ -271,9 +287,9 @@
             (let loop ((a l) (b null))
                (if (null? a)
                   (rest)
-                  (lperm-take (append b (cdr a)) (cons (car a) out) 
+                  (lperm-take (append b (cdr a)) (cons (car a) out)
                      (lambda () (loop (cdr a) (cons (car a) b))))))))
-      
+
       (define (lperms l)
          (if (null? l)
             '(())
@@ -311,14 +327,14 @@
                   (let loop ((n 1))
                      (if (= n end)
                         null
-                        (lpick l null n 
+                        (lpick l null n
                            (lambda ()
                               (loop (+ n 1))))))))))
 
       (define subsets subs)
 
       ; (lfold (lambda (n s) (print s) (+ n 1)) 0 (subsets (iota 0 1 5)))
-      
+
       ; (lfold (lambda (n s) (print s) (+ n 1)) 0 (permutations (iota 0 1 5)))
 
       (define (force-ll it)
@@ -343,6 +359,12 @@
 
       (define (lcdr ll) (if (pair? ll) (cdr ll) (lcdr (ll))))
 
+      (define (lpair? ll)
+         (cond
+            ((null? ll) #false)
+            ((pair? ll) ll)
+            (else (lpair? (ll)))))
+
+      (define (lnull? ll)
+         (eq? #false (lpair? ll)))
 ))
-
-

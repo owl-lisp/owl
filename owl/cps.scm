@@ -242,9 +242,9 @@
             ((branch kind a b then else)
                (cps-branch cps-exp kind a b then else env cont free))
             ((values vals)
-              (cps-values cps-exp vals env cont free))
+               (cps-values cps-exp vals env cont free))
             ((receive exp target)
-              (cps-receive cps-exp exp target env cont free))
+               (cps-receive cps-exp exp target env cont free))
             ((case-lambda fn else)
                (lets ((res free (cps-case-lambda cps-exp exp env cont free)))
                   (values (mkcall cont (list res)) free)))
@@ -263,13 +263,13 @@
          (or
             (call/cc
                (lambda (fail)
-                  (let ((cont-sym (gensym exp)))	
-                     ; a hack to be able to define code sans cps 	
-                     ; a better solution would be ability to change the	
+                  (let ((cont-sym (gensym exp)))
+                     ; a hack to be able to define code sans cps
+                     ; a better solution would be ability to change the
                      ; compiler chain interactively
-                     (if (and 			
+                     (if (and
                            (call? exp) 
-                           (val-eq? (ref exp 2) '_sans_cps)	
+                           (val-eq? (ref exp 2) '_sans_cps)
                            (= (length (ref exp 3)) 1))
                         (ok
                            (mklambda (list cont-sym) 
@@ -282,4 +282,3 @@
                               env))))))
             (fail "cps failed")))
    ))
-

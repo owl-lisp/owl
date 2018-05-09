@@ -1,23 +1,35 @@
+;;; This library implements serialization of objects to byte 
+;;; lists, and parsing of the byte lists to corresponding 
+;;; objects. The format is used internally for storing memory 
+;;; images to disk. Files with .fasl suffix used in booting 
+;;; up Owl are just fasl-encoded functions.
 ;;;
-;;; Object serialization and reconstruction
-;;;
+;;; ``` 
+;;;   (fasl-encode 42) → '(0 0 42)
+;;;   (fasl-encode 42) → '(0 0 42)
+;;;   (fasl-encode 1/4+i) → '(1 42 2 0 0 1 0 0 4 1 43 2 1 0 0 1 0)
+;;;   (fasl-encode (lambda (x) x)) →  '(2 16 7 34 2 0 2 24 4 17 0)
+;;;   (fasl-decode '(0 0 0 0) 'bad) → 'bad
+;;;   ((fasl-decode (fasl-encode prime?) 'bad) 13337) → #true
+;;;   (eq? 'foo (fasl-decode (fasl-encode 'foo) #false)) → #true
+;;; ``` 
 
 ; protocol
-;	<obj> = 0 <type> <value> 				-- immediate object
-;			= 1 <type> <size> <field> ... -- allocated
-;			= 2 <type> <size> <byte>  ... -- allocated, raw data
+;	<obj>	= 0 <type> <value>		-- immediate object
+;		= 1 <type> <size> <field> ...	-- allocated
+;		= 2 <type> <size> <byte>  ...	-- allocated, raw data
 ; now used
 ;		00 - imm
 ;		01 - alloc
 ;		10 - alloc raw
 ;		11 - free -> use as tag for allocs where the type fits 6 bits (not in use atm)
-;	
-;	<field> = 0 <type> <val> -- immediate
-;			  = <N> -- pointer to nth last object (see hack warning below)
+;
+;	<field>	= 0 <type> <val> -- immediate
+;		= <N> -- pointer to nth last object (see hack warning below)
 
 (define-library (owl fasl)
 
-   (export 
+   (export
       fasl-encode          ; ; obj -> (byte ... 0)
       fasl-encode-cooked   ; obj cook -> (byte ... 0), with (cook alloc-obj) -> alloc-obj' 
       fasl-encode-stream   ; obj cook -> (bvec ...) stream
@@ -41,7 +53,6 @@
       (only (owl syscall) error)
       (owl proof)
       (owl list)
-      (owl intern)
       (owl rlist))
 
    (begin
@@ -77,7 +88,6 @@
 
       (define type-byte-of type)
          ;(type-byte-of val)
-         ;(fxband (>> (type-old val) 3) 255)
 
       (define (enc-immediate val tail)
          (cons 0
@@ -93,17 +103,17 @@
                (let ((seen (put seen obj 1)))
                   (if (raw? obj)
                      seen
-                     (fold partial-object-closure seen 
+                     (fold partial-object-closure seen
                         (tuple->list obj)))))))
 
       (define (sub-objects root pred)
          (ff->list
             (partial-object-closure empty root)))
 
-      (define (object-closure obj)
-         (partial-object-closure empty obj))
+      (define object-closure
+         (H partial-object-closure empty))
 
-      (define (objects-below obj)	
+      (define (objects-below obj)
          (ff-fold
             (λ (out obj _) (cons obj out))
             null (object-closure obj)))
@@ -155,8 +165,8 @@
                      ((t (type-byte-of val))
                       (s (size val)))
                      ; options for optimization
-                     ;	t and s fit in 6 bits -> pack (seems to be only about 1/20 compression)
-                     ;	t fits in 6 bits -> (+ (<< t 2) 3) (ditto)
+                     ; t and s fit in 6 bits -> pack (seems to be only about 1/20 compression)
+                     ; t fits in 6 bits -> (+ (<< t 2) 3) (ditto)
                      (ilist 1 t
                         (send-number s
                            (render-fields out (tuple->list val) pos clos))))))))
@@ -165,7 +175,7 @@
 
       ;; produce tail-first eagerly
       ;(define (encoder-output clos cook)
-      ;	(ff-foldr (encode-allocated clos cook) fasl-finale clos))
+      ;   (ff-foldr (encode-allocated clos cook) fasl-finale clos))
 
       (define (encoder-output clos cook)
          (let ((enc (encode-allocated clos cook)))
@@ -177,7 +187,6 @@
                         (enc (lambda () (loop (cdr kvs))) (car kv) (cdr kv))))
                   (else (loop (kvs)))))))
 
-               
       ; root cook-fn -> byte-stream
       (define (encoder obj cook)
          (encoder-output
@@ -199,14 +208,14 @@
 
       ; dump the data as such
       (define (fasl-encode obj)
-         (force-ll (encode obj (λ (x) x))))
+         (force-ll (encode obj self)))
 
       (define chunk-size 32767)
 
       (define (chunk-stream bs n buff)
          (cond
             ((eq? n chunk-size)
-               (cons 
+               (cons
                   (list->byte-vector (reverse buff))
                   (chunk-stream bs 0 null)))
             ((null? bs)
@@ -222,7 +231,7 @@
       (define (fasl-encode-stream obj cook)
          (chunk-stream (encode obj cook) 0 null))
 
-      ;;; 
+      ;;;
       ;;; Decoder
       ;;;
 
@@ -237,9 +246,9 @@
             (if (eq? 0 (fxband b 128)) ; leaf case
                (values ll (bor (<< top 7) b))
                (get-nat ll fail (bor (<< top 7) (band b low7))))))
-      
+
       (define (decode-immediate ll fail)
-         (lets 
+         (lets
             ((ll type (grab ll fail))
              (ll val  (get-nat ll fail 0)))
             (values ll (cast val type))))
@@ -291,7 +300,7 @@
                            (cond
                               ((symbol? obj)
                                  ;; symbols must be (re)interned. they are only valid up to equalit within the fasl.
-                                 (decoder ll 
+                                 (decoder ll
                                     (rcons
                                        (string->symbol (symbol->string obj))
                                        got)
@@ -311,7 +320,7 @@
                             (ll size (get-nat ll fail 0))
                             (foo (if (> size 65535) (fail "bad raw object size")))
                             (ll rbytes (get-bytes ll size fail null))
-                            (obj (raw (reverse rbytes) type #false)))
+                            (obj (raw (reverse rbytes) type)))
                            (decoder ll (rcons obj got) fail)))
                      ((eq? kind 0) ;; fasl stream end marker 
                         ;; object done
@@ -322,7 +331,7 @@
                             (ll size (get-nat ll fail 0))
                             (foo (if (> size 65535) (fail "bad raw object size")))
                             (ll rbytes (get-bytes ll size fail null))
-                            (obj (raw (reverse rbytes) type #false)))
+                            (obj (raw (reverse rbytes) type)))
                            (decoder ll (rcons obj got) fail)))
                      (else
                         (fail (list "unknown object tag: " kind))))))
@@ -332,12 +341,12 @@
       (define (decode-or ll err) ; -> ll obj | null (err why)
          (call/cc ; setjmp2000
             (λ (ret)
-               (lets ((fail (λ (why) (ret null (err why)))))
+               (lets ((fail (B (H ret null) err)))
                   (cond
                      ((null? ll) (fail enodata))
                      ((pair? ll)
                         ; a leading 0 is special and means the stream has no allocated objects, just one immediate one
-                        (if (eq? 0 (car ll)) 
+                        (if (eq? (car ll) 0)
                            (decode-immediate (cdr ll) fail)
                            (decoder ll null fail)))
                      (else (decode-or (ll) err)))))))
@@ -345,7 +354,7 @@
       ;; decode a full (possibly lazy) list of data, and succeed only if it exactly matches a fasl-encoded object
 
       (define failed "fail") ;; a unique object
-          
+
       ;; ll fail → val | fail
       (define (decode ll fail-val)
          (lets ((ll ob (decode-or ll (λ (why) failed))))

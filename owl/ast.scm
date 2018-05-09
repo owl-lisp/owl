@@ -24,7 +24,7 @@
 
       (define (call? thing) (eq? (ref thing 1) 'call))
       (define (var? thing) (eq? (ref thing 1) 'var))
-      (define (value-of node) (ref node 2))
+      (define value-of (C ref 2))
 
       (define (mkval val)
          (tuple 'value val))
@@ -131,7 +131,7 @@
                             (then (lref exp 4))
                             (else (lref exp 5)))
                            (tuple 'branch
-                              (lref exp 1)					; type 
+                              (lref exp 1) ; type
                               (translate a env fail)
                               (translate b env fail)
                               (translate then env fail)
@@ -143,8 +143,8 @@
                            (translate (cadr exp) env fail)
                            (translate (caddr exp) env fail))
                         (fail (list "Bad case-lambda node: " exp))))
-                  ((receive)	; (receive <exp> <receiver>)
-                     (tuple 'receive 
+                  ((receive) ; (receive <exp> <receiver>)
+                     (tuple 'receive
                         (translate (lref exp 1) env fail)
                         (translate (lref exp 2) env fail)))
                   ;; FIXME pattern
@@ -163,7 +163,7 @@
                      (cdr exp))))
             ;; both now handled by apply-env
             ;((undefined)
-            ;	(fail (list "i do not know this function" exp)))
+            ;   (fail (list "i do not know this function" exp)))
             ; left here to handle primops temporarily
             ((defined value)
                (mkcall value
@@ -214,6 +214,6 @@
          (call/cc
             (lambda (drop)
                (tuple 'ok
-                  (translate exp env
-                     (lambda (reason) (drop (fail reason))))
-                  env))))))
+                  (translate exp env (B drop fail))
+                  env))))
+))

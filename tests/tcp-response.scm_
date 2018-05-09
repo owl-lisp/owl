@@ -16,11 +16,10 @@
 
 (define message (render "hello there" null))
 
-(fork-server 'socket-thread
-   (lambda ()
-      (let ((cli (interact sock 'accept)))
-         (mail cli message)
-         (close-port cli))))
+(thread 'socket-thread
+   (let ((cli (interact sock 'accept)))
+      (mail cli message)
+      (close-port cli)))
 
 (let ((conn (open-connection (vector 127 0 0 1) port)))
    (if conn

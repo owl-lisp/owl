@@ -12,14 +12,14 @@
 (define max-list-size 10000)
 
 ; run a battery of operations to a list and an equal rlist
-; and stop on inconsistencies 
+; and stop on inconsistencies
 
 (define (list-test rst rl l len steps)
 	(if (= steps 0)
 		(print "ok")
 		(lets ((rst n (rand rst 25))
 				 (steps (- steps 1)))
-			;; draw a graph of the list length 
+			;; draw a graph of the list length
 			;(mail stdout (fold (lambda (out n) (cons 45 out)) '(124 10) (iota 0 1 len)))
 			(case n
 				((0 1 2) ; cons a new head
@@ -27,7 +27,7 @@
 						(lets ((rst x (rand rst 1000)))
 							(list-test rst (rcons x rl) (cons x l) (+ len 1) steps))
 						(list-test rst rl l len steps)))
-				((3 4 5) ; drop a head, slightly less frequent 
+				((3 4 5) ; drop a head, slightly less frequent
 					(if (= len 0)
 						(list-test rst rl l len steps)
 						(list-test rst (rcdr rl) (cdr l) (- len 1) steps)))
@@ -39,15 +39,15 @@
 				((9 10) ; set a random element
 					(if (= len 0)
 						(list-test rst rl l len steps)
-						(lets 
+						(lets
 							((rst p (rand rst len))
 							 (rst v (rand rst 10000)))
 							;(print* (list "L[" p "] = " v))
 							(list-test rst (rset rl p v) (lset l p v) len steps))))
 				((11) ; map increment
 					(list-test rst
-						(rmap (lambda (x) (+ x 1)) rl)
-						(map (lambda (x) (+ x 1)) l)
+						(rmap (C + 1) rl)
+						(map (C + 1) l)
 						len steps))
 				((12) ; fold
 					(if (= (fold - 0 l) (rfold - 0 rl))

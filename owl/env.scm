@@ -1,13 +1,13 @@
 (define-library (owl env)
 
-   (export 
-      lookup env-bind 
+   (export
+      lookup env-bind
       empty-env
       apply-env env-fold
       verbose-vm-error prim-opcodes opcode->wrapper primop-of primitive?
       poll-tag name-tag link-tag buffer-tag signal-tag signal-halt thread-quantum meta-tag
       current-library-key
-      env-set-macro *tabula-rasa* env-del 
+      env-set-macro *tabula-rasa* env-del
       env-get ;; env key default → val | default
       env-del ;; env key → env'
       env-set ;; env-set env key val → env'
@@ -46,8 +46,8 @@
       (define name-tag '*owl-names*)    ; key for reverse function/object → name mapping 
       (define current-library-key '*owl-source*) ; toplevel value storing what is being loaded atm
 
-      (define (signal-halt threads state controller) 
-         (print-to stderr "stopping on signal") 
+      (define (signal-halt threads state controller)
+         (print-to stderr "stopping on signal")
          (halt 42)) ;; exit owl with a specific return value
 
       (define thread-quantum 10000)
@@ -71,7 +71,7 @@
 
       (define (env-set env key val)
          (put env key
-            (tuple 'defined 
+            (tuple 'defined
                (tuple 'value val))))
 
       (define (env-set-macro env key transformer)
@@ -83,8 +83,8 @@
             ((invoke module name arg ...)
                ((env-get module (quote name)
                   (lambda (arg ...)
-                     (error "invoke: failed to invoke " 
-                        (cons (quote name) 
+                     (error "invoke: failed to invoke "
+                        (cons (quote name)
                            (list arg ...)))))
                   arg ...))))
 
@@ -126,12 +126,12 @@
             ((bound) exp)
             ((defined defn)
                (tuple-case defn
-                  ((value val) 
+                  ((value val)
                      (value-exp val))
                   (else is funny
                      (fail (list "funny defined value: " funny)))))
             ((undefined)
-               (fail (list "What is" 
+               (fail (list "What is"
                   (bytes->string (foldr render '() (list "'" exp "'?"))))))
             (else is bad
                (fail (list "The symbol" exp "has a funny value: '" bad "'")))))
@@ -191,17 +191,12 @@
       ; after macros have been expanded
 
       (define (apply-env exp env)
-         (call/cc 
+         (call/cc
             (lambda (ret)
                (ok env
-                  ((walker env 
-                     (lambda (reason) 
-                        (ret (fail reason))))
-                     exp)))))
-         
-      (define env-fold ff-fold)
+                  ((walker env (B ret fail)) exp)))))
 
-      (define env-del del)
+      (define env-fold ff-fold)
 
       (define (tuple->list t)
         (let loop ((pos 1))
@@ -242,7 +237,7 @@
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes
-         (fold 
+         (fold
             (λ (ff node)
                (put ff (ref node 5) (ref node 2)))
             empty primops))
@@ -257,7 +252,7 @@
       ;; later check type, get first opcode and compare to primop wrapper
       (define (primop-of val)
          (cond
-            ((get prim-opcodes val #false) => (lambda (op) op))
+            ((get prim-opcodes val #false) => self)
             ;((equal? val mkt) 23)
             ((eq? val '__mkt__) 23) ;; temp hack to work around changing bytecode
             ;((equal? val bind) 32)
@@ -294,5 +289,4 @@
          (ff-fold (λ (words key value) (cons key words)) null env))
 
       (define primitive? primop-of)
-
 ))

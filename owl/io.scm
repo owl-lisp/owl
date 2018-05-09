@@ -4,7 +4,7 @@
 
 (define-library (owl io)
 
-  (export 
+  (export
       ;; thread-oriented non-blocking io
       open-output-file        ;; path → fd | #false
       open-input-file         ;; path → fd | #false
@@ -17,7 +17,6 @@
       port->fd                ;; port → fixnum
       fd->port                ;; fixnum → port
       port?                   ;; _ → bool
-      flush-port              ;; fd → _
       close-port              ;; fd → _
       start-base-threads      ;; start stdio and sleeper threads
       wait-write              ;; fd → ? (no failure handling yet)
@@ -28,20 +27,25 @@
       tcp-client              ;; port → ip tcp-fd | #f #f
       tcp-clients             ;; port → ((ip . fd) ... . X), X = null → ok, #false → error
       tcp-send                ;; ip port (bvec ...) → (ok|write-error|connect-error) n-bytes-written
-   
+
+      ;; datagram-oriented IO
+      udp-packets             ;; port → null | ((ip . bvec) ...)
+      udp-client-socket       ;; temp
+      wait-udp-packet         ;; port → (ip . bvec), blocks
+      check-udp-packet        ;; port → #false | (ip . bvec), does not block
+      send-udp-packet         ;; sock ip port bvec → bool 
+
       file->vector            ;; vector io, may be moved elsewhere later
       file->list              ;; list io, may be moved elsewhere later
       file->byte-stream       ;; path → #false | (byte ...)
       vector->file
       write-vector            ;; vec port
       port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk 
-      port->byte-stream       ;; fd → (byte ...) | thunk 
+      port->byte-stream       ;; fd → (byte ...) | thunk
+      port->tail-byte-stream  ;; fd → (byte ...) | thunk 
       byte-stream->port       ;; bs fd → bool
       port->block-stream      ;; fd → (bvec ...)
       block-stream->port      ;; (bvec ...) fd → bool
-
-      ;; temporary exports
-      fclose                 ;; fd → _
 
       stdin stdout stderr
       display-to        ;; port val → bool
@@ -50,31 +54,33 @@
       print
       print*
       print*-to         ;; port val → bool
-      write 
+      write
       writer-to         ;; names → (port val → bool + io)
       write-to          ;; port val → bool
       write-bytes       ;; port byte-list   → bool
       write-byte-vector ;; port byte-vector → bool
       get-block         ;; fd n → bvec | eof | #false
-      write-really      ;; 
+      write-really
       try-get-block     ;; fd n block? → bvec | eof | #false=error | #true=block
-      lines             ;; fd → null | ll of string, read error is just null, each [\r]\n removed
+      byte-stream->lines ;; (byte ...) → null | ll of string, read error is just null, each [\r]\n removed
+      lines              ;; fd → null | ll of string, read error is just null, each [\r]\n removed
 
       system-print system-println system-stderr
       fasl-save         ;; obj path → done?
       fasl-load         ;; path default → done?
-      
+
       start-muxer       ;; new io muxer
       sleep             ;; sleep ms -> sleep at least for ms
    )
 
    (import
       (owl defmac)
+      (owl eof)
       (owl syscall)
       (owl queue)
       (owl string)
       (owl list-extra)
-      (owl sys)
+      (prefix (owl sys) sys-)
       (owl ff)
       (owl equal)
       (owl vector)
@@ -93,35 +99,21 @@
    (begin
 
       ;; standard io ports
-      (define stdin  (fd->port 0))
-      (define stdout (fd->port 1))
-      (define stderr (fd->port 2))
-
-      ;; use type 12 for fds 
-
-      (define (fclose fd)
-         (sys-prim 2 fd #false #false))
-
-      (define (fopen path mode)
-         (cond
-            ((c-string path) => 
-               (λ (raw) (sys-prim 1 raw mode #false)))
-            (else #false)))
+      (define stdin sys-stdin)
+      (define stdout sys-stdout)
+      (define stderr sys-stderr)
 
       ;;; Writing
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (lambda (p) (refb bvec p)) (iota n 1 (sizeb bvec))) type-vector-raw #false))
+         (raw (map (H refb bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
-         (cond
-            ;; one does not simply write() on all platforms
-            ((tcp? fd) (sys-prim 15 fd bvec len))
-            ((port? fd) (sys-prim 0 fd bvec len))
-            (else 
-               ;(sys-prim 0 fd bvec len)
-               #false)))
+         ;; stdio ports are in blocking mode, so poll always
+         (if (sys-stdio? fd)
+            (interact 'iomux (tuple 'write fd)))
+         (sys-write fd bvec len))
 
       ;; bvec port → bool
       (define (write-really bvec fd)
@@ -134,7 +126,6 @@
                         ((eq? wrote end) #true) ;; ok, wrote the whole chunk
                         ((eq? wrote 0) ;; 0 = EWOULDBLOCK
                            (interact 'iomux (tuple 'write fd))
-                           ;(interact sid 2)
                            (loop))
                         (wrote ;; partial write
                            (write-really (bvec-tail bvec wrote) fd))
@@ -143,42 +134,36 @@
       ;; how many bytes (max) to add to output buffer before flushing it to the fd
       (define output-buffer-size 4096)
 
-      (define mode/read     #b0000)
-      (define mode/write    #b0001)
-      (define mode/truncate #b0010)
-      (define mode/append   #b0100)
-      (define mode/create   #b1000)
+      (define read-mode
+         sys-O_RDONLY)
+      (define (output-mode)
+         (bor (bor (sys-O_WRONLY) (sys-O_CREAT)) (sys-O_TRUNC)))
+      (define (append-mode)
+         (bor (bor (sys-O_WRONLY) (sys-O_CREAT)) (sys-O_APPEND)))
 
-      (define read-mode mode/read)
-      (define output-mode (foldr bor 0 (list mode/write mode/truncate mode/create)))
-      (define append-mode (foldr bor 0 (list mode/write mode/create mode/append)))
-
-      (define (open-input-file path) 
-         (let ((fd (fopen path read-mode)))
-            (if fd (fd->port fd) fd)))
+      (define (open-input-file path)
+         (sys-open path (read-mode) 0))
 
       (define (open-output-file path)
-         (let ((fd (fopen path output-mode))) ;; temporarily also applies others
-            (if fd (fd->port fd) fd)))
+         (sys-open path (output-mode) #o600)) ;; temporarily also applies others
 
       (define (open-append-file path)
-         (let ((fd (fopen path append-mode)))
-            (if fd 
-               (let ((port (fd->port fd)))
-                  (seek-end port)
-                  port)
-               #false)))
+         (let ((port (sys-open path (append-mode) #o600)))
+            (and port (begin (sys-seek-end port) port))))
 
       ;;; Reading
 
-      (define input-block-size 
+      (define input-block-size
          *vec-leaf-size*) ;; changing from 256 breaks vector leaf things
 
       (define stream-block-size
          #x8000)
 
       (define (try-get-block fd block-size block?)
-         (let ((res (sys-prim 5 fd block-size 0)))
+         ;; stdio ports are in blocking mode, so poll always
+         (if (sys-stdio? fd)
+            (interact 'iomux (tuple 'read fd)))
+         (let ((res (sys-read fd block-size)))
             (if (eq? res #true) ;; would block
                (if block?
                   (begin
@@ -191,7 +176,7 @@
       ;; get a block of size up to block size
       (define (get-block fd block-size)
          (try-get-block fd block-size #true))
-      
+
       (define (maybe-get-block fd block-size)
          (try-get-block fd block-size #false))
 
@@ -206,7 +191,7 @@
       (define (get-whole-block fd block-size)
          (let ((this (get-block fd block-size)))
             (cond
-               ((eof? this) (values #true this))
+               ((eof-object? this) (values #true this))
                ((not this) (values #false this))
                (else
                   (let ((n (sizeb this)))
@@ -214,9 +199,9 @@
                         (values #false this)
                         (lets ((eof-seen? tail (get-whole-block fd (- block-size n))))
                            (cond
-                              ((eof? tail) (values #true this))
+                              ((eof-object? tail) (values #true this))
                               ((not tail) (values #false this)) ;; next read will also fail, return last ok data
-                              (else 
+                              (else
                                  ;; unnecessarily many conversions if there are many partial
                                  ;; reads, but block size is tiny in file->vector making this
                                  ;; irrelevant
@@ -231,7 +216,7 @@
             (let ((res (sys-prim 4 fd #false #false)))
                (if res ; did get connection
                   (lets ((ip fd res))
-                     (mail thread fd)
+                     (mail thread (sys-port->non-blocking fd))
                      #true)
                   (begin
                      ;(interact sid 5) ;; delay rounds
@@ -240,21 +225,42 @@
 
       (define socket-type-tcp 0)
       (define socket-type-udp 1)
-      
+
       (define (open-tcp-socket port)
-         (let ((sock (sys-prim 3 port socket-type-tcp #false)))
-            (if sock 
-               (fd->port sock)
-               #false)))
+         (sys-port->non-blocking (sys-prim 3 port socket-type-tcp #false)))
 
       (define (open-udp-socket port)
-         (let ((sock (sys-prim 3 port socket-type-udp #false)))
-            (if sock 
-               (fd->port sock)
-               #false)))
-      
+         (sys-port->non-blocking (sys-prim 3 port socket-type-udp #false)))
+
+      ;; port → (ip . bvec) | #false, nonblocking
+      (define (check-udp-packet port)
+         (sys-prim 10 port #f #f))
+
+      (define (send-udp-packet sock ip port payload)
+         (sys-prim 27 sock (cons port ip) payload))
+
+      ;; port → (ip . bvec), blocks thread
+      (define (wait-udp-packet port)
+         (let ((res (check-udp-packet port)))
+            (or res
+               (begin
+                  ;(interact sid socket-read-delay)
+                  (interact 'iomux (tuple 'read port))
+                  (wait-udp-packet port)))))
+
+      ;; port → null | ((ip . bvec) ...)
+      (define (udp-packets port)
+         (let ((sock (open-udp-socket port)))
+            (if sock
+               (λ ()
+                  (let loop ((sock sock))
+                     (pair
+                        (wait-udp-packet sock)
+                        (loop sock))))
+               null)))
+
       (define open-socket open-tcp-socket)
-      
+
       ;;; TCP connections
 
       (define (open-connection ip port)
@@ -262,21 +268,15 @@
             ((not (eq? (type port) type-fix+))
                #false)
             ((and (eq? (type ip) type-vector-raw) (eq? 4 (sizeb ip))) ;; silly old formats
-               (let ((fd (_connect ip port)))
-                  (if fd
-                     (fd->port fd)
-                     #false)))
-            (else 
+               (sys-port->non-blocking (sys-prim 29 ip port socket-type-tcp)))
+            (else
                ;; note: could try to autoconvert formats to be a bit more user friendly
                #false)))
 
-      ;; deprecated
-      (define (flush-port fd)
-         ;(mail fd 'flush)
-         42)
+      (define (udp-client-socket)
+         (sys-prim 29 #f #f socket-type-udp))
 
-      (define (close-port fd)
-         (fclose fd))
+      (define close-port sys-close)
 
 
       ;;;
@@ -307,15 +307,15 @@
 
       (define (closing-blocks->port ll fd)
          (lets ((r n (blocks->port ll fd)))
-            (fclose fd)
+            (close-port fd)
             (values r n)))
 
       ;; sock → #f #f | ip client
       (define (tcp-client sock)
          (let ((res (sys-prim 4 sock #false #false)))
-            (if res 
+            (if res
                (lets ((ip fd res))
-                  (values ip (fd->port fd)))
+                  (values ip (sys-port->non-blocking fd)))
                (begin
                   ;(interact sid socket-read-delay)
                   (interact 'iomux (tuple 'read sock))
@@ -337,7 +337,7 @@
 
       ;; ip port (bvec ...) → #true n-written | #false error-sym
       (define (tcp-send ip port ll)
-         (let ((fd (_connect ip port)))
+         (let ((fd (sys-prim 29 ip port socket-type-tcp)))
             (if fd
                (lets ((ll n (closing-blocks->port ll fd)))
                   (if (null? ll)
@@ -354,11 +354,11 @@
       (define (printer lst len out fd)
          (cond
             ((eq? len output-buffer-size)
-               (and 
-                  (write-really (raw (reverse out) type-vector-raw #false) fd)
+               (and
+                  (write-really (raw (reverse out) type-vector-raw) fd)
                   (printer lst 0 null fd)))
             ((null? lst)
-               (write-really (raw (reverse out) type-vector-raw #false) fd))
+               (write-really (raw (reverse out) type-vector-raw) fd))
             (else
                ;; avoid dependency on generic math in IO
                (lets ((len _ (fx+ len 1)))
@@ -378,22 +378,23 @@
             (λ (to obj)
                (printer (serialize obj '()) 0 null to))))
 
-      (define write-to 
-         (writer-to 
+      (define write-to
+         (writer-to
             (put #empty map "map")))
 
       (define (display-to to obj)
          (printer (render obj '()) 0 null to))
 
-      (define (display x)
-         (display-to stdout x))
+      (define display
+         (H display-to stdout))
 
-      (define print 
+      (define print
          (case-lambda
             ((obj) (print-to stdout obj))
             (xs (printer (foldr render '(#\newline) xs) 0 null stdout))))
 
-      (define (write obj) (write-to stdout obj))
+      (define write
+         (H write-to stdout))
 
       (define (print*-to to lst)
          (printer (foldr render '(10) lst) 0 null to))
@@ -402,13 +403,13 @@
          (printer (foldr render '(10) lst) 0 null stdout))
 
       (define-syntax output
-         (syntax-rules () 
+         (syntax-rules ()
             ((output . stuff)
                (print* (list stuff)))))
 
       ;; fixme: system-X do not belong here
       (define (system-print str)
-         (sys-prim 0 1 str (sizeb str)))
+         (sys-write stdout str #f))
 
       (define (system-println str)
          (system-print str)
@@ -416,9 +417,9 @@
       "))
 
       (define (system-stderr str) ; <- str is a raw or pre-rendered string
-         (sys-prim 0 2 str (sizeb str)))
+         (sys-write stderr str #f))
 
-      ;;; 
+      ;;;
       ;;; Files <-> vectors
       ;;;
 
@@ -427,14 +428,14 @@
          (lets ((eof-seen? val (get-whole-block port input-block-size)))
             (cond
                (eof-seen?
-                  (let ((buff (if (eof? val) buff (cons val buff))))
+                  (let ((buff (if (eof-object? val) buff (cons val buff))))
                      (merge-chunks
                         (reverse buff)
                         (fold + 0 (map sizeb buff)))))
                ((not val)
                   #false)
                (else
-                  (read-blocks port 
+                  (read-blocks port
                      (cons val buff))))))
 
       (define (explode-block block tail)
@@ -449,7 +450,7 @@
       (define (read-blocks->list port buff)
          (let ((block (get-block port 4096)))
             (cond
-               ((eof? block)
+               ((eof-object? block)
                   (foldr explode-block null (reverse buff)))
                ((not block)
                   ;; read error
@@ -471,16 +472,6 @@
          (let ((port (maybe-open-file path)))
             (if port
                (let ((data (read-blocks port null)))
-                  (maybe-close-port port)
-                  data)
-               (begin
-                  ;(print "file->vector: cannot open " path)
-                  #false))))
-      
-      (define (file->list path) ; path -> vec | #false
-         (let ((port (maybe-open-file path)))
-            (if port
-               (let ((data (read-blocks->list port null)))
                   (maybe-close-port port)
                   data)
                (begin
@@ -517,8 +508,8 @@
                   outcome)
                #false)))
 
-      (define (wait-write fd)
-         (interact fd 'wait))
+      (define wait-write
+         (C interact 'wait))
 
       (define (stream-chunk buff pos tail)
          (if (eq? pos 0)
@@ -527,25 +518,42 @@
                (stream-chunk buff next
                   (cons (refb buff pos) tail)))))
 
-      (define (port->block-stream fd)
+      (define (sleep ms)
+         (interact 'iomux (tuple 'alarm ms)))
+
+      (define (block-stream fd tail?)
          (λ ()
-           (let ((block (get-block fd stream-block-size)))
-              (cond
-                 ((eof? block)
-                    (close-port fd)
-                    null)
-                 ((not block)
-                    null)
-                 (else
-                    (cons block 
-                       (port->block-stream fd)))))))
+            (let ((block (get-block fd stream-block-size)))
+               (cond
+                  ((eof-object? block)
+                     (if tail?
+                        (begin
+                           ;; read does not block at eof, so wait explicitly
+                           (sleep 1000)
+                           (block-stream fd #true))
+                        (begin
+                           (close-port fd)
+                           null)))
+                  ((not block)
+                     null)
+                  (else
+                     (cons block
+                        (block-stream fd tail?)))))))
+
+      ;; stream blocks close at eof
+      (define port->block-stream
+         (C block-stream #true))
+
+      ;; stream blocks, wait for more at eof
+      (define port->tail-block-stream
+         (C block-stream #false))
 
       ;; include metadata symbols
       (define (port->meta-block-stream fd)
          (let loop ((block? #false))
             (let ((block (try-get-block fd stream-block-size block?)))
                (cond
-                  ((eof? block)
+                  ((eof-object? block)
                      (close-port fd)
                      null)
                   ((not block)
@@ -560,7 +568,13 @@
          (ledit
             (λ (block ll)
                (stream-chunk block (- (sizeb block) 1) ll))
-            (port->block-stream fd)))
+            (block-stream fd #f)))
+
+      (define (port->tail-byte-stream fd)
+         (ledit
+            (λ (block ll)
+               (stream-chunk block (- (sizeb block) 1) ll))
+            (block-stream fd #t)))
 
       (define (port->meta-byte-stream fd)
          (ledit
@@ -597,9 +611,8 @@
                (else
                   (loop (bs) n out)))))
 
-      (define (lines fd)
-         (let loop ((ll (utf8-decoder (port->byte-stream fd) (λ (self line ll) null))) 
-                    (out null))
+      (define (byte-stream->lines ll)
+         (let loop ((ll ll) (out null))
             (cond
                ((pair? ll)
                   (lets ((byte ll ll))
@@ -619,7 +632,13 @@
                         (list->string (reverse out)))))
                (else
                   (λ ()
-                    (loop (ll) out))))))
+                     (loop (ll) out))))))
+
+      (define (lines fd)
+         (byte-stream->lines
+            (utf8-decoder
+               (port->byte-stream fd)
+               (λ (self line ll) null))))
 
       (define (file->byte-stream path)
          (let ((fd (open-input-file path)))
@@ -627,14 +646,14 @@
                (port->byte-stream fd)
                #false)))
 
-      (define (fasl-save obj path) 
-         (vector->file 
+      (define (fasl-save obj path)
+         (vector->file
             (list->vector (fasl-encode obj))
             path))
 
       (define (fasl-load path fail-val)
          (let ((bs (file->byte-stream path)))
-            (if bs 
+            (if bs
                (fasl-decode bs fail-val)
                fail-val)))
 
@@ -642,7 +661,7 @@
 
       (define (delelt lst x) ;; lst x →  lst' | #false if not there
          (let loop ((lst lst) (out null))
-            (if (null? lst) 
+            (if (null? lst)
                out
                (lets ((a lst lst))
                   (if (eq? a x)
@@ -686,13 +705,13 @@
                      (print-to stderr " - found it"))
                   (eq? port fd)))
             alarms))
-      
+
       ;; alarm-mail = #(sender #(read-timeout fd ms))
-      
+
       (define (wakeup rs ws alarms fd reason)
          (cond
             ((eq? reason 1) ;; data ready to be read
-               (lets 
+               (lets
                   ((rs x (grabelt rs fd))
                    (fd envelope x)
                    (from message envelope))
@@ -702,7 +721,7 @@
                         (values rs ws alarms))
                      ((read-timeout fd timeout)
                         (mail from message)
-                        (values rs ws 
+                        (values rs ws
                            (remove-alarm alarms envelope)))
                      (else
                         (print-to stderr "wakeup: unknown wakeup " message)
@@ -722,13 +741,13 @@
                      (remove-alarm-by-fd alarms fd))))))
 
       (define (push-alarm alarms time id)
-         (if (null? alarms) 
+         (if (null? alarms)
             (list (cons time id))
             (let ((a (car alarms)))
                (if (< (car a) time)
                   (cons a (push-alarm (cdr alarms) time id))
                   (cons (cons time id) alarms)))))
-               
+
       ;; including time currently causes a circular dependency - resolve later
       (define (time-ms)
          (lets ((ss ms (clock)))
@@ -761,8 +780,8 @@
                       (waked x (_poll2 rs ws timeout)))
                      (cond
                         (waked
-                          (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
-                             (muxer rs ws alarms)))
+                           (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
+                              (muxer rs ws alarms)))
                         (x 3)
                         (else
                            (set-ticker 0)
@@ -775,7 +794,7 @@
                         (lets ((rs ws alarms (muxer-add rs ws alarms envelope)))
                            (muxer rs ws alarms))
                         (lets
-                           ((timeout 
+                           ((timeout
                               (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
                             (waked x (_poll2 rs ws timeout)))
                            (cond
@@ -783,7 +802,7 @@
                                  (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
                                     (muxer rs ws alarms)))
                               (x 2)
-                              (else 
+                              (else
                                  (set-ticker 0)
                                  (muxer rs ws alarms))))))
                   ;; the bell tolls
@@ -804,13 +823,11 @@
                            (print-to stderr "not sure how to alarm " message)
                            (mail id 'alarm)
                            (muxer rs ws (cdr alarms)))))))))
-            
-      (define (start-muxer . id)
-         (fork-server (if (null? id) 'iomux (car id))
-            (λ () (muxer null null null))))
 
-      (define (sleep ms)
-         (interact 'iomux (tuple 'alarm ms)))
+      (define (start-muxer . id)
+         (thread
+            (if (null? id) 'iomux (car id))
+            (muxer null null null)))
 
       ;; start normally mandatory threads (apart form meta which will be removed later)
       (define (start-base-threads)
@@ -820,10 +837,8 @@
       (define (file-size path)
          (let ((port (open-input-file path)))
             (if port
-               (let ((end (seek-end port)))
+               (let ((end (sys-seek-end port)))
                   (close-port port)
                   end)
                port)))
-
 ))
-

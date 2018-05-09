@@ -9,7 +9,7 @@
 (print (force-ll (ltake (ledit editor (lnums 1)) 20)))
 
 
-;; start checking laziness/eagerness preservation 
+;; start checking laziness/eagerness preservation
 
 (define (boom . tail)
    (lambda ()
@@ -25,9 +25,7 @@
       ((function? x) 'TBC)
       (else 'ERROR)))
 
-(define print-computed 
-   (o print computed))
-
-;; 
+(define print-computed
+   (B print computed))
 
 (print-computed three-elems)

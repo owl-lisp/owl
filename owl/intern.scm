@@ -10,13 +10,11 @@
 (define-library (owl intern)
    (export
       bytes->symbol
-      string->symbol
-      symbol->string
       initialize-interner
       string->uninterned-symbol
       string->interned-symbol       ;; tree string → tree' symbol
       put-symbol                    ;; tree sym → tree'
-      empty-symbol-tree 
+      empty-symbol-tree
       intern-symbols
       start-dummy-interner
       start-symbol-interner
@@ -29,7 +27,6 @@
       (owl list)
       (owl math)
       (owl function)
-      (only (owl primop) apply)
       (owl ff)
       (owl tuple)
       (owl symbol))
@@ -51,7 +48,7 @@
             ((pair? s1)
                (cond
                   ((pair? s2)
-                     (lets 
+                     (lets
                         ((a as s1)
                          (b bs s2))
                         (cond
@@ -61,7 +58,7 @@
                   ((null? s2) 1)
                   (else (walk s1 (s2)))))
             (else (walk (s1) s2))))
-               
+
       (define (compare s1 s2)
          (walk (str-iter s1) (str-iter s2)))
 
@@ -70,12 +67,9 @@
       (define (string->uninterned-symbol str)
          (mkt type-symbol str))
 
-      (define (symbol->string ob)
-         (ref ob 1))
-
       ; lookup node str sym -> node' sym'
 
-      (define (maybe-lookup-symbol node str)   
+      (define (maybe-lookup-symbol node str)
          (if node
             (lets
                ((this (symbol->string (ref node 2)))
@@ -99,13 +93,13 @@
                   ((eq? res 0)
                      (set node 2 sym))
                   (res
-                     (set node 1 
+                     (set node 1
                         (put-symbol (ref node 1) sym)))
                   (else
                      (set node 3
                         (put-symbol (ref node 3) sym)))))
             (tuple #false sym #false)))
-         
+
       ;; note, only leaf strings for now
       (define (string->interned-symbol root str)
          (let ((old (maybe-lookup-symbol root str)))
@@ -113,9 +107,6 @@
                (values root old)
                (let ((new (string->uninterned-symbol str)))
                   (values (put-symbol root new) new)))))
-
-      (define (string->symbol str)
-         (interact 'intern str))
 
       ;;;
       ;;; BYTECODE INTERNING
@@ -139,7 +130,7 @@
          (lets
             ((as (sizeb a))
              (bs (sizeb b)))
-            (cond 
+            (cond
                ((eq? as bs) (compare-bytes a b 0 as))
                ((lesser? as bs) is-less)
                (else is-greater))))
@@ -149,7 +140,7 @@
       ;; codes bcode value → codes'
       (define (insert-code codes bcode value)
          (if codes
-            (lets 
+            (lets
                ((l k v r codes)
                 (res (compare-code k bcode)))
                (cond
@@ -164,7 +155,7 @@
        ;; codes bcode → bcode' | #false
        (define (lookup-code codes bcode)
          (if codes
-            (lets 
+            (lets
                ((l k v r codes)
                 (res (compare-code k bcode)))
                (cond
@@ -185,8 +176,8 @@
       ; them, and then make the intial threads with an up-to-date interner
 
       (define (bytes->symbol bytes)
-         (string->symbol 
-            (runes->string 
+         (string->symbol
+            (runes->string
                (reverse bytes))))
 
       (define (intern-symbols sexp)
@@ -222,7 +213,7 @@
                      (interner root codes)))
                ((bytecode? msg) ;; find an old equal bytecode sequence, extended wrapper, or add a new code fragment
                   ;(debug "interner: interning bytecode")
-                  (lets 
+                  (lets
                      ((codes code (intern-code codes msg)))
                      (mail sender code)
                      (interner root codes)))    ;; name after first finding
@@ -249,7 +240,7 @@
          (lets ((env (wait-mail))
                 (sender msg env))
             (cond
-               ((bytecode? msg) 
+               ((bytecode? msg)
                   (mail sender msg)
                   (dummy-interner))
                ((tuple? msg)
@@ -263,18 +254,18 @@
                   (error "bad interner request: " msg)))))
 
       (define (start-dummy-interner)
-         (fork-server 'intern dummy-interner))
+         (thunk->thread 'intern dummy-interner))
 
       ;; make a thunk to be forked as the thread
       ;; (sym ...)  ((bcode . value) ...) → thunk
       (define (initialize-interner symbol-list codes)
-         (let 
+         (let
             ((sym-root (fold put-symbol empty-symbol-tree symbol-list))
              (code-root (fold (λ (codes pair) (insert-code codes (car pair) (cdr pair))) #false codes)))
             (λ () (interner sym-root code-root))))
 
       (define (start-symbol-interner initial-symbols)
-         (fork-server 'intern
+         (thunk->thread 'intern
             (initialize-interner initial-symbols null)))
 
 ))

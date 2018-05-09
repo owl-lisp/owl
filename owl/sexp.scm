@@ -1,20 +1,21 @@
-;; todo: remove implicit UTF-8 conversion from parser and move to a separate pass
 
 (define-library (owl sexp)
-   
-   (export 
-      sexp-parser 
+
+   (export
+      sexp-parser
       read-exps-from
       list->number
-      get-sexps       ;; greedy* get-sexp
+      get-sexps         ;; greedy* get-sexp
+      get-padded-sexps  ;; whitespace at either end
       string->sexp
       vector->sexps
       list->sexps
       read read-ll)
 
    (import
-      (owl parse)
       (owl defmac)
+      (owl eof)
+      (owl parse)
       (owl math)
       (owl string)
       (owl list)
@@ -38,44 +39,44 @@
 
       (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:")) ;; owl uses @ for finite function syntax
 
-      (define (symbol-lead-char? n) 
-         (or 
+      (define (symbol-lead-char? n)
+         (or
             (between? #\a n #\z)
             (between? #\A n #\Z)
             (has? special-symbol-chars n)
             (> n 127)))         ;; allow high code points in symbols
 
-      (define (symbol-char? n) 
-         (or (symbol-lead-char? n) 
-             (eq? n #\.)
-             (or
-               (between? #\0 n #\9)
-               (> n 127))))         ;; allow high code points in symbols
+      (define (symbol-char? n)
+         (or
+            (symbol-lead-char? n)
+            (eq? n #\.)
+            (or (between? #\0 n #\9) (> n 127)))) ;; allow high code points in symbols
 
-      (define get-symbol 
+      (define get-symbol
          (get-either
-            (let-parses 
+            (let-parses
                ((head (get-rune-if symbol-lead-char?))
                 (tail (get-greedy* (get-rune-if symbol-char?)))
-                (next (peek get-byte))
-                (foo (assert (lambda (b) (not (symbol-char? b))) next))) ; avoid useless backtracking
+                ;(next (peek get-byte))
+                ;(foo (assert (B not symbol-char?) next))
+                )
                (string->uninterned-symbol (runes->string (cons head tail))))
             (let-parses
                ((skip (get-imm #\|))
-                (chars 
-                  (get-greedy* 
-                    (get-either
-                      (let-parses ((skip (get-imm #\\)) (rune get-rune)) rune)
-                      (get-rune-if (λ (x) (not (eq? x #\|)))))))
+                (chars
+                  (get-greedy*
+                     (get-either
+                        (let-parses ((skip (get-imm #\\)) (rune get-rune)) rune)
+                        (get-rune-if (B not (C eq? #\|))))))
                 (skip (get-imm #\|)))
                (string->uninterned-symbol (runes->string chars)))))
 
-      (define (digit-char? x) 
+      (define (digit-char? x)
          (or (between? 48 x 57)
             (between? 65 x 70)
             (between? 97 x 102)))
 
-      (define digit-values 
+      (define digit-values
          (list->ff
             (foldr append null
                (list
@@ -101,8 +102,8 @@
             0 digits))
 
       (define get-sign
-         (get-any-of (get-imm 43) (get-imm 45) (get-epsilon 43)))
-        
+         (one-of (get-imm 43) (get-imm 45) (get-epsilon 43)))
+
       (define bases
          (list->ff
             (list
@@ -112,8 +113,8 @@
                (cons #\x 16))))
 
       ; fixme, # and cooked later
-      (define get-base 
-         (get-any-of
+      (define get-base
+         (one-of
             (let-parses
                ((skip (get-imm #\#))
                 (char (get-byte-if (λ (x) (getf bases x)))))
@@ -142,9 +143,7 @@
 
       (define get-signer
          (let-parses ((char get-sign))
-            (if (eq? char 43)
-               (λ (x) x)
-               (λ (x) (- 0 x)))))
+            (if (eq? char 43) self (H - 0))))
 
 
       ;; separate parser with explicitly given base for string->number
@@ -199,10 +198,10 @@
             (if (eq? imag 0)
                real
                (complex real imag))))
-              
+
       (define get-rest-of-line
          (let-parses
-            ((chars (get-greedy* (get-byte-if (lambda (x) (not (eq? x 10))))))
+            ((chars (get-greedy* (get-byte-if (B not (C eq? 10)))))
              (skip (get-imm 10))) ;; <- note that this won't match if line ends to eof
             chars))
 
@@ -213,7 +212,7 @@
              (bang (get-imm 33))
              (line get-rest-of-line))
             (list 'quote (list 'hashbang (list->string line)))))
-      
+
       ;; skip everything up to |#
       (define (get-block-comment)
          (get-either
@@ -227,9 +226,9 @@
                skip)))
 
       (define get-a-whitespace
-         (get-any-of
+         (one-of
             ;get-hashbang   ;; actually probably better to make it a symbol as above
-            (get-byte-if (lambda (x) (has? '(9 10 32 13) x)))
+            (get-byte-if (H has? '(9 10 32 13)))
             (let-parses
                ((skip (get-imm #\;))
                 (skip get-rest-of-line))
@@ -272,10 +271,10 @@
               (#\" . #x0022)
               (#\\ . #x005c))))
 
-      (define get-quoted-string-char 
+      (define get-quoted-string-char
          (let-parses
             ((skip (get-imm #\\))
-             (char 
+             (char
                (get-either
                   (let-parses
                      ((char (get-byte-if (λ (byte) (getf quoted-values byte)))))
@@ -294,7 +293,7 @@
                (get-kleene*
                   (get-either
                      get-quoted-string-char
-                     (get-rune-if (lambda (x) (not (has? '(#\" #\\) x)))))))
+                     (get-rune-if (B not (H has? '(#\" #\\)))))))
              (skip (get-imm #\")))
             (runes->string chars)))
 
@@ -303,15 +302,15 @@
 
       (define (get-quoted parser)
          (let-parses
-            ((type 
+            ((type
                (get-either
                   (let-parses ((_ (get-imm 44)) (_ (get-imm 64))) 'splice) ; ,@
                   (get-byte-if (λ (x) (get quotations x #false)))))
              (value parser))
             (list (get quotations type #false) value)))
-     
+
       (define get-named-char
-         (get-any-of
+         (one-of
             (get-word "null" 0)
             (get-word "alarm" 7)
             (get-word "backspace" 8)
@@ -332,12 +331,12 @@
 
       ;; most of these are to go via type definitions later
       (define get-funny-word
-         (get-any-of
+         (one-of
             (get-word "..." '...)
             (let-parses
                ((skip (get-imm #\#))
                 (val
-                  (get-any-of
+                  (one-of
                      (get-word "true" #true)    ;; get the longer ones first if present
                      (get-word "false" #false)
                      (get-word "empty" #empty)
@@ -365,24 +364,24 @@
       (define (valid-ff-node? val)
          (and (pair? val)
             (or
-               (symbol? val) 
+               (symbol? val)
                (immediate? val))))
 
       (define (valid-ff-key? val)
-        (or (symbol? val) (immediate? val)))
+         (or (symbol? val) (immediate? val)))
 
       (define (ff-able? lst)
-        (cond
-          ((null? lst)
-            #true)
-          ((valid-ff-key? (car lst))
-            (let ((lst (cdr lst)))
-              (if (null? lst)
-                #false
-                (ff-able? (cdr lst)))))
-          (else 
-            (print-to stderr "Invalid ff key: " (car lst))
-            #false)))
+         (cond
+            ((null? lst)
+               #true)
+            ((valid-ff-key? (car lst))
+               (let ((lst (cdr lst)))
+                  (if (null? lst)
+                     #false
+                     (ff-able? (cdr lst)))))
+            (else
+               (print-to stderr "Invalid ff key: " (car lst))
+               #false)))
 
       (define (lst->ff lst)
          (let loop ((lst lst) (ff #empty))
@@ -391,20 +390,20 @@
                (lets ((k lst lst)
                       (v lst lst))
                   (loop lst (put ff k v))))))
-            
+
       (define (get-ff get-any)
          (let-parses
             ((skip (get-imm #\@))
-             (fields 
+             (fields
                (get-list-of get-any))
-             (foo (assert ff-able? fields)))
+             (verify (ff-able? fields) '(bad ff)))
             (lst->ff (intern-symbols fields))))
 
       (define (get-sexp)
          (let-parses
             ((skip maybe-whitespace)
              (val
-               (get-any-of
+               (one-of
                   ;get-hashbang
                   get-number         ;; more than a simple integer
                   get-sexp-regex     ;; must be before symbols, which also may start with /
@@ -415,7 +414,7 @@
                   (get-vector-of (get-sexp)) ;; #(...) -> vector or #((a . b) (c . d))
                   (get-ff (get-sexp)) ;; #(...) -> vector or #((a . b) (c . d))
                   (get-quoted (get-sexp))
-                  (get-byte-if eof?)
+                  (get-byte-if eof-object?)
                   get-quoted-char)))
             val))
 
@@ -423,26 +422,33 @@
       (define (ok exp env) (tuple 'ok exp env))
       (define (fail reason) (tuple 'fail reason))
 
-      (define sexp-parser 
+      (define sexp-parser
          (let-parses
-            ((sexp (get-sexp))
-             (foo maybe-whitespace))
+            ((foo maybe-whitespace)
+             (sexp (get-sexp))) ;; do not read trailing whitespace to avoid blocking when parsing a stream
             (intern-symbols sexp)))
 
       (define get-sexps
          (get-greedy* sexp-parser))
 
+      ;; whitespace at either end 
+      (define get-padded-sexps
+         (let-parses
+            ((data get-sexps)
+             (ws maybe-whitespace))
+            data))
+
       ;; fixme: new error message info ignored, and this is used for loading causing the associated issue
       (define (read-exps-from data done fail)
          (lets/cc ret  ;; <- not needed if fail is already a cont
-            ((data 
-               (utf8-decoder data 
-                  (λ (self line data) 
+            ((data
+               (utf8-decoder data
+                  (λ (self line data)
                      (ret (fail (list "Bad UTF-8 data on line " line ": " (ltake line 10))))))))
             (sexp-parser data
                (λ (data drop val pos)
                   (cond
-                     ((eof? val) (reverse done))
+                     ((eof-object? val) (reverse done))
                      ((null? data) (reverse (cons val done))) ;; only for non-files
                      (else (read-exps-from data (cons val done) fail))))
                (λ (pos reason)
@@ -464,24 +470,24 @@
       (define (vector->sexps vec fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
          (let ((lst (vector->list vec)))
-            (try-parse get-sexps lst #false errmsg #false)))
+            (try-parse get-padded-sexps lst #false errmsg #false)))
 
       (define (list->sexps lst fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val
-         (try-parse get-sexps lst #false errmsg #false))
-     
+         (try-parse get-padded-sexps lst #false errmsg #false))
+
       (define (read-port port)
-         (fd->exp-stream port #false sexp-parser #false #false))
-         
+         (fd->exp-stream port sexp-parser (silent-syntax-fail (list #false))))
+
       (define read-ll
          (case-lambda
             (()     (read-port stdin))
-            ((thing) 
+            ((thing)
                (cond
                   ((port? thing)
                      (read-port thing))
                   ((string? thing)
-                     (try-parse get-sexps (str-iter thing) #false #false #false))
+                     (try-parse get-padded-sexps (str-iter thing) #false #false #false))
                   (else
                      (error "read needs a port or a string, but got " thing))))))
 
@@ -491,5 +497,4 @@
                (ll (lcar ll))
                ((null? rest) (error "read: bad data in " thing))
                (else (car rest)))))
-
 ))

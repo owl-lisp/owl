@@ -71,14 +71,14 @@
       merge-chunks          ; exported for use in lib-io (may be moved later)
       make-vector           ; n elem → #(elem ...)
       leaf-data vec-leaf-of
-      vector-ref 
+      vector-ref
       vector-length
       vec-leaves
       vec-cat             ;  vec x vec → vec
       vec-rev
       *vec-leaf-size*)     ; needed for vector IO
 
-   (import 
+   (import
       (owl defmac)
       (owl lazy)
       (owl list)
@@ -95,7 +95,7 @@
       (define *vec-leaf-size* (<< 1 *vec-bits*))
       (define *vec-leaf-max* (- *vec-leaf-size* 1))
 
-      (define (byte-vector? x) 
+      (define (byte-vector? x)
          (eq? (type x) type-vector-raw))
 
       ;;;
@@ -115,7 +115,7 @@
       (define (vec-dispatch-2 v d) ; -> v'
          (case (type v)
             (type-vector-dispatch
-               (lets 
+               (lets
                   ((p _ (fx>> d *vec-bits*))
                    (p _ (fx+ p 2)))
                   (ref v p)))
@@ -142,19 +142,19 @@
                (refb v (fxband n *vec-leaf-max*)))
             (type-vector-dispatch
                 (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
-            (type-vector-leaf 
+            (type-vector-leaf
                 (if (eq? n *vec-leaf-max*)
                    (ref v *vec-leaf-size*)
                    (lets ((n _ (fx+ (fxband n *vec-leaf-max*) 1)))
                      (ref v n))))
-            (else 
+            (else
                (error "bad vector node in vec-ref-digit: type " (type v)))))
 
       ; find the node holding the last digit and read it
       (define (vec-ref-big v n)
-         (vec-ref-digit 
+         (vec-ref-digit
             (vec-dispatch-2
-               (vec-seek v (ncdr n)) 
+               (vec-seek v (ncdr n))
                (ncar n))
             (ncar n)))
 
@@ -171,11 +171,11 @@
                      (vec-ref-digit (vec-dispatch-2 v n) (fxband n *vec-leaf-max*)))))
             (type-int+
                (vec-ref-big v n))
-            (else 
+            (else
                (error "vec-ref: bad index: " n))))
 
       ;;; searching the leaves containing a pos 
-      
+
       ;; todo: switch vec-ref to use vec-leaf-of for int+ indeces
 
       (define (vec-leaf-big v n)
@@ -193,7 +193,7 @@
             (else
                (error "vec-leaf-of: bad index: " n))))
 
-      
+
       ;; others
 
       (define (vec-len vec)
@@ -215,11 +215,11 @@
 
       ; note, a blank vector must use a raw one, since there are no such things as 0-tuples
 
-      (define empty-vector 
-         (raw null type-vector-raw #false))
+      (define empty-vector
+         (raw null type-vector-raw))
 
-      (define (list->byte-vector bs)
-         (raw bs type-vector-raw #false))
+      (define list->byte-vector
+         (C raw type-vector-raw))
 
       (define (make-leaf rvals n raw?)
          (if raw?
@@ -228,9 +228,9 @@
            ;; the leaf contains other values, so need full 4/8-byte descriptors
            (listuple type-vector-leaf n (reverse rvals))))
 
-      (define (byte? val) 
-         (and 
-            (eq? (type val) type-fix+) 
+      (define (byte? val)
+         (and
+            (eq? (type val) type-fix+)
             (eq? val (fxband val 255))))
 
       ;; list -> list of leaf nodes
@@ -256,7 +256,7 @@
                ((eq? n 0) (values (reverse taken) l))
                (else
                   (loop (cdr l) (- n 1) (cons (car l) taken))))))
-               
+
       (define (merge-each l s)
          (cond
             ((null? l) null)
@@ -303,13 +303,13 @@
                (cons here (levels below (* width *vec-leaf-size*)))))) ; everything below the first level branches 256-ways
 
       (define (merge-levels lst)
-         (foldr 
+         (foldr
             (λ (this below)
                ;; this = list of leaves which will be as such or in dispatch nodes 
                ;;        on this level of the tree
                ;; below = possible list of nodes up to 256 of which will be attached 
                ;;         as subtrees to each leaf of this level, starting from left
-               (let loop ((below below) (this this)) 
+               (let loop ((below below) (this this))
                   (cond
                      ((null? below) this)
                      ((null? this)
@@ -342,7 +342,7 @@
                    (subtrees (merge-levels fields))) ;; construct the subtrees
                   (listuple type-vector-dispatch (+ 2 (length subtrees)) (ilist low len subtrees))))))
 
-      
+
       (define (list->vector l)
          (cond
             ((null? l)
@@ -367,7 +367,7 @@
          (if (eq? pos 0)
             (cons (refb bv pos) tail)
             (lets
-               ((byte (refb bv pos)) 
+               ((byte (refb bv pos))
                 (pos _ (fx- pos 1)))
                (copy-bvec bv pos (cons byte tail)))))
 
@@ -376,7 +376,7 @@
             (if (eq? size 0)
                null
                (copy-bvec bv (- size 1) null))))
-         
+
       ;;;
       ;;; Vector iterators
       ;;;
@@ -443,7 +443,7 @@
       (define (vec-iter-range v p e)
          (if (<= e (vec-len v))
             (cond
-               ((< p e) 
+               ((< p e)
                   (iter-range-really v p (- e p)))
                ((= p e) null)
                (else (error "vec-iter-range: bad range " (cons p e))))
@@ -453,10 +453,10 @@
 
       ;; todo: vec-iterr could also chunk whole leaves directly with fixnums like vec-iterr
       (define (iterr-raw-leaf v last tl)
-         (if (eq? last 0) 
+         (if (eq? last 0)
             tl
             (lets ((last (- last 1)))
-               (cons (refb v last) 
+               (cons (refb v last)
                   (λ () (iterr-raw-leaf v last tl))))))
 
       (define (iterr-leaf v p tl)
@@ -469,9 +469,9 @@
             (type-vector-dispatch (iterr-any-leaf (ref v 1) tl))
             (type-vector-raw (iterr-raw-leaf v (sizeb v) tl))
             (type-vector-leaf (iterr-leaf v (size v) tl))
-            (else 
+            (else
                tl))) ; size field in root is a number → skip
-      
+
       (define (vec-iterr-loop v p)
          (if (eq? type-fix- (type p))
             null
@@ -479,7 +479,7 @@
                (λ () (vec-iterr-loop v (- p *vec-leaf-size*))))))
 
       (define (vec-iterr v)
-         (lets 
+         (lets
             ((end (vec-len v))
              (last (band end *vec-leaf-max*)))
             (cond
@@ -487,7 +487,7 @@
                   (if (eq? end 0) ; blank vector
                      null
                      (vec-iterr-loop v (- end 1)))) ; start from previous leaf
-               (else 
+               (else
                   (vec-iterr-loop v (- end 1))))))
 
       ;; vector folds
@@ -497,7 +497,7 @@
 
       ;; list conversions
 
-      (define (vec->list vec) 
+      (define (vec->list vec)
          (cond
             ((eq? (type vec) type-vector-raw)
                ;; convert raw vectors directly to allow this to be used also for large chunks
@@ -527,8 +527,7 @@
 
       ;; fixme: proper vec-range not implemented 
       (define (vec-range-naive vec from to) ; O(m log n) 
-         (list->vector
-            (map (λ (p) (vec-ref vec p)) (iota from 1 to))))
+         (list->vector (map (H vec-ref vec) (iota from 1 to))))
 
       (define vec-range vec-range-naive)
 
@@ -553,13 +552,12 @@
                (vector->list a)
                (vector->list b))))
 
-      (define (vec-rev a)
-         (list->vector
-            (vec-iterr a)))
+      (define vec-rev
+         (B list->vector vec-iterr))
 
       ;; fixme: make-vector does not share the nodes despite most being equal
-      (define make-vector 
-         (case-lambda 
+      (define make-vector
+         (case-lambda
             ((n)
                (list->vector (repeat #false n)))
             ((n val)
@@ -578,4 +576,3 @@
       (define vector-length vec-len)
       (define vector-ref vec-ref)
 ))
-

@@ -5,16 +5,18 @@
 
 (define-library (owl dump)
 
-   (export 
+   (export
       make-compiler    ; ((make-compiler extra-insts) entry path opts native) 
       dump-fasl 
-      load-fasl)
+      load-fasl
+      suspend)
 
-   (import 
+   (import
       (owl defmac)
       (owl fasl)
       (owl list)
       (owl sort)
+      (owl syscall)
       (owl ff)
       (owl symbol)
       (owl vector)
@@ -27,6 +29,7 @@
       (owl render)
       (owl lazy)
       (owl cgen)
+      (only (owl sys) mem-strings)
       (only (owl syscall) error mail exit-owl)
       (only (owl env) signal-halt signal-tag)
       (only (owl unicode) utf8-decode)
@@ -34,9 +37,9 @@
       (only (owl queue) qnull))
 
    (begin
-      ;;; 
+      ;;;
       ;;; Symbols must be properly interned in a repl.
-      ;;; 
+      ;;;
 
       (define (symbols-of node)
 
@@ -97,7 +100,7 @@
                   #false
                   (high-point? str pos)))
             #true))
-           
+
       ;; utf-8 decode if necessary (avoids some constant overhead, which is useful if there are 2 quadriollion args)
       (define (maybe-utf8-decode str)
          (let ((n (sizeb str))) ;; <- command line args are raw blocks so primitive lenb is ok
@@ -151,8 +154,8 @@
                #false)))
 
       (define (dump-fasl obj path)
-         (dump-data (fasl-encode-stream obj (lambda (x) x)) path))
-      
+         (dump-data (fasl-encode-stream obj self) path))
+
       ;; fixme: sould be (load-fasl <path> <fail>)
       (define (load-fasl path fval)
          (let ((port (open-input-file path)))
@@ -169,13 +172,12 @@
                   (λ (tl func info)
                      (lets ((opcode new-func c-code info))
                         ;; render code if there (shared users do not have it)
-                        (if c-code 
+                        (if c-code
                            ;; all of these end to an implicit goto apply
-                           (ilist "      case " opcode ":" c-code "break; /* " func " */
-   " tl)
+                           (ilist "      case " opcode ":" c-code "break;\n" tl)
                            tl)))
                   null nops))))
-            
+
 
       ; nodes = ((func . #(opcode warpper src)) ...)
 
@@ -197,8 +199,8 @@
                            "report this as an issue if this happens for a real program."))
                      ((compile-to-c (car obs) extras) =>
                         (λ (src)
-                           (lets 
-                              ((wrapper (raw (list 0 (>> code 8) (band code 255)) type-bytecode #false)))
+                           (lets
+                              ((wrapper (raw (list 0 (>> code 8) (band code 255)) type-bytecode)))
                               (loop (+ code 1) (cdr obs)
                                  (cons (cons (car obs) (tuple code wrapper src)) out)))))
                      (else
@@ -212,7 +214,7 @@
 
       (define (show-func val)
          (cons 'bytecode
-            (map (λ (p) (refb val p)) (iota 0 1 (sizeb val)))))
+            (map (H refb val) (iota 0 1 (sizeb val)))))
 
       ; native-ops → (obj → obj')
       ;; fixme: rewrite...
@@ -220,12 +222,10 @@
          (λ (obj)
             (cond
                ;; if chosen to be a macro instruction in the new vm, replace with new bytecode calling it
-               ((get native-ops obj #false) =>
-                  (λ (vals) 
-                     ; write a reference to the wrapper function instead of the original bytecode
-                     (ref vals 2)))
-               ;; if this is a macro instruction in the current system, convert back to vanilla bytecode, or the 
-               ;; target machine won't understand this
+               ;; write a reference to the wrapper function instead of the original bytecode
+               ((get native-ops obj #false) => (C ref 2))
+               ;; if this is a macro instruction in the current system, convert back
+               ;; to vanilla bytecode, or the target machine won't understand this
                ((extended-opcode obj) =>
                   (λ (opcode)
                      ;(print " * mapping superinstruction back to to bytecode: " opcode)
@@ -248,10 +248,10 @@
                         (clone-code original extras)
                         (error "bug: no original code found for superinstruction " opcode)))))
             (else
-               (let ((bytes (map (λ (p) (refb bc p)) (iota 0 1 (sizeb bc)))))
+               (let ((bytes (map (H refb bc) (iota 0 1 (sizeb bc)))))
                   (if (eq? (cadr bytes) 0)
                      (error "bug: vm speciazation instruction probably referencing code from current vm: " bytes))
-                  (raw bytes type-bytecode #false))))) ; <- reallocate it
+                  (raw bytes type-bytecode))))) ; <- reallocate it
 
       (define (original-sources native-ops extras)
          (ff-fold
@@ -328,14 +328,25 @@
                (cook-format (s/^.*\.([a-z]+)$/\1/ path))
                #false)))
 
+      (define owl-ohai-resume "Welcome back.")
+
+      ; path -> 'loaded | 'saved
+      (define (suspend path)
+         (let ((maybe-world (syscall 16 #true #true)))
+            (if (eq? maybe-world 'resumed)
+               owl-ohai-resume
+               (begin
+                  (dump-fasl maybe-world path)
+                  'saved))))
+
+      (define with-args
+         (C B mem-strings))
 
       ; obj → (ff of #[bytecode] → #(native-opcode native-using-bytecode c-fragment))
       ; dump entry object to path, or stdout if path is "-"
 
       (define (make-compiler extras)
          (λ (entry path opts native . custom-runtime) ; <- this is the usual compile-owl 
-            (if (null? custom-runtime)
-               (print-to stderr "custom runtime not provided"))
             (lets
                ((path (get opts 'output "-")) ; <- path argument deprecated
                 (format 
@@ -348,23 +359,16 @@
                   (if (get opts 'want-threads #false) 
                      (with-threading entry)
                      entry)) ; <- continue adding this next
-               
+
                 (entry ;; pass symbols to entry if requested (repls need this)
                   (if (get opts 'want-symbols #false) 
                      (entry (symbols-of entry))
                      entry))
-                  
+
                 (entry ;; pass code vectors to entry if requested (repls need this)
                   (if (get opts 'want-codes #false) 
                      (entry (codes-of entry))
                      entry))
-                  
-                ;; fixme: allow a compiler arg to convert this point fully to native to get also the thread scheduler compiled
-                ;(extra-native ;; choose 10% of most frequently linked code unless compiling a fasl image
-                ;  (cond
-                ;     ((eq? format 'fasl) null) ; fasl -> no natives
-                ;     ((eq? entry native) null)  ; everything native anyway
-                ;     (else (most-linked-code entry 10)))) ; pick most linked 10% (testing)
 
                 (native-ops ;; choose which bytecode vectors to add as extended vm instructions
                   (choose-native-ops (if (get opts 'native #false) entry native) extras))
@@ -380,17 +384,20 @@
                      entry
                      (with-decoded-args entry)))
 
+                (entry ;; pull command line args to owl from **argv
+                     (with-args entry))
+
                 (native-cook ;; make a function to possibly rewrite bytecode during save (usually to native code wrappers)
                    (make-native-cook native-ops extras))
-      
+
                 (bytes ;; encode the resulting object for saving in some form
                   (fasl-encode-cooked entry native-cook))
-               
+
                 (runtime
                    (if (and (pair? custom-runtime) (car custom-runtime))
                       (car custom-runtime)
                       rts-source))
-                   
+
                 (port ;; where to save the result
                   (if (equal? path "-")
                      stdout
@@ -407,10 +414,10 @@
                      (write-bytes port bytes)
                      (close-port port)
                      #true)
-                  ((eq? format 'c) 
+                  ((eq? format 'c)
                      (write-bytes port ;; output fasl-encoded heap as an array
                         (append
-                           (string->bytes "unsigned char heap[] = {")
+                           (string->bytes "static const unsigned char heap[] = {")
                            (render-byte-array bytes 24)))
                      ;; dump also a fasl if requested
                      (write-bytes port (string->bytes "};\n "))
@@ -420,10 +427,7 @@
                            (str-replace runtime
                               "/* AUTOGENERATED INSTRUCTIONS */"
                               (render-native-ops native-ops))))
-                     
+
                      ;; done, now just gcc -O2 -o foo <path>
                      (close-port port))))))
-
 ))
-
-

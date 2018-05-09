@@ -18,7 +18,7 @@
          (let ((clis (tcp-clients port)))
             (if clis
                (begin
-                  (fork-server name (lambda () (tcp-echo clis)))
+                  (thread name (tcp-echo clis))
                   port)
                (loop (+ port 1))))
          #false)))
@@ -30,8 +30,8 @@
 
 (define cli (open-connection (vector 127 0 0 1) port))
 
-(if cli
-  (print "client connected"))
+(if (not cli)
+  (print "client not connected"))
 
 (print-to cli "SLARTIBARTFAST")
 

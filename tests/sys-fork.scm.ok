@@ -1,0 +1,5 @@
+Pipes check
+Subprocess forked
+Subprocess echo with star ok
+Closing parent end of port #true
+Waiting child: (1 . 0)

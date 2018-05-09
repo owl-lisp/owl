@@ -50,13 +50,13 @@
       char-ci=?          ; cp cp → bool (temp)
       )
 
-   (import 
+   (import
+      (owl defmac)
       (owl iff)
       (only (owl syscall) error)
       (owl unicode)
       (owl list)
       (owl list-extra)
-      (owl defmac)
       (owl lazy)
       (owl math))
 
@@ -81,7 +81,7 @@
       ;;; enumerate code points forwards
 
       (define (str-iter-leaf str tl pos end)
-         (if (eq? pos end) 
+         (if (eq? pos end)
             tl
             (pair (refb str pos)
                (lets ((pos u (fx+ pos 1)))
@@ -101,7 +101,7 @@
                   (if (eq? len 0)
                      tl
                      (str-iter-leaf str tl 0 len))))
-            (type-string-wide 
+            (type-string-wide
                (str-iter-wide-leaf str tl 1))
             (type-string-dispatch
                (let loop ((pos 2))
@@ -112,7 +112,7 @@
             (else
                (error "str-iter: not a string: " str))))
 
-      (define (str-iter str) (str-iter-any str null))
+      (define str-iter (C str-iter-any null))
 
       ;;; iterate backwards 
 
@@ -149,7 +149,7 @@
             (else
                (error "str-iterr: not a string: " str))))
 
-      (define (str-iterr str) (str-iterr-any str null))
+      (define str-iterr (C str-iterr-any null))
 
       ;; string folds
 
@@ -160,12 +160,8 @@
 
       (define (hexencode cp tl)
          (ilist #\\ #\x
-            (append (render-number cp null 16) 
+            (append (render-number cp null 16)
                (cons #\; tl))))
-            
-     ;; move these elsewhere
-     ;(define (number->string n base)
-     ;   (list->string (render-number n null base)))
 
       (define (maybe-hexencode char tl)
          (cond
@@ -173,9 +169,9 @@
                (hexencode char tl))
             ((eq? char 128)
                (hexencode char tl))
-            (else 
+            (else
                #false)))
-     
+
       ;; quote just ":s for now
       (define (encode-quoted-point p tl)
          (cond
@@ -189,8 +185,7 @@
                (ilist #\\ #\r tl))
             ((eq? p #\tab)
                (ilist #\\ #\t tl))
-            ((maybe-hexencode p tl) => 
-               (lambda (tl) tl))
+            ((maybe-hexencode p tl) => self)
             (else
                (encode-point p tl))))
 
@@ -198,7 +193,7 @@
       (define (string->bytes str)    (str-foldr encode-point null str))
       (define (render-string str tl) (str-foldr encode-point tl str))
       (define (string->runes str)    (str-foldr cons null str))
-      (define (render-quoted-string str tl) 
+      (define (render-quoted-string str tl)
          (str-foldr encode-quoted-point tl str))
 
 
@@ -232,7 +227,7 @@
 
       (define (make-chunk rcps len ascii?)
          (if ascii?
-            (let ((str (raw (reverse rcps) type-string #false)))
+            (let ((str (raw (reverse rcps) type-string)))
                (if str
                   str
                   (error "Failed to make string: " rcps)))
@@ -242,7 +237,7 @@
       (define (stringify runes out n ascii? chu)
          (cond
             ((null? runes)
-               (finish-string 
+               (finish-string
                   (reverse (cons (make-chunk out n ascii?) chu))))
             ; make 4Kb chunks by default
             ((eq? n 4096)
@@ -251,23 +246,23 @@
             ((pair? runes)
                (cond
                   ((and ascii? (< 128 (car runes)) (> n 256))
-                     ; allow smaller leaf chunks 
+                     ; allow smaller leaf chunks
                      (stringify runes null 0 #true
                         (cons (make-chunk out n ascii?) chu)))
                   ((valid-code-point? (car runes))
                      (let ((rune (car runes)))
-                        (stringify (cdr runes) (cons rune out) (+ n 1) 
+                        (stringify (cdr runes) (cons rune out) (+ n 1)
                            (and ascii? (< rune 128))
                            chu)))
                   (else #false)))
             (else (stringify (runes) out n ascii? chu))))
 
       ;; (codepoint ..) → string | #false
-      (define (runes->string lst) 
+      (define (runes->string lst)
          (stringify lst null 0 #true null))
 
-      (define bytes->string 
-         (o runes->string utf8-decode))
+      (define bytes->string
+         (B runes->string utf8-decode))
 
       ;;; temps
 
@@ -275,14 +270,14 @@
       ; figure out how to handle balancing. 234-trees with occasional rebalance?
       (define (str-app a b)
          (bytes->string
-            (render-string a 
+            (render-string a
                (render-string b null))))
 
       (define (string-eq-walk a b)
          (cond
             ((pair? a)
                (cond
-                  ((pair? b) 
+                  ((pair? b)
                      (if (= (car a) (car b))
                         (string-eq-walk (cdr a) (cdr b))
                         #false))
@@ -292,7 +287,7 @@
                         (if (and (pair? b) (= (car b) (car a)))
                            (string-eq-walk (cdr a) (cdr b))
                            #false)))))
-            ((null? a) 
+            ((null? a)
                (cond
                   ((pair? b) #false)
                   ((null? b) #true)
@@ -305,7 +300,9 @@
                (string-eq-walk (str-iter a) (str-iter b))
                #false)))
 
-      (define string-append str-app)
+      (define (string-append . str)
+         (fold str-app "" str))
+
       (define string->list string->runes)
       (define list->string runes->string)
 
@@ -315,19 +312,19 @@
                (list->string (list . things)))))
 
       (define (c-string str) ; -> bvec | #false
-         (if (eq? (type str) type-string)
+         (raw
+            (str-foldr
             ;; do not re-encode raw strings. these are normally ASCII strings 
             ;; which would not need encoding anyway, but explicitly bypass it 
             ;; to allow these strings to contain *invalid string data*. This 
             ;; allows bad non UTF-8 strings coming for example from command 
             ;; line arguments (like paths having invalid encoding) to be used 
             ;; for opening files.
-            (raw (str-foldr cons '(0) str) type-string #false)
-            (let ((bs (str-foldr encode-point '(0) str)))
-               ; check that the UTF-8 encoded version fits one raw chunk (64KB)
-               (if (<= (length bs) #xffff) 
-                  (raw bs type-string #false)
-                  #false))))
+               (if (eq? (type str) type-string)
+                  cons
+                  encode-point)
+               '(0) str)
+            type-string))
 
       (define null-terminate c-string)
 
@@ -359,7 +356,7 @@
                (else
                   (walk (cons (car in) rout) (cdr in)))))
          (walk null lst))
-      
+
       (define (str-replace str pat val)
          (runes->string
             (replace-all
@@ -371,13 +368,10 @@
          (runes->string
             (lmap op (str-iter str))))
 
-      (define (str-rev str)
-         (runes->string
-            (str-iterr str)))
+      (define str-rev
+         (B runes->string str-iterr))
 
-      (define (i x) x)
-
-      (define string-copy i)
+      (define string-copy self)
 
       ;; going as per R5RS
       (define (substring str start end)
@@ -388,14 +382,14 @@
                (error "substring: negative start: " start))
             ((< end start)
                (error "substring: bad interval " (cons start end)))
-            (else 
+            (else
                (list->string (ltake (ldrop (str-iter str) start) (- end start))))))
 
       ;; lexicographic comparison with end of string < lowest code point
       ;; 1 = sa smaller, 2 = equal, 3 = sb smaller
       (define (str-compare cook sa sb)
          (let loop ((la (cook (str-iter sa))) (lb (cook (str-iter sb))))
-            (lets 
+            (lets
                ((a la (uncons la #false))
                 (b lb (uncons lb #false)))
                (cond
@@ -407,10 +401,10 @@
 
       ;; iff of codepoint → codepoint | (codepoint ...), the first being equal to (codepoint)
       (define char-fold-iff
-         (fold 
-            (λ (iff node) 
-               (if (= (length node) 2) 
-                  (iput iff (car node) (cadr node)) 
+         (fold
+            (λ (iff node)
+               (if (= (length node) 2)
+                  (iput iff (car node) (cadr node))
                   (iput iff (car node) (cdr node))))
             #empty char-folds))
 
@@ -426,7 +420,7 @@
          (llref (str-iter str) p))
 
       (define (upcase ll)
-         (lets 
+         (lets
             ((cp ll (uncons ll #false)))
             (if cp
                (let ((cp (iget char-fold-iff cp cp)))
@@ -439,7 +433,7 @@
 
       ;; fixme: incomplete, added because needed for ascii range elsewhere
       (define (char-ci=? a b)
-         (or (eq? a b) 
+         (or (eq? a b)
             (=
                (iget char-fold-iff a a)
                (iget char-fold-iff b b))))
@@ -447,10 +441,10 @@
       (define string=? string-eq?)
       (define (string-ci=? a b) (eq? 2 (str-compare upcase a b)))
 
-      (define (string<? a b)       (eq? 1 (str-compare i a b)))
-      (define (string<=? a b) (not (eq? 3 (str-compare i a b))))
-      (define (string>? a b)       (eq? 3 (str-compare i a b)))
-      (define (string>=? a b) (not (eq? 1 (str-compare i a b))))
+      (define (string<? a b)       (eq? (str-compare self a b) 1))
+      (define (string<=? a b) (not (eq? (str-compare self a b) 3)))
+      (define (string>? a b)       (eq? (str-compare self a b) 3))
+      (define (string>=? a b) (not (eq? (str-compare self a b) 1)))
 
       (define (string-ci<? a b)       (eq? 1 (str-compare upcase a b)))
       (define (string-ci<=? a b) (not (eq? 3 (str-compare upcase a b))))
@@ -458,13 +452,13 @@
       (define (string-ci>=? a b) (not (eq? 1 (str-compare upcase a b))))
 
       (define (str-iter-bytes str)
-         (ledit 
+         (ledit
             (lambda (codepoint tl)
                (if (lesser? codepoint #x80)
                   (cons codepoint tl)
                   (encode-point codepoint tl)))
             (str-iter str)))
-                  
-      (define (make-string n char)
-         (list->string (repeat char n)))))
 
+      (define (make-string n char)
+         (list->string (repeat char n)))
+))

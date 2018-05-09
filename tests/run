@@ -1,60 +1,71 @@
 #!/bin/sh
 
-SUFFIX=""
-MAXJOBS=4
+CURJOBS=0 MAXJOBS=4
+LOG=tmp/units-$$.out PID=$$
 
 waitnjobs() {
-   while true
+   while test $CURJOBS -ge $1
    do
-      test $(jobs | grep Running | wc -l) -lt $1 && break
-      sleep 0.2
+      wait # until interrupted by SIGUSR1
    done
 }
 
+difflog() {
+   if diff "$1.ok" - >>"$LOG"
+   then
+      echo '.\c'
+   else
+      echo '|\c'
+      echo "ERROR: $file" >>"$LOG"
+   fi
+   kill -USR1 $PID # job done
+}
 
-case $1 in 
-	random) SUFFIX=-rand;;
-	all)    SUFFIX="";;
-	*)
-		echo "$ run (random | all) cmd [flags]";
-		exit 1;;
+case $1 in
+(random)
+   SUFFIX='-rand'
+   ;;
+(all)
+   SUFFIX=''
+   ;;
+(*)
+   echo '$ run (random|all) cmd [flags]'
+   exit 1
 esac
 
 shift
 
-test -x $1 || { echo "No executable at '$1'."; exit 2; }
-
+test -x "$1" || {
+   echo "No executable at '$1'."
+   exit 2
+}
 test -d tmp && rm -rf tmp # don't want old files screwing up tests
 mkdir tmp
 
-LOG=tmp/units-$$.out
-
-fail() {
-   cat $LOG
-   exit 1
-}
-
-echo -n "Running tests/ against $@:"
-
-touch $LOG
+echo "Running tests/ against $@: \\c"
+trap 'CURJOBS=$((CURJOBS - 1))' USR1
 
 for file in tests/*$SUFFIX.scm
 do
-   ($@ -q $file 2>&1 | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   ("$@" -q "$file" 2>&1 | grep -v SEED | difflog "$file") &
+   CURJOBS=$((CURJOBS + 1))
    waitnjobs $MAXJOBS
 done
 
 for file in tests/*$SUFFIX.sh
 do
-   ((sh $file $@ 2>&1 || echo "NONZERO: $file $?") | grep -v SEED | diff $file.ok - >> $LOG || echo "ERROR: $file" >> $LOG; /bin/echo -n " o") &
+   ( (sh "$file" "$@" 2>&1 || echo "NONZERO: $file $?") | grep -v SEED | difflog "$file") &
+   CURJOBS=$((CURJOBS + 1))
    waitnjobs $MAXJOBS
 done
 
-wait 
+trap '' USR1 # ignore remaining "done" signals
+wait
 
-grep ERROR $LOG && fail $LOG
-
-rm $LOG
-
-echo " ok"
-
+grep -q ERROR "$LOG" && {
+   echo ' FAILED'
+   cat "$LOG"
+   exit 1
+}
+rm "$LOG"
+echo ' PASSED'

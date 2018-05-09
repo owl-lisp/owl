@@ -1,0 +1,17 @@
+testing 'x' = 42
+testing 'x' = 120
+testing 'x' = #false
+testing 'xxxa' = xxx
+testing 'ababax' = (ab ab)
+testing 'abax' = (ab)
+testing 'ax' = #false
+testing 'adxy' = ad
+testing 'ax' = *a
+testing 'abc' = #false
+testing 'abc' = 97
+testing 'aaaax' = ((97 97) (97) (97))
+testing '1234x' = 1234
+testing '           {  11 22   33 44 }x' = (11 22 33 44)
+testing 'aaax' = ((97 97) a)
+testing 'aaax' = #false
+testing 'aabcx' = ((97 97 98) c)

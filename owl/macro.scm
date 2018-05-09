@@ -1,7 +1,7 @@
 ; already loaded when booting.
 
 (define-library (owl macro)
-   
+
    ; remove make-transformer when it is no longer referred 
    (export macro-expand match make-transformer)
 
@@ -38,8 +38,7 @@
                   (cons exp found))
                (else found)))
 
-         (lambda (exp)
-            (walk exp null)))
+         (C walk null))
 
 
       ;;;
@@ -170,7 +169,7 @@
       ;; single matches can be used along with ellipsis matches.
 
       (define (repetition-length dict)
-         (let loop ((opts (sort < (map (o length cdr) dict))) (best 0))
+         (let loop ((opts (sort < (map (B length cdr) dict))) (best 0))
             (cond
                ((null? opts)
                   ;; 0 if ellipsis with empty match, or 1 due to ellipsis of lenght 1 or just normal valid bindings
@@ -181,7 +180,7 @@
                (else
                   ;; repetition of length 0 or n>1
                   (car opts)))))
-     
+
       ;; pop all bindings of length > 1 
       (define (pop-ellipsis dict)
          (map 
@@ -199,8 +198,7 @@
                ((pair? form)
                   (if (and (pair? (cdr form)) (eq? (cadr form) '...))
                      (lets
-                        ((syms (symbols-of (car form)))
-                         (dict (keep (λ (node) (has? syms (car node))) dictionary))
+                        ((dict (keep (B (H has? (symbols-of (car form))) car) dictionary))
                          (len (repetition-length dict)))
                         (let rep-loop ((dict dict) (n len))
                            (if (= n 0)
@@ -219,12 +217,8 @@
       ; exp env free -> status exp' free'
 
       (define toplevel-macro-definition?
-         (let 
-            ((pattern 
-               `(quote syntax-operation add #false (,symbol? ,list? ,list? ,list?))))
-            ;; -> keyword literals patterns templates
-            (lambda (exp)
-               (match pattern exp))))
+         ;; -> keyword literals patterns templates
+         (H match `(quote syntax-operation add #false (,symbol? ,list? ,list? ,list?))))
 
       ; fold w/ 2 state variables
       (define (fold2 op s1 s2 lst)
@@ -402,11 +396,8 @@
 
       (define (macro-expand exp env)
          (lets/cc exit
-            ((abort (lambda (why) (exit (fail why))))
+            ((abort (B exit fail))
              (free (gensym exp))
              (exp free (expand exp env free abort)))
             (post-macro-expand exp env abort)))
-
-
 ))
-

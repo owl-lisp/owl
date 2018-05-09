@@ -1,14 +1,15 @@
 (define-library (owl syscall)
 
    (export
-      syscall error interact fork accept-mail wait-mail check-mail
+      syscall error interact accept-mail wait-mail check-mail
       exit-owl release-thread catch-thread set-signal-action
-      single-thread? kill mail fork-linked-server fork-server
-      return-mails fork-server fork-linked fork-named exit-thread exit-owl
+      single-thread? kill link mail
+      return-mails fork-named exit-thread exit-owl
       poll-mail-from start-profiling stop-profiling running-threads par*
-      par por* por)
+      par por* por
+      thread thunk->thread)
 
-   (import 
+   (import
       (owl defmac)
       (owl primop))
 
@@ -22,13 +23,7 @@
 
       ;; 3 = vm thrown error
       (define (fork-named name thunk)
-         (syscall 4 (list name) thunk))
-
-      (define (fork-linked name thunk)
-         (syscall 4 (list name 'link) thunk))
-
-      (define (fork-server name handler)
-         (syscall 4 (list name 'mailbox) handler))
+         (syscall 4 name thunk))
 
       (define (error reason info)
          (syscall 5 reason info))
@@ -36,21 +31,18 @@
       (define (return-mails rmails)
          (syscall 6 rmails rmails))
 
-      (define (fork-linked-server name handler)
-         (syscall 4 (list name 'mailbox 'link) handler))
-
       (define (running-threads)
          (syscall 8 #false #false))
 
       (define (mail id msg)
          (syscall 9 id msg))
 
-      (define (kill id) 
+      (define (kill id)
          (syscall 15 id #false))
 
       (define (single-thread?)
          (syscall 7 #true #true))
-         
+
       (define (set-signal-action choice)
          (syscall 12 choice #false))
 
@@ -78,14 +70,14 @@
          (let loop ((rss (par* ts)))
             (cond
                ((null? rss) #false)
-               ((car rss) => (λ (result) result))
+               ((car rss) => self)
                (else (loop ((cdr rss)))))))
-               
+
       (define-syntax por
          (syntax-rules ()
             ((por exp ...)
                (por* (list (λ () exp) ...)))))
-    
+
       (define (wait-mail)           (syscall 13 #false #false))
       (define (check-mail)          (syscall 13 #false #true))
 
@@ -115,7 +107,7 @@
                   (if (eq? rounds 0)
                      (return-from-wait default spam)
                      ;; no mail, request a thread switch and recurse, at which point all other threads have moved
-                     (begin   
+                     (begin
                         ;(set-ticker 0) ;; FIXME restore this when librarized
                         ;; no bignum math yet at this point
                         (lets ((rounds _ (fx- rounds 1)))
@@ -126,17 +118,31 @@
                (else
                   ;; got spam, keep waiting
                   (loop (check-mail) (cons envp spam) rounds)))))
-         
 
-      (define (fork thunk)
-         ; the tuple is fresh and therefore a proper although rather 
-         ; nondescriptive thread name
-         (fork-named (tuple 'anonimas) thunk))
+      (define thunk->thread
+         (case-lambda
+            ((id thunk)
+               (fork-named id thunk))
+            ((thunk)
+               ;; get a fresh name unless otherwise specified
+               (fork-named (tuple 'anonimas) thunk))))
 
+      (define fork thunk->thread)
 
-      ; Message passing (aka mailing) is asynchronous, and at least 
-      ; in a one-core environment order-preserving. interact is like 
-      ; mail, but it blocks the thread until the desired response 
+      (define-syntax thread
+         (syntax-rules (quote)
+            ((thread id val)
+               (thunk->thread id (lambda () val)))
+            ((thread val)
+               (thunk->thread (lambda () val)))))
+
+      ;; (thread (op . args)) → id
+      ;; (wait-thread (thread (op . args)) [default]) → value
+      ;; thread scheduler should keep the exit value
+
+      ; Message passing (aka mailing) is asynchronous, and at least
+      ; in a one-core environment order-preserving. interact is like
+      ; mail, but it blocks the thread until the desired response
       ; arrives. Messages are of the form #(<sender-id> <message>).
 
       (define (interact whom message)
@@ -148,4 +154,8 @@
 
       (define (stop-profiling)
          (syscall 21 #true #true))
+
+      (define (link id)
+         (syscall 23 id id))
+
 ))

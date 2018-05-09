@@ -4,16 +4,16 @@
 ;; todo: convert arity checks 17 -> 25
 
 (define-library (owl primop)
-   (export 
+   (export
       primops
       primop-name ;; primop → symbol | primop
       multiple-return-variable-primops
       variable-input-arity?
       special-bind-primop?
       ;; primop wrapper functions
-      run 
+      run
       set-ticker
-      clock 
+      clock
       sys-prim
       bind
       ff-bind
@@ -21,16 +21,16 @@
       halt
       wait
       ;; extra ops
-      set-memory-limit get-word-size get-memory-limit start-seccomp
+      set-memory-limit get-word-size get-memory-limit
       eq?
 
       apply apply-cont ;; apply post- and pre-cps
-      call/cc call-with-current-continuation 
+      call/cc call-with-current-continuation
       lets/cc
-      
+
       _poll2
       ;; vm interface
-      vm bytes->bytecode bytecode-function
+      vm bytes->bytecode
       )
 
    (import
@@ -38,9 +38,12 @@
 
    (begin
 
-      (define eq? 
-         (cast #(25 3 0 6 54 4 5 6 24 6 17)
-            (type (lambda (x) x))))
+      (define bytes->bytecode
+         (C raw type-bytecode))
+
+      (define eq?
+         (bytes->bytecode
+            '(25 3 0 6 54 4 5 6 24 6 17)))
 
       (define (app a b)
          (if (eq? a '())
@@ -48,29 +51,21 @@
             (cons (car a) (app (cdr a) b))))
 
       ;; l -> fixnum | #false if too long
-      (define (fx-length l)
+      (define (len l)
          (let loop ((l l) (n 0))
             (if (eq? l '())
                n
                (lets ((n o (fx+ n 1)))
                   (if o #false (loop (cdr l) n))))))
 
-      (define (len lst)
-         (let loop ((lst lst) (n 0))
-            (if (eq? lst '())
-               n
-               (lets ((n _ (fx+ n 1)))
-                  (loop (cdr lst) n)))))
-
       (define (func lst) 
          (lets 
             ((arity (car lst))
              (lst (cdr lst))
              (len (len lst)))
-            (raw
+            (bytes->bytecode
                (cons 25 (cons arity (cons 0 (cons len 
-                  (app lst (list 17)))))) ;; fail if arity mismatch
-               type-bytecode #false)))
+                  (app lst (list 17))))))))) ;; fail if arity mismatch
 
       ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
       ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
@@ -102,8 +97,7 @@
       (define clock       (func '(1 9 3 5 61 3 4 2 5 2)))
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
-      (define raw         (func '(4 60 4 5 6 7 24 7)))
-      (define _connect    (func '(3 34 4 5 6 24 6)))
+      (define raw         (func '(3 37 4 5 6 24 6)))
       (define _poll2      (func '(4 9 3 11 11 4 5 6 3 4 2 11 2))) 
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
@@ -121,7 +115,7 @@
          (if (eq? n 0)
             n
             (lets ((n _ (fx- n 1)))
-               (set-ticker 0)
+               (set-ticker 0) ;; allow other threads to run
                (wait n))))
 
       ;; from cps
@@ -132,15 +126,14 @@
       (define multiple-return-variable-primops
          '(49 11 26 38 39 40 58 59 37 61))
 
-      (define (variable-input-arity? op) (eq? op 23)) ;; mkt
+      (define variable-input-arity? (C eq? 23)) ;; mkt
 
       (define primops-1
          (list
             ;;; input arity includes a continuation
             (tuple 'sys          27 4 1 sys)
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
-            (tuple 'raw          60 3 1 raw)   ;; make raw object, and *add padding byte count to type variant*
-            (tuple '_connect     34 2 1 _connect)   ;; (connect host port) -> #false | socket-fd
+            (tuple 'raw          37 2 1 raw)   ;; make raw object, and *add padding byte count to type variant*
             (tuple 'cons         51 2 1 cons)
             (tuple 'car          52 1 1 car)
             (tuple 'cdr          53 1 1 cdr)
@@ -169,9 +162,9 @@
       (define fx- (func '(4 40 4 5 6 7 24 7)))
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
       (define fx<< (func '(4 59 4 5 6 7 24 7)))
-      
-      (define apply (raw '(20) type-bytecode #false)) ;; <- no arity, just call 20
-      (define apply-cont (raw (list (fxbor 20 64)) type-bytecode #false))
+
+      (define apply (bytes->bytecode '(20))) ;; <- no arity, just call 20
+      (define apply-cont (bytes->bytecode (list (fxbor 20 64))))
 
       (define primops-2
          (list
@@ -196,21 +189,19 @@
             (tuple 'set-ticker   62 1 1 set-ticker)
             (tuple 'sys-prim     63 4 1 sys-prim)))
 
-      ;; no append yet
       (define primops 
-         (let loop ((in primops-1) (out primops-2))
-            (if (null? in)
-               out
-               (loop (cdr in) (cons (car in) out)))))
+         (app primops-1
+              primops-2))
 
       ;; special things exposed by the vm
-      (define (set-memory-limit n) (sys-prim 7 n n n))
-      (define (get-word-size) (sys-prim 8 #false #false #false))
-      (define (get-memory-limit) (sys-prim 9 #false #false #false))
-      (define (start-seccomp) (sys-prim 10 #false #false #false)) ; not enabled by defa
+      (define (set-memory-limit n) (sys-prim 7 n #f #f))
+      (define (get-word-size) (sys-prim 8 1 #f #f))
+      (define (get-memory-limit) (sys-prim 9 #f #f #f))
+
+      ;; todo: add get-heap-metrics
 
       ;; stop the vm *immediately* without flushing input or anything else with return value n
-      (define (halt n) (sys-prim 6 n n n))
+      (define (halt n) (sys-prim 6 n #f #f))
 
       (define call/cc
          ('_sans_cps
@@ -237,7 +228,7 @@
             ((eq? op 32) 'bind)
             ((eq? op 50) 'run)
             (else #false)))
-         
+
       (define (primop-name pop)
          (let ((pop (fxband pop 63))) ; ignore top bits which sometimes have further data
             (or (instruction-name pop)
@@ -249,39 +240,12 @@
                      (else
                         (loop (cdr primops))))))))
 
-      ;; TODO: these → (owl vm), and  convert assble to use it
-      ;; make bytecode and intern it (to improve sharing, not mandatory)
-      (define (bytes->bytecode bytes)
-         (raw bytes type-bytecode #false))
-      
-      (define (app a b)
-         (if (eq? a '())
-            b
-            (cons (car a)
-               (app (cdr a) b))))
-
-      ;; construct the arity check, just return #false on errors, since we don't have any IO or error throwing yet
-      (define (bytecode-function fixed? arity bytes)
-         (let ((l (fx-length bytes)))
-            (if l
-               (lets 
-                  ((hi lo (fx>> (fx-length bytes) 8)))
-                  (if (eq? hi (fxband hi 255))
-                     (bytes->bytecode
-                        (ilist ;; arity check
-                           (if fixed? 25 89) 
-                           arity hi lo
-                           ;; given bytecode
-                           (app bytes (list 17))))
-                     #false))
-               #false)))
-
       ;; silly runtime exception, error not defined yet here
       (define (check-equal a b)
          (if (eq? a b)
             'ok
             (car 'assert-fail)))
-   
+
       ;; exit by returning to r3
       (define (vm . bytes)
          ((bytes->bytecode bytes)))
@@ -289,7 +253,7 @@
       '(check-equal 42 ;; load 42:
          (vm 14 42 4  ;;   r4 = fixnum(42)
              24 4))   ;;   return r4 = call r3 with it
-      
+
       '(check-equal 0         ;; count down to zero:
          ((bytes->bytecode   ;;   r4 arg
                '(14 0 5      ;;   r5 = 0

@@ -10,12 +10,12 @@
 ;  - iff (integer finite map)
 ;  - rlist (random access list)
 ;  - vector (a wide-branched tree)
-; 
+;
 ; notice that these are not otherwise equal data structures
 ; rlists have O(1) cons, vectors O(1) length, iffs can be 
 ; sparse but take a bit more memory etc. still, useful to 
 ; know how they do for reading.
-; 
+;
 
 (define cutoff-time 50) ; run each test until elaped time is over >cutoff-time ms
 
@@ -85,7 +85,7 @@
 
 (define (battle len participants ordered? op)
 	;(print* (list (if ordered? "in order " "random access ") "read of " len " elems"))
-	(mail 1 (render (length participants) '())) (flush-port 1)
+	(mail 1 (render (length participants) '()))
 	(if (null? participants)
 		(begin
 			(print ")")
@@ -112,13 +112,11 @@ numbers can be before reading/writing each value once takes
 over " cutoff-time "ms."))
 	(print "--- READ BENCHMARK ----------------------------")
 	(display " - in-order access (")
-	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist vector iff) #t read-each))
 	(print "")
 	(display " - random access (")
-	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist vector iff) #f read-each))
@@ -126,12 +124,10 @@ over " cutoff-time "ms."))
 	(print "--- WRITE BENCHMARK ----------------------------")
 	(print "vectors have no write yet..")
 	(display " - in-order write (")
-	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist iff) #t write-each))
 	(display " - random order write (")
-	(flush-port 1)
 	(for-each 
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist iff) #f write-each))

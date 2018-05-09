@@ -14,64 +14,105 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <sys/wait.h>
 #include <termios.h>
 #include <stdio.h>
 
-#ifndef O_BINARY
-#define O_BINARY 0
+#ifndef EMULTIHOP
+#define EMULTIHOP -1
+#endif
+#ifndef ENODATA
+#define ENODATA -1
+#endif
+#ifndef ENOLINK
+#define ENOLINK -1
+#endif
+#ifndef ENOSR
+#define ENOSR -1
+#endif
+#ifndef ENOSTR
+#define ENOSTR -1
+#endif
+#ifndef ETIME
+#define ETIME -1
+#endif
+#ifndef F_DUPFD_CLOEXEC
+#define F_DUPFD_CLOEXEC -1
+#endif
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+#ifndef O_EXEC
+#define O_EXEC 0
+#endif
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW 0
+#endif
+#ifndef O_RSYNC
+#define O_RSYNC 0
+#endif
+#ifndef O_SEARCH
+#define O_SEARCH 0
+#endif
+#ifndef O_TTY_INIT
+#define O_TTY_INIT 0
+#endif
+#ifdef __APPLE__
+#define st_atim st_atimespec
+#define st_mtim st_mtimespec
+#define st_ctim st_ctimespec
 #endif
 
 typedef uintptr_t word;
 typedef uint8_t   byte;
-#ifdef _LP64
-typedef int64_t   wdiff;
-#else
-typedef int32_t   wdiff;
-#endif
+typedef intptr_t wdiff;
 
 /*** Macros ***/
 
 #define IPOS                        8 /* offset of immediate payload */
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header */
-#define V(ob)                       *((word *) (ob))
-#define W                           sizeof(word)
+#define V(ob)                       (*(word *)(ob))
+#define W                           ((unsigned int)sizeof(word))
 #define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
 #define FMAX                        ((1<<FBITS)-1) /* maximum fixnum (and most negative fixnum) */
 #define MAXOBJ                      0xffff         /* max words in tuple including header */
+#define MAXPAYL                     ((MAXOBJ - 1) * W) /* maximum payload in an allocated object */
 #define RAWBIT                      2048
-#define make_immediate(value, type) (((value) << IPOS) | ((type) << TPOS) | 2)
-#define make_header(size, type)     (((size) << SPOS) | ((type) << TPOS) | 2)
-#define make_raw_header(s, t, p)    (((s) << SPOS) | ((t) << TPOS) | (RAWBIT|2) | ((p) << 8))
-#define F(val)                      (((val) << IPOS) | 2) 
-#define FN(val)                     (((val) << IPOS) | 32) 
+#define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
+#define make_immediate(value, type) (((word)(value) << IPOS) | ((type) << TPOS) | 2)
+#define make_header(size, type)     (((word)(size) << SPOS) | ((type) << TPOS) | 2)
+#define make_raw_header(s, t, p)    (((word)(s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
-#define fixval(desc)                ((desc) >> IPOS)
-#define fixnump(desc)               (((desc)&255) == 2)
-#define fliptag(ptr)                ((word)ptr^2) /* make a pointer look like some (usually bad) immediate object */
+#define immval(desc)                ((desc) >> IPOS)
+#define fixnump(desc)               (((desc) & 255) == 2)
 #define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
-#define header(x)                   *((word *)x)
+#define header(x)                   V(x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
-#define imm_val(x)                  ((x) >> IPOS)
-#define hdrsize(x)                  ((((word)x) >> SPOS) & MAXOBJ)
-#define immediatep(x)               (((word)x)&2)
+#define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
+#define hdrsize(x)                  (((word)(x) >> SPOS) & MAXOBJ)
+#define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
-#define rawp(hdr)                   ((hdr)&RAWBIT)
+#define rawp(hdr)                   ((hdr) & RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
 #define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
-#define PAIRHDR                     make_header(3,1)
-#define NUMHDR                      make_header(3,40) /* <- on the way to 40, see type-int+ in defmac.scm */
-#define pairp(ob)                   (allocp(ob) && V(ob)==PAIRHDR)
-#define INULL                       make_immediate(0,13)
-#define IFALSE                      make_immediate(1,13)
-#define ITRUE                       make_immediate(2,13)
-#define IEMPTY                      make_immediate(3,13) /* empty ff */
-#define IEOF                        make_immediate(4,13)
-#define IHALT                       make_immediate(5,13)
+#define PAIRHDR                     make_header(3, 1)
+#define NUMHDR                      make_header(3, 40) /* <- on the way to 40, see type-int+ in defmac.scm */
+#define NUMNHDR                     make_header(3, 41)
+#define pairp(ob)                   (allocp(ob) && V(ob) == PAIRHDR)
+#define cons(a, d)                  mkpair(PAIRHDR, a, d)
+#define INULL                       make_immediate(0, 13)
+#define IFALSE                      make_immediate(1, 13)
+#define ITRUE                       make_immediate(2, 13)
+#define IEMPTY                      make_immediate(3, 13) /* empty ff */
+#define IEOF                        make_immediate(4, 13)
+#define IHALT                       make_immediate(5, 13)
+#define TNUM                        0
 #define TTUPLE                      2
+#define TSTRING                     3
+#define TPORT                       12
 #define TTHREAD                     31
+#define TNUMN                       32
 #define TFF                         24
 #define FFRIGHT                     1
 #define FFRED                       2
@@ -79,28 +120,32 @@ typedef int32_t   wdiff;
 #define TBYTECODE                   16
 #define TPROC                       17
 #define TCLOS                       18
-#define cont(n)                     V((word)n&(~1))
-#define flagged(n)                  (n&1)
-#define flag(n)                     (((word)n)^1)
-#define A0                          R[*ip]               
+#define F(value)                    make_immediate(value, TNUM)
+#define stringp(ob)                 (allocp(ob) && (V(ob) & make_header(0, 63)) == make_header(0, TSTRING))
+#define FLAG                        1
+#define cont(n)                     V((word)(n) & ~FLAG)
+#define flag(n)                     ((word)(n) ^ FLAG)
+#define flagged(n)                  ((word)(n) & FLAG)
+#define flagged_or_raw(n)           ((word)(n) & (RAWBIT | FLAG))
+#define TBIT                        0x1000
+#define teardown_needed(hdr)        ((word)(hdr) & TBIT)
+#define A0                          R[*ip]
 #define A1                          R[ip[1]]
 #define A2                          R[ip[2]]
 #define A3                          R[ip[3]]
 #define A4                          R[ip[4]]
 #define A5                          R[ip[5]]
-#define G(ptr,n)                    ((word *)(ptr))[n]
-#define flagged_or_raw(hdr)         (hdr&(RAWBIT|1))
-#define TICKS                       10000 /* # of function calls in a thread quantum  */
-#define allocate(size, to)          to = fp; fp += size;
-#define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word) a; R[6] = (word) b; goto invoke_mcp;
-#define assert(exp,val,code)        if(!(exp)) {error(code, val, ITRUE);}
-#define assert_not(exp,val,code)    if(exp) {error(code, val, ITRUE);}
-#define RET(n)                      ob=(word *)R[3]; R[3] = R[n]; acc = 1; goto apply
-#define MEMPAD                      (NR+2)*8 /* space at end of heap for starting GC */
-#define MINGEN                      1024*32  /* minimum generation size before doing full GC  */
+#define G(ptr, n)                   (((word *)(ptr))[n])
+#define TICKS                       10000 /* # of function calls in a thread quantum */
+#define allocate(size, to)          (to = fp, fp += size)
+#define error(opcode, a, b)         R[4] = F(opcode); R[5] = (word)a; R[6] = (word)b; goto invoke_mcp;
+#define assert(exp, val, code)      if (!(exp)) { error(code, val, ITRUE); }
+#define assert_not(exp, val, code)  if (exp) { error(code, val, ITRUE); }
+#define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
+#define MINGEN                      1024 * 32 /* minimum generation size before doing full GC */
 #define INITCELLS                   100000
-#define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
-#define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = ((word *) tmp)[*ip++]; *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while(tmp != size) { ob[tmp++] = R[*ip++]; } R[*ip++] = (word) ob; }
+#define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
+#define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
 #define EXEC switch(op&63) { \
       case 0: goto op0; case 1: goto op1; case 2: goto op2; case 3: goto op3; case 4: goto op4; case 5: goto op5; \
       case 6: goto op6; case 7: goto op7; case 8: goto op8; case 9: goto op9; \
@@ -117,6 +162,8 @@ typedef int32_t   wdiff;
 
 /*** Globals and Prototypes ***/
 
+extern char **environ;
+
 /* memstart <= genstart <= memend */
 static word *genstart;
 static word *memstart;
@@ -131,10 +178,10 @@ byte *file_heap;
 word vm(word *ob, word *arg);
 void exit(int rval);
 void *realloc(void *ptr, size_t size);
-void *malloc(size_t size);
 void free(void *ptr);
 char *getenv(const char *name);
 int setenv(const char *name, const char *value, int overwrite);
+int unsetenv(const char *);
 DIR *opendir(const char *name);
 DIR *fdopendir(int fd);
 pid_t fork(void);
@@ -144,20 +191,19 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struc
 int execv(const char *path, char *const argv[]);
 struct termios tsettings;
 
-
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
 static __inline__ void rev(word pos) {
    word val = V(pos);
    word next = cont(val);
-   *(word *) pos = next;
-   cont(val) = (val&1)^(pos|1);
+   V(pos) = next;
+   cont(val) = (pos | FLAG) ^ (val & FLAG);
 }
 
 static __inline__ word *chase(word *pos) {
    word val = cont(pos);
    while (allocp(val) && flagged(val)) {
-      pos = (word *) val;
+      pos = (word *)val;
       val = cont(pos);
    }
    return pos;
@@ -166,16 +212,16 @@ static __inline__ word *chase(word *pos) {
 static void mark(word *pos, word *end) {
    while (pos != end) {
       word val = *pos;
-      if (allocp(val) && val >= ((word) genstart)) { 
+      if (allocp(val) && val >= (word)genstart) {
          if (flagged(val)) {
-            pos = ((word *) flag(chase((word *) val))) - 1;
+            pos = (word *)flag(chase((word *)val)) - 1;
          } else {
             word hdr = V(val);
             rev((word) pos);
             if (flagged_or_raw(hdr)) {
                pos--;
             } else {
-               pos = ((word *) val) + (hdrsize(hdr)-1);
+               pos = (word *)val + hdrsize(hdr) - 1;
             }
          }
       } else {
@@ -189,15 +235,13 @@ static word *compact() {
    word *old = new;
    word *end = memend - 1;
    while (((word)old) < ((word)end)) {
-      if (flagged(*old)) {
+      word val = *old;
+      if (flagged(val)) {
          word h;
-         *new = *old;
-         while (flagged(*new)) {
+         *new = val;
+         do { /* unthread */
             rev((word) new);
-            if (immediatep(*new) && flagged(*new)) {
-               *new = flag(*new);
-            }
-         }
+         } while (flagged(*new));
          h = hdrsize(*new);
          if (old == new) {
             old += h;
@@ -208,14 +252,17 @@ static word *compact() {
             new++;
          }
       } else {
-         old += hdrsize(*old);
+         if (teardown_needed(val)) {
+            printf("gc: would teardown\n");
+         }
+         old += hdrsize(val);
       }
    }
-   return new; 
+   return new;
 }
 
-void fix_pointers(word *pos, wdiff delta, word *end) {
-   while(1) {
+void fix_pointers(word *pos, wdiff delta) {
+   for (;;) {
       word hdr = *pos;
       int n = hdrsize(hdr);
       if (hdr == 0) return; /* end marker reached. only dragons beyond this point.*/
@@ -234,14 +281,14 @@ void fix_pointers(word *pos, wdiff delta, word *end) {
    }
 }
 
-/* emulate sbrk with malloc'd memory, becuse sbrk is no longer properly supported */
-/* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend  */
-wdiff adjust_heap(int cells) {
+/* emulate sbrk with malloc'd memory, because sbrk is no longer properly supported */
+/* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend */
+wdiff adjust_heap(wdiff cells) {
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
-   word new_words = nwords + ((cells > 0xffffff) ? 0xffffff : cells); /* limit heap growth speed  */
+   word new_words = nwords + (cells > 0xffffff ? 0xffffff : cells); /* limit heap growth speed */
    if (((cells > 0) && (new_words*W < nwords*W)) || ((cells < 0) && (new_words*W > nwords*W)))
-       return 0; /* don't try to adjust heap if the size_t would overflow in realloc */
+      return 0; /* don't try to adjust heap, if the size_t would overflow in realloc */
    memstart = realloc(memstart, new_words*W);
    if (memstart == old) { /* whee, no heap slide \o/ */
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
@@ -249,7 +296,7 @@ wdiff adjust_heap(int cells) {
    } else if (memstart) { /* d'oh! we need to O(n) all the pointers... */
       wdiff delta = (word)memstart - (word)old;
       memend = memstart + new_words - MEMPAD; /* leave MEMPAD words alone */
-      fix_pointers(memstart, delta, memend);
+      fix_pointers(memstart, delta);
       return delta;
    } else {
       breaked |= 8; /* will be passed over to mcp at thread switch*/
@@ -262,26 +309,25 @@ wdiff adjust_heap(int cells) {
 static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
-   int nfree;
+   wdiff nfree;
    fp = regs + hdrsize(*regs);
    root = fp+1;
    *root = (word) regs;
    memend = fp;
    mark(root, fp);
    fp = compact();
-   regs = (word *) *root;
+   regs = (word *)*root;
    memend = realend;
    nfree = (word)memend - (word)regs;
    if (genstart == memstart) {
       word heapsize = (word) memend - (word) memstart;
       word nused = heapsize - nfree;
-      if ((heapsize/(1024*1024)) > max_heap_mb) { 
-         breaked |= 8; /* will be passed over to mcp at thread switch*/
-      }
-      nfree -= size*W + MEMPAD;   /* how much really could be snipped off */
+      if (heapsize / (1024 * 1024) > max_heap_mb)
+         breaked |= 8; /* will be passed over to mcp at thread switch */
+      nfree -= size*W + MEMPAD; /* how much really could be snipped off */
       if (nfree < (heapsize / 5) || nfree < 0) {
          /* increase heap size if less than 20% is free by ~10% of heap size (growth usually implies more growth) */
-         regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data  */
+         regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data */
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
          if (nfree <= size) {
@@ -289,15 +335,15 @@ static word *gc(int size, word *regs) {
          }
       } else if (nfree > (heapsize/3)) {
          /* decrease heap size if more than 33% is free by 10% of the free space */
-         int dec = -(nfree/10);
-         int new = nfree - dec;
+         wdiff dec = -(nfree / 10);
+         wdiff new = nfree - dec;
          if (new > size*W*2 + MEMPAD) {
             regs[hdrsize(*regs)] = 0; /* as above */
             regs = (word *) ((word)regs + adjust_heap(dec+MEMPAD*W));
-            heapsize = (word) memend - (word) memstart; 
-            nfree = (word) memend - (word) regs; 
-         } 
-      }  
+            heapsize = (word)memend - (word)memstart;
+            nfree = (word)memend - (word)regs;
+         }
+      }
       genstart = regs; /* always start new generation */
    } else if (nfree < MINGEN || nfree < size*W*2) {
       genstart = memstart; /* start full generation */
@@ -310,16 +356,12 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-void toggle_blocking(int sock, int blockp) {
-   fcntl(sock, F_SETFL, fcntl(sock, F_GETFD)^O_NONBLOCK);
-}
-
 void signal_handler(int signal) {
    switch(signal) {
-      case SIGINT: 
+      case SIGINT:
          breaked |= 2; break;
       case SIGPIPE: break; /* can cause loop when reporting errors */
-      default: 
+      default:
          breaked |= 4;
    }
 }
@@ -337,10 +379,17 @@ unsigned int lenn(byte *pos, unsigned int max) { /* added here, strnlen was miss
 /* list length, no overflow or valid termination checks */
 int llen(word *ptr) {
    int len = 0;
-   while(allocp(ptr) && *ptr == PAIRHDR) {
+   while(pairp(ptr)) {
       len++;
       ptr = (word *) ptr[2];
    }
+   return len;
+}
+
+static word payl_len(word hdr) {
+   word len = (hdrsize(hdr) - 1) * W;
+   if (rawp(hdr))
+      len -= (hdr >> 8) & 7;
    return len;
 }
 
@@ -353,39 +402,43 @@ void set_signal_handler() {
    sigaction(SIGPIPE, &sa, NULL);
 }
 
-/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
-static word *mkbvec(int len, int type) {
-   int nwords = (len/W) + ((len % W) ? 2 : 1);
-   int pads = (nwords-1)*W - len;
-   word *ob = fp;
-   fp += nwords;
-   *ob = make_raw_header(nwords, type, pads);
-   return ob;
+static word mkpair(word h, word a, word d) {
+   word *pair;
+   allocate(3, pair);
+   pair[0] = h;
+   pair[1] = a;
+   pair[2] = d;
+   return (word)pair;
 }
 
-/* map a null or C-string to False, Null or owl-string, false being null or too large string */
-word strp2owl(byte *sp) {
-   int len;
-   word *res;
-   if (!sp) return IFALSE;
-   len = lenn(sp, FMAX+1);
-   if (len == FMAX+1) return INULL; /* can't touch this */
-   res = mkbvec(len, TBVEC); /* make a bvec instead of a string since we don't know the encoding */
-   bytecopy(sp, ((byte *)res)+W, len);
-   return (word)res;
+/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
+static word *mkbvec(size_t len, int type) {
+   int nwords = OBJWORDS(len);
+   int pads = (nwords-1)*W - len;
+   word *ob;
+   byte *end;
+   allocate(nwords, ob);
+   end = (byte *)ob + W + len;
+   *ob = make_raw_header(nwords, type, pads);
+   while (pads--)
+      *end++ = 0; /* clear the padding bytes */
+   return ob;
 }
 
 /*** Primops called from VM and generated C-code ***/
 
-static word prim_connect(word *host, word port) {
+static word prim_connect(word *host, word port, word type) {
    int sock;
-   byte *ip = ((unsigned char *) host) + W;
+   byte *ip = (unsigned char *)host + W;
    unsigned long ipfull;
    struct sockaddr_in addr;
-   port = fixval(port);
-   if (!allocp(host))  /* bad host type */
+   char udp = (immval(type) == 1);
+   port = immval(port);
+   if ((sock = socket(PF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0))) == -1)
       return IFALSE;
-   if ((sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+   if (udp)
+      return make_immediate(sock, TPORT);
+   if (!allocp(host)) /* bad host type */
       return IFALSE;
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port);
@@ -396,8 +449,7 @@ static word prim_connect(word *host, word port) {
       close(sock);
       return IFALSE;
    }
-   toggle_blocking(sock,0);
-   return F(sock);
+   return make_immediate(sock, TPORT);
 }
 
 static word prim_less(word a, word b) {
@@ -411,20 +463,21 @@ static word prim_less(word a, word b) {
 static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid */
    while((word) ff != IEMPTY) { /* ff = [header key value [maybe left] [maybe right]] */
       word this = ff[1], hdr;
-      if (this == key) 
+      if (this == key)
          return ff[2];
       hdr = *ff;
       switch(hdrsize(hdr)) {
-         case 3: return def; 
+         case 3:
+            return def;
          case 4:
             if (key < this) {
-               ff = (word *) ((hdr & (1 << TPOS)) ? IEMPTY : ff[3]);
+               ff = (word *)(hdr & (1 << TPOS) ? IEMPTY : ff[3]);
             } else {
-               ff = (word *) ((hdr & (1 << TPOS)) ? ff[3] : IEMPTY);
+               ff = (word *)(hdr & (1 << TPOS) ? ff[3] : IEMPTY);
             }
             break;
          default:
-            ff = (word *) ((key < this) ? ff[3] : ff[4]);
+            ff = (word *)(key < this ? ff[3] : ff[4]);
       }
    }
    return def;
@@ -432,42 +485,36 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
 
 static word prim_cast(word *ob, int type) {
    if (immediatep((word)ob)) {
-      return make_immediate(imm_val((word)ob), type);
+      return make_immediate(immval((word)ob), type & 63);
    } else { /* make a clone of more desired type */
       word hdr = *ob++;
       int size = hdrsize(hdr);
       word *new, *res; /* <- could also write directly using *fp++ */
       allocate(size, new);
       res = new;
-      /* (hdr & 0b...11111111111111111111100000000111) | tttttttt000 */
-      //*new++ = (hdr&(~2040))|(type<<TPOS);
-      *new++ = (hdr&(~252))|(type<<TPOS); /* <- hardcoded ...111100000011 */
-      wordcopy(ob,new,size-1);
+      *new++ = (hdr&(~252))|((type&1087)<<TPOS); /* clear type, allow setting teardown in new one */
+      wordcopy(ob, new, size - 1);
       return (word)res;
    }
 }
 
-static int prim_refb(word pword, int pos) {
-   word *ob = (word *) pword;
-   word hdr, hsize;
+static word prim_refb(word pword, unsigned int pos) {
+   if (immediatep(pword) || pos >= payl_len(header(pword)))
+      return IFALSE;
+   return F(((byte *)pword)[W + pos]);
+}
+
+static word prim_ref(word pword, word pos) {
+   word *ob = (word *)pword;
+   word hdr, size;
+   pos = immval(pos);
    if (immediatep(ob))
       return IFALSE;
    hdr = *ob;
-   hsize = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7); /* bytes - pads */ 
-   if (pos >= hsize) 
-      return IFALSE;
-   return F(((byte *) ob)[pos+W]);
-}
-
-static word prim_ref(word pword, word pos)  {
-   word *ob = (word *) pword;
-   word hdr, size;
-   pos = fixval(pos);
-   if(immediatep(ob)) { return IFALSE; }
-   hdr = *ob;
-   if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */ 
-      size = ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
-      if (pos >= size) { return IFALSE; }
+   if (rawp(hdr)) { /* raw data is #[hdrbyte{W} b0 .. bn 0{0,W-1}] */
+      size = payl_len(hdr);
+      if (pos >= size)
+         return IFALSE;
       return F(((byte *) ob)[pos+W]);
    }
    size = hdrsize(hdr);
@@ -477,104 +524,100 @@ static word prim_ref(word pword, word pos)  {
 }
 
 static int64_t cnum(word a) {
-   if(allocp(a)) {
-     int64_t x = 0;
-     int shift = 0;
-     word *p = (word *) a;
-     while(a != INULL) {
-         x |= F(p[1]) << shift;
+   uint64_t x;
+   if (allocp(a)) {
+      word *p = (word *)a;
+      unsigned int shift = 0;
+      x = 0;
+      do {
+         x |= immval(p[1]) << shift;
          shift += FBITS;
-         p = (word *) p[2];
-     }
-     return x;
-   } else {
-      return fixval(a);
+         p = (word *)p[2];
+      } while (shift < 64 && allocp(p));
+      return header(a) == NUMNHDR ? -x : x;
    }
+   x = immval(a);
+   return is_type(a, TNUMN) ? -x : x;
 }
 
-static word onum(int64_t a) {
-   if (a < 0) {
-      if (a < 0-FMAX)
-         exit(42);
-      return FN(0-a);
-   } else if (a > FMAX) {
-      word *r = fp;
-      if (a >= ((int64_t)1 << FBITS*2)) 
-         exit(42);
-      r[0] = make_header(3, 40);
-      r[4] = F(a>>FBITS);
-      r[2] = (word) (r + 3);
-      r[3] = make_header(3, 40);
-      r[1] = F(a&FMAX);
-      r[5] = INULL;
-      fp += 6;
-      return (word) r;
+static word onum(int64_t a, int s) {
+   uint64_t x = a;
+   word h = NUMHDR, t = TNUM;
+   if (s && a < 0) {
+      h = NUMNHDR;
+      t = TNUMN;
+      x = -a;
    }
-   return F(a);
+   if (x > FMAX) {
+      word p = INULL;
+      unsigned int shift = (63 / FBITS) * FBITS;
+      while (!(x & ((uint64_t)FMAX << shift)))
+         shift -= FBITS;
+      do {
+         p = mkpair(NUMHDR, F((x >> shift) & FMAX), p);
+         shift -= FBITS;
+      } while (shift + FBITS);
+      header(p) = h;
+      return p;
+   }
+   return make_immediate(x, t);
 }
 
 static word prim_set(word wptr, word pos, word val) {
-   word *ob = (word *) wptr;
-   word hdr;
+   word *ob = (word *)wptr;
+   word hdr, p;
    word *new;
-   int p = 0;
-   pos = fixval(pos);
-   if(immediatep(ob)) { return IFALSE; }
+   pos = immval(pos);
+   if (immediatep(ob))
+      return IFALSE;
    hdr = *ob;
-   if (rawp(hdr) || hdrsize(hdr) < pos) { return IFALSE; }
+   if (rawp(hdr) || hdrsize(hdr) < pos)
+      return IFALSE;
    hdr = hdrsize(hdr);
    allocate(hdr, new);
-   while(p <= hdr) {
+   for (p = 0; p <= hdr; ++p)
       new[p] = (pos == p && p) ? val : ob[p];
-      p++;
-   }
    return (word) new;
+}
+
+void setdown() {
+   tcsetattr(0, TCSANOW, &tsettings); /* return stdio settings */
 }
 
 /* system- and io primops */
 static word prim_sys(int op, word a, word b, word c) {
    switch(op) {
-      case 0: { /* 0 fsend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
-         int fd = fixval(a);
-         word *buff = (word *) b;
-         int wrote, size, len = fixval(c);
-         if (immediatep(buff)) return IFALSE;
-         size = (hdrsize(*buff)-1)*W;
-         if (len > size) return IFALSE;
-         wrote = write(fd, ((byte *)buff)+W, len);
-         if (wrote > 0) return F(wrote);
-         if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
-         return IFALSE; }
-      case 1: { /* 1 = fopen <str> <mode> <to> */
-         char *path = (char *) a;
-         int mode = fixval(b);
-         int val = 0;
-         struct stat sb;
-         if (!(allocp(path) && imm_type(header(a)) == 3))
-            return IFALSE;
-         val |= ((mode & 1) ? O_WRONLY : O_RDONLY) \
-                         | ((mode & 2) ? O_TRUNC : 0) \
-                         | ((mode & 4) ? O_APPEND : 0) \
-                         | ((mode & 8) ? O_CREAT : 0);
-         val = open(((char *) path) + W, val, (S_IRUSR|S_IWUSR));
-         if (val < 0 || fstat(val, &sb) == -1 || sb.st_mode & S_IFDIR) {
-            close(val);
-            return IFALSE;
+      case 0: /* write fd data len | #f → nbytes | #f */
+         if (is_type(a, TPORT) && allocp(b)) {
+            size_t len, size = payl_len(header(b));
+            len = c != IFALSE ? cnum(c) : size;
+            if (len <= size) {
+               len = write(immval(a), (const word *)b + 1, len);
+               if (len != (size_t)-1)
+                  return onum(len, 0);
+            }
          }
-         toggle_blocking(val,0);
-         return F(val); }
-      case 2: 
-         return close(fixval(a)) ? IFALSE : ITRUE;
-      case 3: { /* 3 = sopen port type -> False | fd  */
-         int port = fixval(a);
-         int type = fixval(b);
+         return IFALSE;
+      case 1: /* open path flags mode → port | #f */
+         if (stringp(a)) {
+            int fd = open((const char *)a + W, cnum(b), immval(c));
+            if (fd != -1)
+               return make_immediate(fd, TPORT);
+         }
+         return IFALSE;
+      case 2:
+         return BOOL(close(immval(a)) == 0);
+      case 3: { /* 3 = sopen port 0=tcp|1=udp -> False | fd  */
+         int port = immval(a);
+         int type = immval(b);
          int s;
          int opt = 1; /* TRUE */
+         char udp = (type == 1);
          struct sockaddr_in myaddr;
          myaddr.sin_family = AF_INET;
          myaddr.sin_port = htons(port);
          myaddr.sin_addr.s_addr = INADDR_ANY;
-         s = socket(AF_INET, ((type == 1) ? SOCK_DGRAM : SOCK_STREAM), 0);
+         s = socket(AF_INET, (udp ? SOCK_DGRAM : SOCK_STREAM), (udp ? IPPROTO_UDP : 0));
          if (s < 0)
             return IFALSE;
          if (type != 1) {
@@ -584,130 +627,129 @@ static word prim_sys(int op, word a, word b, word c) {
                close(s);
                return IFALSE;
             }
+         } else {
+            if (bind(s, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0) {
+               close(s);
+               return IFALSE;
+            }
          }
-         toggle_blocking(s,0);
-         return F(s); }
+         return make_immediate(s, TPORT); }
       case 4: { /* 4 = accept port -> rval=False|(ip . fd) */
-         int sock = fixval(a);
+         int sock = immval(a);
          struct sockaddr_in addr;
          socklen_t len = sizeof(addr);
          int fd;
-         word *pair;
-         byte *ipa;
+         word *ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
-         toggle_blocking(fd,0);
-         ipa = (byte *) &addr.sin_addr;
-         *fp = make_raw_header(2, TBVEC, 4%W);
-         bytecopy(ipa, ((byte *) fp) + W, 4);
-         fp[2] = PAIRHDR;
-         fp[3] = (word) fp;
-         fp[4] = F(fd);
-         pair = fp+2;
-         fp += 5;
-         return (word)pair; }
-      case 5: { /* fread fd max -> obj | eof | F (read error) | T (would block) */
-         word fd = fixval(a);
-         word max = fixval(b); 
-         word *res;
-         int n, nwords = (max/W) + 2;
-         allocate(nwords, res);
-         n = read(fd, ((byte *) res) + W, max);
-         if (n > 0) { /* got some bytes */
-            word read_nwords = (n/W) + ((n%W) ? 2 : 1); 
-            int pads = (read_nwords-1)*W - n;
-            fp = res + read_nwords;
-            *res = make_raw_header(read_nwords, TBVEC, pads);
-            return (word)res;
+         ipa = mkbvec(4, TBVEC);
+         bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
+         return cons((word)ipa, make_immediate(fd, TPORT)); }
+      case 5: /* read fd len -> bvec | EOF | #f */
+         if (is_type(a, TPORT)) {
+            size_t len = memend - fp;
+            const size_t max = len > MAXOBJ ? MAXPAYL : (len - 1) * W;
+            len = cnum(b);
+            len = read(immval(a), fp + 1, len < max ? len : max);
+            if (len == 0)
+               return IEOF;
+            if (len != (size_t)-1)
+               return (word)mkbvec(len, TBVEC);
          }
-         fp = res;
-         if (n == 0)
-            return IEOF;
-         return BOOL(errno == EAGAIN || errno == EWOULDBLOCK); }
+         return IFALSE;
       case 6:
-         tcsetattr(0, TCSANOW, &tsettings);
-         exit(fixval(a)); /* stop the press */
+         setdown();
+         exit(immval(a)); /* stop the press */
       case 7: /* set memory limit (in mb) */
-         max_heap_mb = fixval(a);
+         max_heap_mb = immval(a);
          return a;
-      case 8: /* get machine word size (in bytes) */
-         return F(W);
-      case 9: /* get memory limit (in mb) */
-         return F(max_heap_mb);
-      /* dirops only to be used via exposed functions */
-      case 11: { /* sys-opendir path _ _ -> False | dirobjptr */
-         char *path = W + (char *) a; /* skip header */
-         DIR *dirp = opendir(path);
-         if(!dirp) return IFALSE;
-         return fliptag(dirp); }
-      case 12: { /* sys-readdir dirp _ _ -> bvec | eof | False */
-         DIR *dirp = (DIR *)fliptag(a);
-         word *res;
-         unsigned int len;
-         struct dirent *dire = readdir(dirp);
-         if (!dire) return IEOF; /* eof at end of dir stream */
-         len = lenn((byte *)dire->d_name, FMAX+1);
-         if (len == FMAX+1) return IFALSE; /* false for errors, like too long file names */
-         res = mkbvec(len, 3); /* make a fake raw string (OS may not use valid UTF-8) */
-         bytecopy((byte *)&dire->d_name, (byte *) (res + 1), len); /* *no* terminating null, this is an owl bvec */
-         return (word)res; }
-      case 13: /* sys-closedir dirp _ _ -> ITRUE */
-         closedir((DIR *)fliptag(a));
-         return ITRUE;
-      case 14: { /* unused */
-         exit(42);
-         break; }
-      case 15: { /* 0 fsocksend fd buff len r → n if wrote n, 0 if busy, False if error (argument or write) */
-         int fd = fixval(a);
-         word *buff = (word *) b;
-         int wrote, size, len = fixval(c);
-         if (immediatep(buff)) return IFALSE;
-         size = (hdrsize(*buff)-1)*W;
-         if (len > size) return IFALSE;
-         wrote = send(fd, ((byte *)buff)+W, len, 0);
-         if (wrote > 0) return F(wrote);
-         if (errno == EAGAIN || errno == EWOULDBLOCK) return F(0);
-         return IFALSE; }
-      case 16: { /* getenv <owl-raw-bvec-or-ascii-leaf-string> */
-         char *name = (char *)a;
-         if (!allocp(name)) return IFALSE;
-         return strp2owl((byte *)getenv(name + W)); }
-      case 17: { /* exec[v] path argl ret */
-         char *path = ((char *) a) + W;
-         int nargs = llen((word *)b);
-         char **args = malloc((nargs+1) * sizeof(char *));
-         char **argp = args;
-         if (args == NULL) 
+      case 8: { /* return system constants */
+         static const word sysconst[] = {
+            S_IFMT, W, S_IFBLK, S_IFCHR, S_IFIFO, S_IFREG, S_IFDIR, S_IFLNK,
+            S_IFSOCK, E2BIG, EACCES, EADDRINUSE, EADDRNOTAVAIL, EAFNOSUPPORT, EAGAIN, EALREADY,
+            EBADF, EBADMSG, EBUSY, ECANCELED, ECHILD, ECONNABORTED, ECONNREFUSED, ECONNRESET,
+            EDEADLK, EDESTADDRREQ, EDOM, EDQUOT, EEXIST, EFAULT, EFBIG, EHOSTUNREACH,
+            EIDRM, EILSEQ, EINPROGRESS, EINTR, EINVAL, EIO, EISCONN, EISDIR,
+            ELOOP, EMFILE, EMLINK, EMSGSIZE, EMULTIHOP, ENAMETOOLONG, ENETDOWN, ENETRESET,
+            ENETUNREACH, ENFILE, ENOBUFS, ENODATA, ENODEV, ENOENT, ENOEXEC, ENOLCK,
+            ENOLINK, ENOMEM, ENOMSG, ENOPROTOOPT, ENOSPC, ENOSR, ENOSTR, ENOSYS,
+            ENOTCONN, ENOTDIR, ENOTEMPTY, ENOTRECOVERABLE, ENOTSOCK, ENOTSUP, ENOTTY, ENXIO,
+            EOPNOTSUPP, EOVERFLOW, EOWNERDEAD, EPERM, EPIPE, EPROTO, EPROTONOSUPPORT, EPROTOTYPE,
+            ERANGE, EROFS, ESPIPE, ESRCH, ESTALE, ETIME, ETIMEDOUT, ETXTBSY,
+            EWOULDBLOCK, EXDEV, SEEK_SET, SEEK_CUR, SEEK_END, O_EXEC, O_RDONLY, O_RDWR,
+            O_SEARCH, O_WRONLY, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_DSYNC, O_EXCL,
+            O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_RSYNC, O_SYNC, O_TRUNC, O_TTY_INIT, O_ACCMODE,
+            FD_CLOEXEC, F_DUPFD, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, F_GETFL, F_SETFL, F_GETOWN,
+            F_SETOWN, F_GETLK, F_SETLK, F_SETLKW, F_RDLCK, F_UNLCK, F_WRLCK
+         };
+         return onum(sysconst[immval(a) % (sizeof sysconst / W)], 0); }
+      case 9: /* return process variables */
+         return onum(
+            a == F(0) ? errno :
+            a == F(1) ? (word)environ :
+            max_heap_mb, 0);
+      case 10: { /* receive-udp-packet sock → (ip-bvec . payload-bvec)| #false */
+         struct sockaddr_in si_other;
+         socklen_t slen = sizeof(si_other);
+         word *bvec;
+         word *ipa;
+         int recvd;
+         recvd = recvfrom(immval(a), fp + 1, 65528, 0, (struct sockaddr *)&si_other, &slen);
+         if (recvd < 0)
             return IFALSE;
-         while(nargs--) {
-            *argp++ = ((char *) ((word *) b)[1]) + W;
-            b = ((word *) b)[2];
+         bvec = mkbvec(recvd, TBVEC);
+         ipa = mkbvec(4, TBVEC);
+         bytecopy((byte *)&si_other.sin_addr, (byte *)ipa + W, 4);
+         return cons((word)ipa, (word)bvec); }
+      case 11: /* open-dir path → dirobjptr | #false */
+         if (stringp(a)) {
+            DIR *dirp = opendir((const char *)a + W);
+            if (dirp != NULL)
+               return onum((intptr_t)dirp, 1);
+         }
+         return IFALSE;
+      case 12: { /* read-dir dirp → pointer */
+         struct dirent *ent;
+         errno = 0;
+         ent = readdir((DIR *)(intptr_t)cnum(a));
+         return onum(ent != NULL ? (word)&ent->d_name : 0, 0); }
+      case 13: /* close-dir dirp → bool */
+         return BOOL(closedir((DIR *)(intptr_t)cnum(a)) == 0);
+      case 14: /* strerror errnum → pointer */
+         return onum((word)strerror(immval(a)), 0);
+      case 15: /* fcntl port cmd arg → integer | #f */
+         if (is_type(a, TPORT)) {
+            int res = fcntl(immval(a), cnum(b), (intptr_t)cnum(c));
+            if (res != -1)
+               return onum(res, 1);
+         }
+         return IFALSE;
+      case 16: /* getenv key → pointer */
+         return onum(stringp(a) ? (word)getenv((const char *)a + W) : 0, 0);
+      case 17: { /* exec[v] path argl ret */
+         char *path = (char *)a + W;
+         int nargs = llen((word *)b);
+         char **args = realloc(NULL, (nargs + 1) * sizeof(char *));
+         char **argp = args;
+         if (args == NULL)
+            return IFALSE;
+         while (nargs--) {
+            *argp++ = (char *)G(b, 1) + W;
+            b = G(b, 2);
          }
          *argp = NULL;
-         toggle_blocking(0,1); /* try to return stdio to blocking mode */
-         toggle_blocking(1,1); /* warning, other file descriptors will stay in nonblocking mode */
-         toggle_blocking(2,1);
          execv(path, args); /* may return -1 and set errno */
-         toggle_blocking(0,0); /* exec failed, back to nonblocking io for owl */
-         toggle_blocking(1,0);
-         toggle_blocking(2,0);
+         free(args);
          return IFALSE; }
-      case 18: { /* fork ret → #false=failed, fixnum=ok we're in parent process, #true=ok we're in child process */
+      case 18: { /* fork → #f: failed, 0: we're in child process, integer: we're in parent process */
          pid_t pid = fork();
-         if (pid == -1) /* fork failed */
-            return IFALSE;
-         if (pid == 0) /* we're in child, return true */
-            return ITRUE;
-         if ((int)pid > FMAX)
-            exit(5);
-         return F(pid&FMAX); }
+         return pid != -1 ? onum(pid, 1) : IFALSE; }
       case 19: { /* wait <pid> <respair> _ */
-         pid_t pid = (a == IFALSE) ? -1 : fixval(a);
+         pid_t pid = a != IFALSE ? cnum(a) : -1;
          int status;
-         word *r = (word *) b;
-         //pid = waitpid(pid, &status, WNOHANG|WUNTRACED|WCONTINUED);
-         pid = waitpid(pid, &status, WNOHANG|WUNTRACED);
-         if (pid == -1) 
+         word *r = (word *)b;
+         pid = waitpid(pid, &status, WNOHANG|WUNTRACED); /* |WCONTINUED */
+         if (pid == -1)
             return IFALSE; /* error */
          if (pid == 0)
             return ITRUE; /* no changes, would block */
@@ -727,25 +769,31 @@ static word prim_sys(int op, word a, word b, word c) {
             r = (word *)IFALSE;
          }
          return (word)r; }
-      case 20: { /* chdir path res */
-         char *path = ((char *)a) + W;
-         if (chdir(path) < 0)
-            return IFALSE;
-         return ITRUE; }
-      case 21: /* kill pid signal → fixnum */
-         return (kill(fixval(a), fixval(b)) < 0) ? IFALSE : ITRUE;
-      case 22:  /* unlink path → bool */
-         return (unlink(((char *)a)+W) == 0) ? ITRUE : IFALSE;
-      case 23:  /* rmdir path → bool */
-         return (rmdir(((char *)a)+W) == 0) ? ITRUE : IFALSE;
-      case 24:  /* rmdir path → bool */
-         return (mkdir((((char *)a)+W), fixval(b)) == 0) ? ITRUE : IFALSE;
-      case 25: {
-         int whence = fixval(c);
-         off_t p = lseek(fixval(a), cnum(b), (whence == 0) ? SEEK_SET : ((whence == 1) ? SEEK_CUR : SEEK_END));
-         return ((p == (off_t)-1) ? IFALSE : onum((int64_t) p)); }
-      case 26: {
-         if (a == ITRUE) {
+      case 20: /* chdir path → bool */
+         return BOOL(stringp(a) && chdir((char *)a + W) == 0);
+      case 21: /* kill pid signal → bool */
+         return BOOL(kill(cnum(a), immval(b)) == 0);
+      case 22: /* unlink path → bool */
+         return BOOL(stringp(a) && unlink((char *)a + W) == 0);
+      case 23: /* rmdir path → bool */
+         return BOOL(stringp(a) && rmdir((char *)a + W) == 0);
+      case 24: /* mknod path (type . mode) dev → bool */
+         if (stringp(a) && pairp(b)) {
+            const char *path = (const char *)a + W;
+            const mode_t type = cnum(G(b, 1)), mode = immval(G(b, 2));
+            if ((type == S_IFDIR ? mkdir(path, mode) : mknod(path, type | mode, cnum(c))) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
+      case 25: /* lseek port offset whence → offset | #f */
+         if (is_type(a, TPORT)) {
+            off_t o = lseek(immval(a), cnum(b), cnum(c));
+            if (o != -1)
+               return onum(o, 1);
+         }
+         return IFALSE;
+      case 26:
+         if (a != IFALSE) {
             static struct termios old;
             tcgetattr(0, &old);
             old.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
@@ -753,60 +801,136 @@ static word prim_sys(int op, word a, word b, word c) {
             old.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
             old.c_cflag &= ~(CSIZE | PARENB);
             old.c_cflag |= CS8;
-            return (tcsetattr(0, TCSANOW, &old) == 0) ? ITRUE : IFALSE;
+            return BOOL(tcsetattr(0, TCSANOW, &old) == 0);
          }
-         return (tcsetattr(0, TCSANOW, &tsettings) == 0) ? ITRUE : IFALSE; }
+         return BOOL(tcsetattr(0, TCSANOW, &tsettings) == 0);
       case 27: { /* sendmsg sock (port . ipv4) bvec */
-         int sock = fixval(a);
+         int sock = immval(a);
          int port;
          struct sockaddr_in peer;
-         byte* data = ((byte *) c) + W;
-         byte *ip;
-         word hdr = *((word *) c);
-         int nbytes =  ((hdrsize(hdr)-1)*W) - ((hdr>>8)&7);
-         port = fixval(G(b, 1));
-         ip = ((byte *) G(b, 2)) + W;
+         byte *ip, *data = (byte *)c + W;
+         size_t len = payl_len(header(c));
+         port = immval(G(b, 1));
+         ip = (byte *)G(b, 2) + W;
          peer.sin_family = AF_INET;
          peer.sin_port = htons(port);
          peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
-         if (sendto(sock, data, nbytes, 0, (struct sockaddr *) &peer, sizeof(peer)) == -1)
+         return BOOL(sendto(sock, data, len, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
+      case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
+         if (stringp(a) && (b == IFALSE || stringp(b))) {
+            const char *name = (const char *)a + W;
+            if ((b != IFALSE ? setenv(name, (const char *)b + W, 1) : unsetenv(name)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
+      case 29:
+         return prim_connect((word *) a, b, c);
+      case 30: /* dup2 old-port new-fd → new-port | #f */
+         if (is_type(a, TPORT)) {
+            int fd = dup2(immval(a), immval(b));
+            if (fd != -1)
+               return make_immediate(fd, TPORT);
+         }
+         return IFALSE;
+      case 31: { /* pipe → '(read-port . write-port) | #f */
+         int fd[2];
+         if (pipe(fd) != 0)
             return IFALSE;
-         return ITRUE; }
-      case 28: { /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string> */
-         char *name = (char *)a;
-         if (!allocp(name)) return IFALSE;
-         char *val = (char *)b;
-         if (!allocp(val)) return IFALSE;
-         return (setenv(name + W, val + W, 1) ? IFALSE : ITRUE); }
+         return cons(make_immediate(fd[0], TPORT), make_immediate(fd[1], TPORT)); }
+      case 32: /* rename src dst → bool */
+         return BOOL(stringp(a) && stringp(b) && rename((char *)a + W, (char *)b + W) == 0);
+      case 33: /* link src dst → bool */
+         return BOOL(stringp(a) && stringp(b) && link((char *)a + W, (char *)b + W) == 0);
+      case 34: /* symlink src dst → bool */
+         return BOOL(stringp(a) && stringp(b) && symlink((char *)a + W, (char *)b + W) == 0);
+      case 35: /* readlink path → raw-sting | #false */
+         if (stringp(a)) {
+            size_t len = memend - fp;
+            size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
+            /* the last byte is temporarily used to check, if the string fits */
+            len = readlink((const char *)a + W, (char *)fp + W, max);
+            if (len != (size_t)-1 && len != max)
+               return (word)mkbvec(len, TSTRING);
+         }
+         return IFALSE;
+      case 36: /* getcwd → raw-sting | #false */
+         {
+            size_t len = memend - fp;
+            size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
+            /* the last byte is temporarily used for the terminating '\0' */
+            if (getcwd((char *)fp + W, max) != NULL)
+               return (word)mkbvec(lenn((byte *)fp + W, max - 1), TSTRING);
+         }
+         return IFALSE;
+      case 37: /* umask mask → mask */
+         return F(umask(immval(a)));
+      case 38: /* stat fd|path follow → list */
+         if (immediatep(a) || stringp(a)) {
+            struct stat st;
+            int flg = b != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fstatat(AT_FDCWD, (char *)a + W, &st, flg) : fstat(immval(a), &st)) == 0) {
+               word lst = INULL;
+               lst = cons(onum(st.st_blocks, 1), lst);
+               lst = cons(onum(st.st_blksize, 1), lst);
+               lst = cons(onum(st.st_ctim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_mtim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_atim.tv_sec * INT64_C(1000000000) + st.st_atim.tv_nsec, 1), lst);
+               lst = cons(onum(st.st_size, 1), lst);
+               lst = cons(onum(st.st_rdev, 0), lst);
+               lst = cons(onum(st.st_gid, 0), lst);
+               lst = cons(onum(st.st_uid, 0), lst);
+               lst = cons(onum(st.st_nlink, 0), lst);
+               lst = cons(onum(st.st_mode, 0), lst);
+               lst = cons(onum(st.st_ino, 0), lst);
+               lst = cons(onum(st.st_dev, 1), lst);
+               return lst;
+            }
+         }
+         return INULL;
+      case 39: /* chmod fd|path mode follow → bool */
+         if ((immediatep(a) || stringp(a)) && fixnump(b)) {
+            mode_t mod = immval(b);
+            int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fchmodat(AT_FDCWD, (char *)a + W, mod, flg) : fchmod(immval(a), mod)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
+      case 40: /* chown fd|path (uid . gid) follow → bool */
+         if ((immediatep(a) || stringp(a)) && pairp(b)) {
+            uid_t uid = cnum(G(b, 1));
+            gid_t gid = cnum(G(b, 2));
+            int flg = c != IFALSE ? 0 : AT_SYMLINK_NOFOLLOW;
+            if ((allocp(a) ? fchownat(AT_FDCWD, (char *)a + W, uid, gid, flg) : fchown(immval(a), uid, gid)) == 0)
+               return ITRUE;
+         }
+         return IFALSE;
+      case 41: { /* peek mem nbytes → num */
+         const word p = cnum(a);
+         return onum(
+            b == F(1) ? *(uint8_t *)p :
+            b == F(2) ? *(uint16_t *)p :
+            b == F(4) ? *(uint32_t *)p :
+            b == F(8) ? *(uint64_t *)p :
+            V(p), 0);
+         }
       default:
          return IFALSE;
    }
 }
 
-static word prim_lraw(word wptr, int type, word revp) {
-   word *lst = (word *) wptr;
-   int nwords, len = 0, pads;
+static word prim_lraw(word wptr, int type) {
+   word *lst = (word *)wptr;
    byte *pos;
    word *raw, *ob;
-   if (revp != IFALSE) { exit(1); } /* <- to be removed */
-   ob = lst;
-   while (allocp(ob) && *ob == PAIRHDR) {
+   unsigned int len = 0;
+   for (ob = lst; pairp(ob); ob = (word *)ob[2])
       len++;
-      ob = (word *) ob[2];
-   }
-   if ((word) ob != INULL) return IFALSE;
-   if (len > FMAX) return IFALSE;
-   nwords = (len/W) + ((len % W) ? 2 : 1);
-   allocate(nwords, raw);
-   pads = (nwords-1)*W - len; /* padding byte count, usually stored to top 3 bits */
-   *raw = make_raw_header(nwords, type, pads);
-   ob = lst;
-   pos = ((byte *) raw) + W;
-   while ((word) ob != INULL) {
-      *pos++ = fixval(ob[1])&255;
-      ob = (word *) ob[2];
-   }
-   while(pads--) { *pos++ = 0; } /* clear the padding bytes */
+   if ((word)ob != INULL || len > MAXPAYL)
+      return IFALSE;
+   raw = mkbvec(len, type);
+   pos = (byte *)raw + W;
+   for (ob = lst; (word)ob != INULL; ob = (word *)ob[2])
+      *pos++ = immval(ob[1]) & 255;
    return (word)raw;
 }
 
@@ -816,15 +940,15 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    ob[2] = v;
    if (l == IEMPTY) {
       if (r == IEMPTY) {
-         *ob = make_header(3, t); 
+         *ob = make_header(3, t);
          fp += 3;
       } else {
-         *ob = make_header(4, t|FFRIGHT); 
+         *ob = make_header(4, t | FFRIGHT);
          ob[3] = r;
          fp += 4;
       }
-   } else if (r == IEMPTY) { 
-      *ob = make_header(4, t); 
+   } else if (r == IEMPTY) {
+      *ob = make_header(4, t);
       ob[3] = l;
       fp += 4;
    } else {
@@ -836,7 +960,7 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    return (word) ob;
 }
 
-void do_poll(word a, word b, word c, word *r1, word *r2) { 
+void do_poll(word a, word b, word c, word *r1, word *r2) {
    fd_set rs, ws, es;
    word *cur;
    int nfds = 1;
@@ -845,26 +969,26 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
    cur = (word *)a;
    while((word)cur != INULL) {
-      int fd = fixval(((word *)cur[1])[1]);
+      int fd = immval(G(cur[1], 1));
       FD_SET(fd, &rs);
-      FD_SET(fd, &es); 
-      if (!(nfds > fd)) 
+      FD_SET(fd, &es);
+      if (fd >= nfds)
          nfds = fd + 1;
       cur = (word *) cur[2];
    }
    cur = (word *)b;
    while ((word)cur != INULL) {
-      int fd = fixval(((word *)cur[1])[1]);
+      int fd = immval(G(cur[1], 1));
       FD_SET(fd, &ws);
       FD_SET(fd, &es);
-      if (!(nfds > fd)) 
+      if (fd >= nfds)
          nfds = fd + 1;
       cur = (word *) cur[2];
    }
    if (c == IFALSE) {
       res = select(nfds, &rs, &ws, &es, NULL);
    } else {
-      int ms = fixval(c);
+      int ms = immval(c);
       tv.tv_sec = ms/1000;
       tv.tv_usec = (ms%1000)*1000;
       res = select(nfds, &rs, &ws, &es, &tv);
@@ -875,11 +999,11 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
       int fd; /* something active, wake the first thing */
       for(fd=0;;fd++) {
          if (FD_ISSET(fd, &rs)) {
-            *r1 = make_immediate(fd, 12); *r2 = F(1); break;
+            *r1 = make_immediate(fd, TPORT); *r2 = F(1); break;
          } else if (FD_ISSET(fd, &ws)) {
-             *r1= make_immediate(fd, 12); *r2 = F(2); break;
+            *r1 = make_immediate(fd, TPORT); *r2 = F(2); break;
          } else if (FD_ISSET(fd, &es)) {
-            *r1 = make_immediate(fd, 12); *r2 = F(3); break;
+            *r1 = make_immediate(fd, TPORT); *r2 = F(3); break;
          }
       }
    }
@@ -887,13 +1011,13 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
 
 word vm(word *ob, word *arg) {
    unsigned char *ip;
-   int bank = 0;
-   int ticker = TICKS;
+   unsigned int bank = 0;
+   unsigned int ticker = TICKS;
    unsigned short acc = 0;
    int op;
    word R[NR];
 
-   word load_imms[] = {F(0), INULL, ITRUE, IFALSE};  /* for ldi and jv */
+   word load_imms[] = {F(0), INULL, ITRUE, IFALSE}; /* for ldi and jv */
 
    /* clear blank regs */
    while(acc < NR) { R[acc++] = INULL; }
@@ -906,15 +1030,15 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
 
    if (allocp(ob)) {
       word hdr = *ob & 4095; /* cut size out, take just header info */
-      if (hdr == make_header(0,TPROC)) { /* proc */
+      if (hdr == make_header(0, TPROC)) { /* proc */
          R[1] = (word) ob; ob = (word *) ob[1];
-      } else if (hdr == make_header(0,TCLOS)) { /* clos */
+      } else if (hdr == make_header(0, TCLOS)) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
       } else if (((hdr>>TPOS)&60) == TFF) { /* low bits have special meaning */
          word *cont = (word *) R[3];
          if (acc == 3) {
-            R[3] = prim_get(ob, R[4], R[5]); 
+            R[3] = prim_get(ob, R[4], R[5]);
          } else if (acc == 2) {
             R[3] = prim_get(ob, R[4], (word) 0);
             if (!R[3]) { error(260, ob, R[4]); }
@@ -924,19 +1048,19 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          ob = cont;
          acc = 1;
          goto apply;
-      } else if (((hdr >> TPOS) & 63) != TBYTECODE) { /* not even code, extend bits later */
+      } else if (!is_type(hdr, TBYTECODE)) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
       if (!ticker--) goto switch_thread;
-      ip = ((unsigned char *) ob) + W;
+      ip = (unsigned char *)ob + W;
       goto invoke;
    } else if ((word)ob == IEMPTY && acc > 1) { /* ff application: (False key def) -> def */
       ob = (word *) R[3]; /* call cont */
-      R[3] = (acc > 2) ? R[5] : IFALSE; /* default arg or false if none */
+      R[3] = acc > 2 ? R[5] : IFALSE; /* default arg or false if none */
       acc = 1;
       goto apply;
    } else if ((word)ob == IHALT) {
-      /* it's the final continuation  */
+      /* it's the final continuation */
       ob = (word *) R[0];
       if (allocp(ob)) {
          R[0] = IFALSE;
@@ -966,7 +1090,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
    }
 
 switch_thread: /* enter mcp if present */
-   if (R[0] == IFALSE) { /* no mcp, ignore */ 
+   if (R[0] == IFALSE) { /* no mcp, ignore */
       ticker = TICKS;
       goto apply;
    } else {
@@ -983,10 +1107,10 @@ switch_thread: /* enter mcp if present */
          state[pos] = R[pos];
          pos++;
       }
-      ob = (word *) R[0]; 
+      ob = (word *) R[0];
       R[0] = IFALSE; /* remove mcp cont */
       /* R3 marks the syscall to perform */
-      R[3] = breaked ? ((breaked & 8) ? F(14) : F(10)) : F(1);
+      R[3] = breaked ? (breaked & 8 ? F(14) : F(10)) : F(1);
       R[4] = (word) state;
       R[5] = F(breaked);
       R[6] = IFALSE;
@@ -996,14 +1120,18 @@ switch_thread: /* enter mcp if present */
    }
 invoke: /* nargs and regs ready, maybe gc and execute ob */
    if (((word)fp) + 1024*64 >= ((word) memend)) {
-      int p = 0; 
-      *fp = make_header(NR+2, 50); /* hdr r_0 .. r_(NR-1) ob */ 
-      while(p < NR) { fp[p+1] = R[p]; p++; } 
+      int p = 0;
+      *fp = make_header(NR + 2, 50); /* hdr r_0 .. r_(NR-1) ob */
+      while (p < NR) {
+         fp[p + 1] = R[p];
+         p++;
+      }
       fp[p+1] = (word) ob;
       fp = gc(1024*64, fp);
       ob = (word *) fp[p+1];
-      while(--p >= 0) { R[p] = fp[p+1]; }
-      ip = ((unsigned char *) ob) + W;
+      while (--p >= 0)
+         R[p] = fp[p + 1];
+      ip = (unsigned char *)ob + W;
    }
 
    op = *ip++;
@@ -1015,45 +1143,48 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       op = *ip<<8 | ip[1];
       goto super_dispatch;
    }
-  
+
    op0: op = (*ip << 8) | ip[1]; goto super_dispatch;
-   op1: {word *ob = (word *)R[*ip]; R[ip[2]] = ob[ip[1]]; NEXT(3);}
-   op2: ob = (word*) R[*ip]; acc = ip[1]; goto apply;
+   op1: A2 = G(A0, ip[1]); NEXT(3);
+   op2: ob = (word *)A0; acc = ip[1]; goto apply;
    op3: OCLOSE(TCLOS); NEXT(0);
    op4: OCLOSE(TPROC); NEXT(0);
    op5: /* mov2 from1 to1 from2 to2 */
-      R[ip[1]] = R[ip[0]];
-      R[ip[3]] = R[ip[2]];
+      A1 = A0;
+      A3 = A2;
       NEXT(4);
    op6: CLOSE1(TCLOS); NEXT(0);
    op7: CLOSE1(TPROC); NEXT(0);
-   op8: /* jlq a b o, extended jump  */
-      if(R[*ip] == A1) { ip += ip[2] + (ip[3] << 8); } 
-      NEXT(4); 
-   op9: R[ip[1]] = R[*ip]; NEXT(2);
+   op8: /* jlq a b o, extended jump */
+      if (A0 == A1)
+         ip += ip[2] + (ip[3] << 8);
+      NEXT(4);
+   op9: A1 = A0; NEXT(2);
    op10: error(10, F(42), F(42));
-   op11: { 
-      do_poll(A0, A1, A2, &(A3), &(A4)); 
-      NEXT(5); }
+   op11:
+      do_poll(A0, A1, A2, &A3, &A4);
+      NEXT(5);
    op12: /* jb n */
       ip -= ip[0];
       if (ticker) /* consume thread time */
          ticker--;
       NEXT(0);
    op13: /* ldi{2bit what} [to] */
-      R[*ip++] = load_imms[op>>6];
-      NEXT(0);
-   op14: R[ip[1]] = F(*ip); NEXT(2);
+      A0 = load_imms[op >> 6];
+      NEXT(1);
+   op14: A1 = F(*ip); NEXT(2);
    op15: { /* type-byte o r <- actually sixtet */
-      word ob = R[*ip++];
-      if (allocp(ob)) ob = V(ob);
-      R[*ip++] = F((ob>>TPOS)&63);
-      NEXT(0); }
+      word ob = A0;
+      if (allocp(ob))
+         ob = V(ob);
+      A1 = F(imm_type(ob));
+      NEXT(2); }
    op16: /* jv[which] a o1 a2*/
       /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
-      if(R[*ip] == load_imms[op>>6]) { ip += ip[1] + (ip[2] << 8); } 
-      NEXT(3); 
-   op17: { /* arity error */ 
+      if (A0 == load_imms[op >> 6])
+         ip += ip[1] + (ip[2] << 8);
+      NEXT(3);
+   op17: { /* arity error */
       word *t;
       int p;
       allocate(acc+1, t);
@@ -1063,21 +1194,21 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       error(17, ob, t); }
    op18: /* goto-code p */
-      ob = (word *) R[*ip]; /* needed in opof gc */
+      ob = (word *)A0; /* needed in opof gc */
       acc = ip[1];
-      ip = ((unsigned char *) R[*ip]) + W;
+      ip = (unsigned char *)A0 + W;
       goto invoke;
    op19: { /* goto-proc p */
-      word *this = (word *) R[*ip];
+      word *this = (word *)A0;
       R[1] = (word) this;
       acc = ip[1];
       ob = (word *) this[1];
-      ip = ((unsigned char *) ob) + W;
+      ip = (unsigned char *)ob + W;
       goto invoke; }
    op20: { /* apply */
       int reg, arity;
       word *lst;
-      if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5, */ 
+      if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5 */
          reg = 4; /* include cont */
          arity = 1;
          ob = (word *) R[reg];
@@ -1088,7 +1219,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             arity++;
          }
          lst = (word *) R[reg+1];
-      } else { /* _sans_cps apply: func=r3, a0=r4, */ 
+      } else { /* _sans_cps apply: func=r3, a0=r4 */
          reg = 3; /* include cont */
          arity = 0;
          ob = (word *) R[reg];
@@ -1100,7 +1231,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          }
          lst = (word *) R[reg+1];
       }
-      while(allocp(lst) && *lst == PAIRHDR) { /* unwind argument list */
+      while(pairp(lst)) { /* unwind argument list */
          /* FIXME: unwind only up to last register and add limited rewinding to arity check */
          if (reg > 128) { /* dummy handling for now */
             exit(3);
@@ -1112,19 +1243,17 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       acc = arity;
       goto apply; }
    op21: { /* goto-clos p */
-      word *this = (word *) R[*ip];
+      word *this = (word *)A0;
       R[1] = (word) this;
       acc = ip[1];
       this = (word *) this[1];
       R[2] = (word) this;
       ob = (word *) this[1];
-      ip = ((unsigned char *) ob) + W;
+      ip = (unsigned char *)ob + W;
       goto invoke; }
-   op22: { /* cast o t r */
-      word *ob = (word *) R[*ip];
-      word type = fixval(A1) & 63;
-      A2 = prim_cast(ob, type);
-      NEXT(3); }
+   op22: /* cast o t r */
+      A2 = prim_cast((word *)A0, immval(A1));
+      NEXT(3);
    op23: { /* mkt t s f1 .. fs r */
       word t = *ip++;
       word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
@@ -1139,22 +1268,18 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(s+1); }
    op24: /* ret val == implicit call r3 with 1 arg */
       ob = (word *) R[3];
-      R[3] = R[*ip];
+      R[3] = A0;
       acc = 1;
-      goto apply; 
+      goto apply;
    op25: { /* jmp-nargs(>=?) a hi lo */
       int needed = *ip;
       if (acc == needed) {
          if (op & 64) /* add empty extra arg list */
             R[acc + 3] = INULL;
       } else if ((op & 64) && acc > needed) {
-         word tail = INULL;  /* todo: no call overflow handling yet */
+         word tail = INULL; /* todo: no call overflow handling yet */
          while (acc > needed) {
-            fp[0] = PAIRHDR;
-            fp[1] = R[acc + 2];
-            fp[2] = tail;
-            tail = (word) fp;
-            fp += 3;
+            tail = cons(R[acc + 2], tail);
             acc--;
          }
          R[acc + 3] = tail;
@@ -1163,8 +1288,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(3); }
    op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-      uint64_t a = (((uint64_t) fixval(A0))<<FBITS) | fixval(A1); 
-      word b = fixval(A2);
+      uint64_t a = ((uint64_t)immval(A0) << FBITS) | immval(A1);
+      word b = immval(A2);
       uint64_t q;
       q = a / b;
       A3 = F(q>>FBITS);
@@ -1174,33 +1299,32 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op27: /* syscall cont op arg1 arg2 */
       ob = (word *) R[0];
       R[0] = IFALSE;
-      R[3] = A1; R[4] = R[*ip]; R[5] = A2; R[6] = A3;
+      R[3] = A1;
+      R[4] = A0;
+      R[5] = A2;
+      R[6] = A3;
       acc = 4;
       if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
       goto apply;
    op28: { /* sizeb obj to */
-      word ob = R[*ip];
+      word ob = A0;
       if (immediatep(ob)) {
          A1 = IFALSE;
       } else {
-         word hdr = V(ob);
-         A1 = (rawp(hdr)) ? F((hdrsize(hdr)-1)*W - ((hdr >> 8) & 7)) : IFALSE;
+         word hdr = header(ob);
+         A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
       }
       NEXT(2); }
    op29: { /* ncons a b r */
-      *fp = NUMHDR;
-      fp[1] = A0;
-      fp[2] = A1;
-      A2 = (word) fp;
-      fp += 3;
+      A2 = mkpair(NUMHDR, A0, A1);
       NEXT(3); }
    op30: { /* ncar a rd */
-      word *ob = (word *) R[*ip];
+      word *ob = (word *)A0;
       assert(allocp(ob), ob, 30);
       A1 = ob[1];
       NEXT(2); }
    op31: { /* ncdr a r */
-      word *ob = (word *) R[*ip];
+      word *ob = (word *)A0;
       assert(allocp(ob), ob, 31);
       A1 = ob[2];
       NEXT(2); }
@@ -1214,55 +1338,56 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(0); }
    op33:
       error(33, IFALSE, IFALSE);
-   op34: { /* connect <host-ip> <port> <res> -> fd | False, via an ipv4 tcp stream */
-      /* fixme - this should not be a primitive */
-      A2 = prim_connect((word *) A0, A1); /* fixme: remove and put to prim-sys*/
-      NEXT(3); }
+   op34: /* jmp-nargs a hi li */
+      if (acc != *ip) {
+         ip += (ip[1] << 8) | ip[2];
+      }
+      NEXT(3);
    op35: { /* listuple type size lst to */
-      word type = fixval(R[*ip]);
-      word size = fixval(A1);
-      word *lst = (word *) A2;
+      word type = immval(A0);
+      word size = immval(A1);
+      word *lst = (word *)A2;
       word *ob;
       allocate(size+1, ob);
       A3 = (word) ob;
       *ob++ = make_header(size+1, type);
       while(size--) {
-         assert((allocp(lst) && *lst == PAIRHDR), lst, 35);
+         assert(pairp(lst), lst, 35);
          *ob++ = lst[1];
          lst = (word *) lst[2];
       }
       NEXT(4); }
    op36: { /* size o r */
-      word *ob = (word *) R[ip[0]];
-      R[ip[1]] = (immediatep(ob)) ? IFALSE : F(hdrsize(*ob)-1);
+      word *ob = (word *)A0;
+      A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
       NEXT(2); }
-   op37:
-      error(256, F(37), IFALSE);
+   op37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
+      A2 = prim_lraw(A0, immval(A1));
+      NEXT(3);
    op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
-      word res = fixval(A0) + fixval(A1);
-      word low = res & FMAX;
-      A3 = (res & (1 << FBITS)) ? ITRUE : IFALSE;
-      A2 = F(low);
+      word res = immval(A0) + immval(A1);
+      A3 = BOOL(res & (1 << FBITS));
+      A2 = F(res & FMAX);
       NEXT(4); }
    op39: { /* fx* a b l h */
-      uint64_t res = ((uint64_t) ((uint64_t) fixval(R[*ip])) * ((uint64_t) fixval(A1)));
-      A2 = F(((word)(res&FMAX)));
-      A3 = F(((word)(res>>FBITS)&FMAX));
+      uint64_t res = (uint64_t)immval(A0) * (uint64_t)immval(A1);
+      A2 = F(res & FMAX);
+      A3 = F((res >> FBITS) & FMAX);
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
-      word r = (fixval(A0)|(1<<FBITS)) - fixval(A1);
-      A3 = (r & (1<<FBITS)) ? IFALSE : ITRUE;
-      A2 = F(r&FMAX);
+      word r = (immval(A0) | (1 << FBITS)) - immval(A1);
+      A3 = r & (1 << FBITS) ? IFALSE : ITRUE;
+      A2 = F(r & FMAX);
       NEXT(4); }
    op41: { /* red? node r (has highest type bit?) */
-      word *node = (word *) R[*ip];
+      word *node = (word *)A0;
       A1 = BOOL(allocp(node) && ((*node)&(FFRED<<TPOS)));
       NEXT(2); }
-   op42: /* mkblack l k v r t */ 
-      A4 = prim_mkff(TFF,A0,A1,A2,A3);
+   op42: /* mkblack l k v r t */
+      A4 = prim_mkff(TFF, A0, A1, A2, A3);
       NEXT(5);
-   op43: /* mkred l k v r t */ 
-      A4 = prim_mkff(TFF|FFRED,A0,A1,A2,A3);
+   op43: /* mkred l k v r t */
+      A4 = prim_mkff(TFF | FFRED, A0, A1, A2, A3);
       NEXT(5);
    op44: /* less a b r */
       A2 = prim_less(A0, A1);
@@ -1271,7 +1396,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = prim_set(A0, A1, A2);
       NEXT(4); }
    op46: { /* fftoggle - toggle node color */
-      word *node = (word *) R[*ip];
+      word *node = (word *)A0;
       word *new, h;
       assert(allocp(node), node, 46);
       new = fp;
@@ -1285,20 +1410,20 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
                   *new++ = *node++; }
       fp = new;
       NEXT(2); }
-   op47:  /* ref t o r */ /* fixme: deprecate this later */
+   op47: /* ref t o r */ /* fixme: deprecate this later */
       A2 = prim_ref(A0, A1);
       NEXT(3);
    op48: { /* refb t o r */ /* todo: merge with ref, though 0-based  */
-      A2 = prim_refb(A0, fixval(A1));
+      A2 = prim_refb(A0, immval(A1));
       NEXT(3); }
    op49: { /* withff node l k v r */
-      word hdr, *ob = (word *) R[*ip];
+      word hdr, *ob = (word *)A0;
       hdr = *ob++;
       A2 = *ob++; /* key */
       A3 = *ob++; /* value */
       switch(hdrsize(hdr)) {
          case 3: A1 = A4 = IEMPTY; break;
-         case 4: 
+         case 4:
             if (hdr & (1 << TPOS)) { /* has right? */
                A1 = IEMPTY; A4 = *ob;
             } else {
@@ -1312,18 +1437,18 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(5); }
    op50: { /* run thunk quantum */
       word hdr;
-      ob = (word *) A0;
+      ob = (word *)A0;
       R[0] = R[3];
-      ticker = bank ? bank : fixval(A1);
+      ticker = bank ? bank : immval(A1);
       bank = 0;
-      assert(allocp(ob),ob,50);
+      assert(allocp(ob), ob, 50);
       hdr = *ob;
-      if (imm_type(hdr) == TTHREAD) {
+      if (is_type(hdr, TTHREAD)) {
          int pos = hdrsize(hdr) - 1;
          word code = ob[pos];
          acc = pos - 3;
          while(--pos) { R[pos] = ob[pos]; }
-         ip = ((unsigned char *) code) + W;
+         ip = (unsigned char *)code + W;
       } else {
          /* call a thunk with terminal continuation */
          R[3] = IHALT; /* exit via R0 when the time comes */
@@ -1332,60 +1457,49 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       NEXT(0); }
    op51: { /* cons a b r */
-      *fp = PAIRHDR;
-      fp[1] = A0;
-      fp[2] = A1;
-      A2 = (word) fp;
-      fp += 3;
+      A2 = cons(A0, A1);
       NEXT(3); }
    op52: { /* car a r */
-      word *ob = (word *) R[*ip++];
+      word *ob = (word *)A0;
       assert(pairp(ob), ob, 52);
-      R[*ip++] = ob[1];
-      NEXT(0); }
+      A1 = ob[1];
+      NEXT(2); }
    op53: { /* cdr a r */
-      word *ob = (word *) R[*ip++];
+      word *ob = (word *)A0;
       assert(pairp(ob), ob, 53);
-      R[*ip++] = ob[2];
-      NEXT(0); }
+      A1 = ob[2];
+      NEXT(2); }
    op54: /* eq a b r */
-      A2 = BOOL(R[*ip] == A1);
+      A2 = BOOL(A0 == A1);
       NEXT(3);
-   op55: { /* band a b r, prechecked */
-      word a = R[*ip];
-      word b = A1;
-      A2 = a & b;
-      NEXT(3); }
-   op56: { /* bor a b r, prechecked */
-      word a = R[*ip];
-      word b = A1;
-      A2 = a | b;
-      NEXT(3); }
-   op57: { /* bxor a b r, prechecked */
-      word a = R[*ip];
-      word b = A1;
-      A2 = a ^ (b & (FMAX << IPOS)); /* inherit a's type info */
-      NEXT(3); }
+   op55: /* band a b r, prechecked */
+      A2 = A0 & A1;
+      NEXT(3);
+   op56: /* bor a b r, prechecked */
+      A2 = A0 | A1;
+      NEXT(3);
+   op57: /* bxor a b r, prechecked */
+      A2 = A0 ^ (A1 & (FMAX << IPOS)); /* inherit A0's type info */
+      NEXT(3);
    op58: { /* fx>> a b hi lo */
-      uint64_t r = ((uint64_t) fixval(A0)) << (FBITS - fixval(A1));
+      uint64_t r = (uint64_t)immval(A0) << (FBITS - immval(A1));
       A2 = F(r>>FBITS);
       A3 = F(r&FMAX);
       NEXT(4); }
    op59: { /* fx<< a b hi lo */
-      uint64_t res = (uint64_t) fixval(R[*ip]) << fixval(A1);
+      uint64_t res = (uint64_t)immval(A0) << immval(A1);
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
-   op60: /* lraw lst type dir r (fixme, alloc amount testing compiler pass not in place yet!) */
-      A3 = prim_lraw(A0, fixval(A1), A2);
-      NEXT(4);
+   op60: /* unused */
+      error(256, F(60), IFALSE);
    op61: /* clock <secs> <ticks> */ { /* fixme: sys */
       struct timeval tp;
       word *ob;
       allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
-      ob[0] = ob[3] = NUMHDR; 
+      ob[0] = ob[3] = NUMHDR;
       A0 = (word) (ob + 3);
-      ob[2] = INULL; 
+      ob[2] = INULL;
       ob[5] = (word) ob;
       gettimeofday(&tp, NULL);
       A1 = F(tp.tv_usec / 1000);
@@ -1394,10 +1508,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       NEXT(2); }
    op62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
       A1 = F(ticker & FMAX);
-      ticker = fixval(A0);
-      NEXT(2); 
+      ticker = immval(A0);
+      NEXT(2);
    op63: { /* sys-prim op arg1 arg2 arg3 r1 */
-      A4 = prim_sys(fixval(A0), A1, A2, A3);
+      A4 = prim_sys(immval(A0), A1, A2, A3);
       NEXT(5); }
 
 super_dispatch: /* run macro instructions */
@@ -1416,39 +1530,7 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
       acc = 4;
       goto apply;
    }
-   return 1; /* no mcp to handle error (fail in it?), so nonzero exit  */
-}
-
-word *burn_args(int nargs, char **argv) {
-   int this;
-   word *oargs = (word *) INULL;
-   this = nargs-1;
-   while(this >= 0) {
-      byte *str = (byte *) argv[this];
-      byte *pos = str;
-      int pads;
-      word *tmp;
-      int len = 0, size;
-      while(*pos++) len++;
-      if (len > FMAX) {
-         exit(1);
-      }
-      size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
-      pads = (size-1)*W - len;
-      tmp = fp;
-      fp += size;
-      *tmp = make_raw_header(size, 3, pads);
-      pos = ((byte *) tmp) + W;
-      while(*str) *pos++ = *str++;
-      *fp = PAIRHDR;
-      fp[1] = (word) tmp;
-      fp[2] = (word) oargs;
-      oargs = fp;
-      fp += 3;
-      this--;
-   }
-   fp = oargs + 3;
-   return oargs;
+   return 1; /* no mcp to handle error (fail in it?), so nonzero exit */
 }
 
 /* Initial FASL image decoding */
@@ -1463,7 +1545,7 @@ word get_nat() {
       result = new + (i & 127);
    } while (i & 128);
    return result;
-}  
+}
 
 word *get_field(word *ptrs, int pos) {
    if (0 == *hp) {
@@ -1495,7 +1577,7 @@ word *get_obj(word *ptrs, int me) {
          byte *wp;
          type = *hp++ & 31; /* low 5 bits, the others are pads */
          bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
+         size = OBJWORDS(bytes);
          pads = (size-1)*W - bytes;
          *fp++ = make_raw_header(size, type, pads);
          wp = (byte *) fp;
@@ -1512,7 +1594,7 @@ word *get_obj(word *ptrs, int me) {
 void get_obj_metrics(int *rwords, int *rnobjs) {
    int size;
    switch(*hp++) {
-      case 1: {
+      case 1:
          hp++;
          size = get_nat();
          *rnobjs += 1;
@@ -1522,17 +1604,16 @@ void get_obj_metrics(int *rwords, int *rnobjs) {
                hp += 2;
             get_nat();
          }
-         break; }
-      case 2: {
-         int bytes;
+         break;
+      case 2:
          hp++;
-         bytes = get_nat();
-         size = ((bytes % W) == 0) ? (bytes/W)+1 : (bytes/W) + 2;
-         hp += bytes;
+         size = get_nat();
          *rnobjs += 1;
-         *rwords += size;
-         break; }
-      default: exit(42);
+         *rwords += OBJWORDS(size);
+         hp += size;
+         break;
+      default:
+         exit(42);
    }
 }
 
@@ -1544,19 +1625,7 @@ void heap_metrics(int *rwords, int *rnobjs) {
    hp = hp_start;
 }
 
-size_t count_cmdlinearg_words(int nargs, char **argv) {
-   size_t total = 0;
-   while(nargs--) {
-      size_t this = lenn((byte *) *argv, FMAX);
-      if (this == FMAX) 
-         exit(3);
-      total += (this / W) + 3;
-      argv++;
-   }
-   return total;
-}
-
-byte *read_heap(char *path) { 
+byte *read_heap(char *path) {
    struct stat st;
    int fd, pos = 0;
    if(stat(path, &st)) exit(1);
@@ -1576,7 +1645,7 @@ byte *read_heap(char *path) {
 /* find a fasl image source to *hp or exit */
 void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
    file_heap = NULL;
-   if ((word)heap == (word)NULL) { 
+   if ((word)heap == 0) {
       /* if no preloaded heap, try to load it from first vm arg */
       if (*nargs < 2) exit(1);
       file_heap = read_heap((*argv)[1]);
@@ -1592,10 +1661,10 @@ void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
 }
 
 word *decode_fasl(int nobjs) {
-   word *ptrs = fp;
+   word *ptrs;
    word *entry;
    int pos = 0;
-   fp += nobjs+1;
+   allocate(nobjs + 1, ptrs);
    while(pos < nobjs) {
       if (fp >= memend) { /* bug */
          exit(1);
@@ -1603,65 +1672,42 @@ word *decode_fasl(int nobjs) {
       fp = get_obj(ptrs, pos);
       pos++;
    }
-   entry = (word *) ptrs[pos-1]; 
-   ptrs[0] = make_raw_header(nobjs+1,0,0);
+   entry = (word *) ptrs[pos - 1];
+   ptrs[0] = make_raw_header(nobjs + 1, 0, 0);
    return entry;
 }
 
 word *load_heap(int nobjs) {
    word *entry = decode_fasl(nobjs);
-   if (file_heap != NULL) free((void *) file_heap);
+   if (file_heap != NULL)
+      free(file_heap);
    return entry;
 }
 
-void setup(int nargs, char **argv, int nwords, int nobjs) {
+void setup(int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
    state = IFALSE;
    set_signal_handler();
-   toggle_blocking(0,0); /* change to nonblocking stdio */
-   toggle_blocking(1,0);
-   toggle_blocking(2,0);
-   max_heap_mb = (W == 4) ? 4096 : 65535;
-   nwords += count_cmdlinearg_words(nargs, argv);
+   max_heap_mb = W == 4 ? 4096 : 65535;
    nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
-   if (!memstart) exit(4);
+   memstart = genstart = fp = realloc(NULL, (nwords + MEMPAD) * W);
+   if (memstart == NULL)
+      exit(4);
    memend = memstart + nwords - MEMPAD;
-}
-
-void setdown() {
-   tcsetattr(0, TCSANOW, &tsettings);
-}
-
-/* library mode init */
-void init() {
-   int nobjs=0, nwords=0;
-   hp = (byte *) &heap; /* builtin heap */
-   state = IFALSE;
-   heap_metrics(&nwords, &nobjs);
-   max_heap_mb = (W == 4) ? 4096 : 65535;
-   nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
-   if (!memstart) exit(4);
-   memend = memstart + nwords - MEMPAD;
-   state = (word) load_heap(nobjs);
 }
 
 int main(int nargs, char **argv) {
-   word *prog, *args;
+   word *prog;
    int rval, nobjs=0, nwords=0;
    find_heap(&nargs, &argv, &nobjs, &nwords);
-   setup(nargs, argv, nwords, nobjs);
-   args = burn_args(nargs, argv);
+   setup(nwords, nobjs);
    prog = load_heap(nobjs);
-   rval = vm(prog, args);
+   rval = vm(prog, (word *)onum((word)argv, 0));
    setdown();
-   if(fixnump(rval)) {
-      int n = fixval(rval);
-      return (0 <= n && n < 128) ? n : 126;
-   } else {
-      return 127;
+   if (fixnump(rval)) {
+      int n = immval(rval);
+      if (!(n & ~127))
+         return n;
    }
+   return 127;
 }
-
-
