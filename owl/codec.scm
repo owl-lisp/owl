@@ -1,5 +1,5 @@
 ;;; The codec library contains some simple content encoding transformations.
-;;; 
+;;;
 ;;; ```
 ;;;   (hex-encode "slartibartfast") → "736c617274696261727466617374"
 ;;;   (hex-decode "736c617274696261727466617374") → "slartibartfast"
@@ -10,11 +10,16 @@
 
 (define-library (owl codec)
 
-  (import 
-     (owl base)
-     (owl proof))
+  (import
+     (owl defmac)
+     (owl list)
+     (owl math)
+     (owl proof)
+     (owl string)
+     (owl syscall)
+     (owl vector))
 
-  (export 
+  (export
     hex-encode-list  ;; (byte ...) → str
     hex-encode       ;; str → str
     hex-decode       ;; str → str | #false
@@ -29,7 +34,7 @@
     (define (hex-encode-bytes lst)
       (foldr
         (λ (x tl)
-          (ilist 
+          (ilist
             (vector-ref hex-chars (>> x 4))
             (vector-ref hex-chars (band x 15))
             tl))
@@ -55,7 +60,7 @@
                      #false)
                   ((hex-char->bits b) =>
                      (lambda (b)
-                        (lets 
+                        (lets
                            ((a bs bs)
                             (a (hex-char->bits a)))
                            (if a
@@ -69,7 +74,7 @@
    (define (hex-encode str)
       (cond
          ((string? str)
-            (hex-encode-list 
+            (hex-encode-list
                (string->bytes str)))
          ((pair? str)
             (hex-encode-list str))
@@ -88,6 +93,5 @@
    (example
       (hex-decode (hex-encode "")) = ""
       (hex-decode (hex-encode "foo")) = "foo"
-      (hex-decode (hex-encode "λä.ä")) = "λä.ä")))
-
-
+      (hex-decode (hex-encode "λä.ä")) = "λä.ä")
+))

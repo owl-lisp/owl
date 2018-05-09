@@ -39,10 +39,10 @@
       )
 
    (import
-      (owl math)
       (owl defmac)
       (owl list)
       (owl list-extra)
+      (owl math)
       (owl proof)
       (only (owl syscall) error))
 

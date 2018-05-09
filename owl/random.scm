@@ -59,6 +59,7 @@
       )
 
    (import
+      (owl defmac)
       (owl math)
       (owl lazy)
       (owl list)
@@ -70,8 +71,7 @@
       (owl io)
       (owl syscall)
       (owl sort)
-      (owl time)
-      (owl defmac))
+      (owl time))
 
    (begin
 
@@ -198,7 +198,7 @@
             ((d rs (uncons rs 0))
              (tl (λ () (rands->bits rs))))
             (let loop ((p #b1000000000000000))
-               (if (eq? p 0) 
+               (if (eq? p 0)
                   tl
                   (cons (bit d p) (loop (>> p 1)))))))
 

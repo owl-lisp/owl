@@ -22,6 +22,7 @@
       )
 
    (import 
+      (owl defmac)
       (owl math)
       (owl iff) 
       (owl list)
@@ -29,7 +30,6 @@
       (owl sort)
       (owl primop)
       (only (owl syscall))
-      (owl defmac)
       (owl ff)
       (only (owl syscall) error))
 

@@ -37,7 +37,7 @@
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (quote *vm-special-ops* *libraries* *codes* wait *args* stdin stdout stderr set-ticker run build-start)
+,forget-all-but (quote *vm-special-ops* *libraries* build-start)
 
 ;; --------------------------------------------------------------------------------
 
@@ -48,74 +48,25 @@
 (define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
 (define *owl-version* "0.1.14")
-(define max-object-size #xffff)
 
 (import
-   (owl syscall)
-   (owl primop)
-   (owl boolean)
-   (owl list)
-   (owl ff)
-   (only (owl iff))
-   (owl math)
-   (owl list-extra)
-   (owl sort)
-   (owl lazy)
-   (only (owl unicode) encode-point)
-   (owl string)
-   (owl vector)
-   (owl symbol)
-   (owl tuple)
-   (only (owl parse))
-   (owl function)
-   (owl equal)
-   (owl render)
    (owl intern)
-   (owl io)
-   (owl regex)
-   (owl sexp)
-   (only (owl math-extra))
-   (only (owl rlist))
-   (only (owl queue))
    (owl env)
-   (owl gensym)
-   (owl bisect)
-   (owl macro)
    (owl ast)
-   (owl fixedpoint)
-   (owl cps)
-   (owl alpha)
    (owl thread)
-   (owl assemble)
-   (owl closure)
-   (owl compile)
-   (owl suffix)
-   (owl time)
-   (owl random)
    (owl args)
-   (owl cgen)
-   (only (owl dump) make-compiler dump-fasl load-fasl suspend)
-   (owl char)
+   (only (owl dump) make-compiler load-fasl)
    (owl eval)
    (owl repl)
-   (owl digest)
    (owl base)
-   (owl date)
-   (owl codec)
-   (owl variable)
-   (scheme cxr)
-   (scheme base)
-   (scheme case-lambda)
-   (scheme process-context)
-   (scheme write))
+   (owl variable))
 
 (define-syntax share-bindings
    (syntax-rules (defined)
       ((share-bindings) null)
       ((share-bindings this . rest)
          (cons
-            (cons 'this
-               (tuple 'defined (mkval this)))
+            (cons 'this (tuple 'defined (mkval this)))
             (share-bindings . rest)))))
 
 ;; implementation features, used by cond-expand
@@ -126,9 +77,6 @@
 
 (define shared-bindings
    (share-bindings
-      halt
-      suspend
-      read read-ll
       *features*
       *include-dirs*
       *libraries*      ;; all currently loaded libraries

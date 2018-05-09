@@ -61,6 +61,7 @@
       current-input-port
       current-output-port
       define
+      define-library
       define-record-type
       define-syntax
       define-values
@@ -245,13 +246,14 @@
       (owl eof)
       (owl equal)
       (owl list)
+      (only (owl function) procedure?)
       (only (owl syscall) error)
       (owl string)
       (owl primop)
       (owl math-extra)
       (owl vector)
       (owl port)
-      (owl symbol)
+      (only (owl symbol) string->symbol symbol? symbol=? symbol->string)
       (only (owl sexp) list->number)
       (owl list-extra)
       (owl io)
@@ -389,7 +391,6 @@
       (define-missing-bad read-bytevector)
       (define-missing-bad raise-continuable)
       (define-missing-bad raise)
-      (define-missing-bad procedure?)
       (define-missing-bad peek-u8)
       (define-missing-bad peek-char)
       (define-missing-bad parameterize)
