@@ -3,6 +3,7 @@ has gotten many useful bug reports, suggestions and patches during the
 course of development. Here is a partial list of people who have helped
 in the development:
 
+   Jo Henke           A ton of improvements
    Doug Currie        GC improvements, data representation optimizations, etc.
    Jown Cowan         A slew of filed bugs.
    Pekka Pietikäinen  Portability suggestions and patches.
