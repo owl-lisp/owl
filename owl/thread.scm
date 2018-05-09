@@ -286,7 +286,7 @@
                   ((links (get state link-tag empty))
                    (followers (get links target null))
                    (links
-                     (if (has? followers id)
+                     (if (memq id followers)
                         links
                         (put links target (cons id followers)))))
                   (tc tc

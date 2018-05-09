@@ -68,7 +68,7 @@
 (try "adxy"
    (seq
       (star aad)
-      (seq (imm #\a) 
+      (seq (imm #\a)
            (imm #\d)))
    "ad"
    "xy")
@@ -124,7 +124,7 @@
 (define ws
    (star
       (byte-if
-         (H has? '(#\space #\tab #\newline #\return)))))
+         (C memq '(#\space #\tab #\newline #\return)))))
 
 (define get-exp
    (let-parses
@@ -136,7 +136,7 @@
    (let-parses
       ((drop ws)
        (left (imm #\{))
-       (ns 
+       (ns
           (star get-exp))
        (drop ws)
        (right (imm #\})))

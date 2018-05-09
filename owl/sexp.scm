@@ -43,7 +43,7 @@
          (or
             (between? #\a n #\z)
             (between? #\A n #\Z)
-            (has? special-symbol-chars n)
+            (memq n special-symbol-chars)
             (> n 127)))         ;; allow high code points in symbols
 
       (define (symbol-char? n)
@@ -228,7 +228,7 @@
       (define get-a-whitespace
          (one-of
             ;get-hashbang   ;; actually probably better to make it a symbol as above
-            (get-byte-if (H has? '(9 10 32 13)))
+            (get-byte-if (C memq '(9 10 32 13)))
             (let-parses
                ((skip (get-imm #\;))
                 (skip get-rest-of-line))
@@ -293,7 +293,7 @@
                (get-kleene*
                   (get-either
                      get-quoted-string-char
-                     (get-rune-if (B not (H has? '(#\" #\\)))))))
+                     (get-rune-if (B not (C memq '(#\" #\\)))))))
              (skip (get-imm #\")))
             (runes->string chars)))
 

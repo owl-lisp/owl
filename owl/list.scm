@@ -5,7 +5,7 @@
       caar cadr cdar cddr
       list?
       zip fold foldr map for-each
-      has? getq last drop-while
+      memq getq last drop-while
       mem
       fold-map foldr-map
       append reverse keep remove
@@ -125,12 +125,11 @@
                (op (car lst))
                (for-each op (cdr lst)))))
 
-      ;; lst key -> bool
-      (define (has? lst x)
+      (define (memq x lst)
          (cond
             ((null? lst) #false)
             ((eq? (car lst) x) lst)
-            (else (has? (cdr lst) x))))
+            (else (memq x (cdr lst)))))
 
       ;; lst k -> #false | value, get a value from an association list
       (define (getq lst k)
@@ -281,7 +280,7 @@
       (define (diff a b)
          (cond
             ((null? a) a)
-            ((has? b (car a))
+            ((memq (car a) b)
                (diff (cdr a) b))
             (else
                (cons (car a)
@@ -290,7 +289,7 @@
       (define (union a b)
          (cond
             ((null? a) b)
-            ((has? b (car a))
+            ((memq (car a) b)
                (union (cdr a) b))
             (else
                (cons (car a)
@@ -299,7 +298,7 @@
       (define (intersect a b)
          (cond
             ((null? a) null)
-            ((has? b (car a))
+            ((memq (car a) b)
                (cons (car a)
                   (intersect (cdr a) b)))
             (else

@@ -34,7 +34,7 @@
                ((pair? exp)
                   (walk (cdr exp)
                      (walk (car exp) found)))
-               ((and (symbol? exp) (not (has? found exp)))
+               ((and (symbol? exp) (not (memq exp found)))
                   (cons exp found))
                (else found)))
 
@@ -101,7 +101,7 @@
                   (cond
                      ((eq? pattern '_) ;; wildcard - match anything, leave no binding
                         dictionary)
-                     ((has? literals pattern)
+                     ((memq pattern literals)
                         (if (eq? pattern form) dictionary (fail pattern)))
                      (collect?
                         ;;; append to dictionary
@@ -198,7 +198,7 @@
                ((pair? form)
                   (if (and (pair? (cdr form)) (eq? (cadr form) '...))
                      (lets
-                        ((dict (keep (B (H has? (symbols-of (car form))) car) dictionary))
+                        ((dict (keep (B (C memq (symbols-of (car form))) car) dictionary))
                          (len (repetition-length dict)))
                         (let rep-loop ((dict dict) (n len))
                            (if (= n 0)
@@ -258,7 +258,7 @@
                    (template-symbols (symbols-of template))
                    (fresh-symbols
                      (keep
-                        (lambda (x) (and (unbound? x) (not (has? literals x))))
+                        (lambda (x) (and (unbound? x) (not (memq x literals))))
                         (diff template-symbols pattern-symbols))))
                   (list pattern fresh-symbols template)))
             patterns templates))

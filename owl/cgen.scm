@@ -99,7 +99,7 @@
       (define (alloc? v)
          (cond
             ((not v) #false)
-            ((has? '(pair alloc) v) #true)
+            ((memq v '(pair alloc)) #true)
             (else #false)))
 
       ;; drop code to check that value in ref is a pointer (not immediate) unless this is already known in regs

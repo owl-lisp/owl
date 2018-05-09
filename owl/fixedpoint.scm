@@ -32,7 +32,7 @@
       (define (free-vars exp env)
 
          (define (take sym found bound)
-            (if (or (has? bound sym) (has? found sym))
+            (if (or (memq sym bound) (memq sym found))
                found
                (cons sym found)))
 
@@ -111,7 +111,7 @@
                   (if node
                      (let ((partition (deps-of node)))
                         (keep
-                           (lambda (node) (has? partition (name-of node)))
+                           (lambda (node) (memq (name-of node) partition))
                            deps))
                      null)))
 
@@ -125,7 +125,7 @@
                   (diff (deps-of node) lost)))
             (remove
                (lambda (node)
-                  (has? lost (name-of node)))
+                  (memq (name-of node) lost))
                deps)))
 
       (define (make-bindings names values body)
@@ -152,7 +152,7 @@
                         (walk rator)
                         (map walk rands))))
                ((lambda formals body)
-                  (if (has? formals name)
+                  (if (memq name formals)
                      exp
                      (tuple 'lambda formals (walk body))))
                ((branch kind a b then else)
@@ -358,7 +358,7 @@
          (define (grow current deps)
             (lets
                ((related
-                  (keep (lambda (x) (has? current (name-of x))) deps))
+                  (keep (lambda (x) (memq (name-of x) current)) deps))
                 (new-deps
                   (fold union current
                      (map third related))))

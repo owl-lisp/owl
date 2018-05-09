@@ -267,7 +267,7 @@
                         (repl
                            (env-keep env
                               (λ (name)
-                                 (if (or (primop-of name) (has? op name))
+                                 (if (or (primop-of name) (memq name op))
                                     name
                                     #false)))
                            in))
@@ -416,11 +416,11 @@
             ((match `(only ,? . ,symbols?) iset)
                (lets ((ok lib (import-set->library (cadr iset) libs fail)))
                   (values 'ok
-                     (env-keep lib (λ (var) (if (has? (cddr iset) var) var #false))))))
+                     (env-keep lib (λ (var) (if (memq var (cddr iset)) var #false))))))
             ((match `(except ,? . ,symbols?) iset)
                (lets ((ok is (import-set->library (cadr iset) libs fail)))
                   (values 'ok
-                     (env-keep is (λ (var) (if (has? (cddr iset) var) #false var))))))
+                     (env-keep is (λ (var) (if (memq var (cddr iset)) #false var))))))
             ((match `(rename ,? . ,pairs?) iset)
                (lets ((ok lib (import-set->library (cadr iset) libs fail)))
                   (values 'ok

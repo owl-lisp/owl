@@ -285,7 +285,7 @@
             (cond
                ((= n 0)
                   (reverse safe))
-               ((has? call hp)
+               ((memq hp call)
                   (loop (+ hp 1) safe n))
                (else
                   (loop (+ hp 1) (cons hp safe) (- n 1))))))
@@ -349,7 +349,7 @@
                ((and (eq? rator a0) (= nargs 1))
                   (tuple 'ret (car rands)))
                ;;; rator is itself in rands, and does not need rescuing
-               ((has? rands rator)
+               ((memq rator rands)
                   (rtl-make-jump rands free
                      (if inst
                         (tuple inst (index-of rator rands a0) nargs)
