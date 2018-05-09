@@ -648,7 +648,7 @@
          (let-parses
             ((skip (get-imm 92)) ; \
              (val
-               (any
+               (one-of
                   (imm-val #\d accept-digit)       ;; \d = [0-9]
                   (imm-val #\D accept-nondigit)    ;; \D = [^0-9]
                   (imm-val #\. accept-dot)         ;; \. = .
@@ -735,7 +735,7 @@
 
       ;; todo: what is the quotation used for 32-bit \xhhhhhhhh?
       (define parse-quoted-char-body
-         (any
+         (one-of
             ;; the usual quotations
             (imm-val 97  7)   ;; \a = 7
             (imm-val 98  8)   ;; \b = 8
@@ -831,7 +831,7 @@
       (define (get-catn get-regex)
          (let-parses
             ((regex ;; parse a single regexp thing
-               (any
+               (one-of
                   get-dot
                   get-fini
                   ;; todo: merge the parenthetical ones later
@@ -882,14 +882,14 @@
                   get-quoted-char
                   get-plain-char))
              (repetition
-               (any
+               (one-of
                   get-star
                   get-plus
                   get-quest
                   get-range
                   (get-epsilon self)))
              (tail
-               (any
+               (one-of
                   (let-parses ;; join tail of exp with implicit catenation
                      ((tl (get-catn get-regex)))
                      (C rex-and tl))
@@ -973,7 +973,7 @@
             (make-full-match rex)))
 
       (define get-sexp-regex
-         (any
+         (one-of
             get-replace-regex
             get-matcher-regex
             get-cutter-regex
