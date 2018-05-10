@@ -73,10 +73,10 @@
                   (theorem-decls rs #empty decls . body)))))
 
       (define theorem-equal? simple-equal?)
-      
+
       ;; equal has to be defined in the context where example is used
       (define-syntax example
-         (syntax-rules (theorem-equal? = + receive)
+         (syntax-rules (theorem-equal? = receive)
             ((example term-a = term-b . rest)
                (let ((eva (lambda () term-a))
                      (evb (lambda () term-b)))

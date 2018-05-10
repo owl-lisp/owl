@@ -86,12 +86,7 @@
 
       ;; note, no let-values yet, so using let*-values in define-values
       (define-syntax begin
-         (syntax-rules (define define-syntax letrec define-values let*-values)
-            ;((begin
-            ;   (define-syntax key1 rules1)
-            ;   (define-syntax key2 rules2) ... . rest)
-            ;   (letrec-syntax ((key1 rules1) (key2 rules2) ...)
-            ;      (begin . rest)))
+         (syntax-rules (define letrec define-values let*-values)
             ((begin exp) exp)
             ((begin (define . a) (define . b) ... . rest)
                (begin 42 () (define . a) (define . b) ... . rest))
@@ -139,8 +134,7 @@
       ; Temporary hack: if inlines some predicates.
 
       (define-syntax if
-         (syntax-rules
-            (not eq? and null? pair? empty? type =)
+         (syntax-rules (not eq? null? empty?)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
@@ -332,7 +326,7 @@
       ; replace this with typed destructuring compare later on 
 
       (define-syntax tuple-case
-         (syntax-rules (else _ is eq? bind div)
+         (syntax-rules (else _ is eq? bind)
             ((tuple-case (op . args) . rest)
                (let ((foo (op . args)))
                   (tuple-case foo . rest)))
@@ -385,18 +379,10 @@
                (do __init (vari ...) () (test exp ...) command ...))))
 
       (define-syntax define-library
-         (syntax-rules (export import begin _define-library define-library)
+         (syntax-rules (export _define-library define-library)
             ;; push export to the end (should syntax-error on multiple exports before this)
             ((define-library x ... (export . e) term . tl)
              (define-library x ... term (export . e) . tl))
-
-            ;; lift all imports above begins
-            ;((define-library x ... (begin . b) (import-old . i) . tl)
-            ; (define-library x ... (import-old . i) (begin . b) . tl))
-
-            ;; convert to special form understood by the repl
-            ;((define-library name (import-old . i) ... (begin . b) ... (export . e))
-            ; (_define-library 'name '(import-old . i) ... '(begin . b) ... '(export . e)))
 
             ;; accept otherwise in whatever order
             ((define-library thing ...)
