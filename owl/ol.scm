@@ -27,27 +27,15 @@
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
-;; keep only the (owl core) library with a minimal set of defines
-
-(define *libraries*
-   (cons
-      (cons
-         '(owl core)
-         (fold
-            (let ((old-core (cdr (assoc '(owl core) *libraries*))))
-               (λ (ff key) (put ff key (get old-core key #f))))
-            empty
-            '(_branch _define rlambda)))
-   null))
+(define *libraries* '())
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (quote *vm-special-ops* *libraries* build-start)
+,forget-all-but (quote *libraries* _branch _define build-start rlambda)
 
 ;; --------------------------------------------------------------------------------
 
-(import (owl core))     ;; get _branch, _define, and rlambda
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
 (define *interactive* #false) ;; be verbose 
@@ -330,7 +318,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                (string->runes path))))))
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
-   (make-compiler *vm-special-ops*))
+   (make-compiler #empty))
 
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
