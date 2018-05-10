@@ -631,7 +631,7 @@
       (define big-alpha? (λ (b) (and (lesser? 64 b) (lesser? b 91)))) ;; A-Z
       (define alnum? (λ (b) (or (alpha? b) (big-alpha? b) (digit? b))))
       (define word? (λ (b) (or (eq? b 95) (alnum? b))))
-      (define space? (H has? '(32 9 13 10 11 12)))
+      (define space? (C memq '(32 9 10 13 11 12)))
 
       ;; shared automata parts corresponding to predefined character classes
       (define accept-digit (pred digit?))
@@ -674,7 +674,7 @@
       (define get-plain-char
          (let-parses
             ((val get-byte) ;; really get-code-point since the input is already decoded
-             (verify (not (has? special-chars val)) "bad special char"))
+             (verify (not (memq val special-chars)) "bad special char"))
             (imm val)))
 
       (define (quoted-imm val)

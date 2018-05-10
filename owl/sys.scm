@@ -96,7 +96,7 @@
       (define stdin  (fd->port 0))
       (define stdout (fd->port 1))
       (define stderr (fd->port 2))
-      (define stdio? (H has? (list stdin stdout stderr)))
+      (define stdio? (C memq (list stdin stdout stderr)))
 
       ;; owl value → value processable in vm (mainly string conversion)
       (define (sys-arg x)
@@ -491,7 +491,7 @@
             (sys 38 arg follow)))
 
       (define (file-type? path type)
-         (let ((mode (getq (stat path #t) 'mode)))
+         (let ((mode (assq 'mode (stat path #t))))
             (and mode (= (band (S_IFMT) (cdr mode)) type))))
 
       (define (directory? path)

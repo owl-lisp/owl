@@ -158,7 +158,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          - + * /
          div gcd ediv
          << < <= = >= > >>
-         equal? has? mem
+         equal? memq mem
          band bor bxor
          sort
          ; suffix-array bisect

@@ -21,7 +21,7 @@
 
 (import lib-iff)
 
-(define (now-ms) 
+(define (now-ms)
 	(lets ((ss ms (clock))) (+ ms (* ss 1000))))
 
 (define (time thunk)
@@ -99,36 +99,36 @@
 			;(print "times: ") (for-each print timed)
 			(append
 				(map (λ (d) (cons len d)) dropouts)
-				(battle 
+				(battle
 					(+ len (+ 1 (div len 10))) ; grow by 10%
-					(map cdr (remove (λ (p) (has? dropouts (cdr p))) timed))
+					(map cdr (remove (λ (p) (memq (cdr p) dropouts)) timed))
 					ordered? op)))))
 
 (begin
 	(print "")
-	(print* (list 
-"Check how large the various data structures indexable by 
-numbers can be before reading/writing each value once takes 
+	(print* (list
+"Check how large the various data structures indexable by
+numbers can be before reading/writing each value once takes
 over " cutoff-time "ms."))
 	(print "--- READ BENCHMARK ----------------------------")
 	(display " - in-order access (")
-	(for-each 
+	(for-each
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist vector iff) #t read-each))
 	(print "")
 	(display " - random access (")
-	(for-each 
+	(for-each
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist vector iff) #f read-each))
 	(print "")
 	(print "--- WRITE BENCHMARK ----------------------------")
 	(print "vectors have no write yet..")
 	(display " - in-order write (")
-	(for-each 
+	(for-each
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist iff) #t write-each))
 	(display " - random order write (")
-	(for-each 
+	(for-each
 		(λ (p) (print* (list "   + " (cdr p) " " (car p))))
 		(battle 1 '(list rlist iff) #f write-each))
 	(print ""))

@@ -5,7 +5,7 @@
 (define max-bits 1024)
 (define max-nums 100)
 
-(define rst 
+(define rst
    (seed->rands (time-ms)))
 
 (define (test rst)
@@ -20,10 +20,10 @@
        (ok
          (fold
             (λ (iff pair)
-               (lets 
+               (lets
                   ((key val pair)
                    (stored (iget iff key null)))
-                  (if (has? stored val) 
+                  (if (memq val stored)
                      iff
                      (error "Not there: " val))))
             iff pairs)))
@@ -33,4 +33,3 @@
    (print n)
    (if (< n 20)
       (loop (test rst) (+ n 1))))
-

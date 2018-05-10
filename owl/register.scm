@@ -141,7 +141,7 @@
       ;; finish with (cont the-register code)
 
       (define (retarget-first code old news uses cont)
-         (if (or (null? news) (and (has? news old) (< old highest-register)))
+         (if (or (null? news) (and (memq old news) (< old highest-register)))
             (cont old code)         ; no remapping happened
             (let ((new (car news)))
                (if (or (eq? old new) (get uses new #false))
@@ -207,7 +207,7 @@
                         ((more uses (rtl-retard more))
                          (uses (del uses b))
                          (targets (use-list uses a)))
-                        (if (has? targets b)
+                        (if (memq b targets)
                            ; moved to a useful target
                            (values (tuple 'move a b more) uses)
                            ; leave a wish that the value at a could already be in b

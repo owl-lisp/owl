@@ -34,7 +34,7 @@
                ((pair? exp)
                   (walk (cdr exp)
                      (walk (car exp) found)))
-               ((and (symbol? exp) (not (has? found exp)))
+               ((and (symbol? exp) (not (memq exp found)))
                   (cons exp found))
                (else found)))
 
@@ -101,16 +101,16 @@
                   (cond
                      ((eq? pattern '_) ;; wildcard - match anything, leave no binding
                         dictionary)
-                     ((has? literals pattern)
+                     ((memq pattern literals)
                         (if (eq? pattern form) dictionary (fail pattern)))
                      (collect?
                         ;;; append to dictionary
                         (push dictionary pattern form))
                      (else
-                        (let ((binding (getq dictionary pattern)))
+                        (let ((binding (assq pattern dictionary)))
                            (if binding
                               (if (equal? (cadr binding) form)
-                                 dictionary 
+                                 dictionary
                                  (fail pattern))
                               (cons (list pattern form) dictionary))))))
                ((null? pattern)
@@ -191,14 +191,14 @@
          (let loop ((form form))
             (cond
                ((symbol? form)
-                  (let ((binding (getq dictionary form)))
+                  (let ((binding (assq form dictionary)))
                      (if (and binding (pair? (cdr binding)))
                         (cadr binding)
                         form)))
                ((pair? form)
                   (if (and (pair? (cdr form)) (eq? (cadr form) '...))
                      (lets
-                        ((dict (keep (B (H has? (symbols-of (car form))) car) dictionary))
+                        ((dict (keep (B (C memq (symbols-of (car form))) car) dictionary))
                          (len (repetition-length dict)))
                         (let rep-loop ((dict dict) (n len))
                            (if (= n 0)
@@ -258,7 +258,7 @@
                    (template-symbols (symbols-of template))
                    (fresh-symbols
                      (keep
-                        (lambda (x) (and (unbound? x) (not (has? literals x))))
+                        (lambda (x) (and (unbound? x) (not (memq x literals))))
                         (diff template-symbols pattern-symbols))))
                   (list pattern fresh-symbols template)))
             patterns templates))

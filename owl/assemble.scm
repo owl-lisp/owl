@@ -4,8 +4,8 @@
 
 (define-library (owl assemble)
 
-   (export 
-      assemble-code 
+   (export
+      assemble-code
       bytes->bytecode
       inst->op)
 
@@ -24,7 +24,7 @@
       ;; primops = (#(name opcode in-args|#f out-args|#f wrapper-fn) ...)
 
       ;; ff of opcode → (in|#f out|#f), #f if variable
-      (define primop-arities 
+      (define primop-arities
          (fold
             (λ (ff node)
                (lets ((name op in out wrapper node))
@@ -50,7 +50,7 @@
               (clos1 . 6)
               (cloc1 . 7)
               ; 8 = jlq 
-              (movh . 13)       ; 
+              (movh . 13)
               (goto-code . 18)
               (goto-proc . 19)
               (goto-clos . 21)
@@ -142,9 +142,9 @@
                         (fail (list "Bad opcode arity for " op (length args) 1))))
                   ((list? to)
                      (if (opcode-arity-ok? op (length args) (length to))
-                        (if (has? multiple-return-variable-primops op)    
+                        (if (memq op multiple-return-variable-primops)
                            (cons op
-                              (append (map reg args)      
+                              (append (map reg args)
                                  ; <- nargs implicit, FIXME check nargs opcode too
                                  (append (map reg to)
                                     (assemble more fail))))
@@ -161,14 +161,14 @@
                ;; make a 2-level closure
                (if (= lpos 1)
                   (cons (inst->op 'clos1)
-                     (cons (+ 2 (length env))      
+                     (cons (+ 2 (length env))
                         ;; size of object (hdr code e0 ... en) 
                         (cons offset
                            (append (map reg env)
                               (cons (reg to)
                                  (assemble more fail))))))
                   (cons (inst->op 'clos)
-                     (cons (+ 2 (length env))      
+                     (cons (+ 2 (length env))
                         ;; size of object (hdr code e0 ... en) 
                         (cons (reg lpos)
                            (cons offset
@@ -178,14 +178,14 @@
             ((clos-code lpos offset env to more)      ;; make a 1-level closure
                (if (= lpos 1)
                   (cons (inst->op 'cloc1)
-                     (cons (+ 2 (length env))   
+                     (cons (+ 2 (length env))
                         ;; size of object (hdr code e0 ... en) 
                         (cons offset
                            (append (map reg env)
                               (cons (reg to)
                                  (assemble more fail))))))
                   (cons (inst->op 'cloc)
-                     (cons (+ 2 (length env))   
+                     (cons (+ 2 (length env))
                         ;; size of object (hdr code e0 ... en) 
                         (cons (reg lpos)
                            (cons offset
@@ -202,7 +202,7 @@
                      (let ((code (assemble cont fail)))
                         (if (or (> val 126) (< val -126)) ; would be a bug
                            (fail (list "ld: big value: " val)))
-                        (ilist (inst->op 'ld) 
+                        (ilist (inst->op 'ld)
                            (if (< val 0) (+ 256 val) val)
                            (reg to) code)))
                   ((eq? val #false)
@@ -214,8 +214,8 @@
                   (else
                      (fail (list "cannot assemble a load for " val)))))
             ((refi from offset to more)
-               (ilist 
-                  (inst->op 'refi) (reg from) offset (reg to) 
+               (ilist
+                  (inst->op 'refi) (reg from) offset (reg to)
                   (assemble more fail)))
             ((goto op nargs)
                (list (inst->op 'goto) (reg op) nargs))
@@ -285,7 +285,7 @@
                            (error "too much bytecode: " len))
                         (bytes->bytecode
                            (if fixed?
-                              (ilist 34 arity 
+                              (ilist 34 arity
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
                                  (append bytes
@@ -295,7 +295,7 @@
                               (ilist 89 (if fixed? arity (- arity 1))       ;; last is the optional one
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
-                                 (append bytes 
+                                 (append bytes
                                     (if (null? tail)
                                        (list 17)        ;; force error
                                        tail)))))))))
