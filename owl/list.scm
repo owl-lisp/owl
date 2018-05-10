@@ -231,12 +231,10 @@
             (remove null? l) = '(1 2 3 4)))
 
       (define (all pred lst)
-         (withcc ret
-            (fold (λ (ok x) (if (pred x) ok (ret #false))) #true lst)))
+         (or (null? lst) (and (pred (car lst)) (all pred (cdr lst)))))
 
       (define (some pred lst)
-         (withcc ret
-            (fold (λ (_ x) (let ((v (pred x))) (if v (ret v) #false))) #false lst)))
+         (and (pair? lst) (or (pred (car lst)) (some pred (cdr lst)))))
 
       (let ((l '(#t #f ())))
          (example
