@@ -241,6 +241,9 @@
    ,libraries        - show all currently loaded libraries
    ,quit             - exit owl")
 
+      (define (symbols? exp)
+         (and (list? exp) (all symbol? exp)))
+
       (define (repl-op repl op in env)
          (case op
             ((help)
@@ -262,7 +265,7 @@
                         (repl-fail env (list "expected ,load \"dir/foo.scm\", got " op))))))
             ((forget-all-but)
                (lets ((op in (uncons in #false)))
-                  (if (and (list? op) (all symbol? op))
+                  (if (symbols? op)
                      (let ((nan (tuple 'defined (tuple 'value 'undefined))))
                         (repl
                            (env-keep env
@@ -368,10 +371,8 @@
 
       ; fixme, use pattern matching...
 
-      (define (symbol-list? l) (and (list? l) (all symbol? l)))
-
       (define export?
-         (H match `(export . ,symbol-list?)))
+         (H match `(export . ,symbols?)))
 
       (define (_ x) #true)
 
@@ -395,10 +396,6 @@
       ;;              | (except <import set> <identifier> ...)
       ;;              | (prefix <import set> <identifier>)
       ;;              | (rename <import set_1> (<identifier_a> <identifier_b>) ..)
-
-      ;; (a ...)
-      (define (symbols? exp)
-         (and (list? exp) (all symbol? exp)))
 
       ;; ((a b) ...)
       (define (pairs? exp)
