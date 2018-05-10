@@ -33,6 +33,7 @@
       lets/cc
       read
       read-ll
+      ref
       suspend
       wait
       (exports (scheme base))
@@ -66,7 +67,7 @@
       (owl math)
       (owl digest)
       (only (owl dump) suspend)
-      (only (owl primop) halt lets/cc wait)
+      (only (owl primop) halt lets/cc ref wait)
       (only (owl sexp) read read-ll)
       (scheme base)
       (scheme cxr)

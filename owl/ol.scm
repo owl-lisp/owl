@@ -27,12 +27,18 @@
 
 (mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
 
-; forget all other libraries to have them be reloaded and rebuilt
+;; keep only the (owl core) library with a minimal set of defines
 
 (define *libraries*
-   (keep
-      (λ (lib) (equal? (car lib) '(owl core)))
-      *libraries*))
+   (cons
+      (cons
+         '(owl core)
+         (fold
+            (let ((old-core (cdr (assoc '(owl core) *libraries*))))
+               (λ (ff key) (put ff key (get old-core key #f))))
+            empty
+            '(_branch _define rlambda)))
+   null))
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
@@ -41,7 +47,7 @@
 
 ;; --------------------------------------------------------------------------------
 
-(import (owl core))     ;; get special forms, primops and define-syntax
+(import (owl core))     ;; get _branch, _define, and rlambda
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
 (define *interactive* #false) ;; be verbose 
@@ -56,6 +62,7 @@
    (owl thread)
    (owl args)
    (only (owl dump) make-compiler load-fasl)
+   (only (owl primop) bind mkt)
    (owl eval)
    (owl repl)
    (owl base)
