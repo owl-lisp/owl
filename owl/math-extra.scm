@@ -176,9 +176,7 @@
                   (else (loop (expt-mod y 2 n) (+ j 1)))))))
 
       (define (miller-rabin-cases-ok? num tests)
-         (fold
-            (lambda (status a) (and status (miller-rabin num a)))
-            #true tests))
+         (every (H miller-rabin num) tests))
 
       (define assume-riemann-hypothesis? #true)
 
