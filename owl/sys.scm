@@ -388,9 +388,7 @@
       ;; list->tuple + internal conversion might also be worth doing in sys-arg instead
       (define (exec path args)
          (lets ((args (map c-string args)))
-            (if (all self args)
-               (sys 17 path args)
-               #false)))
+            (and (every self args) (sys 17 path args))))
 
       ;; → #false on failure, else '(read-port . write-port)
       (define (pipe)
