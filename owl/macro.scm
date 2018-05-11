@@ -220,13 +220,6 @@
          ;; -> keyword literals patterns templates
          (H match `(quote syntax-operation add #false (,symbol? ,list? ,list? ,list?))))
 
-      ; fold w/ 2 state variables
-      (define (fold2 op s1 s2 lst)
-         (if (null? lst)
-            (values s1 s2)
-            (lets ((s1 s2 (op s1 s2 (car lst))))
-               (fold2 op s1 s2 (cdr lst)))))
-
       (define (add-fresh-bindings names free dict)
          (fold2
             (λ (free dict name)
@@ -235,7 +228,7 @@
 
       (define (make-transformer literals rules)
          (λ (form free)
-            (some
+            (any
                (λ (rule)
                   ;; rule = (pattern gensyms template)
                   (let ((dictionary (try-pattern (car rule) literals form)))

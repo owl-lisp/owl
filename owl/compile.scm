@@ -443,7 +443,7 @@
       (define (opcode->primop op)
          (let
             ((node
-               (some
+               (any
                   (λ (x) (if (eq? (ref x 2) op) x #false))
                   primops)))
             (if node node (error "Unknown primop: " op))))

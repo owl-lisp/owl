@@ -41,7 +41,7 @@
       (define (fail reason) (tuple 'fail reason))
 
       (define (name->func name)
-         (some
+         (any
             (λ (x) (if (eq? (ref x 1) name) (ref x 5) #false))
             primops))
 
@@ -242,7 +242,7 @@
    ,quit             - exit owl")
 
       (define (symbols? exp)
-         (and (list? exp) (all symbol? exp)))
+         (and (list? exp) (every symbol? exp)))
 
       (define (repl-op repl op in env)
          (case op
@@ -400,7 +400,7 @@
       ;; ((a b) ...)
       (define (pairs? exp)
          (and (list? exp)
-            (all (λ (x) (and (list? x) (= (length x) 2))) exp)))
+            (every (λ (x) (and (list? x) (= (length x) 2))) exp)))
 
       ;; → 'ok env | 'needed name | 'circular name, non-ok exists via fail
       (define (import-set->library iset libs fail)
@@ -467,7 +467,7 @@
 
       ;; nonempty list of symbols or integers
       (define (valid-library-name? x)
-         (and (list? x) (pair? x) (all (λ (x) (or (integer? x) (symbol? x))) x)))
+         (and (pair? x) (list? x) (every (λ (x) (or (integer? x) (symbol? x))) x)))
 
       ;; try to load a library based on it's name and current include prefixes if
       ;; it is required by something being loaded and we don't have it yet
@@ -530,9 +530,9 @@
             ((and (headed? 'not req) (= (length req) 2))
                (not (match-feature (cadr req) feats libs fail)))
             ((headed? 'and req)
-               (all (λ (req) (match-feature req feats libs fail)) (cdr req)))
+               (every (λ (req) (match-feature req feats libs fail)) (cdr req)))
             ((headed? 'or req)
-               (some (λ (req) (match-feature req feats libs fail)) (cdr req)))
+               (any (λ (req) (match-feature req feats libs fail)) (cdr req)))
             (else
                (fail "Weird feature requirement: " req))))
 

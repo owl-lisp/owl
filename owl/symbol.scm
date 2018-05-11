@@ -13,7 +13,7 @@
 
    (import
       (owl defmac)
-      (only (owl list) all)
+      (only (owl list) every)
       (owl string)
       (only (owl syscall) error interact))
 
@@ -26,7 +26,7 @@
          (eq? (type x) type-symbol))
 
       (define (symbol=? x . lst)
-         (and (symbol? x) (all (C eq? x) lst)))
+         (and (symbol? x) (every (C eq? x) lst)))
 
       (define (symbol->string x)
          (if (symbol? x)
