@@ -41,7 +41,7 @@
       (define (fail reason) (tuple 'fail reason))
 
       (define (name->func name)
-         (some
+         (any
             (λ (x) (if (eq? (ref x 1) name) (ref x 5) #false))
             primops))
 
@@ -532,7 +532,7 @@
             ((headed? 'and req)
                (all (λ (req) (match-feature req feats libs fail)) (cdr req)))
             ((headed? 'or req)
-               (some (λ (req) (match-feature req feats libs fail)) (cdr req)))
+               (any (λ (req) (match-feature req feats libs fail)) (cdr req)))
             (else
                (fail "Weird feature requirement: " req))))
 

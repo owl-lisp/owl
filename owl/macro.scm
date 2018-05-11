@@ -228,7 +228,7 @@
 
       (define (make-transformer literals rules)
          (λ (form free)
-            (some
+            (any
                (λ (rule)
                   ;; rule = (pattern gensyms template)
                   (let ((dictionary (try-pattern (car rule) literals form)))

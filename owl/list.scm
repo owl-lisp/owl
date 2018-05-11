@@ -9,7 +9,7 @@
       mem
       fold-map foldr-map
       append reverse keep remove
-      all some
+      all any
       smap unfold
       take-while                ;; pred, lst -> as, bs
       fold2
@@ -233,12 +233,12 @@
       (define (all pred lst)
          (or (null? lst) (and (pred (car lst)) (all pred (cdr lst)))))
 
-      (define (some pred lst)
-         (and (pair? lst) (or (pred (car lst)) (some pred (cdr lst)))))
+      (define (any pred lst)
+         (and (pair? lst) (or (pred (car lst)) (any pred (cdr lst)))))
 
       (let ((l '(#t #f ())))
          (example
-            (some null? l) = #true
+            (any null? l) = #true
             (all null? l) = #false))
 
       ; map carrying one state variable down like fold
