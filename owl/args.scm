@@ -103,7 +103,7 @@
                   #false))
             ((dashy? (car args))
                (cond
-                  ((string-eq? (car args) "--")
+                  ((string=? (car args) "--")
                      (walk rules null dict (append (reverse (cdr args)) others)))
                   ((select-rule (car args) rules) =>
                      (λ (rule)
@@ -135,7 +135,7 @@
                   ((explode (car args)) =>
                      (λ (opts) ;; --foo → -f -o -o
                         (walk rules (append opts (cdr args)) dict others)))
-                  ((string-eq? (car args) "-") ;; allow a solitary - to be used as an argument (usually to mean stdin/out)
+                  ((string=? (car args) "-") ;; allow a solitary - to be used as an argument (usually to mean stdin/out)
                      (walk rules (cdr args) dict (cons (car args) others)))
                   (else
                      (fail (list "Unknown argument: " (car args))))))

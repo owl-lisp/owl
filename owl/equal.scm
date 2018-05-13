@@ -20,7 +20,7 @@
             ((eq? a b) #true)
             ((string? a)
                (if (string? b)
-                  (string-eq? a b)
+                  (string=? a b)
                   #false))
             ((pair? a)
                (if (pair? b)

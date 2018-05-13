@@ -13,7 +13,6 @@
       string->runes      ; string -> list of unicode code points
       list->string       ; aka runes->string
       string->list       ; aka string->runes
-      string-eq?
       string-append
       c-string           ; str → #false | UTF-8 encoded null-terminated raw data string
       null-terminate     ; see ^
@@ -294,7 +293,7 @@
                   (else (string-eq-walk a (b)))))
             (else (string-eq-walk (a) b))))
 
-      (define (string-eq? a b)
+      (define (string=? a b)
          (let ((la (string-length a)))
             (if (= (string-length b) la)
                (string-eq-walk (str-iter a) (str-iter b))
@@ -438,7 +437,6 @@
                (iget char-fold-iff a a)
                (iget char-fold-iff b b))))
 
-      (define string=? string-eq?)
       (define (string-ci=? a b) (eq? 2 (str-compare upcase a b)))
 
       (define (string<? a b)       (eq? (str-compare self a b) 1))
