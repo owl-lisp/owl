@@ -294,13 +294,12 @@
 
       (define memv member)
 
-      (define (assv k l)
-         (cond
-            ((null? l) #f)
-            ((equal? (caar l) k) (car l))
-            (else (assv k (cdr l)))))
+      (define (assoc k lst . cmp)
+         (find
+            (B (H (if (null? cmp) equal? (car cmp)) k) car)
+            lst))
 
-      (define assoc assv)
+      (define assv assoc)
 
       ;; a silly non-primitive apply
       ;(define (apply func l)
