@@ -356,7 +356,7 @@
             ((skip (get-imm #\#))
              (fields (get-list-of parser)))
             (let ((fields (intern-symbols fields)))
-               (if (first pair? fields #false)
+               (if (any pair? fields)
                   ;; vector may have unquoted stuff, so convert it to a sexp constructing a vector, which the macro handler can deal with
                   (cons '_sharp_vector fields) ; <- quasiquote macro expects to see this in vectors
                   (list->vector fields)))))
