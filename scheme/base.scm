@@ -287,11 +287,10 @@
 
       ;; grr, scheme member functions don't follow the argument conventions of other functions used in owl...
 
-      (define (member x lst)
-         (cond
-            ((null? lst) #false)
-            ((equal? x (car lst)) lst)
-            (else (member x (cdr lst)))))
+      (define (member x lst . cmp)
+         (find-tail
+            (H (if (null? cmp) equal? (car cmp)) x)
+            lst))
 
       (define memv member)
 

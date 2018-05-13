@@ -10,6 +10,7 @@
       append reverse keep remove
       every any
       smap unfold
+      find-tail
       take-while                ;; pred, lst -> as, bs
       fold2
       first
@@ -196,6 +197,13 @@
          (reverse '(1 2 3)) = '(3 2 1))
 
       ;; misc
+
+      (define (find-tail pred lst)
+         (and
+            (pair? lst)
+            (if (pred (car lst))
+               lst
+               (find-tail pred (cdr lst)))))
 
       (define (take-while pred lst)
          (let loop ((lst lst) (taken null))
