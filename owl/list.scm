@@ -5,8 +5,7 @@
       caar cadr cdar cddr
       list?
       zip fold foldr map for-each
-      memq assq last drop-while
-      mem
+      memq assq last
       fold-map foldr-map
       append reverse keep remove
       every any
@@ -151,13 +150,6 @@
          (last '(1 2 3) 'a) = 3
          (last '() 'a) = 'a)
 
-      ;; mem compare lst elem -> bool, check if lst contains elem comparing with compare
-      (define (mem cmp lst elem)
-         (cond
-            ((null? lst) #false)
-            ((cmp (car lst) elem) lst)
-            (else (mem cmp (cdr lst) elem))))
-
       (define (app a b app)
          (if (null? a)
             b
@@ -204,13 +196,6 @@
          (reverse '(1 2 3)) = '(3 2 1))
 
       ;; misc
-
-      (define (drop-while pred lst)
-         (cond
-            ((null? lst) lst)
-            ((pred (car lst))
-               (drop-while pred (cdr lst)))
-            (else lst)))
 
       (define (take-while pred lst)
          (let loop ((lst lst) (taken null))

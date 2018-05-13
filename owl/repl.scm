@@ -114,7 +114,7 @@
 
       (define (mark-loaded env path)
          (let ((loaded (env-get env '*loaded* null)))
-            (if (mem string-eq? loaded path)
+            (if (member path loaded)
                env
                (env-set env '*loaded*
                   (cons path loaded)))))
