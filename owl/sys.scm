@@ -54,10 +54,6 @@
       O_APPEND
       O_CREAT
       O_TRUNC
-      stdin
-      stdout
-      stderr
-      stdio?
       close
       fcntl
       open
@@ -92,11 +88,6 @@
 
       (define (sys-const i)
          (lambda () (sys-prim 8 i #f #f)))
-
-      (define stdin  (fd->port 0))
-      (define stdout (fd->port 1))
-      (define stderr (fd->port 2))
-      (define stdio? (C memq (list stdin stdout stderr)))
 
       ;; owl value → value processable in vm (mainly string conversion)
       (define (sys-arg x)
@@ -294,7 +285,7 @@
 
       (define (port->non-blocking port)
          (if port
-            (toggle-file-status-flag port (O_NONBLOCK) (not (stdio? port))))
+            (toggle-file-status-flag port (O_NONBLOCK) (not (stdio-port? port))))
          port)
 
       (define (open path flags mode)
@@ -307,7 +298,7 @@
                      (sys 30 port new-fd)
                      (let ((fd (fcntl port (F_DUPFD) new-fd)))
                         (and fd (fd->port fd))))))
-            (if (stdio? port)
+            (if (stdio-port? port)
                (toggle-file-status-flag port (O_NONBLOCK) #f))
             port))
 

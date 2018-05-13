@@ -47,7 +47,6 @@
       port->block-stream      ;; fd → (bvec ...)
       block-stream->port      ;; (bvec ...) fd → bool
 
-      stdin stdout stderr
       display-to        ;; port val → bool
       print-to          ;; port val → bool
       display
@@ -98,11 +97,6 @@
 
    (begin
 
-      ;; standard io ports
-      (define stdin sys-stdin)
-      (define stdout sys-stdout)
-      (define stderr sys-stderr)
-
       ;;; Writing
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
@@ -111,7 +105,7 @@
 
       (define (try-write-block fd bvec len)
          ;; stdio ports are in blocking mode, so poll always
-         (if (sys-stdio? fd)
+         (if (stdio-port? fd)
             (interact 'iomux (tuple 'write fd)))
          (sys-write fd bvec len))
 
@@ -161,7 +155,7 @@
 
       (define (try-get-block fd block-size block?)
          ;; stdio ports are in blocking mode, so poll always
-         (if (sys-stdio? fd)
+         (if (stdio-port? fd)
             (interact 'iomux (tuple 'read fd)))
          (let ((res (sys-read fd block-size)))
             (if (eq? res #true) ;; would block
