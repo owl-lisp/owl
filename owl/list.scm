@@ -10,10 +10,9 @@
       append reverse keep remove
       every any
       smap unfold
-      find-tail
+      find find-tail
       take-while                ;; pred, lst -> as, bs
       fold2
-      first
       halve
       edit                      ;; op lst → lst'
       interleave
@@ -198,6 +197,17 @@
 
       ;; misc
 
+      (define (find pred lst)
+         (and
+            (pair? lst)
+            (if (pred (car lst))
+               (car lst)
+               (find pred (cdr lst)))))
+
+      (example
+         (find null? '(1 2 3)) = #f
+         (find null? '(1 ())) = ())
+
       (define (find-tail pred lst)
          (and
             (pair? lst)
@@ -241,17 +251,6 @@
             (lets ((st val (op st (car lst))))
                (cons val
                   (smap op st (cdr lst))))))
-
-      ; could also fold
-      (define (first pred l def)
-         (cond
-            ((null? l) def)
-            ((pred (car l)) (car l))
-            (else (first pred (cdr l) def))))
-
-      (example
-         (first null? '(1 2 3) 42) = 42
-         (first null? '(1 ()) 42) = ())
 
       (define (fold-map o s l)
          (let loop ((s s) (l l) (r null))

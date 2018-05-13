@@ -457,7 +457,7 @@
              (conv (λ (dir) (list->string (append (string->list dir) (cons #\/ (string->list path))))))
              (paths (map conv include-dirs))
              (contentss (map file->list paths))
-             (data (first self contentss #false)))
+             (data (find self contentss)))
             (if data
                (let ((exps (list->sexps data "library fail" path)))
                   (if exps ;; all of the file parsed to a list of sexps
