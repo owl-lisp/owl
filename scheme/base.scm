@@ -277,31 +277,22 @@
                   (lambda args
                      (error "Implementation restriction:" (cons (quote name) args)))))))
 
-      (define-syntax define-missing-my-bad
-         (syntax-rules ()
-            ((define-missing-my-bad name)
-               (define name
-                  (lambda args
-                     (error "Currently missing or incompatible:" (cons (quote name) args)))))))
-
 
       ;; grr, scheme member functions don't follow the argument conventions of other functions used in owl...
 
-      (define (member x lst)
-         (cond
-            ((null? lst) #false)
-            ((equal? x (car lst)) lst)
-            (else (member x (cdr lst)))))
+      (define (member x lst . cmp)
+         (find-tail
+            (H (if (null? cmp) equal? (car cmp)) x)
+            lst))
 
       (define memv member)
 
-      (define (assv k l)
-         (cond
-            ((null? l) #f)
-            ((equal? (caar l) k) (car l))
-            (else (assv k (cdr l)))))
+      (define (assoc k lst . cmp)
+         (find
+            (B (H (if (null? cmp) equal? (car cmp)) k) car)
+            lst))
 
-      (define assoc assv)
+      (define assv assoc)
 
       ;; a silly non-primitive apply
       ;(define (apply func l)
@@ -345,6 +336,13 @@
 
       (define (square x) (* x x))
 
+      (define (current-input-port) stdin)
+      (define (current-output-port) stdout)
+      (define (current-error-port) stderr)
+
+      (define binary-port? port?)
+      (define textual-port? port?)
+
       (define-missing-bad write-u8)
       (define-missing-bad write-string)
       (define-missing-bad write-char)
@@ -364,7 +362,6 @@
       (define-missing-bad truncate/)
       (define-missing-bad truncate-remainder)
       (define-missing-bad truncate-quotient)
-      (define-missing-bad textual-port?)
       (define-missing-bad syntax-rules)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
@@ -426,9 +423,6 @@
       (define-missing-bad error-object-irritants)
       (define-missing-bad else)
       (define-missing-bad dynamic-wind)
-      (define-missing-bad current-output-port)
-      (define-missing-bad current-input-port)
-      (define-missing-bad current-error-port)
       (define-missing-bad cond-expand)
       (define-missing-bad close-output-port)
       (define-missing-bad close-input-port)
@@ -449,5 +443,4 @@
       (define-missing-bad bytevector-append)
       (define-missing-bad bytevector)
       (define-missing-bad boolean=?)
-      (define-missing-bad binary-port?)
 ))

@@ -153,7 +153,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          - + * /
          div gcd ediv
          << < <= = >= > >>
-         equal? memq mem
+         equal? memq member
          band bor bxor
          sort
          ; suffix-array bisect
@@ -312,10 +312,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (directory-of path)
    (runes->string
       (reverse
-         (drop-while
-            (B not (C eq? #\/))
-            (reverse
-               (string->runes path))))))
+         (memq #\/ (reverse (string->runes path))))))
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
    (make-compiler #empty))

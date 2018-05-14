@@ -5,15 +5,14 @@
       caar cadr cdar cddr
       list?
       zip fold foldr map for-each
-      memq assq last drop-while
-      mem
+      memq assq last
       fold-map foldr-map
       append reverse keep remove
       every any
       smap unfold
+      find find-tail
       take-while                ;; pred, lst -> as, bs
       fold2
-      first
       halve
       edit                      ;; op lst → lst'
       interleave
@@ -151,13 +150,6 @@
          (last '(1 2 3) 'a) = 3
          (last '() 'a) = 'a)
 
-      ;; mem compare lst elem -> bool, check if lst contains elem comparing with compare
-      (define (mem cmp lst elem)
-         (cond
-            ((null? lst) #false)
-            ((cmp (car lst) elem) lst)
-            (else (mem cmp (cdr lst) elem))))
-
       (define (app a b app)
          (if (null? a)
             b
@@ -205,12 +197,23 @@
 
       ;; misc
 
-      (define (drop-while pred lst)
-         (cond
-            ((null? lst) lst)
-            ((pred (car lst))
-               (drop-while pred (cdr lst)))
-            (else lst)))
+      (define (find pred lst)
+         (and
+            (pair? lst)
+            (if (pred (car lst))
+               (car lst)
+               (find pred (cdr lst)))))
+
+      (example
+         (find null? '(1 2 3)) = #f
+         (find null? '(1 ())) = ())
+
+      (define (find-tail pred lst)
+         (and
+            (pair? lst)
+            (if (pred (car lst))
+               lst
+               (find-tail pred (cdr lst)))))
 
       (define (take-while pred lst)
          (let loop ((lst lst) (taken null))
@@ -248,17 +251,6 @@
             (lets ((st val (op st (car lst))))
                (cons val
                   (smap op st (cdr lst))))))
-
-      ; could also fold
-      (define (first pred l def)
-         (cond
-            ((null? l) def)
-            ((pred (car l)) (car l))
-            (else (first pred (cdr l) def))))
-
-      (example
-         (first null? '(1 2 3) 42) = 42
-         (first null? '(1 ()) 42) = ())
 
       (define (fold-map o s l)
          (let loop ((s s) (l l) (r null))
