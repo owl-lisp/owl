@@ -241,12 +241,6 @@
       (define (atkin-flip ff num)
          (iput ff num (not (iget ff num #false))))
 
-      (define (between? a x b)
-         (cond
-            ((> a x) #false)
-            ((< b x) #false)
-            (else #true)))
-
       ; later apply the knowledge about limits
       (define (atkin-candidates lo max)
          (let ((lim (isqrt max)))
@@ -263,18 +257,18 @@
                             (n (+ (* 4 xx) yy))
                             (nm (rem n 12))
                             (store
-                              (if (and (between? lo n max) (or (eq? nm 1) (eq? nm 5)))
+                              (if (and (<= lo n max) (or (eq? nm 1) (eq? nm 5)))
                                  (atkin-flip store n)
                                  store))
                             (n (+ (* 3 xx) yy))
                             (nm (rem n 12))
                             (store
-                              (if (and (between? lo n max) (eq? nm 7))
+                              (if (and (<= lo n max) (eq? nm 7))
                                  (atkin-flip store n)
                                  store))
                             (n (- n (<< yy 1))))
-                           (if (and (> x y) 
-                                 (and (between? lo n max) (eq? (rem n 12) 11)))
+                           (if (and (> x y)
+                                 (and (<= lo n max) (eq? (rem n 12) 11)))
                               (looy (atkin-flip store n) (+ y 1))
                               (looy store (+ y 1))))))))))
 
@@ -325,11 +319,11 @@
          (cond
             ((> lo hi) null)
             ; 2 and 3 are special
-            ((between? lo 2 hi) (cons 2 (atkin-primes-between 3 hi)))
-            ((between? lo 3 hi) (cons 3 (atkin-primes-between 5 hi)))
+            ((<= lo 2 hi) (cons 2 (atkin-primes-between 3 hi)))
+            ((<= lo 3 hi) (cons 3 (atkin-primes-between 5 hi)))
             (else
                (sort <
-                  (ifold 
+                  (ifold
                      (λ (out k v) (if v (cons k out) out))
                      null
                      (atkin-remove-squares hi

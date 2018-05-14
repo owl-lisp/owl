@@ -35,15 +35,12 @@
 
    (begin
 
-      (define (between? lo x hi)
-         (and (<= lo x) (<= x hi)))
-
       (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:")) ;; owl uses @ for finite function syntax
 
       (define (symbol-lead-char? n)
          (or
-            (between? #\a n #\z)
-            (between? #\A n #\Z)
+            (<= #\a n #\z)
+            (<= #\A n #\Z)
             (memq n special-symbol-chars)
             (> n 127)))         ;; allow high code points in symbols
 
@@ -51,7 +48,7 @@
          (or
             (symbol-lead-char? n)
             (eq? n #\.)
-            (or (between? #\0 n #\9) (> n 127)))) ;; allow high code points in symbols
+            (or (<= #\0 n #\9) (> n 127)))) ;; allow high code points in symbols
 
       (define get-symbol
          (get-either
@@ -73,9 +70,9 @@
                (string->uninterned-symbol (runes->string chars)))))
 
       (define (digit-char? x)
-         (or (between? 48 x 57)
-            (between? 65 x 70)
-            (between? 97 x 102)))
+         (or (<= 48 x 57)
+            (<= 65 x 70)
+            (<= 97 x 102)))
 
       (define digit-values
          (list->ff
@@ -88,7 +85,7 @@
 
       (define (digit-char? base)
          (if (eq? base 10)
-            (λ (n) (between? 48 n 57))
+            (λ (n) (<= 48 n 57))
             (λ (n) (< (get digit-values n 100) base))))
 
       (define (bytes->number digits base)

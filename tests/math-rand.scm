@@ -183,16 +183,16 @@
 					(lambda (q r)
 						(and (= q (div a b)) (= r (rem a b)))))))
 		(tuple 'binary nat nat 'xor-trans
-			(lambda (a b) (= (bxor (bxor a b)  b) (bxor a (bxor b b)))))
+			(lambda (a b) (= (bxor (bxor a b) b) (bxor a (bxor b b)))))
 		(tuple 'binary nat-nz nat-nz 'logarithm
-			(lambda (n a) (lets ((n (max 2 n)) (m (log n a))) (and (>= (expt n m) a) (<= (expt n (max 0 (- m 1))) a)))))
-		(tuple 'binary int int 'gcd-swap 
+			(lambda (n a) (lets ((n (max 2 n)) (m (log n a))) (<= (expt n (max 0 (- m 1))) a (expt n m)))))
+		(tuple 'binary int int 'gcd-swap
 			(lambda (a b) (= (gcd a b) (gcd b a))))
-		(tuple 'binary int int 'gcd-sign 
+		(tuple 'binary int int 'gcd-sign
 			(lambda (a b) (= (gcd (- 0 a) b) (gcd a b))))
-		(tuple 'unary int 'gcd-zero 
+		(tuple 'unary int 'gcd-zero
 			(lambda (a) (= (gcd a 0) (abs a))))
-		(tuple 'binary int int 'gcd-sign 
+		(tuple 'binary int int 'gcd-sign
 			(lambda (a b) (= (gcd a (* a b)) (abs a))))
 		(tuple 'binary nat nat 'bitwise-misc
 			(lambda (a b) (= a (band a (bor a (bxor b b))))))

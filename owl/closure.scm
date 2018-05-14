@@ -26,7 +26,7 @@
 
       (define (small-value? val)
          (or
-            (and (fixnum? val) (>= val -127) (< val 127))
+            (and (fixnum? val) (< -128 val 127))
             (eq? val #true)
             (eq? val #false)
             (eq? val null)))

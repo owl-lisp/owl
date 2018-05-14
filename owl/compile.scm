@@ -32,7 +32,7 @@
 
       (define (small-value? val)
          (or
-            (and (fixnum? val) (>= val -127) (< val 127))
+            (and (fixnum? val) (< -128 val 127))
             (eq? val #true)
             (eq? val #false)
             (eq? val null)))
@@ -496,7 +496,7 @@
                   ((eq? kind 4)   ; (branch-4 name type (λ (f0 .. fn) B) Else)
                      ; FIXME check object size here (via meta)
                      (let ((b (extract-value b)))
-                        (if (and (fixnum? b) (>= b 0) (< b 257))
+                        (if (and (fixnum? b) (<= 0 b 256))
                            (rtl-simple regs a
                               (λ (regs ap)
                                  (tuple-case then

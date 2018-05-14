@@ -200,7 +200,7 @@
                         (assemble cont fail)))
                   ((fixnum? val)
                      (let ((code (assemble cont fail)))
-                        (if (or (> val 126) (< val -126)) ; would be a bug
+                        (if (not (< -127 val 127)) ; would be a bug
                            (fail (list "ld: big value: " val)))
                         (ilist (inst->op 'ld)
                            (if (< val 0) (+ 256 val) val)

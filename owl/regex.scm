@@ -704,18 +704,12 @@
 
       ;; \<suff> → code-point (not acceptor as in get-quoted-char)
 
-      (define (between? min x max)
-         (cond
-            ((< x min) #false)
-            ((> x max) #false)
-            (else #true)))
-
       ;; byte → #false | hex-value
       (define (char->hex b)
          (cond
-            ((between? 48 b 57)  (- b 48))
-            ((between? 97 b 102) (- b 87))
-            ((between? 65 b 70)  (- b 55))
+            ((<= 48 b 57)  (- b 48))
+            ((<= 97 b 102) (- b 87))
+            ((<= 65 b 70)  (- b 55))
             (else #false)))
 
       (define get-hex
