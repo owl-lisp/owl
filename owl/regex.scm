@@ -687,7 +687,7 @@
          (let-parses
             ((skip (get-imm #\\))
              (d get-byte)
-             (verify (and (<= 48 d) (< d 58)) "bad digit"))
+             (verify (< 47 d 58) "bad digit"))
             (matched (- d 48))))
 
       (define get-digit
