@@ -1,4 +1,4 @@
-#!/usr/bin/ol --run 
+#!/usr/bin/ol -r
 
 ;; totally automatic documentation aggregator (TADA)
 ;; initial minimal viable version
@@ -34,24 +34,24 @@
       (if res (ref res 1) #false)))
 
 (define (maybe-definition-args defn)
-   (if (m/^ *\(define +\(/ defn)  ; )) 
+   (if (m/^ *\(define +\(/ defn)  ; ))
       (s/\).*// ; (
          (s/.*\(define +\([^ ]+ *// defn)) ; ))
       #false))
 
-(define (maybe fn val) 
+(define (maybe fn val)
    (if val (fn val) val))
 
 (define (maybe-put ff k v)
    (if v (put ff k v) ff))
 
 (define (find-args defn comms)
-   (or (maybe s/,.*// (first m/.* -> / comms #false))
+   (or (maybe s/,.*// (find m/.* -> / comms))
        (maybe-definition-args defn)))
 
 (define (find-description comms)
-   (maybe s/.*, *// (first m/.* -> .*,/ comms #false)))   
-   
+   (maybe s/.*, *// (find m/.* -> .*,/ comms)))
+
 (define (examples comms)
    (map s/   //
       (keep m/^   .* = / comms)))
@@ -62,7 +62,7 @@
       (maybe-put 'description (find-description prev-comments))
       (maybe-put 'args (find-args defn-line prev-comments))
       (maybe-put 'examples (examples prev-comments))))
-         
+
 (define (add-comment-metadatas meta path)
    (let loop ((ls (lines (open-input-file path))) (cs null) (metas meta))
       (lets ((line ls (uncons ls #false)))
@@ -72,22 +72,22 @@
                   (loop ls (cons (s/^ *;; // line) cs) metas))
                ((m/^ *\(define / line) ;) happy paren balancer
                   (let ((name (s/^ *\(define \(?([^ ]+).*/\1/ line))) ; ))
-                     (loop ls null 
+                     (loop ls null
                         (lets
                             ((name (string->symbol name))
                              (info (getf metas name)))
                             (if info
-                               (put metas name 
+                               (put metas name
                                   (metadata-entry info name line (reverse cs)))
                                metas)))))
                (else
                   (loop ls null metas)))
             metas))))
 
-(define safe-chars 
-   (fold 
-      (lambda (ff x) (put ff x x)) 
-      #empty 
+(define safe-chars
+   (fold
+      (lambda (ff x) (put ff x x))
+      #empty
       (list #\space #\- #\_ #\: #\( #\) #\?)))
 
 (define (html-safe s)
@@ -103,7 +103,7 @@
          null
          (string->list s))))
 
-(define (export? x) 
+(define (export? x)
    (and (pair? x) (list? x) (eq? (car x) 'export)))
 
 (define (begin? x)
@@ -120,10 +120,10 @@
       (else meta)))
 
 (define (pick-exports exps body)
-   (lets 
-      ((meta 
-         (fold 
-            (lambda (ff exp) 
+   (lets
+      ((meta
+         (fold
+            (lambda (ff exp)
                (put ff exp (put #empty 'name exp)))
              #empty exps)))
       (fold add-defn-metadata meta (or body null))))
@@ -134,12 +134,12 @@
       (if res
          (lets ((library (ref res 1))
                 (exports
-                   (fold 
-                      (lambda (found x) 
+                   (fold
+                      (lambda (found x)
                          (or found (if (export? x) (cdr x) #false)))
                       #false (ref res 2)))
-                (body 
-                   (fold 
+                (body
+                   (fold
                       (lambda (found x) (or found (if (begin? x) (cdr x) #false)))
                       #false (ref res 2))))
             (if (and library exports)
@@ -154,12 +154,12 @@
          (cdar ms))
       (else
          (meta-of sym (cdr ms)))))
-   
+
 (define (tada-add out path)
    (print-to stderr (str "Reading " path))
    (lets ((sexps (force-ll (read-ll (open-input-file path)))))
       (print-to stderr (str " - " (length sexps) " exps"))
-      (if (= (length sexps) 1)
+      (if (= (length sexps) 2)
          (lets
             ((libname info (maybe-tada-module (car sexps)))
              (metas (if info (add-comment-metadatas info path) #f)))
@@ -176,12 +176,12 @@
          (print "*" (html-safe (str (car node ))) "*")
          (ff-fold
             (lambda (_ name info)
-               (lets 
-                  ((args (getf info 'args)) 
+               (lets
+                  ((args (getf info 'args))
                    (examples (get info 'examples null))
                    (desc (getf info 'description)))
-                  (print 
-                     (html-safe 
+                  (print
+                     (html-safe
                         (str " - "
                            (if args
                               (if (m/ -> / args)
@@ -189,11 +189,10 @@
                                  (str "(" name " " args ")"))
                               name)
                            (if desc (str ", _" desc "_") ""))))
-                  (for-each 
+                  (for-each
                      (lambda (exp) (print "    - " (html-safe exp)))
                       examples)))
             #f (cdr node))
          (print))
-     (reverse (fold tada-add null (cdr args))))
+      (reverse (fold tada-add null (cdr args))))
    0)
-

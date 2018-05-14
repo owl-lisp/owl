@@ -38,7 +38,7 @@
             n
             (let ((this (refb str pos)))
                (cond
-                  ((and (< 47 this) (< this 58))
+                  ((< 47 this 58)
                      (count-gensym-id str (+ pos 1) end (+ (* n 10) (- this 48))))
                   (else #false)))))
 
