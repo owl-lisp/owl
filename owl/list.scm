@@ -9,15 +9,12 @@
       fold-map foldr-map
       append reverse keep remove
       every any
-      smap unfold
+      unfold
       find find-tail
       take-while                ;; pred, lst -> as, bs
       fold2
       halve
-      edit                      ;; op lst → lst'
       interleave
-      ╯°□°╯
-
       diff union intersect)
 
    (import
@@ -30,7 +27,6 @@
    (begin
 
       ;; constants are always inlined, so you pay just one byte of source for readability
-
       (define null '())
 
       ;; any -> bool
@@ -38,11 +34,6 @@
 
       ;; any -> bool
       (define null? (C eq? null))
-
-      (define-syntax withcc
-         (syntax-rules ()
-            ((withcc name proc)
-               (call/cc (λ (name) proc)))))
 
       ;; '((a . b) . c) -> a
       (define caar (B car car))
@@ -173,15 +164,6 @@
       (example
          (append '(1 2 3) '(a b c)) = '(1 2 3 a b c))
 
-      ; todo: update to work like ledit
-      (define (edit op l)
-         (if (null? l)
-            l
-            (let ((x (op (car l))))
-               (if x
-                  (append x (edit op (cdr l)))
-                  (cons (car l) (edit op (cdr l)))))))
-
       ;(define (reverse l) (fold (λ (r a) (cons a r)) null l))
 
       (define (rev-loop a b)
@@ -243,14 +225,6 @@
          (example
             (any null? l) = #true
             (every null? l) = #false))
-
-      ; map carrying one state variable down like fold
-      (define (smap op st lst)
-         (if (null? lst)
-            null
-            (lets ((st val (op st (car lst))))
-               (cons val
-                  (smap op st (cdr lst))))))
 
       (define (fold-map o s l)
          (let loop ((s s) (l l) (r null))
@@ -327,6 +301,4 @@
          (interleave 'x '()) = ()
          (halve '(a b c d)) = (values '(a b) '(c d))
          (halve '(a b c d e)) = (values '(a b c) '(d e)))
-
-      (define ╯°□°╯ reverse)
 ))
