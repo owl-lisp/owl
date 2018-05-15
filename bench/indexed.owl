@@ -95,7 +95,7 @@
 			 (data (if ordered? data (random-permutation (* load-time (now-ms)) data)))
 			 (timed (map (op data) participants))
 			 (timed (sort car< timed))
-			 (dropouts (map cdr (keep (λ (x) (>= (car x) cutoff-time)) timed))))
+			 (dropouts (map cdr (filter (λ (x) (>= (car x) cutoff-time)) timed))))
 			;(print "times: ") (for-each print timed)
 			(append
 				(map (λ (d) (cons len d)) dropouts)

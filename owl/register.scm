@@ -47,7 +47,7 @@
       ; return a list of registers from uses (where the value has been moved to), or 
       ; some list of low registers if this one is outside the available ones
       (define (use-list uses reg)
-         (let ((opts (keep (C < highest-register) (get uses reg null))))
+         (let ((opts (filter (C < highest-register) (get uses reg null))))
             (cond
                ((< reg highest-register)
                   opts)

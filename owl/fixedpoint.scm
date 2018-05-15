@@ -86,11 +86,11 @@
          (or
             ; things which have no dependences
             (maybe 'trivial
-               (keep (B null? deps-of) deps))
+               (filter (B null? deps-of) deps))
 
             ; things which only depend on themselvs (simply recursive)
             (maybe 'simple
-               (keep
+               (filter
                   (lambda (node)
                      (and
                         (lambda? (value-of node) env)
@@ -107,10 +107,10 @@
                   ((node
                      (least
                         (B length deps-of)
-                        (keep (lambda (node) (lambda? (value-of node) env)) deps))))
+                        (filter (lambda (node) (lambda? (value-of node) env)) deps))))
                   (if node
                      (let ((partition (deps-of node)))
-                        (keep
+                        (filter
                            (lambda (node) (memq (name-of node) partition))
                            deps))
                      null)))
@@ -358,7 +358,7 @@
          (define (grow current deps)
             (lets
                ((related
-                  (keep (lambda (x) (memq (name-of x) current)) deps))
+                  (filter (lambda (x) (memq (name-of x) current)) deps))
                 (new-deps
                   (fold union current
                      (map third related))))

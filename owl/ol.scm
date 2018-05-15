@@ -162,7 +162,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          ;vec-ref vec-len vec-fold vec-foldr
          ;print
          mail interact
-         take keep remove
+         take filter remove
          thread-controller
          uncons lfold lmap
          rand seed->rands
@@ -312,7 +312,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (directory-of path)
    (runes->string
       (reverse
-         (or 
+         (or
             (memq #\/ (reverse (string->runes path)))
             null))))
 

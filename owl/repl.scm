@@ -295,7 +295,7 @@
                   (cond
                      ((function? rex)
                         (define (seek env)
-                           (keep (B rex symbol->string) (env-keys env)))
+                           (filter (B rex symbol->string) (env-keys env)))
                         (print "current toplevel: "
                            (apply str (interleave ", " (seek env))))
                         (for-each
@@ -698,8 +698,8 @@
                                              (list ";; Library " name " added" ))))
                                     (env-set env library-key
                                        (cons (cons name library)
-                                          (keep  ;; drop the loading tag for this library
-                                             (λ (x) (not (equal? (car x) name)))
+                                          (remove ;; drop the loading tag for this library
+                                             (B (C equal? name) car)
                                              (env-get lib-env library-key null))))))) ; <- lib-env may also have just loaded dependency libs
                            ((error reason not-env)
                               (fail

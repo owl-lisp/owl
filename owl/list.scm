@@ -7,7 +7,8 @@
       zip fold foldr map for-each
       memq assq last
       fold-map foldr-map
-      append reverse keep remove
+      append reverse
+      filter remove
       every any
       unfold
       find find-tail
@@ -204,15 +205,15 @@
                ((pred (car lst)) (loop (cdr lst) (cons (car lst) taken)))
                (else (values (reverse taken) lst)))))
 
-      (define (keep pred lst)
+      (define (filter pred lst)
          (foldr (λ (x tl) (if (pred x) (cons x tl) tl)) null lst))
 
       (define (remove pred lst)
-         (keep (B not pred) lst))
+         (filter (B not pred) lst))
 
       (let ((l '(1 2 () 3 () 4)))
          (example
-            (keep null? l) = '(() ())
+            (filter null? l) = '(() ())
             (remove null? l) = '(1 2 3 4)))
 
       (define (every pred lst)
