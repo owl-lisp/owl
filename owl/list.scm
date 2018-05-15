@@ -62,7 +62,6 @@
                   (cons hd (zip op (cdr a) (cdr b)))))))
 
       ;; op state lst -> state', walk over a list from left and compute a value
-
       (define (fold op state lst)
          (if (null? lst)
             state
@@ -122,7 +121,7 @@
             ((eq? (car lst) x) lst)
             (else (memq x (cdr lst)))))
 
-      ;; lst k -> #false | value, get a value from an association list
+      ;; key list -> pair | #f, get a pair from an association list
       (define (assq k lst)
          (cond
             ((null? lst) #false)
@@ -180,6 +179,7 @@
 
       ;; misc
 
+      ;; list -> element | #f, SRFI-1
       (define (find pred lst)
          (and
             (pair? lst)
@@ -191,6 +191,7 @@
          (find null? '(1 2 3)) = #f
          (find null? '(1 ())) = ())
 
+      ;; list -> sub-list | #f, SRFI-1
       (define (find-tail pred lst)
          (and
             (pair? lst)
@@ -205,9 +206,11 @@
                ((pred (car lst)) (loop (cdr lst) (cons (car lst) taken)))
                (else (values (reverse taken) lst)))))
 
+      ;; list -> 'list, SRFI-1
       (define (filter pred lst)
          (foldr (λ (x tl) (if (pred x) (cons x tl) tl)) null lst))
 
+      ;; list -> 'list, SRFI-1
       (define (remove pred lst)
          (filter (B not pred) lst))
 
