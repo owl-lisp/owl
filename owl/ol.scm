@@ -41,7 +41,7 @@
 (define *interactive* #false) ;; be verbose 
 (define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
-(define *owl-version* "0.1.15")
+(define *owl-version* "0.1.16a")
 
 (import
    (owl intern)
@@ -312,7 +312,9 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (directory-of path)
    (runes->string
       (reverse
-         (memq #\/ (reverse (string->runes path))))))
+         (or 
+            (memq #\/ (reverse (string->runes path)))
+            null))))
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
    (make-compiler #empty))
