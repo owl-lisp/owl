@@ -527,25 +527,15 @@
       (define (get-environment-pointer)
          (sys 9 1))
 
-      (define (split-env-value bytes)
-         (let loop ((l null) (r bytes))
-            (cond
-               ((null? r)
-                  (values (reverse l) null))
-               ((eq? (car r) #\=)
-                  (values (reverse l) (cdr r)))
-               (else
-                  (loop (cons (car r) l) (cdr r))))))
-
       ;; ((keystr . valstr) ...)
       (define (get-environment)
          (mem-array-map
             (get-environment-pointer)
             (λ (ptr)
-               (lets ((k v (split-env-value (mem-string-bytes ptr))))
+               (lets ((k v (break (C eq? #\=) (mem-string-bytes ptr))))
                   (cons
                      (raw-string k)
-                     (raw-string v))))))
+                     (if (pair? v) (raw-string (cdr v)) ""))))))
 
       ;;;
       ;;; terminal control
