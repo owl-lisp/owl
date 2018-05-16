@@ -107,9 +107,9 @@
                   ((rlambda) ;;; (rlambda formals definitions body)
                      (if (= (length exp) 4)
                         (let
-                           ((formals (lref exp 1))
-                            (values (lref exp 2))
-                            (body (lref exp 3)))
+                           ((formals (list-ref exp 1))
+                            (values (list-ref exp 2))
+                            (body (list-ref exp 3)))
                            (if
                               (and
                                  (list? values)
@@ -126,12 +126,12 @@
                   ((_branch)
                      (if (= (length exp) 6)
                         (let
-                           ((a (lref exp 2))
-                            (b (lref exp 3))
-                            (then (lref exp 4))
-                            (else (lref exp 5)))
+                           ((a (list-ref exp 2))
+                            (b (list-ref exp 3))
+                            (then (list-ref exp 4))
+                            (else (list-ref exp 5)))
                            (tuple 'branch
-                              (lref exp 1) ; type
+                              (list-ref exp 1) ; type
                               (translate a env fail)
                               (translate b env fail)
                               (translate then env fail)
@@ -145,8 +145,8 @@
                         (fail (list "Bad case-lambda node: " exp))))
                   ((receive) ; (receive <exp> <receiver>)
                      (tuple 'receive
-                        (translate (lref exp 1) env fail)
-                        (translate (lref exp 2) env fail)))
+                        (translate (list-ref exp 1) env fail)
+                        (translate (list-ref exp 2) env fail)))
                   ;; FIXME pattern
                   ((values)
                      (tuple 'values

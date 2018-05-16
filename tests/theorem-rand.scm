@@ -56,7 +56,7 @@
          (error "cannot take a random element of empty list: " l))
       (else
          (lets ((rs n (rand rs (length l))))
-            (values rs (lref l n))))))
+            (values rs (list-ref l n))))))
 
 ;; todo: precedence: ¬ ∧ ∨ ∀ ∃ ⇒  
 ;; todo:

@@ -319,7 +319,7 @@
          (cond
             ((pair? obj)
                (lets ((rs n (rand rs (length obj))))
-                  (values rs (lref obj n))))
+                  (values rs (list-ref obj n))))
             ((tuple? obj)
                (lets ((rs n (rand rs (size obj))))
                   (values rs (ref obj (+ n 1)))))

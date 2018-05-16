@@ -316,9 +316,9 @@
                                        (values (list '_case-lambda first rest) free))))
                               ((rlambda)
                                  (lets
-                                    ((formals (lref exp 1))
-                                     (definitions (lref exp 2))
-                                     (body (lref exp 3))
+                                    ((formals (list-ref exp 1))
+                                     (definitions (list-ref exp 2))
+                                     (body (list-ref exp 3))
                                      (env (env-bind env formals))
                                      (definitions free
                                        (expand-list definitions env free))
@@ -367,18 +367,18 @@
 
       (define (post-macro-expand exp env fail)
          (cond
-            ((toplevel-macro-definition? exp) 
-               (lets 
-                  ((rules (lref exp 4))
-                   (keyword (lref rules 0))
-                   (literals (lref rules 1))
-                   (patterns (lref rules 2))
-                   (templates (lref rules 3))
-                   (rules 
-                     (make-pattern-list literals patterns templates 
+            ((toplevel-macro-definition? exp)
+               (lets
+                  ((rules (list-ref exp 4))
+                   (keyword (list-ref rules 0))
+                   (literals (list-ref rules 1))
+                   (patterns (list-ref rules 2))
+                   (templates (list-ref rules 3))
+                   (rules
+                     (make-pattern-list literals patterns templates
                         (lambda (sym)
                            (not (env-get-raw env sym #false)))))
-                   (transformer 
+                   (transformer
                      (make-transformer (cons keyword literals) rules)))
                   (let ((env (env-set-macro env keyword transformer)))
                      (ok (list 'quote keyword) env))))

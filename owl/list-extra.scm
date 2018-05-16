@@ -1,7 +1,7 @@
 (define-library (owl list-extra)
 
    (export
-      lref lset ldel length
+      lset ldel length
       led ledn lins
       take drop iota
       list-ref
@@ -19,13 +19,11 @@
 
    (begin
 
-      (define (lref lst pos)
+      (define (list-ref lst pos)
          (cond
-            ((null? lst) (error "lref: out of list" pos))
+            ((null? lst) (error "list-ref: out of list" pos))
             ((eq? pos 0) (car lst))
-            (else (lref (cdr lst) (- pos 1)))))
-
-      (define list-ref lref)
+            (else (list-ref (cdr lst) (- pos 1)))))
 
       (define (lset lst pos val)
          (cond
@@ -69,10 +67,10 @@
                   (cons hd (lins tl (- pos 1) val))))))
 
       (example
-         (lref '(a b c) 1) = 'b
+         (list-ref '(a b c) 1) = 'b
          (lset '(a b c) 1 'x) = '(a x c)
-         (ldel '(a b c) 1)  = '(a c)
-         (led '(1 2 3) 1 (C * 10)) =  '(1 20 3)
+         (ldel '(a b c) 1) = '(a c)
+         (led '(1 2 3) 1 (C * 10)) = '(1 20 3)
          (ledn '(1 2 3) 1 (H cons 'x)) = '(1 x 2 3)
          (lins '(a b c) 1 'x) = '(a x b c))
 

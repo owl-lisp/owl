@@ -76,7 +76,7 @@
 				(else ; check a random element
 					(if (> len 0)
 						(lets ((rst p (rand rst len)))
-							(if (eq? (rget rl p 'nan) (lref l p))
+							(if (eq? (rget rl p 'nan) (list-ref l p))
 								(list-test rst rl l len steps)
 								(error "elems differ: " p)))
 						(list-test rst rl l len steps)))))))
