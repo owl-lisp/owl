@@ -2,7 +2,7 @@
 
    (import
       (scheme base)
-      (only (owl io) display write))
+      (only (owl io) display-to write))
 
    (export
       display
@@ -11,6 +11,11 @@
       write-simple)
 
    (begin
+
+      (define (display obj . port)
+         (display-to
+            (if (null? port) (current-output-port) (car port))
+            obj))
 
       (define write-shared write)
 

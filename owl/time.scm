@@ -12,7 +12,8 @@
       (owl defmac)
       (owl io)
       (owl syscall)
-      (owl math))
+      (owl math)
+      (scheme write))
 
    (begin
 

@@ -49,7 +49,6 @@
 
       display-to        ;; port val → bool
       print-to          ;; port val → bool
-      display
       print
       print*
       print*-to         ;; port val → bool
@@ -378,9 +377,6 @@
 
       (define (display-to to obj)
          (printer (render obj '()) 0 null to))
-
-      (define display
-         (H display-to stdout))
 
       (define print
          (case-lambda

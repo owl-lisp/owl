@@ -33,7 +33,8 @@
       (owl lazy)
       (owl macro)
       (only (owl regex) string->regex)
-      (scheme cxr))
+      (scheme cxr)
+      (scheme write))
 
    (begin
 
@@ -135,7 +136,7 @@
                   (if (list? info)
                      (for-each (λ (x) (display x) (display " ")) info)
                      info)
-                  (display "\n")))))
+                  (newline)))))
 
       ;; render the value if *interactive*, and print as such (or not at all) if it is a repl-message
       ;; if interactive mode and output fails, the error is fatal

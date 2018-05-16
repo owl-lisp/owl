@@ -25,7 +25,8 @@
       (owl string)
       (owl equal)
       (owl ff)
-      (scheme cxr))
+      (scheme cxr)
+      (scheme write))
 
    (begin
       ;; cl-rules is a ff of
