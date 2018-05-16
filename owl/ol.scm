@@ -158,7 +158,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
          sort
          ; suffix-array bisect
          fold foldr map reverse length zip append unfold
-         lref lset iota
+         list-ref lset iota
          ;vec-ref vec-len vec-fold vec-foldr
          ;print
          mail interact

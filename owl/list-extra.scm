@@ -1,13 +1,13 @@
 (define-library (owl list-extra)
 
    (export
-      lref lset ldel length
+      lset ldel length
       led ledn lins
       take drop iota
       list-ref
       list-tail
-      repeat
-      split ;; lst n → head tail
+      make-list
+      split-at
       )
 
    (import
@@ -19,13 +19,11 @@
 
    (begin
 
-      (define (lref lst pos)
+      (define (list-ref lst pos)
          (cond
-            ((null? lst) (error "lref: out of list" pos))
+            ((null? lst) (error "list-ref: out of list" pos))
             ((eq? pos 0) (car lst))
-            (else (lref (cdr lst) (- pos 1)))))
-
-      (define list-ref lref)
+            (else (list-ref (cdr lst) (- pos 1)))))
 
       (define (lset lst pos val)
          (cond
@@ -69,10 +67,10 @@
                   (cons hd (lins tl (- pos 1) val))))))
 
       (example
-         (lref '(a b c) 1) = 'b
+         (list-ref '(a b c) 1) = 'b
          (lset '(a b c) 1 'x) = '(a x c)
-         (ldel '(a b c) 1)  = '(a c)
-         (led '(1 2 3) 1 (C * 10)) =  '(1 20 3)
+         (ldel '(a b c) 1) = '(a c)
+         (led '(1 2 3) 1 (C * 10)) = '(1 20 3)
          (ledn '(1 2 3) 1 (H cons 'x)) = '(1 x 2 3)
          (lins '(a b c) 1 'x) = '(a x b c))
 
@@ -130,13 +128,14 @@
             lst
             (list-tail (cdr lst) (- n 1))))
 
-      (define (repeat thing n)
+      (define (make-list n thing)
          (let loop ((n n) (out null))
             (if (eq? n 0)
                out
                (loop (- n 1) (cons thing out)))))
 
-      (define (split l n)
+      ;; lst n -> head tail, SRFI-1
+      (define (split-at l n)
          (let loop ((l l) (o null) (n n))
             (cond
                ((null? l)
@@ -148,6 +147,6 @@
 
       (example
          (list-tail '(a b c) 1) = '(b c)
-         (repeat 'x 3) = '(x x x)
-         (split '(a b c d) 2) = (values '(a b) '(c d)))
+         (make-list 3 'x) = '(x x x)
+         (split-at '(a b c d) 2) = (values '(a b) '(c d)))
 ))

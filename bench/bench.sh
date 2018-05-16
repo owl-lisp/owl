@@ -24,7 +24,7 @@ function compute {
    #echo "------------------------------"
    #echo "RES is $RES"
    #echo "------------------------------"
-   grep -q $PAT $LOG && ../bin/ol -e '(list->string (foldr render null (list "   " (lref *args* 3) "s (" (div (string->integer (lref *args* 4)) 4096) "Mb) - " (lref *args* 5))))' $RES "$2" || echo "  $MAXTIME.00+ or fail - $2 - x_X"  
+   grep -q $PAT $LOG && ../bin/ol -e '(list->string (foldr render null (list "   " (list-ref *args* 3) "s (" (div (string->integer (list-ref *args* 4)) 4096) "Mb) - " (list-ref *args* 5))))' $RES "$2" || echo "  $MAXTIME.00+ or fail - $2 - x_X"
 }
 
 echo ",exit 0" > /tmp/s48-exit

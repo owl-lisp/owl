@@ -198,13 +198,6 @@
 
       ;; making strings (temp)
 
-      (define (split lr lst pos)
-         (cond
-            ((eq? pos 0)
-               (values (reverse lr) lst))
-            (else
-               (split (cons (car lst) lr) (cdr lst) (- pos 1)))))
-
       (define (finish-string chunks)
          (let ((n (length chunks)))
             (cond
@@ -214,9 +207,9 @@
                   ; use 234-nodes for now
                   (lets
                      ((q (div n 4))
-                      (a l (split null chunks q))
-                      (b l (split null l q))
-                      (c d (split null l q))
+                      (a l (split-at chunks q))
+                      (b l (split-at l q))
+                      (c d (split-at l q))
                       (subs (map finish-string (list a b c d)))
                       (len (fold + 0 (map string-length subs))))
                      (listuple type-string-dispatch 5 (cons len subs))))
@@ -458,5 +451,5 @@
             (str-iter str)))
 
       (define (make-string n char)
-         (list->string (repeat char n)))
+         (list->string (make-list n char)))
 ))

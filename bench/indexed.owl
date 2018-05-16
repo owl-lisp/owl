@@ -47,7 +47,7 @@
 				((eq? what 'noop)
 					(time (λ () (fold (λ (x pos) x) 0 data))))
 				((eq? what 'list)
-					(time (λ () (fold (λ (x pos) (lref data pos)) 0 data))))
+					(time (λ () (fold (λ (x pos) (list-ref data pos)) 0 data))))
 				((eq? what 'rlist)
 					(let ((rl (list->rlist data)))
 						(time (λ () (fold (λ (x pos) (rget rl pos 0)) 0 data)))))

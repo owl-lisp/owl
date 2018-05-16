@@ -393,7 +393,6 @@
       (define-missing-bad open-input-bytevector)
       (define-missing-bad newline)
       (define-missing-bad make-parameter)
-      (define-missing-bad make-list)
       (define-missing-bad make-bytevector)
       (define-missing-bad list-tail)
       (define-missing-bad list-set!)
