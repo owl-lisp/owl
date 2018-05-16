@@ -6,7 +6,7 @@
       take drop iota
       list-ref
       list-tail
-      repeat
+      make-list
       split ;; lst n → head tail
       )
 
@@ -130,7 +130,7 @@
             lst
             (list-tail (cdr lst) (- n 1))))
 
-      (define (repeat thing n)
+      (define (make-list n thing)
          (let loop ((n n) (out null))
             (if (eq? n 0)
                out
@@ -148,6 +148,6 @@
 
       (example
          (list-tail '(a b c) 1) = '(b c)
-         (repeat 'x 3) = '(x x x)
+         (make-list 3 'x) = '(x x x)
          (split '(a b c d) 2) = (values '(a b) '(c d)))
 ))

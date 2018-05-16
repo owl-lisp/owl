@@ -458,5 +458,5 @@
             (str-iter str)))
 
       (define (make-string n char)
-         (list->string (repeat char n)))
+         (list->string (make-list n char)))
 ))

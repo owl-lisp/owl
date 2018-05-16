@@ -559,9 +559,9 @@
       (define make-vector
          (case-lambda
             ((n)
-               (list->vector (repeat #false n)))
+               (list->vector (make-list n #f)))
             ((n val)
-               (list->vector (repeat val n)))))
+               (list->vector (make-list n val)))))
 
       ;;;
       ;;; Vector construction
