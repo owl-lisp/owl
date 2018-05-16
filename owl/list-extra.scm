@@ -7,7 +7,7 @@
       list-ref
       list-tail
       make-list
-      split ;; lst n → head tail
+      split-at
       )
 
    (import
@@ -134,7 +134,8 @@
                out
                (loop (- n 1) (cons thing out)))))
 
-      (define (split l n)
+      ;; lst n -> head tail, SRFI-1
+      (define (split-at l n)
          (let loop ((l l) (o null) (n n))
             (cond
                ((null? l)
@@ -147,5 +148,5 @@
       (example
          (list-tail '(a b c) 1) = '(b c)
          (make-list 3 'x) = '(x x x)
-         (split '(a b c d) 2) = (values '(a b) '(c d)))
+         (split-at '(a b c d) 2) = (values '(a b) '(c d)))
 ))
