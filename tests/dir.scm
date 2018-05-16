@@ -1,2 +1,2 @@
 (import (owl sys))
-(print (keep m/^dir\.scm$/ (dir->list "tests")))
+(print (filter m/^dir\.scm$/ (dir->list "tests")))

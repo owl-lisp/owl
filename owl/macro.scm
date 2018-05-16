@@ -198,7 +198,7 @@
                ((pair? form)
                   (if (and (pair? (cdr form)) (eq? (cadr form) '...))
                      (lets
-                        ((dict (keep (B (C memq (symbols-of (car form))) car) dictionary))
+                        ((dict (filter (B (C memq (symbols-of (car form))) car) dictionary))
                          (len (repetition-length dict)))
                         (let rep-loop ((dict dict) (n len))
                            (if (= n 0)
@@ -250,7 +250,7 @@
                   ((pattern-symbols (symbols-of pattern))
                    (template-symbols (symbols-of template))
                    (fresh-symbols
-                     (keep
+                     (filter
                         (lambda (x) (and (unbound? x) (not (memq x literals))))
                         (diff template-symbols pattern-symbols))))
                   (list pattern fresh-symbols template)))

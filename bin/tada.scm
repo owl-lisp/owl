@@ -54,7 +54,7 @@
 
 (define (examples comms)
    (map s/   //
-      (keep m/^   .* = / comms)))
+      (filter m/^   .* = / comms)))
 
 (define (metadata-entry info name defn-line prev-comments)
    (-> info

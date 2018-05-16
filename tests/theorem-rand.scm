@@ -487,7 +487,7 @@
 
       theorem list-keep-remove
          ∀ l ∊ List
-            (sort < l) = (sort < (append (keep odd? l) (remove odd? l))) 
+            (sort < l) = (sort < (append (filter odd? l) (remove odd? l)))
 
       theorem pick-test
          ∀ l ∊ (List-of Byte)
