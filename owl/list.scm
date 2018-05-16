@@ -13,6 +13,7 @@
       unfold
       find find-tail
       take-while                ;; pred, lst -> as, bs
+      break
       fold2
       halve
       interleave
@@ -179,7 +180,7 @@
 
       ;; misc
 
-      ;; list -> element | #f, SRFI-1
+      ;; pred lst -> element | #f, SRFI-1
       (define (find pred lst)
          (and
             (pair? lst)
@@ -191,7 +192,7 @@
          (find null? '(1 2 3)) = #f
          (find null? '(1 ())) = ())
 
-      ;; list -> sub-list | #f, SRFI-1
+      ;; pred lst -> tail-list | #f, SRFI-1
       (define (find-tail pred lst)
          (and
             (pair? lst)
@@ -206,11 +207,20 @@
                ((pred (car lst)) (loop (cdr lst) (cons (car lst) taken)))
                (else (values (reverse taken) lst)))))
 
-      ;; list -> 'list, SRFI-1
+      ;; pred lst -> head-list tail-list, SRFI-1
+      (define (break pred lst)
+         (if (pair? lst)
+            (if (pred (car lst))
+               (values '() lst)
+               (lets ((l r (break pred (cdr lst))))
+                  (values (cons (car lst) l) r)))
+            (values '() lst)))
+
+      ;; pred lst -> 'list, SRFI-1
       (define (filter pred lst)
          (foldr (λ (x tl) (if (pred x) (cons x tl) tl)) null lst))
 
-      ;; list -> 'list, SRFI-1
+      ;; pred lst -> 'list, SRFI-1
       (define (remove pred lst)
          (filter (B not pred) lst))
 
