@@ -55,7 +55,6 @@
       close-port
       complex?
       cond
-      cond-expand
       cons
       current-error-port
       current-input-port
@@ -206,7 +205,6 @@
       symbol=?
       symbol?
       syntax-error
-      syntax-rules
       textual-port?
       truncate
       truncate-quotient
@@ -294,6 +292,9 @@
 
       (define assv assoc)
 
+      ;; just for compatibility, as lists are always immutable in owl
+      (define list-copy self)
+
       ;; a silly non-primitive apply
       ;(define (apply func l)
       ;   (if (null? l)
@@ -309,6 +310,11 @@
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
       (define rationalize K)
+
+      (define (exact? n) #t)
+      (define (inexact? n) #f)
+      (define exact self)
+      (define inexact self)
 
       (define string->number
          (case-lambda
@@ -343,6 +349,9 @@
       (define binary-port? port?)
       (define textual-port? port?)
 
+      (define (newline . port)
+         (write-really '#(#\newline) (if (null? port) stdout (car port))))
+
       (define-missing-bad write-u8)
       (define-missing-bad write-string)
       (define-missing-bad write-char)
@@ -362,7 +371,6 @@
       (define-missing-bad truncate/)
       (define-missing-bad truncate-remainder)
       (define-missing-bad truncate-quotient)
-      (define-missing-bad syntax-rules)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
       (define-missing-bad string-for-each)
@@ -391,19 +399,15 @@
       (define-missing-bad open-output-bytevector)
       (define-missing-bad open-input-string)
       (define-missing-bad open-input-bytevector)
-      (define-missing-bad newline)
       (define-missing-bad make-parameter)
       (define-missing-bad make-bytevector)
-      (define-missing-bad list-tail)
       (define-missing-bad list-set!)
-      (define-missing-bad list-copy)
       (define-missing-bad letrec-syntax)
       (define-missing-bad let-values)
       (define-missing-bad let-syntax)
       (define-missing-bad integer->char)
       (define-missing-bad input-port?)
       (define-missing-bad input-port-open?)
-      (define-missing-bad inexact)
       (define-missing-bad include-ci)
       (define-missing-bad include)
       (define-missing-bad guard)
@@ -416,13 +420,11 @@
       (define-missing-bad file-error?)
       (define-missing-bad features)
       (define-missing-bad exact-integer?)
-      (define-missing-bad exact)
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
       (define-missing-bad else)
       (define-missing-bad dynamic-wind)
-      (define-missing-bad cond-expand)
       (define-missing-bad close-output-port)
       (define-missing-bad close-input-port)
       (define-missing-bad char?)

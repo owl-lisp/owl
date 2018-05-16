@@ -33,9 +33,8 @@
       log log2
       render-number
       fx% ;; temp export until it is removed
-      zero? exact? inexact?
+      zero?
       real? complex? rational?
-      exact->inexact inexact->exact
       negative? positive?
       denominator numerator
       remainder modulo
@@ -94,13 +93,6 @@
                (eq? t type-fix+)
                ;(eq? t type-fix-) ;; <- FIXME - breaks build, someone isn't expecting negative fixnums
                )))
-
-      (define (exact? n) #true)    ;; RnRS compat
-      (define (inexact? n) #false)
-      ;; signaling an error would also make sense for these, but as compat
-      ;; functions returning the argument as suggested in filed bug
-      (define exact->inexact self)
-      (define inexact->exact self)
 
       ;; deprecated primop
       ;(define-syntax fxdivmod

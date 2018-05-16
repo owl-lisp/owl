@@ -5,8 +5,7 @@
 (define (print thing)
    ;; silly R5RS & Owl version
    (display thing)
-   (display "
-"))
+   (newline))
 
 ;; print something if bad result
 (define (check name thing wanted)
@@ -305,11 +304,10 @@
       (lcm 32 -36)                    ===>  288
       (lcm 32.0 -36)                  ===>  288.0  ; inexact ;; no it's not --owl
       (lcm)                           ===>  1
-      
+
       (numerator (/ 6 4))             ===>  3
       (denominator (/ 6 4))           ===>  2
-      (denominator
-        (exact->inexact (/ 6 4)))     ===> 2.0
+      (denominator (inexact (/ 6 4))) ===> 2.0 ; R7RS obsoletes exact->inexact
 
       (floor -4.3)                    ===>  -5.0
       (ceiling -4.3)                  ===>  -4.0

@@ -26,7 +26,6 @@
       (owl string)
       (owl render)
       (owl equal)
-      (owl list-extra)
       (owl math)
       (owl io)
       (owl port)
