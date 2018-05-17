@@ -37,7 +37,6 @@ Alternatively you can try it out with
    bin/ol      - the owl interpreter/compiler
    c/ovm.c     - the virtual machine / shared owl lisp runtime
    owl/*.scm   - implementation of owl repl and compiler
-   bench/*.scm - some benchmarks
    fasl/*.fasl - bytecode images for bin/vm used during boot
    bin/vm      - plain VM used during boot
    c/ol.c      - combined VM and REPL heap image
@@ -56,8 +55,8 @@ easy to compile programs for different platforms. Owl programs can be
 compiled with ol to C-files, which can be compiled to standalone binaries
 without needing any owl-specific support files or libraries. The C files 
 also work on 32- and 64-bit systems, and compile as such at least on 
-Linux, OpenBSD, OSX and can be crosscompiled to Windows executables with 
-MinGW.
+Linux, OpenBSD, and macOS or can be cross-compiled to Windows executables
+with MinGW.
 
 For example, to build a hello world program:
 ```
@@ -88,4 +87,3 @@ functions. To make programs run faster, one can use for example:
 For further documentation and updates, see:
 
   https://github.com/owl-lisp/owl
-

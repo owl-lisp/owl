@@ -1,7 +1,7 @@
 ---
 title: "Owl Lisp v0.2 manual"
 author: Aki Helin
-date: 19.2.2018
+date: 2018-05-17
 geometry: "left=3cm,right=3cm,top=2cm,bottom=2cm"
 output: pdf_document
 ---
@@ -55,7 +55,7 @@ of the language you are studying. This approach favored
 languages which had a small core of features, on top of which you could build the rest 
 of the system. Forth and Lisp are common examples of such languages.
 
-The goal of Owl Lisp has not at any point been to become han ultimate Lisp and
+The goal of Owl Lisp has not at any point been to become an ultimate Lisp and
 take over the world. Ïn fact, this has been an anti-goal. The goal has 
 been to remain simple while incrementally growing only features required 
 to enable building the kinds of programs it is actually used for. While 
@@ -71,7 +71,7 @@ original goals was to also study the actor model of computation. The
 actors were eventually removed, because in single threaded operation they 
 ended up being effectively equivalent with lambda-defined functions. 
 
-Owl takes a step back towards the actor model by allowing concurrect 
+Owl takes a step back towards the actor model by allowing concurrent
 execution of functions and passing messages between them. The operation 
 is mainly modeled after Erlang.
 
@@ -101,7 +101,7 @@ The definition of a programming language can be thought to consist of two parts,
 *semantics*. Since we typically want to write programs as text, we need 
 some rules to define how sequences of letters are to be interpreted as 
 something in the programming language. Once we are in the world of the 
-proramming language, and not just reading a sequence of letters, we need 
+programming language, and not just reading a sequence of letters, we need
 to attach some meaning and action to what we just read. This is the semantics
 part. 
 
@@ -168,7 +168,6 @@ Alternatively you can try it out with
    bin/ol      - the owl interpreter/compiler
    c/ovm.c     - the virtual machine / shared owl lisp runtime
    owl/*.scm   - implementation of owl repl and compiler
-   bench/*.scm - some benchmarks
    fasl/*.fasl - bytecode images for bin/vm used during boot
    bin/vm      - plain VM used during boot
    c/ol.c      - combined VM and REPL heap image
@@ -187,8 +186,8 @@ easy to compile programs for different platforms. Owl programs can be
 compiled with ol to C-files, which can be compiled to standalone binaries
 without needing any owl-specific support files or libraries. The C files 
 also work on 32- and 64-bit systems, and compile as such at least on 
-Linux, OpenBSD, OSX and can be crosscompiled to Windows executables with 
-MinGW.
+Linux, OpenBSD, and macOS or can be cross-compiled to Windows executables
+with MinGW.
 
 For example, to build a hello world program:
 ```
@@ -217,7 +216,7 @@ functions. To make programs run faster, one can use for example:
 # Libraries
 
 Libraries are named by lists of symbols. For example `(owl lazy)` is 
-a library name. `ol` comes prelodaded with many libraries, some of which 
+a library name. `ol` comes preloaded with many libraries, some of which
 are loaded by default to REPL. If you want to use exported definitions from a 
 builtin library `(owl lazy)`, you can do so by issuing `(import (owl lazy))`.
 
@@ -227,10 +226,9 @@ syntax is the same as in imports within a library.
 
 If you try to import a library which is not currently loaded, say `(my test)`, 
 Owl would try to look for library definition from the file "my/test.scm". If 
-it is available and contains definition of a libary called `(my test)`, it will 
-be loaded and added to your repl.
+it is available and contains definition of a library called `(my test)`, it will
+be loaded and added to your REPL.
 
 You can get a listing of the currently loaded libraries with `,libraries` command.
 Many of them are mainly needed for the implementation of the underlying system. 
 Some of the likely useful ones are documented below.
-
