@@ -1,8 +1,8 @@
 # Owl Lisp
 
 Builds: 
-master [![Build Status](https://travis-ci.org/aoh/owl-lisp.svg?branch=master)](https://travis-ci.org/aoh/owl-lisp), 
-dev [![Build Status](https://travis-ci.org/aoh/owl-lisp.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
+master [![Build Status](https://travis-ci.org/owl-lisp/owl.svg?branch=master)](https://travis-ci.org/aoh/owl-lisp), 
+dev [![Build Status](https://travis-ci.org/owl-lisp/owl.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
 
 ## Overview
 
