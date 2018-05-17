@@ -8,10 +8,10 @@
       (owl defmac))
 
    (begin
-      
+
       (define (symbol? x) 
          (eq? (type x) type-symbol))
-      
+
       (define (eq-fields a b eq pos)
          (cond
             ((eq? pos 0)
@@ -59,7 +59,7 @@
                                  (eq-fields a b self sa))
                               #false)))
                      (else #false))))))
-     
+
       ;; equality (mainly for theorem checks) which does not depend on 
       ;; any libraries one would like to be able to test
       (define (simple-equal? a b)

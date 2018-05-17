@@ -234,7 +234,7 @@
       ;; computes rest of parser stream
       (define (silent-syntax-fail val)
          (λ (cont ll msg) val))
-            
+
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
       ;; prompt removed from here - it belongs elsewhere

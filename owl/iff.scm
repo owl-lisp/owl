@@ -8,7 +8,7 @@
 (define-library (owl iff)
 
    (export iget iput ifold iff->list)
-   
+
    (import 
       (owl defmac)
       (owl ff)
@@ -66,7 +66,7 @@
                      (iff-walk op st more (ncons digit taken))
                      st))
                st ff)))
-            
+
       (define (ifold op st ff)
          (ff-fold
             (λ (st k v)

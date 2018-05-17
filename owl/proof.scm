@@ -1,28 +1,28 @@
 (define-library (owl proof)
-   
+
    (export
       theorem
       theorem-equal?
       example)
-   
+
    (import
       (owl defmac)
       (only (owl syscall) error)
       (owl equal-prim))
-   
+
    (begin
 
       ;; operation tries to avoid external library dependencies to allow
       ;; testing of as many libraries as possible
-     
+
       (define (luncons ll)
          (if (eq? type-pair (type ll))
             (values (car ll) (cdr ll))
             (luncons (ll))))
- 
+
       ;; generator = #(label generator acceptor)
       ;; (generator RS) -> RS' value
-      
+
       (define (generate-literal val)
          (λ (rs) (values rs val)))
 
@@ -41,21 +41,21 @@
                         (let ((rs f (luncons rs)))
                            ((list-ref options (bound-fixnum f n))
                               rs))))))))
-      
+
       ;; (theorem 
       ;;   ((ℕ a b) 
       ;;    (List l))
       ;;   (equal? 
       ;;      (cons a l)
       ;;      (cons b l)))
-   
+
       (define-syntax theorem-body
          (syntax-rules (≡)
             ((theorem-body rs env A ≡ B)
                (if (equal? A B)
                   (values rs #false)
                   (values rs (tuple 'mismatch (quote A) (quote B) env))))))
-               
+
       (define-syntax theorem-decls
          (syntax-rules ()
             ((theorem-decls rs env () . body)
@@ -65,7 +65,7 @@
                   (theorem-decls rs 
                      (put env 'n n)
                      ((type . ns) . rest) . body)))))
-      
+
       (define-syntax theorem
          (syntax-rules ()
             ((theorem decls . body)
@@ -91,12 +91,10 @@
                #true)))
 
       (example 1 = 1)
-     
+
       (example (cons 1 2) = '(1 . 2))
-       
+
       (example (values 1 2) = (values 1 2))
-      
-                     
 ))
 
 

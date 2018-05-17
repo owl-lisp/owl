@@ -14,7 +14,7 @@
       (owl math))
 
    (begin
-      
+
       (define (equal? a b)
          (cond
             ((eq? a b) #true)
