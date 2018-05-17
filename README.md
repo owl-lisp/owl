@@ -1,8 +1,8 @@
 # Owl Lisp
 
 Builds: 
-master [![Build Status](https://travis-ci.org/owl-lisp/owl.svg?branch=master)](https://travis-ci.org/aoh/owl-lisp), 
-dev [![Build Status](https://travis-ci.org/owl-lisp/owl.svg?branch=develop)](https://travis-ci.org/aoh/owl-lisp)
+master [![Build Status](https://travis-ci.org/owl-lisp/owl.svg?branch=master)](https://travis-ci.org/owl-lisp/owl), 
+dev [![Build Status](https://travis-ci.org/owl-lisp/owl.svg?branch=develop)](https://travis-ci.org/owl-lisp/owl)
 
 ## Overview
 
@@ -87,8 +87,5 @@ functions. To make programs run faster, one can use for example:
 
 For further documentation and updates, see:
 
-  https://github.com/aoh/owl-lisp
-  
-  https://haltp.org/f/owl-manual.pdf
-
+  https://github.com/owl-lisp/owl
 
