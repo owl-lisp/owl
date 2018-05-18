@@ -445,5 +445,4 @@
       (define-missing-bad bytevector-copy)
       (define-missing-bad bytevector-append)
       (define-missing-bad bytevector)
-      (define-missing-bad boolean=?)
 ))
