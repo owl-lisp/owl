@@ -7,7 +7,6 @@
    (import
       (owl defmac)
       (owl equal-prim)
-      (owl symbol)
       (owl string)
       (owl list)
       (owl math))
@@ -25,7 +24,6 @@
                (if (pair? b)
                   (and (equal? (car a) (car b)) (equal? (cdr a) (cdr b)))
                   #false))
-            ((symbol? a) #false)
             (else
                (equal-prim? equal? a b))))
 
