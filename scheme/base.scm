@@ -283,14 +283,16 @@
             (H (if (null? cmp) equal? (car cmp)) x)
             lst))
 
-      (define memv member)
+      (define (memv x lst)
+         (member x lst eqv?))
 
       (define (assoc k lst . cmp)
          (find
             (B (H (if (null? cmp) equal? (car cmp)) k) car)
             lst))
 
-      (define assv assoc)
+      (define (assv k lst)
+         (assoc k lst eqv?))
 
       ;; just for compatibility, as lists are always immutable in owl
       (define list-copy self)

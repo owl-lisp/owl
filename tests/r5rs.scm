@@ -230,7 +230,7 @@
       (eqv? 2 2)                      ===>  #t
       (eqv? '() '())                  ===>  #t
       (eqv? 100000000 100000000)      ===>  #t
-      ;(eqv? (cons 1 2) (cons 1 2))   ===>  #f  ;; FIXME compat eqv? is too equal? atm
+      (eqv? (cons 1 2) (cons 1 2))    ===>  #f
       (eqv? (lambda () 1)
             (lambda () 2))            ===>  #f
       (eqv? #f 'nil)                  ===>  #f
