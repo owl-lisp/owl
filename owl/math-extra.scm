@@ -6,25 +6,25 @@
 
 (define-library (owl math-extra)
 
-   (export 
+   (export
       exact-integer-sqrt ;; n → m r, m^2 + r = n
       isqrt              ;; n → (floor (sqrt n))
       sqrt               ;; n → m, m^2 = n
       expt expt-mod
-      ncr npr 
+      ncr npr
       ! factor prime?
       primes-between
       totient phi divisor-sum divisor-count
       dlog dlog-simple
       fib
       histogram
-      ; inv-mod mod-solve 
+      ; inv-mod mod-solve
       )
 
-   (import 
+   (import
       (owl defmac)
       (owl math)
-      (owl iff) 
+      (owl iff)
       (owl list)
       (owl list-extra)
       (owl sort)
@@ -86,7 +86,7 @@
          (let ((sq (isqrt n)))
             (values sq (sub n (mul sq sq)))))
 
-      ;; sqrt n → m such that m^2 = n 
+      ;; sqrt n → m such that m^2 = n
       ;; fixme: finish sqrt after adding complex numbers
       (define (sqrt n)
          (case (type n)
@@ -98,7 +98,7 @@
                   (if (eq? r 0) s (error "sqrt: no exact solution for " n))))
             (type-fix- (complex 0 (sqrt (abs n))))
             (type-int- (complex 0 (sqrt (abs n))))
-            (else 
+            (else
                (error "sqrt: math too high: " n))))
 
       ;;; exponentiation
@@ -132,7 +132,7 @@
             ((eq? (band p 1) 0)
                (expt-mod-loop (rem (mul ap ap) m) (>> p 1) out m))
             (else
-               (expt-mod-loop (rem (mul ap ap) m) (>> p 1) 
+               (expt-mod-loop (rem (mul ap ap) m) (>> p 1)
                   (rem (mul out ap) m) m))))
 
       (define (expt-mod a b m)
@@ -155,7 +155,7 @@
       ; n < 341,550,071,728,321, a = 2, 3, 5, 7, 11, 13, and 17.
 
       (define first-primes
-         (list->ff 
+         (list->ff
             (map (λ (x) (cons x x))
                '(2 3 5 7 11 13 17))))
 
@@ -218,7 +218,7 @@
                   (else
                      (let loopr ((r (- s 1)))
                         (cond
-                           ((= r -1) #false)   ; composite 
+                           ((= r -1) #false)   ; composite
                            ((= (expt-mod a (<< d r) n) np) (loop (+ a 1)))
                            (else (loopr (- r 1))))))))))
 
@@ -236,7 +236,7 @@
             ((< n 341550071728321) (miller-rabin-cases-ok? n '(2 3 5 7 11 13 17)))
             (else (miller-rabin-det n))))
 
-      ;; Atkin sieve 
+      ;; Atkin sieve
 
       (define (atkin-flip ff num)
          (iput ff num (not (iget ff num #false))))
@@ -252,7 +252,7 @@
                         (loox store (+ x 1))
                         ; eww, fix later
                         (lets
-                           ((xx (* x x)) 
+                           ((xx (* x x))
                             (yy (* y y))
                             (n (+ (* 4 xx) yy))
                             (nm (rem n 12))
@@ -291,7 +291,7 @@
       (define (atkin-try pows prime)
          (let loop ((n (car pows)) (these 0))
             (if (eq? n 1)
-               (if (eq? these 0)   
+               (if (eq? these 0)
                   pows
                   (cons 1 (cons (cons prime these) (cdr pows))))
                (let ((q (ediv n prime)))
@@ -332,7 +332,7 @@
       (define primes-between atkin-primes-between)
 
       (define (factor-atkin-between lo hi pows)
-         (atkin-apply 
+         (atkin-apply
             (atkin-remove-squares hi
                (atkin-candidates lo hi))
             pows))
@@ -341,7 +341,7 @@
          (let ((max (min (<< lo 1) (isqrt (car pows)))))
             (let ((pows (factor-atkin-between lo max pows)))
                (cond
-                  ((eq? (car pows) 1)   
+                  ((eq? (car pows) 1)
                      (cdr pows))
                   ((>= max (isqrt (car pows)))
                      (cons (cons (car pows) 1) (cdr pows)))
@@ -350,23 +350,23 @@
 
       ; fixme, try different options
       ;   - factor out twos first
-      ;   - try low primes 
+      ;   - try low primes
       ;   - more low primes
       ;  - quick prime? check (maybe miller-rabin (2 3 5))
       ;  - limited pollard-rho
       ;   - full trial division
       ;   - intermediate prime? checks
 
-      (define (factor n)   
+      (define (factor n)
          (if (> n 1)
             (or
                ;; prime check is relatively fast (for deterministic range) so try it first
                (if (prime? n)
                   (list (cons n 1))
                   #false)
-               (let 
+               (let
                   ((pows
-                     (fold atkin-try (list n)   
+                     (fold atkin-try (list n)
                         '(2 3 5 7 11 13 17 19 23 29 31))))
                   (if (eq? (car pows) 1)
                      (cdr pows)
@@ -445,7 +445,7 @@
       (define (divisor-count n)
          (if (eq? n 1)
             1
-            (fold 
+            (fold
                (lambda (out n) (* out (+ (cdr n) 1)))
                1 (factor n))))
 
@@ -464,7 +464,7 @@
                   ((iget seen this #false) #false) ; looped, not solvable
                   (else (loop (+ x 1) (iput seen this #true)))))))
 
-      ;; like naive, but avoids useless multiplications and remainders 
+      ;; like naive, but avoids useless multiplications and remainders
       (define (dlp-simple y a n)
          (let loop ((x 0) (v 1) (seen empty))
             (cond
@@ -489,7 +489,7 @@
                   (step?                                 ; fast hare is fast
                      (loop x1 v1 (+ x2 1) (dlp-th-step v2 a n) #false))
                   (else                                  ; enhance
-                     (loop 
+                     (loop
                         (+ x1 1) (dlp-th-step v1 a n)
                         (+ x2 1) (dlp-th-step v2 a n) #true))))))
 
@@ -501,7 +501,7 @@
          (cond
             ((null? b) #false)
             ((null? g) #false)
-            ((= (caar b) (caar g)) 
+            ((= (caar b) (caar g))
                (let ((x (- (cdar g) (cdar b))))
                   (if (pred x)
                      x

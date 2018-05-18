@@ -2,7 +2,7 @@
 
 (define-library (owl macro)
 
-   ; remove make-transformer when it is no longer referred 
+   ; remove make-transformer when it is no longer referred
    (export macro-expand match make-transformer)
 
    (import
@@ -74,7 +74,7 @@
 
       ; store nulls to variables in exp
       (define (init-variables exp literals dict)
-         (fold 
+         (fold
             (λ (dict key) (cons (cons key null) dict))
             dict
             (diff (symbols-of exp) literals)))
@@ -93,8 +93,8 @@
                   (push (cdr dict) key val)))))
 
       (define (match-pattern pattern literals form fail)
-         (let loop 
-            ((pattern pattern) (form form) (collect? #false) 
+         (let loop
+            ((pattern pattern) (form form) (collect? #false)
                (fail fail) (dictionary null))
             (cond
                ((symbol? pattern)
@@ -118,40 +118,40 @@
                ((pair? pattern)
                   (cond
                      ((and (pair? (cdr pattern)) (eq? (cadr pattern) '...))
-                        (let ((dictionary 
-                                 (init-variables (car pattern) 
+                        (let ((dictionary
+                                 (init-variables (car pattern)
                                     literals  dictionary)))
                            ; each time a form is matched
                            ;   resume matching with a fail cont returning to
                            ;   process more
-                           (let next 
-                              ((prev-dict dictionary) 
-                               (old-form form) 
-                               (new-dict dictionary) 
+                           (let next
+                              ((prev-dict dictionary)
+                               (old-form form)
+                               (new-dict dictionary)
                                (form form))
                               (call/cc
                                  (lambda (ret)
                                  (if (and new-dict (pair? form))
                                     (loop (cddr pattern) form #false
                                        (lambda (argh)
-                                          (ret 
+                                          (ret
                                              (next new-dict form
                                                 (call/cc
                                                    (lambda (ret)
-                                                      (loop (car pattern) (car form) 
+                                                      (loop (car pattern) (car form)
                                                          #true (lambda (x) (ret #false))
                                                          new-dict)))
                                                 (cdr form))))
                                        new-dict)
                                  ; no more matches
-                                 (loop (cddr pattern) 
-                                    (if new-dict form old-form) 
-                                    #false 
-                                    fail 
+                                 (loop (cddr pattern)
+                                    (if new-dict form old-form)
+                                    #false
+                                    fail
                                     (if new-dict new-dict prev-dict))))))))
                      ((pair? form)
                         (loop (cdr pattern) (cdr form) collect? fail
-                           (loop (car pattern) (car form) collect? fail 
+                           (loop (car pattern) (car form) collect? fail
                               dictionary)))
                      (else (fail form))))
                ((equal? pattern form)
@@ -161,11 +161,11 @@
       (define (try-pattern pattern literals form)
          (call/cc
             (lambda (ret)
-               (match-pattern pattern literals form 
+               (match-pattern pattern literals form
                   (lambda (argh) (ret #false))))))
 
       ;; given dictionary resulting from pattern matching, decide how many times an ellipsis
-      ;; rewrite should be done. owl uses minimum repetition of length more than one, so that 
+      ;; rewrite should be done. owl uses minimum repetition of length more than one, so that
       ;; single matches can be used along with ellipsis matches.
 
       (define (repetition-length dict)
@@ -181,9 +181,9 @@
                   ;; repetition of length 0 or n>1
                   (car opts)))))
 
-      ;; pop all bindings of length > 1 
+      ;; pop all bindings of length > 1
       (define (pop-ellipsis dict)
-         (map 
+         (map
             (λ (p) (let ((vals (cdr p))) (if (null? (cdr vals)) p (cons (car p) (cdr vals)))))
             dict))
 
@@ -233,8 +233,8 @@
                   ;; rule = (pattern gensyms template)
                   (let ((dictionary (try-pattern (car rule) literals form)))
                      (if dictionary
-                        (lets 
-                           ((free dictionary  
+                        (lets
+                           ((free dictionary
                               (add-fresh-bindings (cadr rule) free dictionary))
                             (new (rewrite dictionary (caddr rule))))
                            (tuple new free))
@@ -289,7 +289,7 @@
                               ((_define)
                                  ; (print " - expanding define body " (caddr exp))
                                  (lets
-                                    ((value free 
+                                    ((value free
                                        (expand (caddr exp) env free abort)))
                                     (values
                                        (list '_define (cadr exp) value)
@@ -300,7 +300,7 @@
                                     (lets
                                        ((formals (cadr exp))
                                         (body-exps (cddr exp))
-                                        (body 
+                                        (body
                                           (if (and (pair? body-exps) (null? (cdr body-exps)))
                                              (car body-exps)
                                              (cons 'begin body-exps)))
@@ -334,7 +334,7 @@
                               ((values)
                                  (expand-list exp env free))
                               (else
-                                 (abort 
+                                 (abort
                                     (list "expand: unknown special form: " exp)))))
                         ((bound)          (expand-list exp env free))
                         ((defined value)  (expand-list exp env free))
@@ -358,9 +358,9 @@
                   ((undefined)
                      ;; this can still be a literal used by a macro
                      (values exp free))
-                  (else 
+                  (else
                      (values exp free))))
-            (else 
+            (else
                (values exp free))))
 
       ; maybe extend the env if a macro is being defined

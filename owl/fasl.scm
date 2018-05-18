@@ -1,10 +1,10 @@
-;;; This library implements serialization of objects to byte 
-;;; lists, and parsing of the byte lists to corresponding 
-;;; objects. The format is used internally for storing memory 
-;;; images to disk. Files with .fasl suffix used in booting 
+;;; This library implements serialization of objects to byte
+;;; lists, and parsing of the byte lists to corresponding
+;;; objects. The format is used internally for storing memory
+;;; images to disk. Files with .fasl suffix used in booting
 ;;; up Owl are just fasl-encoded functions.
 ;;;
-;;; ``` 
+;;; ```
 ;;;   (fasl-encode 42) → '(0 0 42)
 ;;;   (fasl-encode 42) → '(0 0 42)
 ;;;   (fasl-encode 1/4+i) → '(1 42 2 0 0 1 0 0 4 1 43 2 1 0 0 1 0)
@@ -12,7 +12,7 @@
 ;;;   (fasl-decode '(0 0 0 0) 'bad) → 'bad
 ;;;   ((fasl-decode (fasl-encode prime?) 'bad) 13337) → #true
 ;;;   (eq? 'foo (fasl-decode (fasl-encode 'foo) #false)) → #true
-;;; ``` 
+;;; ```
 
 ; protocol
 ;	<obj>	= 0 <type> <value>		-- immediate object
@@ -31,7 +31,7 @@
 
    (export
       fasl-encode          ; ; obj -> (byte ... 0)
-      fasl-encode-cooked   ; obj cook -> (byte ... 0), with (cook alloc-obj) -> alloc-obj' 
+      fasl-encode-cooked   ; obj cook -> (byte ... 0), with (cook alloc-obj) -> alloc-obj'
       fasl-encode-stream   ; obj cook -> (bvec ...) stream
       fasl-decode          ; (byte ...) -> obj, input can be lazy
       decode-or            ; (byte ...) fail → object | (fail reason)
@@ -131,9 +131,9 @@
             (if (immediate? elem)
                (enc-immediate elem out)
                (let ((target (get clos elem "bug")))
-                  ; hack warning: objects cannot refer to themselves and the 
-                  ; heap is unidirectional, so pos - target > 0, so a 0 can 
-                  ; be safely used as the immediate marker, and pointers can 
+                  ; hack warning: objects cannot refer to themselves and the
+                  ; heap is unidirectional, so pos - target > 0, so a 0 can
+                  ; be safely used as the immediate marker, and pointers can
                   ; have the delta directly encoded as a natural, which always
                   ; starts with a nonzero byte when the natural > 0
                   (send-number (- pos target) out)))))
@@ -322,7 +322,7 @@
                             (ll rbytes (get-bytes ll size fail null))
                             (obj (raw (reverse rbytes) type)))
                            (decoder ll (rcons obj got) fail)))
-                     ((eq? kind 0) ;; fasl stream end marker 
+                     ((eq? kind 0) ;; fasl stream end marker
                         ;; object done
                         (values ll (rcar got)))
                      ((eq? (band kind 3) 3) ; shortcut allocated

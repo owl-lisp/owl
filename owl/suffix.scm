@@ -1,10 +1,10 @@
 ;;;
 ;;; Suffix array and tree construction
-;;; 
+;;;
 
 (define-library (owl suffix)
 
-   (export 
+   (export
       suffix-array      ;; iter -> suffix array (not here yet)
       suffix-list       ;; iter -> suffix list
    )
@@ -25,21 +25,21 @@
 
       (define sentinel "telomerase") ; something unique as in eq?
 
-      (define (carless a b) 
+      (define (carless a b)
          (let ((a (car a)) (b (car b)))
             (cond
                ((eq? a sentinel) #true) ; sentinel is teh minimum
                ((eq? b sentinel) #false) ; ditto
                (else (lesser? a b)))))
 
-      (define (cdr< a b) (< (cdr a) (cdr b))) 
+      (define (cdr< a b) (< (cdr a) (cdr b)))
       (define (car< a b) (< (car a) (car b)))
 
       ;;;
       ;;; Functional qsufsort (see Larsson & Sadakane's "Faster Suffix Sorting" paper for the original imperative algorithm)
       ;;;
 
-      (define (invert bs) 
+      (define (invert bs)
          (map car (sort cdr< (iff->list bs))))
 
       (define (get-run x vs out)
@@ -64,20 +64,20 @@
       ;; todo: if a tree-sort was used, the nodes could directly be used for chunk
       ;; todo: if iffs would allow in-order iteration, they could be used here to sort and walk over chunks directly
       (define (ssort-bucket l bs tl n)
-         (chunk 
+         (chunk
             (sort car< (map (λ (p) (cons (iget bs (+ p n) sentinel) p)) l)) ; was (sort carless ..)
             bs tl (- (iget bs (car l) #false) (length l))))
 
       (define (ssort-step ss bs n) ; -> ls' + bs'
          (if (null? ss)
             (values ss bs)
-            (lets 
+            (lets
                ((bucket (car ss))
                 (tl bs (ssort-step (cdr ss) bs n)))
                (ssort-bucket bucket bs tl n))))
 
       (define (ssort-steps ls bs n)
-         (if (null? ls) 
+         (if (null? ls)
             (invert bs)
             (lets ((ls bs (ssort-step ls bs n)))
                (ssort-steps ls bs (* n 2)))))

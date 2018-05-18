@@ -58,21 +58,21 @@
                (lets ((n o (fx+ n 1)))
                   (if o #false (loop (cdr l) n))))))
 
-      (define (func lst) 
-         (lets 
+      (define (func lst)
+         (lets
             ((arity (car lst))
              (lst (cdr lst))
              (len (len lst)))
             (bytes->bytecode
-               (cons 25 (cons arity (cons 0 (cons len 
+               (cons 25 (cons arity (cons 0 (cons len
                   (app lst (list 17))))))))) ;; fail if arity mismatch
 
-      ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of 
-      ;; the repl which builds the one in which the new ones will be used, so any change usually takes 
-      ;; 2 rebuilds. 
+      ;; changing any of the below 3 primops is tricky. they have to be recognized by the primop-of of
+      ;; the repl which builds the one in which the new ones will be used, so any change usually takes
+      ;; 2 rebuilds.
 
       ; these 2 primops require special handling, mainly in cps
-      (define ff-bind ;; turn to badinst soon, possibly return later 
+      (define ff-bind ;; turn to badinst soon, possibly return later
          ; (func '(2 49))
          '__ff-bind__
 
@@ -82,14 +82,14 @@
          '__bind__
          )
       ; this primop is the only one with variable input arity
-      (define mkt 
+      (define mkt
          '__mkt__
          ;(func '(4 23 3 4 5 6 7 24 7))
          )
 
       ;; these rest are easy
-      (define car         (func '(2 52 4 5 24 5))) 
-      (define cdr         (func '(2 53 4 5 24 5))) 
+      (define car         (func '(2 52 4 5 24 5)))
+      (define cdr         (func '(2 53 4 5 24 5)))
       (define cons        (func '(3 51 4 5 6 24 6)))
       (define run         (func '(3 50 4 5 6 24 6)))
       (define set-ticker  (func '(2 62 4 5 24 5)))
@@ -98,7 +98,7 @@
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
       (define raw         (func '(3 37 4 5 6 24 6)))
-      (define _poll2      (func '(4 9 3 11 11 4 5 6 3 4 2 11 2))) 
+      (define _poll2      (func '(4 9 3 11 11 4 5 6 3 4 2 11 2)))
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
@@ -111,7 +111,7 @@
       (define ff-toggle   (func '(2 46 4 5 24 5)))
 
       ;; make thread sleep for a few thread scheduler rounds
-      (define (wait n) 
+      (define (wait n)
          (if (eq? n 0)
             n
             (lets ((n _ (fx- n 1)))
@@ -157,7 +157,7 @@
       (define mkblack (func '(5 42 4 5 6 7 8 24 8)))
       (define mkred (func '(5 43 4 5 6 7 8 24 8)))
       (define red? (func '(2 41 4 5 24 5)))
-      (define fxqr (func '(4 26))) ;; <- placeholder 
+      (define fxqr (func '(4 26))) ;; <- placeholder
       (define fx+ (func '(4 38 4 5 6 7 24 7)))
       (define fx- (func '(4 40 4 5 6 7 24 7)))
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
@@ -174,10 +174,10 @@
             (tuple 'listuple     35 3 1 listuple)  ;; (listuple type size lst)
             (tuple 'mkblack      42 4 1 mkblack)   ; (mkblack l k v r)
             (tuple 'mkred        43 4 1 mkred)   ; ditto
-            (tuple 'ff-bind      49 1 #false ff-bind)  ;; SPECIAL ** (ffbind thing (lambda (name ...) body)) 
+            (tuple 'ff-bind      49 1 #false ff-bind)  ;; SPECIAL ** (ffbind thing (lambda (name ...) body))
             (tuple 'red?         41 1 #false red?)  ;; (red? node) -> bool
             (tuple 'fxqr         26 3 3 'fxqr)   ;; (fxdiv ah al b) -> qh ql r
-            (tuple 'fx+          38 2 2 fx+)   ;; (fx+ a b)      ;; 2 out 
+            (tuple 'fx+          38 2 2 fx+)   ;; (fx+ a b)      ;; 2 out
             (tuple 'fx*          39 2 2 fx*)   ;; (fx* a b)      ;; 2 out
             (tuple 'ncons        29 2 1 ncons)   ;;
             (tuple 'ncar         30 1 1 ncar)   ;;
@@ -189,7 +189,7 @@
             (tuple 'set-ticker   62 1 1 set-ticker)
             (tuple 'sys-prim     63 4 1 sys-prim)))
 
-      (define primops 
+      (define primops
          (app primops-1
               primops-2))
 
@@ -214,11 +214,11 @@
 
       (define call-with-current-continuation call/cc)
 
-      (define-syntax lets/cc 
+      (define-syntax lets/cc
          (syntax-rules (call/cc)
-            ((lets/cc (om . nom) . fail) 
-               (syntax-error "let/cc: continuation name cannot be " (quote (om . nom)))) 
-            ((lets/cc var . body) 
+            ((lets/cc (om . nom) . fail)
+               (syntax-error "let/cc: continuation name cannot be " (quote (om . nom))))
+            ((lets/cc var . body)
                (call/cc (λ (var) (lets . body))))))
 
       ;; non-primop instructions that can report errors

@@ -1,4 +1,4 @@
-;; Tuples are an early simple data structure for holding multiple values. 
+;; Tuples are an early simple data structure for holding multiple values.
 ;; *You should probably not be using them*.
 ;; Values are indexed from 1 and there is little error detection
 ;;   apart from range checks.
@@ -22,12 +22,12 @@
    (import
       (owl defmac)
       (owl list-extra)
-      (owl list) 
-      (owl math) 
+      (owl list)
+      (owl math)
       (only (owl syscall) error))
 
    (begin
-      (define (tuple? x) 
+      (define (tuple? x)
          (eq? (type x) type-tuple))
 
       (define (list->tuple lst)
@@ -38,7 +38,7 @@
 
       (define (read-tuple tuple pos lst)
          (if (= pos 0)
-            lst  
+            lst
             (read-tuple tuple (- pos 1)
                (cons (ref tuple pos) lst))))
 

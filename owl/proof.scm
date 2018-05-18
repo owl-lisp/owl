@@ -26,7 +26,7 @@
       (define (generate-literal val)
          (λ (rs) (values rs val)))
 
-      ;; options are generators 
+      ;; options are generators
       '(define generate-any
          (λ options
             (let ((n (length options)))
@@ -42,10 +42,10 @@
                            ((list-ref options (bound-fixnum f n))
                               rs))))))))
 
-      ;; (theorem 
-      ;;   ((ℕ a b) 
+      ;; (theorem
+      ;;   ((ℕ a b)
       ;;    (List l))
-      ;;   (equal? 
+      ;;   (equal?
       ;;      (cons a l)
       ;;      (cons b l)))
 
@@ -62,7 +62,7 @@
                (theorem-body rs env . body))
             ((theorem-decls rs env ((type n . ns) . rest) . body)
                (lets ((rs n (generate rs type)))
-                  (theorem-decls rs 
+                  (theorem-decls rs
                      (put env 'n n)
                      ((type . ns) . rest) . body)))))
 

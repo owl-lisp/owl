@@ -259,7 +259,7 @@
                (begin . rest))))
 
       ; i hate special characters, especially in such common operations.
-      ; lets (let sequence) is way prettier and a bit more descriptive 
+      ; lets (let sequence) is way prettier and a bit more descriptive
 
       (define-syntax let*
          (syntax-rules ()
@@ -323,7 +323,7 @@
             ((tuple a . bs) ;; there are no such things as 0-tuples
                (mkt 2 a . bs))))
 
-      ; replace this with typed destructuring compare later on 
+      ; replace this with typed destructuring compare later on
 
       (define-syntax tuple-case
          (syntax-rules (else _ is eq? bind)
@@ -439,7 +439,7 @@
       ;                   '---------------------> object size in words
       ;
       ;; note - there are 6 type bits, but one is currently wasted in old header position
-      ;; to the right of them, so all types must be <32 until they can be slid to right 
+      ;; to the right of them, so all types must be <32 until they can be slid to right
       ;; position.
 
       ;; these are core data structure type tags which are fixed and some also relied on by the vm

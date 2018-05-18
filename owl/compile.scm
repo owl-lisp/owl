@@ -43,12 +43,12 @@
       ; regs = (node ...), biggest id first
       ; node = #(var <sym> id)
       ;      = #(val <value> id)
-      ;      = #(env <regs> id) 
+      ;      = #(env <regs> id)
       ;      = #(lit <values> id)
 
       ; [r0 = MCP] [r1 = Clos] [r2 = Env] [r3 = a0, often cont] [r4] ... [rn]
 
-      (define a0 3) ;;; number of first argument register (may change) 
+      (define a0 3) ;;; number of first argument register (may change)
 
       (define (next-free-register regs)
          (if (null? regs)
@@ -62,7 +62,7 @@
                   (cons (tuple 'val val reg) regs)
                   reg))))
 
-      ; get index of thing at (future) tuple 
+      ; get index of thing at (future) tuple
       ; lst = (l0 l1 ... ln) -> #(header <code/proc> l0 ... ln)
       (define (index-of thing lst pos)
          (cond
@@ -152,14 +152,14 @@
                         (cons (tuple 'val (list 'a-closure) this) regs)
                         this)))
                ((null? lit)
-                  ;; the function will be of the form 
+                  ;; the function will be of the form
                   ;; #(closure-header <code> e0 ... en)
                   (tuple 'clos-code (find-literals regs) lit-offset env this
                      (cont
                         (cons (tuple 'val (list 'a-closure) this) regs)
                         this)))
                (else
-                  ;; the function will be of the form 
+                  ;; the function will be of the form
                   ;; #(clos-header #(proc-header <code> l0 .. ln) e0 .. em)
                   (tuple 'clos-proc (find-literals regs) lit-offset env this
                      (cont
@@ -290,7 +290,7 @@
                (else
                   (loop (+ hp 1) (cons hp safe) (- n 1))))))
 
-      ;;; -> replace the to-save registers in call 
+      ;;; -> replace the to-save registers in call
       (define (apply-saves to-save safes call)
          (let ((new (zip cons to-save safes)))
             (map
@@ -344,7 +344,7 @@
       (define (rtl-jump rator rands free inst)
          (let ((nargs (length rands)))
             (cond
-               ;; cont is usually at 3, and usually there is 
+               ;; cont is usually at 3, and usually there is
                ;; 1 return value -> special instruction
                ((and (eq? rator a0) (= nargs 1))
                   (tuple 'ret (car rands)))
@@ -473,13 +473,13 @@
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jn bp then else)))))
-                              ((false-value? a) ; jump-if-false 
+                              ((false-value? a) ; jump-if-false
                                  (rtl-simple regs b (λ (regs bp)
                                     (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
                                        (tuple 'jf bp then else)))))
-                              ((zero-value? a) ; jump-if-false 
+                              ((zero-value? a) ; jump-if-false
                                  (rtl-simple regs b (λ (regs bp)
                                     (let
                                        ((then (rtl-any regs then))
@@ -588,7 +588,7 @@
                            (rtl-any (entry-regs clos literals formals) body))
                         tail)))
                   (if (null? literals)
-                     exec ; #<bytecode> 
+                     exec ; #<bytecode>
                      (list->proc (cons exec literals)))))
             ((lambda formals body) ;; to be deprecated
                (rtl-plain-lambda rtl

@@ -1,10 +1,10 @@
-;;; Randomness is an interesting thing to work with in a purely 
-;;; functional setting. Owl builds randomness around streams of 
-;;; typically deterministically generated 24-bit fixnums. These 
+;;; Randomness is an interesting thing to work with in a purely
+;;; functional setting. Owl builds randomness around streams of
+;;; typically deterministically generated 24-bit fixnums. These
 ;;; are usually called rands in the code.
 ;;;
-;;; A function involving randomness typically receives a rand 
-;;; stream, and also returns it after possibly consuming some 
+;;; A function involving randomness typically receives a rand
+;;; stream, and also returns it after possibly consuming some
 ;;; rands. Behavior like this would be easy to hide using macros
 ;;; or monadic code, but Owl generally strives to be explicit and
 ;;; simple, so the rand streams are handled just like any other
@@ -84,11 +84,11 @@
          (if (not (and (eq? a 0) (eq? b #true)))
             (error "unexpected fixnum size" a)))
 
-      ; random data generators implement an infinite stream of positive fixnums, 
+      ; random data generators implement an infinite stream of positive fixnums,
       ; which are used by the various functions which need a random data source.
-      ; as usual the state variables are explicitly passed into and returned from 
-      ; the functions, usually as the first parameter to each direction. these 
-      ; could be tucked into a monad some time in the future, but at least for now 
+      ; as usual the state variables are explicitly passed into and returned from
+      ; the functions, usually as the first parameter to each direction. these
+      ; could be tucked into a monad some time in the future, but at least for now
       ; it seems nice to be explicit about the flow of data.
 
       ;;; Linear Congruential Generater -- old and simple
@@ -222,7 +222,7 @@
       (define seed->bytes
          (B rands->bytes seed->rands))
 
-      ;; note, a custom uncons could also promote random seeds to streams, but probably better to force 
+      ;; note, a custom uncons could also promote random seeds to streams, but probably better to force
       ;; being explicit about the choice of prng and require all functions to receive just digit streams.
 
       ;; -- non prng-specific code ---------------------------------------------------------------
@@ -247,9 +247,9 @@
                      (values rs (ncons this head) #false))))))
 
       (define (rand-fixnum rs n)
-         ;; could e.g. grab just enough bits of each rand and stop when 
-         ;; the bitwise and <= n, but that isn't robust against more 
-         ;; or less intentionally poor random streams. this slightly more 
+         ;; could e.g. grab just enough bits of each rand and stop when
+         ;; the bitwise and <= n, but that isn't robust against more
+         ;; or less intentionally poor random streams. this slightly more
          ;; expensive approach makes sure we terminate for all random streams.
          (lets
             ((r rs (uncons rs rs))
@@ -259,7 +259,7 @@
                (lets ((q r (quotrem (* n r) m)))
                   (values rs q)))))
 
-      ;; like rand-fixnum, but <= limit instead of < 
+      ;; like rand-fixnum, but <= limit instead of <
       (define (rand-bignum-topdigit rs n)
          (if (eq? n *max-fixnum*)
             ;; no, no, there's no limit
@@ -529,7 +529,7 @@
       (define (prng-speed str)
          (let
             ((start (time-ms))
-             (ndigits (* 1024 64))) ; make 1mb 
+             (ndigits (* 1024 64))) ; make 1mb
             (let loop ((str str) (n ndigits))
                (if (eq? n 0)
                   (print (floor (/ (* ndigits 16) (- (time-ms) start))) " bits/ms")
@@ -564,7 +564,7 @@
 
 ))
 
-;; test program for dieharder stdout test 
+;; test program for dieharder stdout test
 ;;   $ bin/ol -O2 -o rand.c owl/random.scm && gcc -O2 -o rand rand.c && ./rand | dieharder -a -g 200 | tee report.txt)
 
 ;(import (owl random))
@@ -578,7 +578,7 @@
 ;            (if (write-byte-vector stdout (list->byte-vector (reverse out))) ;; keep order
 ;               (loop rs null 0)))
 ;         (else
-;            (lets 
+;            (lets
 ;               ((byte rs (uncons rs 0))
 ;                (n _ (fx+ n 1)))
 ;               (loop rs (cons byte out) n))))))

@@ -1,17 +1,17 @@
-;;; A typical way to make data structures for holding key-value in 
-;;; Lisp systems is to make an association list. An association list 
-;;; is a list of pairs, where the car holds the key, and cdr holds the 
+;;; A typical way to make data structures for holding key-value in
+;;; Lisp systems is to make an association list. An association list
+;;; is a list of pairs, where the car holds the key, and cdr holds the
 ;;; value. While easy to define and use, they have the downside of slowing
 ;;; down linearly as the size of the association list grows.
 ;;;
 ;;; Owl has finite functions, or ffs, which behave like association
-;;; lists, but they slow down only logarithmically as they get more keys. 
+;;; lists, but they slow down only logarithmically as they get more keys.
 ;;; They are internally represented as red-black trees.
 ;;;
 ;;; `#empty` or `@()` can be used to refer to an empty finite function.
-;;; `put` adds or rewrites the value of a key, `get` fetches the value 
-;;; or returns the third argument if the key is not found. `del` removes 
-;;; a key from a ff. 
+;;; `put` adds or rewrites the value of a key, `get` fetches the value
+;;; or returns the third argument if the key is not found. `del` removes
+;;; a key from a ff.
 ;;;
 ;;; ```
 ;;;   > (define f (put (put #empty 'foo 100) 'bar 42))
@@ -27,9 +27,9 @@
 ;;;   #f
 ;;; ```
 ;;; A finite function maps keys to values. As the name implies, a ff
-;;; can also be called to do just that. If one argument is given and it 
+;;; can also be called to do just that. If one argument is given and it
 ;;; is defined, the value is returned. In case of an undefined value, either
-;;; an error is signaled or the second default argument is returned, if 
+;;; an error is signaled or the second default argument is returned, if
 ;;; it is specified.
 ;;;
 ;;; ```
@@ -40,10 +40,10 @@
 ;;;   > (map f '(foo bar))
 ;;;   '(100 42)
 ;;; ```
-;;; 
-;;; Many list functions have corresponding functions for ffs, where 
-;;; usually a function receiving the list element just receives two 
-;;; arguments, being a particular key and value pair. The name of the 
+;;;
+;;; Many list functions have corresponding functions for ffs, where
+;;; usually a function receiving the list element just receives two
+;;; arguments, being a particular key and value pair. The name of the
 ;;; function is typically prefixed with ff-.
 ;;;
 ;;; ```
@@ -62,20 +62,20 @@
 ;;;   (ff-union @(a 100 b 200) @(b 2 c 3) +) → @(a 100 b 202 c 3)
 ;;;
 ;;;   (ff-diff @(a 1 b 2 c 3) @(a 10 b 20)) → @(c 3)
-;;;  
-;;;   (ff-fold (λ (o k v) (cons (cons k v) o)) null @(foo 1 bar 2) → 
+;;;
+;;;   (ff-fold (λ (o k v) (cons (cons k v) o)) null @(foo 1 bar 2) →
 ;;;      '((bar . 2) (foo . 1))
-;;; 
-;;;   (ff-foldr (λ (o k v) (cons (cons k v) o)) null @(foo 1 bar 2) → 
+;;;
+;;;   (ff-foldr (λ (o k v) (cons (cons k v) o)) null @(foo 1 bar 2) →
 ;;;      '((foo . 1) (bar . 2))
-;;;   (ff-map @(a 1 b 2 c 3) (λ (k v) (square v))) → @(a 1 b 4 c 9)      
-;;;   
+;;;   (ff-map @(a 1 b 2 c 3) (λ (k v) (square v))) → @(a 1 b 4 c 9)
+;;;
 ;;;   (ff-iter ff) → a lazy list of key-value pairs
-;;;   
+;;;
 ;;;   (list->ff '((a . 1) (b . 2))) → @(a 1 b 2)
 ;;;
 ;;;   (ff->list @(a 1 b 2)) → '((a . 1) (b . 2))
-;;;   
+;;;
 ;;; ```
 
 ;; fixme: ff unit tests went missing at some point. add with lib-compare vs naive alists.
@@ -88,13 +88,13 @@
 
 (define-library (owl ff)
 
-   (export 
-      get         ; O(log2 n), ff x key x default-value -> value | default-value 
+   (export
+      get         ; O(log2 n), ff x key x default-value -> value | default-value
       put         ; O(log2 n), ff x key x value -> ff'
-      del         ; O(log2 n), ff x key -> ff' 
-      keys        ; O(n), ff → (key ...) 
+      del         ; O(log2 n), ff x key -> ff'
+      keys        ; O(n), ff → (key ...)
       ff-update   ; O(log2 n), ff x key x value -> ff' | fail if key not in ff
-      fupd        ; alias for ff-update 
+      fupd        ; alias for ff-update
                   ;    - no rebalancing, just walk to leaf and update value
       ff-union ff-diff ; TEMP
       ff-fold ff-foldr ; like list folds but (op st key val) -> st'
@@ -104,7 +104,7 @@
       ff-singleton? ; ff → bool (has just one key?)
       ff-max      ; ff def → largest key or def
       ff-min      ; ff def → least key or def
-      list->ff ff->list 
+      list->ff ff->list
       ff->sexp
       ff-ok?
       empty
@@ -114,7 +114,7 @@
 
       )
 
-   (import 
+   (import
       (owl defmac)
       (owl list)
       (owl proof)
@@ -156,7 +156,7 @@
       (define red mkred)
 
       ;; local temporary helper because all branches are the wrong way around
-      (define-syntax nonempty? 
+      (define-syntax nonempty?
          (syntax-rules ()
             ((nonempty? x) (not (eq? x #empty)))))
 
@@ -179,8 +179,8 @@
             ff
             (case (size ff)
                (2 (lets ((k v ff)) (list (color ff) k)))
-               (3 (lets ((k v x ff)) 
-                  (if (right? ff) 
+               (3 (lets ((k v x ff))
+                  (if (right? ff)
                      (list (color ff) k '-> (ff->sexp x))
                      (list (color ff) (ff->sexp x) '<- k))))
                (4 (lets ((k v l r ff))
@@ -216,7 +216,7 @@
       (define (black-depth ff)
          (if (eq? ff #empty)
             0
-            (lets 
+            (lets
                ((l k v r (explode ff))
                 (ld (black-depth l))
                 (rd (black-depth r)))
@@ -233,7 +233,7 @@
             ((red-red-violation? ff)
                ;(print "FF ERROR, red-red violation")
                #false)
-            (else 
+            (else
                #true)))
 
       (define (ff? obj)
@@ -308,7 +308,7 @@
                   ((red? rl) ; case 3
                      (with-ff (rl b yk yv c)
                         (let ((zk rk) (zv rv) (d rr))
-                           (red 
+                           (red
                               (black left key val b)
                               yk yv
                               (black c zk zv d)))))
@@ -369,7 +369,7 @@
                      (case (size ff)
                         (4 (get (ref ff 3) key def))
                         (2 def)
-                        (else 
+                        (else
                            (if (right? ff)
                               def
                               (get (ref ff 3) key def)))))
@@ -378,7 +378,7 @@
                      (case (size ff)
                         (4 (get (ref ff 4) key def))
                         (2 def)
-                        (else 
+                        (else
                            (if (right? ff)
                               (get (ref ff 3) key def)
                               def))))))))
@@ -501,9 +501,9 @@
             null ff))
 
 
-      ;;; 
-      ;;; Deletion 
-      ;;; 
+      ;;;
+      ;;; Deletion
+      ;;;
 
       (define (ball-left left key val right)
          (cond
@@ -526,7 +526,7 @@
             ((red? left)
                (with-ff (left a xk xv b)
                   (with-ff (b b yk yv c)
-                     (red 
+                     (red
                         (black-bleft (color-red a) xk xv b)
                         yk yv
                         (black c key val right)))))
@@ -556,7 +556,7 @@
                                     (red mr rk rv rr)))))
                         (with-ff (left a xk xv b)
                            (with-ff (right c yk yv d)
-                              (red a xk xv 
+                              (red a xk xv
                                  (red middle yk yv d))))))
                   (with-ff (left a xk xv b)
                      (red a xk xv (app b right)))))
@@ -587,7 +587,7 @@
                   ((lesser? key this-key)
                      (let ((sub (deln left key)))
                         (cond
-                           ((eq? sub left)   
+                           ((eq? sub left)
                               ff)
                            ((red? left)
                               (red     sub this-key val right))

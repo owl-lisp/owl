@@ -2,9 +2,9 @@
 ;; POSIX regular expressions
 ;;
 
-;; this library implements a mostly complete POSIX-compatible 
-;; regular expressions. at the moment lib-regex tries to just 
-;; get all the features right. *lots* of non-constant-factor 
+;; this library implements a mostly complete POSIX-compatible
+;; regular expressions. at the moment lib-regex tries to just
+;; get all the features right. *lots* of non-constant-factor
 ;; optimizations are missing.
 
 ;;; spec: http://pubs.opengroup.org/onlinepubs/007908799/xbd/re.html
@@ -168,12 +168,12 @@
                (λ (ls buff ms)
                   (rb ls buff ms cont)))))
 
-      ;; note that all repetitions could be implemented with a generic repeater. here 
+      ;; note that all repetitions could be implemented with a generic repeater. here
       ;; we splice them to several smaller ones, mainly because small parsing functions
-      ;; are prettier, and all mathmaticians would like to do with just star anyway, 
+      ;; are prettier, and all mathmaticians would like to do with just star anyway,
       ;; so it will be given an important role.
 
-      ;;; greedy base quantifiers 
+      ;;; greedy base quantifiers
 
       ;; <rx>*
       (define (star rx)
@@ -281,7 +281,7 @@
       (define (chunk rex)
          (λ (ls buff ms cont)
             (lets
-               ((id (+ 1 (caar ms)))   ;; my submatch id 
+               ((id (+ 1 (caar ms)))   ;; my submatch id
                 (node (cons id buff))) ;; leave marker with pointer to current matched position (start of range)
                (rex ls buff (cons node ms)
                   (λ (ls buffp ms)
@@ -492,7 +492,7 @@
       ;;;
 
       ;; replacer is a function from code point streams to code point streams
-      ;; it may either itself find all the matches and perform substitutions, 
+      ;; it may either itself find all the matches and perform substitutions,
       ;; handle the first one, or something completely different.
 
       ;; fixme: trailing \ is handled wrong
@@ -543,7 +543,7 @@
                            ;; stop if no match at beginning and ^
                            ll)
                         (else
-                           ;; proceed to content 
+                           ;; proceed to content
                            (cons (car ll) (loop (cdr ll)))))))
                (else ;; force
                   (loop (ll))))))
@@ -768,7 +768,7 @@
              (c
                (get-either
                   (let-parses
-                     ((skip (get-imm 45)) ; - 
+                     ((skip (get-imm 45)) ; -
                       (c parse-char-class-char)
                       (verify (<= b c) "bad range"))
                      c)
@@ -798,7 +798,7 @@
                (if (eq? n 0)
                   epsilon
                   (H exactly n)))
-            ((< n m) ;; <= enforced when parsing but ok to double-check as this is only done once 
+            ((< n m) ;; <= enforced when parsing but ok to double-check as this is only done once
                (if (eq? n 0)
                   (H at-most m)
                   (λ (rx) (rex-and (exactly n rx) (at-most (- m n) rx)))))

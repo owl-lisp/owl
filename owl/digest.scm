@@ -1,8 +1,8 @@
-;;; The digest library provides functions for computing cryptographic signatures.  
+;;; The digest library provides functions for computing cryptographic signatures.
 ;;; Currently SHA1 and SHA256 digests and corresponding message authentication codes
-;;; are supported. 
-;;; 
-;;; The hash functions also have `hasher-raw` and `hasher-bytes` -variants, which 
+;;; are supported.
+;;;
+;;; The hash functions also have `hasher-raw` and `hasher-bytes` -variants, which
 ;;; return the state words and raw signature bytes correspondingly.
 ;;;
 ;;; ```
@@ -21,7 +21,7 @@
       sha256
       sha256-raw
       sha256-bytes
-      hmac-sha1       ;; key, data → sha1 
+      hmac-sha1       ;; key, data → sha1
       hmac-sha1-bytes ;; key, data → sha1 bytes
       hmac-sha256
       hmac-sha256-bytes
@@ -57,7 +57,7 @@
             (let loop ((pos (band (+ bits 8) 511)))
                (if (= pos 448)
                   (lets ((bits (+ bits 0)) ;; +1 for #x80
-                         (a b c d (n->bytes bits)) 
+                         (a b c d (n->bytes bits))
                          (e f g h (n->bytes (>> bits 32))))
                      (list h g f e d c b a))
                   (cons 0 (loop (band (+ pos 8)  511)))))))
@@ -111,7 +111,7 @@
                (values #false null))))
 
       (define (xor-poss x n ps lst)
-         (if (eq? n 1) 
+         (if (eq? n 1)
             (if (null? ps)
                (bxor x (car lst))
                (xor-poss (bxor x (car lst)) (car ps) (cdr ps) (cdr lst)))
@@ -129,29 +129,29 @@
                ((< i 20)
                   (lets ((f (bor (band b c) (band (bnot b) d)))
                          (k #x5a827999)
-                         (a b c d e 
+                         (a b c d e
                            (sha1-step a b c d e f k (car ws))))
                      (loop (+ i 1) a b c d e (cdr ws))))
                ((< i 40)
                   (lets ((f (bxor b (bxor c d)))
                          (k #x6ed9eba1)
-                         (a b c d e 
+                         (a b c d e
                            (sha1-step a b c d e f k (car ws))))
                      (loop (+ i 1) a b c d e (cdr ws))))
                ((< i 60)
                   (lets ((f (bor (bor (band b c) (band b d)) (band c d)))
                          (k #x8f1bbcdc)
-                         (a b c d e 
+                         (a b c d e
                            (sha1-step a b c d e f k (car ws))))
                      (loop (+ i 1) a b c d e (cdr ws))))
                ((< i 80)
                   (lets ((f (bxor b (bxor c d)))
                          (k #xca62c1d6)
-                         (a b c d e 
+                         (a b c d e
                            (sha1-step a b c d e f k (car ws))))
                      (loop (+ i 1) a b c d e (cdr ws))))
                (else
-                  (values 
+                  (values
                      (word (+ h0 a))
                      (word (+ h1 b))
                      (word (+ h2 c))
@@ -191,18 +191,18 @@
 
 
    (define (sha1-chunks ll)
-      (let loop 
-         ((ll (sha1-pad ll)) 
-          (h0 #x67452301) 
-          (h1 #xefcdab89) 
-          (h2 #x98badcfe) 
-          (h3 #x10325476) 
+      (let loop
+         ((ll (sha1-pad ll))
+          (h0 #x67452301)
+          (h1 #xefcdab89)
+          (h2 #x98badcfe)
+          (h3 #x10325476)
           (h4 #xc3d2e1f0))
          (lets ((ws ll (grab-initial-words ll)))
             (if ws
-               (lets 
-                  ((h0 h1 h2 h3 h4 
-                     (sha1-chunk h0 h1 h2 h3 h4 
+               (lets
+                  ((h0 h1 h2 h3 h4
+                     (sha1-chunk h0 h1 h2 h3 h4
                         (sha1-extend-initial-words ws))))
                   (loop ll h0 h1 h2 h3 h4))
                (list h0 h1 h2 h3 h4)))))
@@ -287,7 +287,7 @@
    (define (sha256-chunk h0 h1 h2 h3 h4 h5 h6 h7 ws)
       (let loop ((a h0) (b h1) (c h2) (d h3) (e h4) (f h5) (g h6) (h h7) (ws (reverse ws)) (ks ks))
          (if (null? ws)
-            (values 
+            (values
                (word (+ h0 a))
                (word (+ h1 b))
                (word (+ h2 c))
@@ -318,7 +318,7 @@
             lst
             (lets
                ((p2 l (pick lst 2)) ;; i-2
-                (p7 l (pick l 5))   ;; i-7 
+                (p7 l (pick l 5))   ;; i-7
                 (p15 l (pick l 8))  ;; i-15
                 (p16 l (pick l 1))  ;; i-16
                 (s0 (bxor (bxor (ror p15 7) (ror p15 18)) (>> p15 3)))
@@ -340,9 +340,9 @@
           (h7 #x5be0cd19))
          (lets ((ws ll (grab-initial-words ll)))
             (if ws
-               (lets 
+               (lets
                   ((h0 h1 h2 h3 h4 h5 h6 h7
-                     (sha256-chunk h0 h1 h2 h3 h4 h5 h6 h7 
+                     (sha256-chunk h0 h1 h2 h3 h4 h5 h6 h7
                         (sha256-extend-initial-words ws))))
                   (loop ll h0 h1 h2 h3 h4 h5 h6 h7))
                (list h0 h1 h2 h3 h4 h5 h6 h7)))))

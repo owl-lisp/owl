@@ -1,4 +1,4 @@
-;;; Owl sys library exports various operating system calls and helper 
+;;; Owl sys library exports various operating system calls and helper
 ;;; functions for using them.
 
 (define-library (owl sys)
@@ -339,7 +339,7 @@
       ;;; Safe derived operations
       ;;;
 
-      ;; dir elements are #false or fake strings, which have the type of small raw ASCII 
+      ;; dir elements are #false or fake strings, which have the type of small raw ASCII
       ;; strings, but may in fact contain anything the OS happens to allow in a file name.
 
       (define (dir-fold op st path)

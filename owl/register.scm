@@ -2,9 +2,9 @@
 ;;; Register allocation
 ;;;
 
-; Earlier compilation steps produce RTL that has an unbounded set 
-; of registers. Register allocation handles limiting them to the 
-; number available in VM, while also trying to retarget operations 
+; Earlier compilation steps produce RTL that has an unbounded set
+; of registers. Register allocation handles limiting them to the
+; number available in VM, while also trying to retarget operations
 ; to more sensible registers.
 
 (define-library (owl register)
@@ -30,7 +30,7 @@
       (define highest-register 95) ;; atm lower than NR in ovm.c
       (define n-registers (+ highest-register 1))
 
-      ; reg-touch U r -> mark as live -> make sure it has a value 
+      ; reg-touch U r -> mark as live -> make sure it has a value
       ; (must be in some register)
 
       (define (reg-touch usages reg)
@@ -44,7 +44,7 @@
       (define (reg-root usages reg)
          (put usages reg (list reg)))
 
-      ; return a list of registers from uses (where the value has been moved to), or 
+      ; return a list of registers from uses (where the value has been moved to), or
       ; some list of low registers if this one is outside the available ones
       (define (use-list uses reg)
          (let ((opts (filter (C < highest-register) (get uses reg null))))
@@ -70,7 +70,7 @@
       (define (bad? to target op)
          (or (eq? to target) (not (eq? to (op to)))))
 
-      ; try to rename the register and exit via fail if the values are disturbed 
+      ; try to rename the register and exit via fail if the values are disturbed
 
       (define (rtl-rename code op target fail)
          (tuple-case code
@@ -137,7 +137,7 @@
                (error "rtl-rename: what is this: " code))))
 
 
-      ;; try to remap the register to each known good alternative 
+      ;; try to remap the register to each known good alternative
       ;; finish with (cont the-register code)
 
       (define (retarget-first code old news uses cont)
@@ -182,7 +182,7 @@
                      (pass)
                      (rtl-retard (tuple clos-type lpos offset env to-new more-new)))))))
 
-      ; retarget register saves to registers where they are moved 
+      ; retarget register saves to registers where they are moved
       ; where possible (register retargeting level 1)
 
       (define (rtl-retard code)

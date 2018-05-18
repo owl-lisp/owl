@@ -43,7 +43,7 @@
       (define link-tag "mcp/links")
       (define signal-tag "mcp/break")
       (define meta-tag '*owl-metadata*) ; key for object metadata
-      (define name-tag '*owl-names*)    ; key for reverse function/object → name mapping 
+      (define name-tag '*owl-names*)    ; key for reverse function/object → name mapping
       (define current-library-key '*owl-source*) ; toplevel value storing what is being loaded atm
 
       (define (signal-halt threads state controller)
@@ -66,8 +66,8 @@
                   (else def)))
             (else def)))
 
-      (define env-get-raw get) ;; will use different ff 
-      (define env-put-raw put) ;; will use different ff 
+      (define env-get-raw get) ;; will use different ff
+      (define env-put-raw put) ;; will use different ff
 
       (define (env-set env key val)
          (put env key
@@ -104,10 +104,10 @@
       ;;; apply-env
       ;;;
 
-      ; this compiler pass maps sexps to sexps where each free 
+      ; this compiler pass maps sexps to sexps where each free
       ; occurence of a variable is replaced by it's value
 
-      ; this is functionally equivalent to making a big 
+      ; this is functionally equivalent to making a big
       ; (((lambda (name ..) exp) value)), but the compiler currently
       ; handles values occurring in the sexp itself a bit more efficiently
 
@@ -210,11 +210,11 @@
 
       (define (verbose-vm-error env opcode a b)
         (cond
-          ((eq? opcode 17) ;; arity error 
-            ;; arity error, could be variable 
-            ; this is either a call, in which case it has an implicit continuation, 
-            ; or a return from a function which doesn't have it. it's usually a call, 
-            ; so -1 to not count continuation. there is no way to differentiate the 
+          ((eq? opcode 17) ;; arity error
+            ;; arity error, could be variable
+            ; this is either a call, in which case it has an implicit continuation,
+            ; or a return from a function which doesn't have it. it's usually a call,
+            ; so -1 to not count continuation. there is no way to differentiate the
             ; two, since there are no calls and returns, just jumps.
             (let ((func (list->string (env-serializer env a))))
               ;; use the updated renderer from toplevel to possible get a name for the function

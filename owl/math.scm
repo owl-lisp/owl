@@ -193,7 +193,7 @@
 
 
 
-      ; a slightly optimized = 
+      ; a slightly optimized =
 
       (define (= a b)
          (case (type a)
@@ -436,7 +436,7 @@
                (cast r type-fix-))))
 
 
-      ; for changing the (default positive) sign of unsigned operations 
+      ; for changing the (default positive) sign of unsigned operations
       (define-syntax negative
          (syntax-rules (cast if)
             ((negative (op . args))
@@ -487,8 +487,8 @@
                (case (type b)
                   (type-fix+ (sub-small->pick-sign b a))         ;; -a + +b == +b + -a -> as above (no need to recurse)
                   (type-fix- (add-small->negative a b))         ;; -a + -b -> -c | -C
-                  (type-int+ (sub-big-number b a #true))            ;; -a + +B == +B - +a -> sub-big-number 
-                  (type-int- (cast (add-number-big a b) type-int-))   ;; -a + -B == -C == -(a + B)   
+                  (type-int+ (sub-big-number b a #true))            ;; -a + +B == +B - +a -> sub-big-number
+                  (type-int- (cast (add-number-big a b) type-int-))   ;; -a + -B == -C == -(a + B)
                   (else (big-bad-args 'add a b))))
             (type-int+
                (case (type b)
@@ -677,7 +677,7 @@
                ;; not likely to happen though
                (<< (<< a *max-fixnum*) (subi b *max-fixnum*)))
             (else
-               ;; could allow negative shift left to mean a shift right, but that is 
+               ;; could allow negative shift left to mean a shift right, but that is
                ;; probably more likely an accident than desired behavior, so failing here
                (big-bad-args '<< a b))))
 
@@ -798,7 +798,7 @@
 
 
       ;;;
-      ;;; MULTIPLICATION 
+      ;;; MULTIPLICATION
       ;;;
 
       ; O(n), basic multiply bignum b by fixnum a with carry
@@ -871,8 +871,8 @@
                (ncons (ncar a)
                   (add-ext (ncdr a) b (subi ex 1))))))
 
-      ; fixme, should just keep jumbo digits for for added versions and 
-      ;        perform the carrying just once in a final pass. add merges 
+      ; fixme, should just keep jumbo digits for for added versions and
+      ;        perform the carrying just once in a final pass. add merges
       ;        and high parts (if any) of the digits are the carriables.
       ; can be used for small bignums
       (define (mul-simple a b)
@@ -1037,7 +1037,7 @@
       (define (maxl as) (fold max (car as) (cdr as)))
 
       ;;;
-      ;;; DIVISION 
+      ;;; DIVISION
       ;;;
 
       ; walk down a and compute each digit of quotient using the top 2 digits of a
@@ -1132,7 +1132,7 @@
          (let loop ((a a) (out 0))
             (let ((s (div-shift a b 0)))
                (cond
-                  ; hack warning, -1 0 1 are lesser of 2, but not -2 
+                  ; hack warning, -1 0 1 are lesser of 2, but not -2
                   ; (tag bits including sign are low)
                   ((lesser? s 2)
                      (nat-quotrem-finish a b out))
@@ -1167,7 +1167,7 @@
          (let loop ((a a))
             (let ((s (div-shift a b 0)))
                (cond
-                  ; hack warning, -1 0 1 are lesser of 2, but not -2 
+                  ; hack warning, -1 0 1 are lesser of 2, but not -2
                   ; (tag bits including sign are low)
                   ((lesser? s 2)
                      (nat-rem-finish a b))
@@ -1279,7 +1279,7 @@
                         (else (nrev r))))))))
 
 
-      (define nat-rem nat-rem-simple)    ; better for same sized numers 
+      (define nat-rem nat-rem-simple)    ; better for same sized numers
       ;(define nat-rem nat-rem-reverse)    ; better when b is smaller ;; FIXME - not yet for variable sized fixnums
 
 
@@ -1287,9 +1287,9 @@
       ;;; Exact division
       ;;;
 
-      ;; this algorithm is based on the observation that the lowest digit of 
-      ;; the quotient in division, when the remainder will be 0, depends only 
-      ;; on the lowest bits of the divisor and quotient, which allows the 
+      ;; this algorithm is based on the observation that the lowest digit of
+      ;; the quotient in division, when the remainder will be 0, depends only
+      ;; on the lowest bits of the divisor and quotient, which allows the
       ;; quotient to be built bottom up using only shifts and substractions.
 
       ; bottom up exact division, base 2
@@ -1307,7 +1307,7 @@
       ; fixme, postpone and merge shifts and substraction
 
       ; later (sub-shifted a b s) in 1-bit positions
-      ; b is usually shorter, so shift b right and then substract instead 
+      ; b is usually shorter, so shift b right and then substract instead
       ; of moving a by s
 
       (define last-bit (subi *fixnum-bits* 1))
@@ -1356,8 +1356,8 @@
       (define ediv divide-exact)
 
 
-      ;; the same can be generalized for base B, where 2^16 is convenient given that it is the 
-      ;; base in which bignums are represented in owl. the lowest digit will have 
+      ;; the same can be generalized for base B, where 2^16 is convenient given that it is the
+      ;; base in which bignums are represented in owl. the lowest digit will have
 
       ;; fixme, add ^
 
@@ -1530,7 +1530,7 @@
 
       ;; lazy gcd
 
-      ; O(1), shift focus bit 
+      ; O(1), shift focus bit
       (define (gcd-drop n)
          (let ((s (car n)))
             (cond
@@ -1581,7 +1581,7 @@
       ;; signed wrapper for nat-gcd
       (define (gcd a b)
          (cond
-            ; negates should be inlined 
+            ; negates should be inlined
             ((eq? (type a) type-fix-) (gcd (negate a) b))
             ((eq? (type a) type-int-) (gcd (negate a) b))
             ((eq? (type b) type-fix-) (gcd a (negate b)))
@@ -1624,7 +1624,7 @@
                (else #false))
             #false))
 
-      ; fixme, to change real soon now 
+      ; fixme, to change real soon now
 
       (define (divide a b)
          (cond
@@ -2018,7 +2018,7 @@
             ((< a n) 1)
             (else (logd-loop n a n 1))))
 
-      ;; special case of log2 
+      ;; special case of log2
 
       ; could do in 8 comparisons with a tree
       (define (log2-fixnum n)
@@ -2064,7 +2064,7 @@
       ;   log2)
 
       ; note: it is safe to use div, which is faster for bignums, because by definition
-      ; the product is divisble by the gcd. also, gcd 0 0 is not safe, but since (lcm 
+      ; the product is divisble by the gcd. also, gcd 0 0 is not safe, but since (lcm
       ; a a) == a, handlin this special case and and a small optimization overlap nicely.
 
       (define (lcm a b)
@@ -2136,7 +2136,7 @@
       ;;; Variable arity versions
       ;;;
 
-      ;; FIXME: these need short circuiting 
+      ;; FIXME: these need short circuiting
 
       ;; + → add
       (define +

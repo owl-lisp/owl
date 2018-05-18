@@ -32,7 +32,7 @@
       (owl symbol))
 
    (begin
-      ; hack warning, could use normal = and < here, but 
+      ; hack warning, could use normal = and < here, but
       ; using primitives speeds up parsing a bit
 
       (define empty-symbol-tree #false)

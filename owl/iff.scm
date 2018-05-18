@@ -9,7 +9,7 @@
 
    (export iget iput ifold iff->list)
 
-   (import 
+   (import
       (owl defmac)
       (owl ff)
       (owl list))
@@ -58,7 +58,7 @@
       (define (iff-walk op st ff taken)
          (lets
             ((this (get ff tag iff-nan))
-             (st (if (eq? this iff-nan) st  
+             (st (if (eq? this iff-nan) st
                      (op st (nrev null taken) this))))
             (ff-fold
                (λ (st digit more)
@@ -70,7 +70,7 @@
       (define (ifold op st ff)
          (ff-fold
             (λ (st k v)
-               (if k 
+               (if k
                   (iff-walk op st v (ncons k null))
                   st))
             (ff-fold op st (get ff tag empty))

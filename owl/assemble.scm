@@ -44,12 +44,12 @@
             `((move . 9)      ; move a, t:      Rt = Ra
               (refi . 1)      ; refi a, p, t:   Rt = Ra[p], p unsigned
               (goto . 2)      ; jmp a, nargs    call Ra with nargs args
-              (clos . 3)      ; clos lp, o, nenv, e0 ... en, t: 
-              (cloc . 4)      ; cloc lp, o, nenv, e0 ... en, t: 
+              (clos . 3)      ; clos lp, o, nenv, e0 ... en, t:
+              (cloc . 4)      ; cloc lp, o, nenv, e0 ... en, t:
               (move2 . 5)     ; two moves, 4 args
               (clos1 . 6)
               (cloc1 . 7)
-              ; 8 = jlq 
+              ; 8 = jlq
               (movh . 13)
               (goto-code . 18)
               (goto-proc . 19)
@@ -162,14 +162,14 @@
                (if (= lpos 1)
                   (cons (inst->op 'clos1)
                      (cons (+ 2 (length env))
-                        ;; size of object (hdr code e0 ... en) 
+                        ;; size of object (hdr code e0 ... en)
                         (cons offset
                            (append (map reg env)
                               (cons (reg to)
                                  (assemble more fail))))))
                   (cons (inst->op 'clos)
                      (cons (+ 2 (length env))
-                        ;; size of object (hdr code e0 ... en) 
+                        ;; size of object (hdr code e0 ... en)
                         (cons (reg lpos)
                            (cons offset
                               (append (map reg env)
@@ -179,14 +179,14 @@
                (if (= lpos 1)
                   (cons (inst->op 'cloc1)
                      (cons (+ 2 (length env))
-                        ;; size of object (hdr code e0 ... en) 
+                        ;; size of object (hdr code e0 ... en)
                         (cons offset
                            (append (map reg env)
                               (cons (reg to)
                                  (assemble more fail))))))
                   (cons (inst->op 'cloc)
                      (cons (+ 2 (length env))
-                        ;; size of object (hdr code e0 ... en) 
+                        ;; size of object (hdr code e0 ... en)
                         (cons (reg lpos)
                            (cons offset
                               (append (map reg env)

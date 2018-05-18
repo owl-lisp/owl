@@ -38,7 +38,7 @@
 
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
-(define *interactive* #false) ;; be verbose 
+(define *interactive* #false) ;; be verbose
 (define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
 (define *owl-version* "0.1.16a")
@@ -244,7 +244,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 
 (define owl-ohai "You see a prompt.")
 
-;; say hi if interactive mode and fail if cannot do so (the rest are done using 
+;; say hi if interactive mode and fail if cannot do so (the rest are done using
 ;; repl-prompt. this should too, actually)
 (define (greeting env)
    (if (env-get env '*interactive* #f)
@@ -329,7 +329,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                ;; still running in the boostrapping system
                ;; the next value after evaluation will be the new repl heap
                (λ (vm-args)
-                  ;; now we're running in the new repl 
+                  ;; now we're running in the new repl
                   (start-thread-controller
                      (list
                         (tuple 'init
@@ -345,7 +345,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                     ;; repl needs symbol etc interning, which is handled by this thread
                                     (thunk->thread 'intern interner-thunk)
 
-                                    ;; set a signal handler which stop evaluation instead of owl 
+                                    ;; set a signal handler which stop evaluation instead of owl
                                     ;; if a repl eval thread is running
                                     (set-signal-action repl-signal-handler)
 

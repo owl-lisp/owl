@@ -120,15 +120,15 @@
             ((case-lambda func else)
                ;; fixme: operator position handling of resulting unclosurized case-lambdas is missing
                (if close?
-                  ;; a normal value requiring a closure, and first node only 
+                  ;; a normal value requiring a closure, and first node only
                   (lets
                      ((func this-used (closurize func null #false)) ;; no used, don't close
-                      (else this-used (closurize else this-used #false))) ;; same used, dont' close rest 
+                      (else this-used (closurize else this-used #false))) ;; same used, dont' close rest
                      (values
                         (tuple 'closure-case (tuple 'case-lambda func else) this-used)  ;; used the ones in here
                         (union used this-used)))                   ;; needed others and the ones in closure
-                  ;; operator position case-lambda, which can (but isn't yet) be dispatche at compile 
-                  ;; time, or a subsequent case-lambda node (above case requests no closurization) 
+                  ;; operator position case-lambda, which can (but isn't yet) be dispatche at compile
+                  ;; time, or a subsequent case-lambda node (above case requests no closurization)
                   ;; which doesn't need to be closurized
                   (lets
                      ((func used (closurize func used #false)) ;; don't closurize codes
@@ -189,9 +189,9 @@
                (lets ((body used (literalize body used)))
                   (values (tuple 'lambda-var fixed? formals body) used)))
             ((closure formals body clos)
-               ;; note, the same closure exp (as in eq?) is stored to both literals 
-               ;; and code. the one in code will be used to make instructions 
-               ;; for closing it and the one in literals will be the executable 
+               ;; note, the same closure exp (as in eq?) is stored to both literals
+               ;; and code. the one in code will be used to make instructions
+               ;; for closing it and the one in literals will be the executable
                ;; part to close against.
                (lets
                   ((body bused (literalize body null))
@@ -200,8 +200,8 @@
                   (values
                      ;;; literals will be #(header <code> l0 ... ln)
                      (tuple 'make-closure (+ 1 (length used)) clos bused)
-                     ;; also literals are passed, since the closure type 
-                     ;; and calling protocol are different depending on 
+                     ;; also literals are passed, since the closure type
+                     ;; and calling protocol are different depending on
                      ;; whether there are literals
                      used)))
             ((closure-var fixed? formals body clos) ;; clone branch, merge later

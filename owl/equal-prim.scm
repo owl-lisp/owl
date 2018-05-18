@@ -56,7 +56,7 @@
                               #false))
                         (else #false)))))))
 
-      ;; equality (mainly for theorem checks) which does not depend on 
+      ;; equality (mainly for theorem checks) which does not depend on
       ;; any libraries one would like to be able to test
       (define (simple-equal? a b)
          (equal-prim? simple-equal? a b))))

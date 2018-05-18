@@ -6,7 +6,7 @@
 
 (define-library (owl bisect)
 
-   (export 
+   (export
       bisect             bisect-unsorted
       bisect-range       bisect-range-unsorted
    )
@@ -18,7 +18,7 @@
    (begin
       ;;;
       ;;; Search for first occurrence in a sorted range
-      ;;; 
+      ;;;
 
       ; pos or it's close neighbours give the answer
       (define (bisect-fini op lo hi pos last)
@@ -78,7 +78,7 @@
          (let loop ((pos lo) (first #false))
             (cond
                ((= pos hi)
-                  (if first 
+                  (if first
                      (values first (- pos 1))
                      (values #false #false)))
                ((= val (get pos)) (loop (+ pos 1) (or first pos)))

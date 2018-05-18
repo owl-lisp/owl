@@ -111,7 +111,7 @@
 
       (define str-iter (C str-iter-any null))
 
-      ;;; iterate backwards 
+      ;;; iterate backwards
 
       (define (str-iterr-leaf str tl pos)
          (if (eq? pos 0)
@@ -304,11 +304,11 @@
       (define (c-string str) ; -> bvec | #false
          (raw
             (str-foldr
-            ;; do not re-encode raw strings. these are normally ASCII strings 
-            ;; which would not need encoding anyway, but explicitly bypass it 
-            ;; to allow these strings to contain *invalid string data*. This 
-            ;; allows bad non UTF-8 strings coming for example from command 
-            ;; line arguments (like paths having invalid encoding) to be used 
+            ;; do not re-encode raw strings. these are normally ASCII strings
+            ;; which would not need encoding anyway, but explicitly bypass it
+            ;; to allow these strings to contain *invalid string data*. This
+            ;; allows bad non UTF-8 strings coming for example from command
+            ;; line arguments (like paths having invalid encoding) to be used
             ;; for opening files.
                (if (eq? (type str) type-string)
                   cons
@@ -318,9 +318,9 @@
 
       (define null-terminate c-string)
 
-      ;; a naive string replace. add one of the usual faster versions and 
+      ;; a naive string replace. add one of the usual faster versions and
       ;; basic regex matching later (maybe that one to lib-lazy instead?)
-      ;; but even a slow one will do for now because it is needd for dumping 
+      ;; but even a slow one will do for now because it is needd for dumping
       ;; sources.
 
       ;; todo: let l be a lazy list and iterate with it over whatever

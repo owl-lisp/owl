@@ -1,9 +1,9 @@
-;;; This library attempts to implement date processing functions. Dates 
-;;; are typically represented as seconds or milliseconds since UNIX Epoch 1.1.1970. 
-;;; These are generally a good way to work with time, apart from assuming 
-;;; that an absolute time exists at all. Sometimes it is however necessary 
-;;; to convert time stamps to human readable form, which means splitting 
-;;; the time according to various more and less sensible rules. 
+;;; This library attempts to implement date processing functions. Dates
+;;; are typically represented as seconds or milliseconds since UNIX Epoch 1.1.1970.
+;;; These are generally a good way to work with time, apart from assuming
+;;; that an absolute time exists at all. Sometimes it is however necessary
+;;; to convert time stamps to human readable form, which means splitting
+;;; the time according to various more and less sensible rules.
 ;;;
 ;;; ```
 ;;;    (time)                → current time in seconds since epoch
@@ -137,8 +137,8 @@
             (else ;; sunday
                (values d 52)))))
 
-      ;; the days during the last week of the year belong instead to week 
-      ;; 1 of the subsequent year, if the thursday of the week belongs to 
+      ;; the days during the last week of the year belong instead to week
+      ;; 1 of the subsequent year, if the thursday of the week belongs to
       ;; the next year
 
       (define (days-to-thursday d)
@@ -244,7 +244,7 @@
             (date-str-tz s 0)
             (date-str-tz s (hours->secs (car tz)))))
 
-      ; TZ=GMT date -d @1234567890 
+      ; TZ=GMT date -d @1234567890
       (example
          (date-str 0)            = "00:00:00 1.1.1970 UTC+00:00"
          (date-str 0 2.5)        = "02:30:00 1.1.1970 UTC+02:30"

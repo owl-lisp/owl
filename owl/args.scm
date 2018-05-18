@@ -156,7 +156,7 @@
                   (print-to stderr error-msg)
                   #false))))
 
-      ;; and now a friendlier way to define the rules 
+      ;; and now a friendlier way to define the rules
 
       (define (cl-rule node lst)
          (if (null? lst)

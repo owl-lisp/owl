@@ -429,7 +429,7 @@
       (define get-sexps
          (get-greedy* sexp-parser))
 
-      ;; whitespace at either end 
+      ;; whitespace at either end
       (define get-padded-sexps
          (let-parses
             ((data get-sexps)
@@ -461,9 +461,9 @@
       (define (string->sexp str fail)
          (try-parse sexp-parser (str-iter str) #false #false fail))
 
-      ;; parse all contents of vector to a list of sexps, or fail with 
-      ;; fail-val and print error message with further info if errmsg 
-      ;; is non-false 
+      ;; parse all contents of vector to a list of sexps, or fail with
+      ;; fail-val and print error message with further info if errmsg
+      ;; is non-false
 
       (define (vector->sexps vec fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val

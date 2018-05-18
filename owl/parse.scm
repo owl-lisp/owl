@@ -24,7 +24,7 @@
       try-parse
       word
 
-      ;; old compat names      
+      ;; old compat names
       get-imm get-byte get-kleene+ get-kleene* get-epsilon get-byte-between get-either
       get-byte-if get-rune get-rune-if get-greedy* get-greedy+ get-word
 
@@ -240,7 +240,7 @@
          (if (pair? ll)
             (fast-forward (cdr ll))
             ll))
-      
+
       (define (whitespace? ll)
          (cond
             ((null? ll) #t)
@@ -248,11 +248,11 @@
             ((memq (car ll) '(#\newline #\space #\return #\tab))
                (whitespace? (cdr ll)))
             (else #f)))
-         
+
       (define (resuming-syntax-fail error-reporter)
-         (λ (cont ll msg) 
+         (λ (cont ll msg)
             ;; this is a bit of a hack
-            ;; allow common whitespace at end of input, because parsers typically define structure 
+            ;; allow common whitespace at end of input, because parsers typically define structure
             ;; only up to last byte byte needed for recognition in order to avoid blocking
             (let ((rest (fast-forward ll)))
                (if (and (null? rest) (whitespace? ll))
@@ -260,7 +260,7 @@
                   (begin
                      (error-reporter msg)
                      (cont rest))))))
-      
+
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
       ;; prompt removed from here - it belongs elsewhere

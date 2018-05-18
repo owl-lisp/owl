@@ -18,7 +18,7 @@
 
    (begin
 
-      ; return the least score by pred 
+      ; return the least score by pred
       (define (least pred lst)
          (if (null? lst)
             #false
@@ -138,7 +138,7 @@
             ((var s) (eq? s sym))
             (else #false)))
 
-      ; convert all (name ..) to (name .. name), and make wrappers when name 
+      ; convert all (name ..) to (name .. name), and make wrappers when name
       ; is used as a value
 
       (define (carry-simple-recursion exp name deps)
@@ -228,7 +228,7 @@
             (else
                (error "carry-bindings: strage expression: " exp))))
 
-      ;;; ((name (lambda (formals) body) deps) ...) env 
+      ;;; ((name (lambda (formals) body) deps) ...) env
       ;;; -> ((lambda (formals+deps) body') ...)
 
       (define (handle-recursion nodes env)
@@ -297,7 +297,7 @@
                                  body
                                  (env-bind env (map first nodes)))))
                            ; one option is to bind all to wrapper functions. we'll try another alternative now
-                           ; and convert all uses to use the extended functions instead, since they all just 
+                           ; and convert all uses to use the extended functions instead, since they all just
                            ; require passing the same value as the operator as an arument and thus are quaranteed
                            ; not to grow the closures (unlike mutual recursive functions)
                            ; plan A, (original) make the function look like the original
@@ -306,7 +306,7 @@
                            ;   (map make-wrapper nodes)
                            ;   body)
                            ; plan B, convert to direct calls to the wrapper
-                           ; remember, the change is just to append the function name to the call 
+                           ; remember, the change is just to append the function name to the call
                            ; and make a (lambda (v ...) (self v .. self)) if it is used as a value
                            (fold
                               (lambda (body node)

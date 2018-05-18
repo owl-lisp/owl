@@ -29,7 +29,7 @@
                (values (cons free gens) next))))
 
       (define (alpha-list alpha exps env free)
-         (if (null? exps) 
+         (if (null? exps)
             (values null free)
             (lets
                ((this free (alpha (car exps) env free))
@@ -95,7 +95,7 @@
                (error "alpha: unknown AST node: " exp))))
 
       (define (alpha-convert exp env)
-         (lets 
-            ((exp free 
+         (lets
+            ((exp free
                (alpha exp empty (gensym exp))))
             (ok exp env)))))

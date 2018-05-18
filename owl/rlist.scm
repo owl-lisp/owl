@@ -1,5 +1,5 @@
 ;;;
-;;; random access lists 
+;;; random access lists
 ;;;
 
 ;; todo: re-evaluate whether to use the commened out version or the current ont
@@ -9,7 +9,7 @@
 
 (define-library (owl rlist)
 
-   (export 
+   (export
       rcons  ; O(1), (rcons a rl) -> rl'
       rcar   ; O(1), (rcar (rcons a rl)) -> a
       rcdr   ; O(1), (rcdr (rcons a rl)) -> rl'*
@@ -22,20 +22,20 @@
       rfoldr ; O(n), like foldr
       rmap ; O(n), like map
       riter ; O(n), rlist -> lazy list (aka iterator) **
-      riterr ; O(n), ditto backwards 
+      riterr ; O(n), ditto backwards
       requal?     ; O(n)***
       rlist->list ; O(n)
       list->rlist ; O(n log n), temp
       rlist  ; (rlist ...) -> rl
             rrev        ; O(n log n)
-   ) 
+   )
 
    ; *   (equal? rl rl') = #true, but not necessarily (eq? rl rl')
    ; **  you can therefore use all lib-lazy list functions
    ; *** normal equal? will do because the representation is unique
 
    ; note, taken primitive type 10 for spines, variant 42 for nodes
-   ; ie cannot store a node of type 42 into a rlist (which would be a 
+   ; ie cannot store a node of type 42 into a rlist (which would be a
    ; major abstraction violation anyway).
 
    (import
@@ -70,7 +70,7 @@
          (syntax-rules ()
             ((spine w t rl) (mkt type-rlist-spine w t rl))))
 
-      ;; cons 
+      ;; cons
 
       (define (rcons a rl)
          (if (null? rl)
@@ -83,9 +83,9 @@
                         (spine (+ (+ w1 w2) 1) (node a t1 t2) ttl)
                         (spine 1 a rl)))))))
 
-      ;; car & cdr 
+      ;; car & cdr
 
-      (define (rcar rl) 
+      (define (rcar rl)
          (lets ((w a tl rl))
             (if-node a (ref a 1) a)))
 
@@ -96,10 +96,10 @@
                   (spine w a (spine w b tl)))
                tl)))
 
-      ;; get 
+      ;; get
 
       (define (rget-tree n w p)
-         (if (eq? p 0) 
+         (if (eq? p 0)
             (if-node n (ref n 1) n)
             (lets ((a t1 t2 n) (wp (>> w 1)))
                (if (<= p wp)
@@ -107,17 +107,17 @@
                   (rget-tree t2 wp (- p (+ wp 1)))))))
 
       (define (rget rl pos def)
-         (if (null? rl) 
+         (if (null? rl)
             def
             (lets ((w t tl rl))
                (if (< pos w)
                   (rget-tree t w pos)
                   (rget tl (- pos w) def)))))
 
-      ;; set 
+      ;; set
 
       (define (rset-tree n w p v)
-         (if (eq? p 0) 
+         (if (eq? p 0)
             (if-node n (set n 1 v) v)
             (lets ((a t1 t2 n) (wp (>> w 1)))
                (if (<= p wp)
@@ -125,7 +125,7 @@
                   (set n 3 (rset-tree t2 wp (- p (+ wp 1)) v))))))
 
       (define (rset rl pos val)
-         (if (null? rl) 
+         (if (null? rl)
             (error "rset: out of list setting " val)
             (lets ((w t tl rl))
                (if (< pos w)
@@ -137,7 +137,7 @@
       (define (rmap-tree n op)
          (if-node n
             (lets ((a t1 t2 n))
-               (node (op a) 
+               (node (op a)
                   (rmap-tree t1 op)
                   (rmap-tree t2 op)))
             (op n)))
@@ -150,8 +150,8 @@
 
       ;; riter (forwards)
 
-      ; note, this generates (log t) of tree size t in one run 
-      ; to reduce the overhead. insert a lambda after the cons 
+      ; note, this generates (log t) of tree size t in one run
+      ; to reduce the overhead. insert a lambda after the cons
       ; to get just one at a time.
 
       (define (riter-tree n tail)
@@ -166,7 +166,7 @@
          (if (null? rl)
             tail
             (lets ((w t tl rl))
-               (riter-tree t 
+               (riter-tree t
                   (lambda () (riterator tl tail))))))
 
       (define riter (C riterator null))
@@ -195,7 +195,7 @@
 
       (define (rfold-tree op st n)
          (if-node n
-            (lets 
+            (lets
                ((a t1 t2 n)
                 (st (op st a))
                 (st (rfold-tree op st t1)))
@@ -212,7 +212,7 @@
 
       (define (rfoldr-tree op st n)
          (if-node n
-            (lets 
+            (lets
                ((a t1 t2 n)
                 (st (rfoldr-tree op st t2))
                 (st (rfoldr-tree op st t1)))
@@ -237,7 +237,7 @@
 
       (define (rlen rl)
          (let loop ((rl rl) (l 0))
-            (if (null? rl) 
+            (if (null? rl)
                l
                (lets ((w a tl rl))
                   (loop tl (+ l w))))))
@@ -249,7 +249,7 @@
       (define-syntax rlist
          (syntax-rules ()
             ((rlist) null)
-            ((rlist a . as) 
+            ((rlist a . as)
                (rcons a (rlist . as)))))
 
    ;; note, could also be done in O(n)
@@ -265,18 +265,18 @@
 ;; Another attempt.
 ;;
 
-; make the obvious list of growing complete binary trees, but avoid the need 
-; to store numbers to denote their sizes by storing one bit of size information 
+; make the obvious list of growing complete binary trees, but avoid the need
+; to store numbers to denote their sizes by storing one bit of size information
 ; to the type and carefully maintaining a few invariants for the sizes:
 ;  - the first tree (if any) is always of depth 1
 ;  - there are at most 2 consecutive trees of the same depth
 ;  - the depths depth of the next tree is the same as current, or one deeper
-; thus, depths (1 1), (1 1 2 3), (1 2 2 3) are ok, while (1 1 1 2), (2 2 4 8) 
+; thus, depths (1 1), (1 1 2 3), (1 2 2 3) are ok, while (1 1 1 2), (2 2 4 8)
 ; and (1 4) are not. (5) is right out.
 
 (define-module lib-rlist-owl
 
-   (export 
+   (export
       rcons
       rlist?
       rcar
@@ -301,7 +301,7 @@
 			((less a r) (mkt 46 a r))))
 
    (define-syntax node ;; in-tree node
-      (syntax-rules () 
+      (syntax-rules ()
          ((node a b) (mkt 78 a b))))
 
    ;; these are still not in use. type predicates and constructors later autogenerated.
@@ -317,7 +317,7 @@
    ; O(log n)
    (define (rcons a r)
       (cond
-         ((null? r) 
+         ((null? r)
             (less a r))
          ((eq? (type r) 14)
             (lets ((b rr r))
@@ -333,7 +333,7 @@
       (C ref 1))
 
    (define (ref-small-tree r p n)
-      (if (eq? n 0) 
+      (if (eq? n 0)
          r
          (lets ((n _ (fx>> n 1)))
             (if (eq? (fxband p n) 0)
@@ -386,14 +386,14 @@
 
    (define (rfold-tree op st n)
       (if (eq? (type n) 78) ;; in-tree node. note, cannot store these in rlists (as in other data structures)
-         (rfold-tree op 
+         (rfold-tree op
             (rfold-tree op st (ref n 1))
             (ref n 2))
          (op st n)))
 
    ;; O(n)
    (define (rfold op st rl)
-      (if (null? rl) 
+      (if (null? rl)
          st
          (rfold op
             (rfold-tree op st (ref rl 1))
@@ -401,16 +401,16 @@
 
    (define (rfoldr-tree op st n)
       (if (eq? (type n) 78) ;; in-tree node. note, cannot store these in rlists (as in other data structures)
-         (rfoldr-tree op 
+         (rfoldr-tree op
             (rfoldr-tree op st (ref n 2))
             (ref n 1))
          (op n st)))
 
    ;; O(n)
    (define (rfoldr op st rl)
-      (if (null? rl) 
+      (if (null? rl)
          st
-         (rfoldr-tree op  
+         (rfoldr-tree op
             (rfoldr op st (ref rl 2))
             (ref rl 1))))
 
@@ -419,12 +419,12 @@
    ;;
 
    ;; O(n log n)
-   (define (rapp ra rb) 
+   (define (rapp ra rb)
       (rfoldr rcons rb ra))
 
    ;; O(n log n)
-   (define (list->rlist lst) 
-      (foldr rcons null lst)) 
+   (define (list->rlist lst)
+      (foldr rcons null lst))
 
    ;; O(n)
    (define (rlist->list rl)
@@ -435,7 +435,7 @@
       (print " => " (rfold - 0 (foldr rcons null (iota 0 1 100))))
       (print " => " (foldr - 0 (iota 0 1 100)))
       (print " => " (rfoldr - 0 (foldr rcons null (iota 0 1 100))))
-      (print " => " (let ((a (iota 0 1 100)) (b (iota 100 1 200))) 
+      (print " => " (let ((a (iota 0 1 100)) (b (iota 100 1 200)))
                         (equal? (rlist->list (rapp (list->rlist a) (list->rlist b)))
                                 (rlist->list (list->rlist (append a b))))))
       (print " => " (let ((l (iota 0 1 100))) (equal? (length l) (rlen (list->rlist l)))))

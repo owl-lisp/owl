@@ -33,16 +33,16 @@
       udp-client-socket       ;; temp
       wait-udp-packet         ;; port → (ip . bvec), blocks
       check-udp-packet        ;; port → #false | (ip . bvec), does not block
-      send-udp-packet         ;; sock ip port bvec → bool 
+      send-udp-packet         ;; sock ip port bvec → bool
 
       file->vector            ;; vector io, may be moved elsewhere later
       file->list              ;; list io, may be moved elsewhere later
       file->byte-stream       ;; path → #false | (byte ...)
       vector->file
       write-vector            ;; vec port
-      port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk 
+      port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk
       port->byte-stream       ;; fd → (byte ...) | thunk
-      port->tail-byte-stream  ;; fd → (byte ...) | thunk 
+      port->tail-byte-stream  ;; fd → (byte ...) | thunk
       byte-stream->port       ;; bs fd → bool
       port->block-stream      ;; fd → (bvec ...)
       block-stream->port      ;; (bvec ...) fd → bool
@@ -278,10 +278,10 @@
 
       (define socket-read-delay 2)
 
-      ;; In case one doesn't need asynchronous atomic io operations, one can use 
+      ;; In case one doesn't need asynchronous atomic io operations, one can use
       ;; threadless stream-based blocking (for the one thred) IO.
 
-      ;; write a stream of byte vectors to a fd and 
+      ;; write a stream of byte vectors to a fd and
       ;; (bvec ...) fd → ll' n-written, doesn't close port
       ;;                  '-> null if all written without errors
       (define (blocks->port ll fd)
