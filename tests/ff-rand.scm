@@ -55,4 +55,3 @@
 	 (rst n (rand-range rst 4 15))
 	 (rst alpha (rand-nbit rst n)))
 	(work rst empty null (+ (time-ms) 100) alpha))
-		

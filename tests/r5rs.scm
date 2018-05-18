@@ -230,7 +230,7 @@
       (eqv? 2 2)                      ===>  #t
       (eqv? '() '())                  ===>  #t
       (eqv? 100000000 100000000)      ===>  #t
-      ;(eqv? (cons 1 2) (cons 1 2))   ===>  #f  ;; FIXME compat eqv? is too equal? atm
+      (eqv? (cons 1 2) (cons 1 2))    ===>  #f
       (eqv? (lambda () 1)
             (lambda () 2))            ===>  #f
       (eqv? #f 'nil)                  ===>  #f
@@ -265,7 +265,7 @@
       ;   (make-vector 5 'a))         ===>  #t ;; TODO make-vector not there
 
    chapter "6.2.5"
-                                                                                                                                                  
+
       (complex? 3+4i)                 ===>  #t
       (complex? 3)                    ===>  #t
       (real? 3)                       ===>  #t
@@ -282,7 +282,7 @@
       (- 3)                           ===>  -3
       (/ 3 4 5)                       ===>  3/20
       (/ 3)                           ===>  1/3
-      
+
       (abs -7)                        ===>  7
 
       (modulo 13 4)                   ===>  1
@@ -336,7 +336,7 @@
                                       ===> "886114800933a20"
       (number->string 3333333333333333 16) 
                                       ===> "bd7a625405555"
-  
+
       ;; FIXME string->number is different from R5RS
 
    chapter "6.3.1"
@@ -372,7 +372,7 @@
 
       (cdr '((a) b c d))              ===>  (b c d)
       (cdr '(1 . 2))                  ===>  2
-      
+
       (list? '(a b c))                ===>  #t
       (list? '())                     ===>  #t
       (list? '(a . b))                ===>  #f
@@ -380,11 +380,11 @@
       (length '(a b c))               ===>  3
       (length '(a (b) (c d e)))       ===>  3
       (length '())                    ===>  0
-      
+
       (append '(x) '(y))              ===>  (x y)
       (append '(a) '(b c d))          ===>  (a b c d)
       (append '(a (b)) '((c)))        ===>  (a (b) (c))
-      
+
       (append '(a b) '(c . d))        ===>  (a b c . d)
       (append '() 'a)                 ===>  a
 
@@ -424,7 +424,7 @@
                                       ===> "Malvina"
 
    chapter "6.3.5" ;; strings
-      
+
       ; additions
       (string=? "a" "")               ===> #f
       (string-ci=? "Aa" "aA")         ===> #t
@@ -434,7 +434,7 @@
       (string>? "a" "b")              ===> #f
       (string-ci<? "Aa" "AAa")        ===> #t
       (string-ci>? "Aa" "AAA")        ===> #f
-      
+
       (substring "xkappaz" 1 6)       ===> "kappa"
 
       (list->string 
@@ -479,7 +479,6 @@
 
       (map cadr '((a b) (d e) (g h))) ===>  (b e h)
 
-      
       (map (lambda (n) (expt n n)) '(1 2 3 4 5))
                                       ===>  (1 4 27 256 3125)
 
@@ -498,7 +497,7 @@
                     '(54 0 37 -3 245 19))
           #t))                        ===>  -3
 
-      
+
       (list-length '(1 2 3 4))        ===>  4
 
       (list-length '(a b . c))        ===>  #f

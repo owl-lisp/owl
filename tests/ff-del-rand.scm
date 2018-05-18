@@ -34,4 +34,3 @@
 	(if (= n 100)
 		(print (list 'ok n))
 		(loop (try-perm rst) (+ n 1))))
-		

@@ -21,10 +21,8 @@
 
    (import
       (owl defmac)
-      (owl primop)
       (owl proof)
-      (owl syscall)
-      (owl boolean))
+      (only (owl syscall) error))
 
    (begin
 

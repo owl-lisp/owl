@@ -45,8 +45,6 @@
       string-ci>=?       ; str str → bool
       unicode-fold-char  ; char tail → (char' ... tail)
       make-string        ; n char → str
-      char=?             ; cp cp → bool (temp)
-      char-ci=?          ; cp cp → bool (temp)
       )
 
    (import
@@ -420,15 +418,6 @@
                      (append cp (upcase ll))
                      (pair cp (upcase ll))))
                null)))
-
-      (define char=? =)
-
-      ;; fixme: incomplete, added because needed for ascii range elsewhere
-      (define (char-ci=? a b)
-         (or (eq? a b)
-            (=
-               (iget char-fold-iff a a)
-               (iget char-fold-iff b b))))
 
       (define (string-ci=? a b) (eq? 2 (str-compare upcase a b)))
 

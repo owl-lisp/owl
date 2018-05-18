@@ -18,5 +18,4 @@
       ((not (eq? n (interact echo n))) (print "error"))
       ((= n 100) (print n))
       (else (loop (+ n 1)))))
-      
 

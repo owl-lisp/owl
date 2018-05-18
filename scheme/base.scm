@@ -256,6 +256,7 @@
       (owl list-extra)
       (owl io)
       (owl boolean)
+      (owl char)
       (owl math))
 
    (begin
@@ -283,14 +284,16 @@
             (H (if (null? cmp) equal? (car cmp)) x)
             lst))
 
-      (define memv member)
+      (define (memv x lst)
+         (member x lst eqv?))
 
       (define (assoc k lst . cmp)
          (find
             (B (H (if (null? cmp) equal? (car cmp)) k) car)
             lst))
 
-      (define assv assoc)
+      (define (assv k lst)
+         (assoc k lst eqv?))
 
       ;; just for compatibility, as lists are always immutable in owl
       (define list-copy self)
@@ -405,7 +408,6 @@
       (define-missing-bad letrec-syntax)
       (define-missing-bad let-values)
       (define-missing-bad let-syntax)
-      (define-missing-bad integer->char)
       (define-missing-bad input-port?)
       (define-missing-bad input-port-open?)
       (define-missing-bad include-ci)
@@ -427,13 +429,7 @@
       (define-missing-bad dynamic-wind)
       (define-missing-bad close-output-port)
       (define-missing-bad close-input-port)
-      (define-missing-bad char?)
-      (define-missing-bad char>?)
-      (define-missing-bad char>=?)
-      (define-missing-bad char<?)
-      (define-missing-bad char<=?)
       (define-missing-bad char-ready?)
-      (define-missing-bad char->integer)
       (define-missing-bad call-with-port)
       (define-missing-bad bytevector?)
       (define-missing-bad bytevector-u8-set!)
@@ -443,5 +439,4 @@
       (define-missing-bad bytevector-copy)
       (define-missing-bad bytevector-append)
       (define-missing-bad bytevector)
-      (define-missing-bad boolean=?)
 ))

@@ -134,7 +134,7 @@
             (else
                (expt-mod-loop (rem (mul ap ap) m) (>> p 1) 
                   (rem (mul out ap) m) m))))
-            
+
       (define (expt-mod a b m)
          (cond
             ((eq? b 0) (mod 1 m))
@@ -300,7 +300,7 @@
                      ((eq? these 0) pows)
                      (else
                         (cons n    (cons (cons prime these) (cdr pows)))))))))
-                        
+
       (define (atkin-apply store pows)
          (call/cc
             (lambda (done)
@@ -372,8 +372,8 @@
                      (cdr pows)
                      (atkin-factor-driver pows 32))))
             null))
-      
-               
+
+
       ;;;
       ;;; UNSORTED
       ;;;
@@ -492,7 +492,6 @@
                      (loop 
                         (+ x1 1) (dlp-th-step v1 a n)
                         (+ x2 1) (dlp-th-step v2 a n) #true))))))
-     
 
       ;; Shanks' baby-step giant-step algorithm (still not quite working properly)
 
