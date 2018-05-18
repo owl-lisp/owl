@@ -13,7 +13,7 @@
    (display " ")
    (if (equal? thing wanted)
       (print "ok")
-      (begin 
+      (begin
          (print " *** WRONG *** ")
          (print (list 'got thing))
          (print (list 'not wanted)))))
@@ -31,7 +31,7 @@
                (print (list (quote term) " evaluates to " val " instead of " (quote wanted))))))
       ((compare-results) 'ok)))
 
-;; definitions used in comparisons 
+;; definitions used in comparisons
 (define x 28)
 (define reverse-subtract
   (lambda (x y) (- y x)))
@@ -67,7 +67,7 @@
 
 (compare-results
 
-   chapter "1.3.4" 
+   chapter "1.3.4"
 
       (* 5 8)                         ===> 40
 
@@ -112,15 +112,15 @@
          (- 3 2)
          (+ 3 2))                     ===>  1
 
-   chapter "4.2.1" 
+   chapter "4.2.1"
 
-      (cond 
+      (cond
          ((> 3 2) 'greater)
          ((< 3 2) 'less))             ===>  greater
       (cond ((> 3 3) 'greater)
          ((< 3 3) 'less)
          (else 'equal))               ===>  equal
-      (cond 
+      (cond
          ((assv 'b '((a 1) (b 2))) => cadr)
          (else #f))                   ===>  2
 
@@ -130,9 +130,9 @@
       ;(case (car '(c d))
       ;   ((a) 'a)
       ;   ((b) 'b))                   ===>  unspecified
-      (case (car '(c d)) 
-         ((a e i o u) 'vowel) 
-         ((w y) 'semivowel) 
+      (case (car '(c d))
+         ((a e i o u) 'vowel)
+         ((w y) 'semivowel)
          (else 'consonant))           ===>  consonant
 
       (and (= 2 2) (> 2 1))           ===>  #t
@@ -143,7 +143,7 @@
       (or (= 2 2) (> 2 1))            ===>  #t
       (or (= 2 2) (< 2 1))            ===>  #t
       (or #f #f #f)                   ===>  #f
-      (or (memq 'b '(a b c)) 
+      (or (memq 'b '(a b c))
           (/ 3 0))                    ===>  (b c)
 
    chapter "4.2.2"
@@ -160,16 +160,16 @@
                (z (+ x y)))
                (* z x)))              ===>  70
 
-      (letrec 
+      (letrec
          ((even? (lambda (n) (if (zero? n) #t (odd? (- n 1)))))
-          (odd? (lambda (n) (if (zero? n) #f (even? (- n 1)))))) 
+          (odd? (lambda (n) (if (zero? n) #f (even? (- n 1))))))
          (even? 88))                  ===>  #t
 
    chapter "4.2.4"
 
       (let ((x '(1 3 5 7 9)))
-         (do 
-            ((x x (cdr x)) (sum 0 (+ sum (car x)))) 
+         (do
+            ((x x (cdr x)) (sum 0 (+ sum (car x))))
             ((null? x) sum)))         ===>  25
 
       (let loop ((numbers '(3 -2 1 6 -5))
@@ -183,36 +183,36 @@
               ((< (car numbers) 0)
                (loop (cdr numbers)
                      nonneg
-                     (cons (car numbers) neg)))))   
+                     (cons (car numbers) neg)))))  
                                       ===>  ((6 1 3) (-5 -2))
 
    chapter "4.2.6"
 
       `(list ,(+ 1 2) 4)              ===>  (list 3 4)
-      (let ((name 'a)) `(list ,name ',name))            
+      (let ((name 'a)) `(list ,name ',name))           
                                       ===>  (list a (quote a))
-      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)             
+      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)            
                                       ===>  (a 3 4 5 6 b)
-      `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))) 
+      `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons)))
                                       ===>  ((foo 7) . cons)
       `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8) ;; note: will fail unless sqrt preserves exactness
                                      ===>  #(10 5 2 4 3 8)
 
-     `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)          
+     `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)         
                                       ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
-     (let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))           
+     (let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))          
                                       ===>  (a `(b ,x ,'y d) e)
 
 
-      (quasiquote (list (unquote (+ 1 2)) 4))           
+      (quasiquote (list (unquote (+ 1 2)) 4))          
                                       ===>  (list 3 4)
-      '(quasiquote (list (unquote (+ 1 2)) 4))          
+      '(quasiquote (list (unquote (+ 1 2)) 4))         
                                       ===>  `(list ,(+ 1 2) 4)
 
    chapter "4.3.2"
 
       ;; FIXME no let*-syntax
-      ;(let ((=> #f)) (cond (#t => 'ok))) 
+      ;(let ((=> #f)) (cond (#t => 'ok)))
       ;                               ===> ok ;; FIXME behaves wrong
 
    chapter "5.2.2"
@@ -223,7 +223,7 @@
         (foo (+ x 3)))                ===>  45
 
 
-   chapter "6.1" 
+   chapter "6.1"
 
       (eqv? 'a 'a)                    ===>  #t
       (eqv? 'a 'b)                    ===>  #f
@@ -237,7 +237,7 @@
       (let ((p (lambda (x) x)))
         (eqv? p p))                   ===>  #t
 
-      (letrec 
+      (letrec
          ((f (lambda () (if (eqv? f g) 'f 'both)))
           (g (lambda () (if (eqv? f g) 'g 'both))))
          (eqv? f g))                  ===>  #f
@@ -261,7 +261,7 @@
               '(a (b) c))             ===>  #t
       (equal? "abc" "abc")            ===>  #t
       (equal? 2 2)                    ===>  #t
-      ;(equal? (make-vector 5 'a) 
+      ;(equal? (make-vector 5 'a)
       ;   (make-vector 5 'a))         ===>  #t ;; TODO make-vector not there
 
    chapter "6.2.5"
@@ -328,13 +328,13 @@
       (sqrt -4)                       ===> 0+2i ;; ditto
       (expt 0 0)                      ===> 1
       (expt 0 1)                      ===> 0
-      (number->string 3333333333333333 2) 
+      (number->string 3333333333333333 2)
                                       ===> "1011110101111010011000100101010000000101010101010101"
-      (number->string 3333333333333333 3) 
+      (number->string 3333333333333333 3)
                                       ===> "121012010100112222020212022011210"
-      (number->string 3333333333333333 11) 
+      (number->string 3333333333333333 11)
                                       ===> "886114800933a20"
-      (number->string 3333333333333333 16) 
+      (number->string 3333333333333333 16)
                                       ===> "bd7a625405555"
 
       ;; FIXME string->number is different from R5RS
@@ -403,11 +403,11 @@
       (assq 'b e)                     ===>  (b 2)
       (assq 'd e)                     ===>  #f
       (assq (list 'a) '(((a)) ((b)) ((c))))
-                                      ===>  #f                                                                                                                            
+                                      ===>  #f                                                                                                                           
       (assoc (list 'a) '(((a)) ((b)) ((c))))
-                                      ===>  ((a))                                                                                                              
+                                      ===>  ((a))                                                                                                             
       (assv 5 '((2 3) (5 7) (11 13)))
-                                      ===>  (5 7)                    
+                                      ===>  (5 7)                   
 
    chapter "6.3.3"
 
@@ -416,11 +416,11 @@
       (symbol? "bar")                 ===>  #f
       (symbol? 'nil)                  ===>  #t
       (symbol? '())                   ===>  #f
-      (symbol? #f)                    ===>  #f                   
+      (symbol? #f)                    ===>  #f                  
 
       (symbol->string 'flying-fish)   ===>  "flying-fish"
       (symbol->string 'martin)        ===>  "martin"     ;; note, not 'Martin
-      (symbol->string (string->symbol "Malvina")) 
+      (symbol->string (string->symbol "Malvina"))
                                       ===> "Malvina"
 
    chapter "6.3.5" ;; strings
@@ -437,7 +437,7 @@
 
       (substring "xkappaz" 1 6)       ===> "kappa"
 
-      (list->string 
+      (list->string
          (string->list "abc"))        ===> "abc"
 
       (string-append "foo" "bar")     ===> "foobar"
@@ -448,8 +448,8 @@
 
    chapter "6.3.6"
 
-      (vector->list '#(dah dah didah)) 
-                                      ===>  (dah dah didah) 
+      (vector->list '#(dah dah didah))
+                                      ===>  (dah dah didah)
       (list->vector '(dididit dah))   ===>  #(dididit dah)
 
       ;; additions
@@ -458,7 +458,7 @@
       (vector? '(foo))                ===> #f
       (vector 'a 'b 'c)               ===>  #(a b c)
 
-      (vector-ref '#(1 1 2 3 5 8 13 21) 5)  
+      (vector-ref '#(1 1 2 3 5 8 13 21) 5) 
                                       ===>  8
    chapter "6.4"
 
@@ -468,12 +468,12 @@
                                       ===>  #t
       (procedure? '(lambda (x) (* x x)))
                                       ===>  #f
-      (call-with-current-continuation procedure?) 
+      (call-with-current-continuation procedure?)
                                       ===>  #t
 
       (map cadr '((a b) (d e) (g h))) ===>  (b e h)
       (map (lambda (n) (expt n n)) '(1 2 3 4 5))
-                                      ===>  (1 4 27 256 3125)                                                  
+                                      ===>  (1 4 27 256 3125)                                                 
 
       (apply + (list 3 4))            ===>  7    ;; not a primop yet though
 
@@ -509,7 +509,7 @@
       ;(eval '(* 7 3) (scheme-report-environment 5))
       ;                               ===>  21
 
-      ;(eval 'x (interaction-environment))       ;; defined above 
+      ;(eval 'x (interaction-environment))       ;; defined above
       ;                               ===> 28
 
       ;; most of the IO and system interaction don't apply to owl (yet)

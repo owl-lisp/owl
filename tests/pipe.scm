@@ -4,7 +4,7 @@
 
 (define (listen)
    (let ((res (try-get-block (car p) 1000 #false)))
-      (print 
+      (print
          (if (eq? res #true)
             'nothing
             res))))

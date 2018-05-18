@@ -4,10 +4,10 @@
 (define fs (factor n))
 
 (print
-   (if 
-      (= n 
-         (fold * 1 
-            (map 
+   (if
+      (= n
+         (fold * 1
+            (map
                (λ (p) (expt (car p) (cdr p)))
                fs)))
       #true

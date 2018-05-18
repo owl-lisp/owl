@@ -1,17 +1,17 @@
 
 ;; tests for (beginnings of) R7RS-style library support
 
-(define-library (foo test) 
-   (export bar) 
+(define-library (foo test)
+   (export bar)
    (import (owl base))
-   (begin 
+   (begin
       (define mine "ALPHA")
       (define bar "BAR"))
    (import)
 )
 
 (define-library (foo bar)
-   (import 
+   (import
       (owl base)
       (foo test))
    (export baz)
@@ -24,7 +24,7 @@
 
 (define-library (rename)
    (import (owl base))
-   (export 
+   (export
       (rename foo bar)
       (rename bar foo))
    (begin
@@ -56,7 +56,7 @@
 
 (define-library (test)
    (export foobar)
-   (import 
+   (import
       (owl base)
       (only (foobar) foo)
       (only (barfoo) bar))
@@ -76,7 +76,7 @@
          (print (cons foo bar)))
       (foobar)))
 
-;; nested and prefixing 
+;; nested and prefixing
 
 (define-library (aa)
    (import (owl base))
@@ -108,7 +108,7 @@
 (define-library (cond)
    (export test)
    (import (owl base))
-   (cond-expand 
+   (cond-expand
       (pyramid-scheme
          (import (only (norway) coasts))
          (begin
@@ -166,7 +166,7 @@
 
 (import (only (foo bar) b))
 
-(print (list a '_ b)) ; 
+(print (list a '_ b)) ;
 
 (import (except (foo bar) b))
 

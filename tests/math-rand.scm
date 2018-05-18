@@ -22,8 +22,8 @@
 ;;; Test subject creation
 ;;;
 
-; note, karatsuba kicks in when numbers are around 100 digits, 
-; and the same will probably hold for faster versions of other 
+; note, karatsuba kicks in when numbers are around 100 digits,
+; and the same will probably hold for faster versions of other
 ; algorithms later
 
 ;(define max-bits 2048)
@@ -103,7 +103,7 @@
 (define (any rs)
    (lets ((rs type (rand rs 5)))
       (case type
-         ((0) (fixnum rs)) 
+         ((0) (fixnum rs))
          ((1) (nat rs))
          ((2) (int rs))
          ((3) (rat rs))
@@ -128,9 +128,9 @@
 (define simple-numbers
 	(map (H expt 2) (iota 0 1 17)))
 
-;;; 
-;;;  Unit tests 
-;;; 
+;;;
+;;;  Unit tests
+;;;
 
 ; approximate a bunch of Forall x,y,... P(x,y,...)
 ; by checking several Exists x,y,... P(x,y,...) in the domain
@@ -156,29 +156,29 @@
 			(lambda (a b) (= (* a b) (* b a))))
 		(tuple 'binary any any 'add-cancel
 			(lambda (a b) (= a (- (+ a b) b))))
-		(tuple 'binary any any-nz 'mul-div-cancel	
+		(tuple 'binary any any-nz 'mul-div-cancel
 			(lambda (a b) (= a (/ (* a b) b))))
-		(tuple 'binary any any-nz 'div-mul-cancel 
+		(tuple 'binary any any-nz 'div-mul-cancel
 			(lambda (a b) (= a (* (/ a b) b))))
-		(tuple 'binary any any 'add-trans-one	
+		(tuple 'binary any any 'add-trans-one
 			(lambda (a b) (= (+ a (+ b 1)) (+ (+ a b) 1))))
-		(tuple 'binary any any 'mul-trans-two 
+		(tuple 'binary any any 'mul-trans-two
 			(lambda (a b) (= (* a (* b 2)) (* (* a b) 2))))
-		(tuple 'binary any any-nz 'div-twice 
+		(tuple 'binary any any-nz 'div-twice
 			(lambda (a b)	(= (/ (/ a b) b) (/ a (* b b)))))
-		(tuple 'binary int int-nz 'rem-abs-less 
+		(tuple 'binary int int-nz 'rem-abs-less
 			(lambda (a b) (< (abs (rem a b)) (abs b))))
-		(tuple 'binary int int-nz 'a=qb+r 	
+		(tuple 'binary int int-nz 'a=qb+r 
 			(lambda (a b) (= a (+ (* (div a b) b) (rem a b)))))
-		(tuple 'binary int nat 'shift-cancel 
+		(tuple 'binary int nat 'shift-cancel
 			(lambda (a b)
 				(let ((b (band b #x1ff))) (= a (>> (<< a b) b)))))
 		(tuple 'binary int nat 'shift-is-expt
 			(lambda (a b)
 				(let ((b (band b #xff)))
 					(= (<< a b) (* a (expt 2 b))))))
-		(tuple 'binary int int-nz 'quotrem=quot-rem	
-			(lambda (a b) 
+		(tuple 'binary int int-nz 'quotrem=quot-rem
+			(lambda (a b)
 				(receive (quotrem a b)
 					(lambda (q r)
 						(and (= q (div a b)) (= r (rem a b)))))))
@@ -243,27 +243,27 @@
 			(receive (gen-a rst)
 				(lambda (rst a)
 					;(print (list name a))
-					(if (test a) 
-						#true 
+					(if (test a)
+						#true
 						(error "Math unreliable: " (list 'test name 'a a 'rst rst))))))
 		((binary gen-a gen-b name test)
-			(let* 
+			(let*
 				(((rst a) (gen-a rst))
 				 ((rst b) (gen-b rst)))
 				;(print (list name a b))
-				(if (test a b) 
-					#true 
-					(error "Math unreliable: " 
+				(if (test a b)
+					#true
+					(error "Math unreliable: "
 						(list 'test name 'a a 'b b 'rst rst)))))
 		((trinary gen-a gen-b gen-c name test)
-			(let* 
+			(let*
 				(((rst a) (gen-a rst))
 				 ((rst b) (gen-b rst))
 				 ((rst c) (gen-c rst)))
 				;(print (list name a b c))
-				(if (test a b c) 
-					#true 
-					(error "Math unreliable: " 
+				(if (test a b c)
+					#true
+					(error "Math unreliable: "
 						(list 'test name 'a a 'b b 'c c 'rst rst)))))
 		(else
 			(error "Bad test: " test))))
@@ -278,7 +278,7 @@
 
 (define (type-ok? gen n) ; n is an integer from funny numbers
 	(cond
-		((eq? gen rat) #true)	
+		((eq? gen rat) #true)
 		((eq? gen rat-nz) (not (= n 0)))
 		((eq? gen nat) (>= n 0))
 		((eq? gen nat-nz) (> n 0))
@@ -301,28 +301,28 @@
 						((unary ta name test)
 							(if (type-ok? ta a)
 								(if (not (test a))
-									(error "Funny test failed: " 
+									(error "Funny test failed: "
 										(list 'test name 'using a)))))
 						((binary ta tb name test)
-							(fold 
+							(fold
 								(lambda (x b)
 									(if (and (type-ok? ta a) (type-ok? tb b))
 										(if (not (test a b))
-											(error "Funny test failed: " 
+											(error "Funny test failed: "
 												(list 'test name 'using a b))))) 1 nums))
 						((trinary ta tb tc name test)
 							(fold
 								(lambda (x b)
-									(fold 
+									(fold
 										(lambda (x c)
 											(if (and (type-ok? ta a) (type-ok? tb b)
 														(type-ok? tc c))
 												(if (not (test a b c))
-													(error "Funny test failed: " 
-														(list 'test name 
+													(error "Funny test failed: "
+														(list 'test name
 															'using a b c))))) 1 nums)) 1 nums))
 						(else
-							(print "run-funny-tests: too funny test: " 
+							(print "run-funny-tests: too funny test: "
 								test-node)))) 1 math-tests))
       1 nums))
 
@@ -333,7 +333,7 @@
 	; these often find the stupidest issus when hacking bignums
 	(print "Running simple number tests:")
 	(run-cartesian-test simple-numbers "Testing simple cases")
-	; these often find less trivial issues 
+	; these often find less trivial issues
 	(print "Running funny number tests:")
 	(run-cartesian-test funny-numbers "Testing cartesian products of funny numbers")
 	; these occasionally dig out issues

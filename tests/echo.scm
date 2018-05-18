@@ -7,7 +7,7 @@
 (define (echoer)
    (lets
       ((envelope (wait-mail))
-       (from msg envelope)) ; 
+       (from msg envelope)) ;
       (mail from msg)
       (echoer)))
 

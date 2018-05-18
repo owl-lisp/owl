@@ -25,7 +25,7 @@
 ;; \o\ (--------------- TODO ---------------------) /o/
 
 ;; direct variable arity calls coming from receive
-; minimal test for issue FIXME'd in owl/cps.scm 
+; minimal test for issue FIXME'd in owl/cps.scm
 ; (receive (values 42) (lambda x x))   ; (1)
 ; (print (receive (values 1) (lambda (x) x))) ; 1
 ; (print (receive (values 1) (lambda x x)))   ; (1)

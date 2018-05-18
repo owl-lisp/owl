@@ -17,7 +17,7 @@
                (if (dlog-simple y a n)
                   (error "dlog didn't solve " (list 'dlog y a n))
                   rs))
-            ((= y (expt-mod a x n)) ;; solved correctly 
+            ((= y (expt-mod a x n)) ;; solved correctly
                rs)
             (else
                (error "dlog failure: " (list (list 'dlog y a n) " = " x))))))

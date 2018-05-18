@@ -37,7 +37,7 @@
 		(lets ((rst n (rand rst 3)))
 			(cond
 				((eq? n 0) ;; insert
-					(lets 
+					(lets
 						((rst k (rand rst alpha))
 						 (rst v (rand rst alpha)))
 						(work rst (put ff k v) (lput lst k v) end alpha)))

@@ -7,7 +7,7 @@
 (define (echoer)
    (lets
       ((envelope (wait-mail))
-       (from msg envelope)) ; 
+       (from msg envelope)) ;
       (mail from msg)
       (echoer)))
 
@@ -27,7 +27,7 @@
          (if (check-mail) ;; if mail still in inbox, bug
             (print "too much")
             (print "ok"))
-         (lets 
+         (lets
             ((mail (wait-mail)) ; <- wait blockingly
              (from message mail))
             (if (eq? message n)

@@ -36,7 +36,7 @@ bin/vm: c/vm.c
 
 bin/diet-vm: c/vm.c
 	diet $(CC) -Os -o bin/diet-vm c/vm.c
-	strip bin/diet-vm 
+	strip bin/diet-vm
 
 bin/diet-ol: c/diet-ol.c
 	diet $(CC) -O2 -o bin/diet-ol c/diet-ol.c
@@ -56,7 +56,7 @@ manual.pdf: manual.md
 ## building standalone image out of the fixed point fasl image
 
 c/ol.c: fasl/ol.fasl
-	# compile the repl using the fixed point image 
+	# compile the repl using the fixed point image
 	bin/vm fasl/ol.fasl --run owl/ol.scm -s some -o c/ol.c
 
 c/diet-ol.c: fasl/ol.fasl
@@ -83,11 +83,11 @@ random-test: bin/vm bin/ol fasl/ol.fasl
 	CC="$(CC)" sh tests/run random bin/ol
 
 
-## data 
+## data
 
 owl/unicode-char-folds.scm:
-	echo "(define char-folds '(" > owl/unicode-char-folds.scm 
-	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.scm 
+	echo "(define char-folds '(" > owl/unicode-char-folds.scm
+	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.scm
 	echo "))" >> owl/unicode-char-folds.scm
 
 ## meta
@@ -129,7 +129,7 @@ standalone: c/ol.c c/vm.c
 fasl-update: fasl/ol.fasl
 	cp fasl/ol.fasl fasl/init.fasl
 
-todo: bin/vm 
+todo: bin/vm
 	bin/vm fasl/ol.fasl -n owl/*.scm | less
 
 .PHONY: all owl install uninstall todo test fasltest random-test owl standalone fasl-update clean simple-ol

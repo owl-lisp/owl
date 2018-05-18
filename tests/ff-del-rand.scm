@@ -5,7 +5,7 @@
 (define (try-perm rst)
 	(lets
 		((rst n (rand-range rst 1 200))
-		 (keys (iota 0 1 n)) 
+		 (keys (iota 0 1 n))
 
 		 ;; create a few permutations of numbers
 		 (rst perm-1 (random-permutation rst keys))

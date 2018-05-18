@@ -7,9 +7,9 @@
 (define (unsnoc l d) (let ((r (reverse l))) (if (null? r) (values d r) (values (car r) (reverse (cdr r))))))
 
 ; cl and l should have equal content
-; using balanced consing and unconsing, so this will start with short lists 
+; using balanced consing and unconsing, so this will start with short lists
 ; hitting null a few times and then will eventually wander to longer lists.
-(define (test rst cl l i) 
+(define (test rst cl l i)
    (if (eq? i 0)
       (if (equal? l (queue->list cl))
          (print "done")
@@ -23,14 +23,14 @@
                (lets ((rst n (rand rst 256)))
                   (test rst (qsnoc n cl) (snoc n l) (- i 1))))
             ((eq? op 2)
-               (lets 
+               (lets
                   ((a cl (quncons cl -1))
                    (b  l (uncons   l -1)))
                   (if (= a b)
                      (test rst cl l (- i 1))
                      (error "uncons gave different results for " (list 'cl cl 'l l)))))
             ((eq? op 3)
-               (lets 
+               (lets
                   ((a cl (qunsnoc cl -1))
                    (b  l (unsnoc   l -1)))
                   (if (= a b)

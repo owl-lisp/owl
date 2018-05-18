@@ -2,7 +2,7 @@
    (syntax-rules ()
       ((check (op a b) res)
          (if (not (eq? res (op a b)))
-            (begin 
+            (begin
                (write (list op a b))
                (print "FAIL"))))))
 

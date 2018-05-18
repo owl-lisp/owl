@@ -6,7 +6,7 @@ do
    NAME=$(grep "^(define-library " $FILE | head -n 1 | sed -e 's/.define-library //')
    echo "## $NAME"
    echo ""
-   grep "^;;;" "$FILE" | sed -re 's/;;; ?//' 
+   grep "^;;;" "$FILE" | sed -re 's/;;; ?//'
    echo ""
    echo
 done

@@ -6,7 +6,7 @@
 
 (import (owl sexp))
 
-;; simple expression pattern match 
+;; simple expression pattern match
 
 (define (match exp pat)
    (define (walk exp pat found)

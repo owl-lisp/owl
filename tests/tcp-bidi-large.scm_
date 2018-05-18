@@ -2,7 +2,7 @@
 
 ; ,r "lib/io.scm" (import lib-io)
 
-(define block-size 64)     ;; todo: must add block-size support the channel and vary this above it 
+(define block-size 64)     ;; todo: must add block-size support the channel and vary this above it
 (define data-length 1000)  ;; how much data to transfer
 
 (define sp
@@ -71,7 +71,7 @@
                (wait n)
                (io fd rst data left reqs)))
          ((and (null? data) (= left 0)) ;; all sent and enough received
-            (let loop ((reqs reqs)) ;; read responses to remaining requests 
+            (let loop ((reqs reqs)) ;; read responses to remaining requests
                (if (= reqs 0)
                   null ;; all done
                   (let ((env (wait-mail)))

@@ -1,7 +1,7 @@
 ;; case-lambda is being added
 ;; here are things that happen to work at the moment
 
-;; downgrades to regular lambdas 
+;; downgrades to regular lambdas
 
 (define foo (case-lambda (x x)))
 (print (foo 1 2 3))

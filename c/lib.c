@@ -6,7 +6,7 @@ void init() {
    heap_metrics(&nwords, &nobjs);
    max_heap_mb = (W == 4) ? 4096 : 65535;
    nwords += nobjs + INITCELLS;
-   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W); 
+   memstart = genstart = fp = (word *) realloc(NULL, (nwords + MEMPAD)*W);
    if (!memstart) exit(4);
    memend = memstart + nwords - MEMPAD;
    state = (word) load_heap(nobjs);
@@ -29,7 +29,7 @@ word library_call(size_t len, char *ptr) {
       return (char *) NULL;
    }
    size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
-   printf("making an argument byte vector with %d bytes in %d words\n", len, size);     
+   printf("making an argument byte vector with %d bytes in %d words\n", len, size);    
    pads = (size-1)*W - len;
    bvec = fp;
    fp += size;

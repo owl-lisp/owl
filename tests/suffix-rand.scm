@@ -1,6 +1,6 @@
 ;; test a suffix array
 
-; note: end = minimum 
+; note: end = minimum
 
 (define (lex-less? vec a b)
    (let ((end (vec-len vec)))
@@ -13,12 +13,12 @@
                   (cond
                      ((< av bv) #true)
                      ((= av bv) (loop (+ a 1) (+ b 1)))
-                     (else 
+                     (else
                         #false))))))))
 
 (define (naive-array data)
    (list->vector
-      (sort 
+      (sort
          (λ (a b) (lex-less? data a b))
          (iota 0 1 (vec-len data)))))
 
@@ -39,7 +39,7 @@
             'bug))))
 
 (let loop ((rst (seed->rands (expt (time-ms) 4))) (n 0))
-   (if (< n 10) 
+   (if (< n 10)
       (begin
          (print n)
          (loop (try rst 1024 2) (+ n 1)))))

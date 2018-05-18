@@ -7,7 +7,7 @@
 
 (print (xzip (1 2 3 4 5) (11 22 33 44 55)))
 
-(define-syntax xunzip 
+(define-syntax xunzip
    (syntax-rules ()
       ((xunzip (a b) ...)
          (list (list a ...) (list b ...)))))
@@ -24,7 +24,7 @@
 
 ;; check for issue #164-ish error
 
-;; note: as per spec (foo a b ...) → ((a b) ...) isn't ok, since b can occur in a pattern with 
+;; note: as per spec (foo a b ...) → ((a b) ...) isn't ok, since b can occur in a pattern with
 ;; ellipsis, but a has only one match
 
 (define-syntax foo
