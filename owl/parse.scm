@@ -32,6 +32,7 @@
       fd->exp-stream
       file->exp-stream
       silent-syntax-fail
+      resuming-syntax-fail ;; error-msg → _
       )
 
    (import
@@ -234,7 +235,32 @@
       ;; computes rest of parser stream
       (define (silent-syntax-fail val)
          (λ (cont ll msg) val))
-            
+
+      (define (fast-forward ll)
+         (if (pair? ll)
+            (fast-forward (cdr ll))
+            ll))
+      
+      (define (whitespace? ll)
+         (cond
+            ((null? ll) #t)
+            ((not (pair? ll)) #f)
+            ((memq (car ll) '(#\newline #\space #\return #\tab))
+               (whitespace? (cdr ll)))
+            (else #f)))
+         
+      (define (resuming-syntax-fail error-reporter)
+         (λ (cont ll msg) 
+            ;; this is a bit of a hack
+            ;; allow common whitespace at end of input, because parsers typically define structure 
+            ;; only up to last byte byte needed for recognition in order to avoid blocking
+            (let ((rest (fast-forward ll)))
+               (if (and (null? rest) (whitespace? ll))
+                  (cont null)
+                  (begin
+                     (error-reporter msg)
+                     (cont rest))))))
+      
       ; (parser l r ok) → (ok l' r' val) | (backtrack l r why)
       ;   ... → l|#f r result|error
       ;; prompt removed from here - it belongs elsewhere
@@ -251,12 +277,8 @@
                         ;; typically there is whitespace, so this does not happen
                         null)
                      ((function? fail)
-                        ;null
-                        (fail loop r val)
-                        )
+                        (fail loop r val))
                      (else
-                        ;; error handling being converted
-                        ;(print-to stderr "fd->exp-stream: syntax error")
                         null))))))
 
       (define (file->exp-stream path parser fail)

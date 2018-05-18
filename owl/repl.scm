@@ -742,7 +742,14 @@
       ;; run the repl on a fresh input stream, report errors and catch exit
 
       (define (stdin-sexp-stream env bounced?)
-         (λ () (fd->exp-stream stdin sexp-parser (silent-syntax-fail null))))
+         (λ () 
+            (fd->exp-stream stdin sexp-parser 
+               (resuming-syntax-fail 
+                  (λ (x) 
+                     ;; x is not typically a useful error message yet
+                     (print ";; syntax error")
+                     (if (env-get env '*interactive* #false)
+                        (display "> ")))))))  ;; reprint prompt
 
       (define (repl-trampoline repl env)
          (let boing ((repl repl) (env env) (bounced? #false))
