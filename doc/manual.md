@@ -33,7 +33,7 @@ Common Lisp is one of the major current dialects.
 It is used by several commercial applications.
 Scheme is another modern version of Lisp.
 It attempts to define a small core of constructs
-   out of which many kinds of programming primitives can be built. 
+   out of which many kinds of programming primitives can be built.
 
 Owl is essentially a small step from the multi-paradigm world of Scheme
    into a purely functional one.

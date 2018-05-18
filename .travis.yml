@@ -1,10 +1,10 @@
 language: c
 
-before_install: 
+before_install:
   - uname
   - (uname | grep Linux && sudo apt-get update -qq && sudo apt-get install -y gcc-multilib libc6-dev-i386) || true
 
-os: 
+os:
   - linux
   - osx
 
@@ -14,5 +14,5 @@ compiler:
 
 env:
   - CFLAGS="-O2"
-   
+
 script: make

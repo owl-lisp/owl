@@ -29,7 +29,7 @@ word library_call(size_t len, char *ptr) {
       return (char *) NULL;
    }
    size = ((len % W) == 0) ? (len/W)+1 : (len/W) + 2;
-   printf("making an argument byte vector with %d bytes in %d words\n", len, size);   
+   printf("making an argument byte vector with %d bytes in %d words\n", len, size);
    pads = (size-1)*W - len;
    bvec = fp;
    fp += size;
@@ -56,5 +56,3 @@ int main(int nargs, char **argv) {
    library_call(4, &baz);
    return 0;
 }
-
-

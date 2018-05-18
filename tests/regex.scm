@@ -202,6 +202,5 @@
    (print "'+-----------------------------------'")
    (if (fold (λ (a t) (and a (test (car t) (cadr t) (caddr t))))
          #true regex-tests)
-   (print " '--> ~~\\o\\ ALL TESTS PASSED /o/~~ ")
+   (print " '--> ~~\\o\\ ALL TESTS PASSED /o/~~")
    (error "ONE OR MORE TEST FAILED" "NNNOOOO000"))) ;; <- aborts heap building
-
