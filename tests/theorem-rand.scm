@@ -58,7 +58,7 @@
          (lets ((rs n (rand rs (length l))))
             (values rs (list-ref l n))))))
 
-;; todo: precedence: ¬ ∧ ∨ ∀ ∃ ⇒ 
+;; todo: precedence: ¬ ∧ ∨ ∀ ∃ ⇒
 ;; todo:
 ;; todo: is the ∀ a ∊ A P == ∀ a (a ∊ A) ⇒ P worth having a nonstandard syntax?
 ;; plan: (translate rs env thing ... OP . rst) -> translate left and right sides around op, convert to (OP-value first rest)
@@ -395,7 +395,7 @@
 
       theorem quotrem-1
          ∀ a b ∊ Int
-            (nonzero? b) ⇒ 
+            (nonzero? b) ⇒
                (lets ((q r (quotrem a b)))
                   (and (< (abs r) (abs b)) (= (+ (* q b) r) a)))
 
@@ -491,7 +491,7 @@
 
       theorem pick-test
          ∀ l ∊ (List-of Byte)
-            (pair? l) ⇒ 
+            (pair? l) ⇒
                e ∊ l
                (< e 256)
 

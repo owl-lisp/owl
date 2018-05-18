@@ -183,30 +183,30 @@
               ((< (car numbers) 0)
                (loop (cdr numbers)
                      nonneg
-                     (cons (car numbers) neg)))))  
+                     (cons (car numbers) neg))))) 
                                       ===>  ((6 1 3) (-5 -2))
 
    chapter "4.2.6"
 
       `(list ,(+ 1 2) 4)              ===>  (list 3 4)
-      (let ((name 'a)) `(list ,name ',name))           
+      (let ((name 'a)) `(list ,name ',name))          
                                       ===>  (list a (quote a))
-      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)            
+      `(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)           
                                       ===>  (a 3 4 5 6 b)
       `(( foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons)))
                                       ===>  ((foo 7) . cons)
       `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8) ;; note: will fail unless sqrt preserves exactness
                                      ===>  #(10 5 2 4 3 8)
 
-     `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)         
+     `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)        
                                       ===>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
-     (let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))          
+     (let ((name1 'x) (name2 'y)) `(a `(b ,,name1 ,',name2 d) e))         
                                       ===>  (a `(b ,x ,'y d) e)
 
 
-      (quasiquote (list (unquote (+ 1 2)) 4))          
+      (quasiquote (list (unquote (+ 1 2)) 4))         
                                       ===>  (list 3 4)
-      '(quasiquote (list (unquote (+ 1 2)) 4))         
+      '(quasiquote (list (unquote (+ 1 2)) 4))        
                                       ===>  `(list ,(+ 1 2) 4)
 
    chapter "4.3.2"
@@ -403,11 +403,11 @@
       (assq 'b e)                     ===>  (b 2)
       (assq 'd e)                     ===>  #f
       (assq (list 'a) '(((a)) ((b)) ((c))))
-                                      ===>  #f                                                                                                                           
+                                      ===>  #f                                                                                                                          
       (assoc (list 'a) '(((a)) ((b)) ((c))))
-                                      ===>  ((a))                                                                                                             
+                                      ===>  ((a))                                                                                                            
       (assv 5 '((2 3) (5 7) (11 13)))
-                                      ===>  (5 7)                   
+                                      ===>  (5 7)                  
 
    chapter "6.3.3"
 
@@ -416,7 +416,7 @@
       (symbol? "bar")                 ===>  #f
       (symbol? 'nil)                  ===>  #t
       (symbol? '())                   ===>  #f
-      (symbol? #f)                    ===>  #f                  
+      (symbol? #f)                    ===>  #f                 
 
       (symbol->string 'flying-fish)   ===>  "flying-fish"
       (symbol->string 'martin)        ===>  "martin"     ;; note, not 'Martin
@@ -458,7 +458,7 @@
       (vector? '(foo))                ===> #f
       (vector 'a 'b 'c)               ===>  #(a b c)
 
-      (vector-ref '#(1 1 2 3 5 8 13 21) 5) 
+      (vector-ref '#(1 1 2 3 5 8 13 21) 5)
                                       ===>  8
    chapter "6.4"
 
@@ -473,7 +473,7 @@
 
       (map cadr '((a b) (d e) (g h))) ===>  (b e h)
       (map (lambda (n) (expt n n)) '(1 2 3 4 5))
-                                      ===>  (1 4 27 256 3125)                                                 
+                                      ===>  (1 4 27 256 3125)                                                
 
       (apply + (list 3 4))            ===>  7    ;; not a primop yet though
 

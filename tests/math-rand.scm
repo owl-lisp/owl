@@ -168,7 +168,7 @@
 			(lambda (a b)	(= (/ (/ a b) b) (/ a (* b b)))))
 		(tuple 'binary int int-nz 'rem-abs-less
 			(lambda (a b) (< (abs (rem a b)) (abs b))))
-		(tuple 'binary int int-nz 'a=qb+r 
+		(tuple 'binary int int-nz 'a=qb+r
 			(lambda (a b) (= a (+ (* (div a b) b) (rem a b)))))
 		(tuple 'binary int nat 'shift-cancel
 			(lambda (a b)

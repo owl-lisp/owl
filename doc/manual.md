@@ -33,7 +33,7 @@ Common Lisp is one of the major current dialects.
 It is used by several commercial applications.
 Scheme is another modern version of Lisp.
 It attempts to define a small core of constructs
-   out of which many kinds of programming primitives can be built.  
+   out of which many kinds of programming primitives can be built. 
 
 Owl is essentially a small step from the multi-paradigm world of Scheme
    into a purely functional one.
@@ -44,7 +44,7 @@ Scheme programs are usually mainly functional
 
 These days compiler construction and parsing are usually taught towards
 the end of computer science curriculum, if at all. This is probably
-due to the complexity of modern programming languages and environments. 
+due to the complexity of modern programming languages and environments.
 Parsers and compilers, the typical building blocks of programming language
 implementations, seem like dark magic only a few select pupils and
 devout lone programmers are fit to approach.
