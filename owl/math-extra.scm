@@ -202,7 +202,7 @@
 
       (define (ln+ n)   ; return a number >= floor(ln(n))
          (let loop ((a 1) (b 1) (p 0))
-            (if (> (div a b) n)
+            (if (> (quotient a b) n)
                p
                (loop (* a 25946) (* b 9545) (+ p 1)))))
 

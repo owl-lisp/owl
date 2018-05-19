@@ -169,7 +169,7 @@
 		(tuple 'binary int int-nz 'rem-abs-less
 			(lambda (a b) (< (abs (rem a b)) (abs b))))
 		(tuple 'binary int int-nz 'a=qb+r
-			(lambda (a b) (= a (+ (* (div a b) b) (rem a b)))))
+			(lambda (a b) (= a (+ (* (quotient a b) b) (rem a b)))))
 		(tuple 'binary int nat 'shift-cancel
 			(lambda (a b)
 				(let ((b (band b #x1ff))) (= a (>> (<< a b) b)))))
@@ -181,7 +181,7 @@
 			(lambda (a b)
 				(receive (truncate/ a b)
 					(lambda (q r)
-						(and (= q (div a b)) (= r (rem a b)))))))
+						(and (= q (quotient a b)) (= r (rem a b)))))))
 		(tuple 'binary nat nat 'xor-trans
 			(lambda (a b) (= (bxor (bxor a b) b) (bxor a (bxor b b)))))
 		(tuple 'binary nat-nz nat-nz 'logarithm

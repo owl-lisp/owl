@@ -21,12 +21,11 @@
       + - * = /
       << < <= = >= > >>
       band bor bxor
-      div ediv rem mod truncate/
+      quotient ediv rem mod truncate/
       add nat-succ sub mul big-bad-args negate
       even? odd?
       gcd gcdl lcm
       min max minl maxl
-      quotient quot
       floor ceiling ceil abs
       sum product
       numerator denumerator
@@ -1383,9 +1382,9 @@
                (else (cast q type-int-)))))
 
       ; todo, drop this and use just truncate/
-      (define (div a b)
+      (define (quotient a b)
          (if (eq? b 0)
-            (big-bad-args 'div a b)
+            (big-bad-args 'quotient a b)
             (case (type a)
                (type-fix+
                   (case (type b)
@@ -1393,29 +1392,29 @@
                      (type-fix- (div-fixnum->negative a b))                  ; +a / -b -> -c | 0
                      (type-int+ 0)                                             ; +a / +B -> 0
                      (type-int- 0)                                             ; +a / -B -> 0
-                     (else (big-bad-args 'div a b))))
+                     (else (big-bad-args 'quotient a b))))
                (type-fix-
                   (case (type b)
                      (type-fix+ (div-fixnum->negative a b))                  ; -a / +b -> -c | 0
                      (type-fix- (lets ((_ q r (fxqr 0 a b))) q))             ; -a / -b -> +c
                      (type-int+ 0)                                           ; -a / +B -> 0
                      (type-int- 0)                                             ; -a / -B -> 0
-                     (else (big-bad-args 'div a b))))
+                     (else (big-bad-args 'quotient a b))))
                (type-int+
                   (case (type b)
                      (type-fix+ (lets ((q r (qr-big-small a b))) q))   ; +A / +b -> +c | +C
                      (type-fix- (div-big-num->negative a b))            ; +A / -b -> -c | -C
                      (type-int+ (div-big a b))                           ; +A / +B -> 0 | +c | +C
                      (type-int- (div-big->negative a (negate b)))      ; +A / -B -> 0 | -c | -C
-                     (else (big-bad-args 'div a b))))
+                     (else (big-bad-args 'quotient a b))))
                (type-int-
                   (case (type b)
                      (type-fix+ (div-big-num->negative a b))            ; -A / +b -> -c | -C
                      (type-fix- (lets ((q r (qr-big-small a b))) q))    ; -A / -b -> +c | +C
                      (type-int+ (div-big->negative (negate a) b))                     ; -A / +B -> 0 | -c | -C
                      (type-int- (div-big (negate a) (negate b)))                              ; -A / -B -> 0 | +c | +C
-                     (else (big-bad-args 'div a b))))
-               (else (big-bad-args 'div a b)))))
+                     (else (big-bad-args 'quotient a b))))
+               (else (big-bad-args 'quotient a b)))))
 
       (define-syntax fx%
          (syntax-rules ()
@@ -1459,7 +1458,6 @@
             (else (big-bad-args 'rem a b))))
 
       (define remainder rem)
-      (define quotient div)
 
       ; fixme, only true when the signs are the same, but left here as a placeholder
 
@@ -1607,7 +1605,7 @@
                   ((eq? (type b) type-fix-) (rational (negate a) (negate b)))
                   ((eq? (type b) type-int-) (rational (negate a) (negate b)))
                   (else (rational a b)))
-               (rationalize (div a f) (div b f)))))
+               (rationalize (quotient a f) (quotient b f)))))
 
       ;; if dividing small fixnums, do it with primops
       (define (divide-simple a b)
@@ -1931,15 +1929,15 @@
          (if (eq? (type n) type-rational)
             (lets ((a b n))
                (if (negative? a)
-                  (negate (nat-succ (div (abs a) b)))
-                  (div a b)))
+                  (negate (nat-succ (quotient (abs a) b)))
+                  (quotient a b)))
             n))
 
       (define (ceiling n)
          (if (eq? (type n) type-rational)
             (lets ((a b n))
                (if (negative? a)
-                  (div a b)
+                  (quotient a b)
                   (nat-succ (floor n))))
             n))
 
@@ -1947,8 +1945,8 @@
          (if (eq? (type n) type-rational)
             (lets ((a b n))
                (if (negative? a)
-                  (negate (div (negate a) b))
-                  (div a b)))
+                  (negate (quotient (negate a) b))
+                  (quotient a b)))
             n))
 
       (define (round n)
@@ -1958,7 +1956,7 @@
                   (if (negative? a)
                      (>> (sub a 1) 1)
                      (>> (nat-succ a) 1))
-                  (div a b)))
+                  (quotient a b)))
             n))
 
       (define (sum l) (fold add (car l) (cdr l)))
@@ -1968,9 +1966,7 @@
       ;;; Alternative names
       ;;;
 
-      (define quot div) ; switch the other way around later
       (define ceil ceiling)
-      (define quotient quot)
 
       ; for all numbers n == (/ (numerator n) (denumerator n))
 
@@ -2060,14 +2056,14 @@
       ;   (H log 2)
       ;   log2)
 
-      ; note: it is safe to use div, which is faster for bignums, because by definition
-      ; the product is divisble by the gcd. also, gcd 0 0 is not safe, but since (lcm
-      ; a a) == a, handlin this special case and and a small optimization overlap nicely.
+      ; note: It is safe to use quotient, which is faster for bignums, because by definition
+      ; the product is divisible by the gcd. Also, gcd 0 0 is not safe, but since (lcm
+      ; a a) == a, handling this special case and a small optimization overlap nicely.
 
       (define (lcm a b)
          (if (eq? a b)
             a
-            (div (abs (mul a b)) (gcd a b))))
+            (quotient (abs (mul a b)) (gcd a b))))
 
 
       ;;;

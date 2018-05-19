@@ -151,7 +151,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
    (list
          put get del ff-fold fupd
          - + * /
-         div gcd ediv
+         quotient gcd ediv
          << < <= = >= > >>
          equal? memq member
          band bor bxor

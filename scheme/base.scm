@@ -310,6 +310,8 @@
       ;      (lets ((f l l)) (if (null? l) (func a b c d e f)
       ;         (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
 
+      (define truncate-quotient quotient)
+
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
       (define rationalize K)
@@ -372,7 +374,6 @@
       (define-missing-bad unless)
       (define-missing-bad u8-ready?)
       (define-missing-bad truncate-remainder)
-      (define-missing-bad truncate-quotient)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
       (define-missing-bad string-for-each)

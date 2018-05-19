@@ -302,10 +302,10 @@
          ;((lim #b111111111111111111111111))
          (let loop ((rs (seed->rands (time-ms))) (n 0) (sum 0))
             (if (eq? 0 (band 1023 n))
-               (let ((avg (div sum (max n 1))))
+               (let ((avg (quotient sum (max n 1))))
                   (print
                      (list "at " n " sum " sum " avg " avg " delta percent "
-                        (let ((perc (div (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
+                        (let ((perc (quotient (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
                            perc)))))
             (lets ((rs val (rand rs lim)))
                (loop rs (+ n 1) (+ sum val)))))
