@@ -23,11 +23,9 @@
       str-iterr          ; "a .. n" -> lazy (n .. a) list
       str-fold           ; fold over code points, as in lists
       str-foldr          ; ditto
-      str-app            ; a ++ b, temp
       str-iter-bytes     ; "a .. n" -> lazy list of UTF-8 encoded bytes
-      ; later: str-len str-ref str-set str-append...
       str-replace        ; str pat value -> str' ;; todo: drop str-replace, we have regexen now
-      str-map            ; op str → str'
+      string-map         ; op str → str'
       str-rev
       string             ; (string char ...) → str
       string-copy        ; id
@@ -256,12 +254,10 @@
 
       ;;; temps
 
-      ; fixme: str-app is VERY temporary
+      ; FIXME: string-append is VERY temporary
       ; figure out how to handle balancing. 234-trees with occasional rebalance?
-      (define (str-app a b)
-         (bytes->string
-            (render-string a
-               (render-string b null))))
+      (define (string-append . lst)
+         (bytes->string (foldr render-string null lst)))
 
       (define (string-eq-walk a b)
          (cond
@@ -289,9 +285,6 @@
             (if (= (string-length b) la)
                (string-eq-walk (str-iter a) (str-iter b))
                #false)))
-
-      (define (string-append . str)
-         (fold str-app "" str))
 
       (define string->list string->runes)
       (define list->string runes->string)
@@ -354,7 +347,7 @@
                (string->runes pat)
                (string->runes val))))
 
-      (define (str-map op str)
+      (define (string-map op str)
          (runes->string
             (lmap op (str-iter str))))
 

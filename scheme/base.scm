@@ -329,6 +329,9 @@
       (define inexact self)
       (define exact-integer? integer?)
 
+      (define (string-for-each proc str)
+         (str-fold (λ (_ c) (proc c)) #t str))
+
       (define string->number
          (case-lambda
             ((str base)
@@ -376,8 +379,6 @@
       (define-missing-bad utf8->string)
       (define-missing-bad u8-ready?)
       (define-missing-bad string-set!)
-      (define-missing-bad string-map)
-      (define-missing-bad string-for-each)
       (define-missing-bad string-fill!)
       (define-missing-bad string-copy!)
       (define-missing-bad string->vector)
