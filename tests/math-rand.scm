@@ -177,9 +177,9 @@
 			(lambda (a b)
 				(let ((b (band b #xff)))
 					(= (<< a b) (* a (expt 2 b))))))
-		(tuple 'binary int int-nz 'quotrem=quot-rem
+		(tuple 'binary int int-nz 'truncate/=quot-rem
 			(lambda (a b)
-				(receive (quotrem a b)
+				(receive (truncate/ a b)
 					(lambda (q r)
 						(and (= q (div a b)) (= r (rem a b)))))))
 		(tuple 'binary nat nat 'xor-trans

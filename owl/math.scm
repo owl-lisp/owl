@@ -21,7 +21,7 @@
       + - * = /
       << < <= = >= > >>
       band bor bxor
-      div ediv rem mod quotrem mod divmod
+      div ediv rem mod truncate/
       add nat-succ sub mul big-bad-args negate
       even? odd?
       gcd gcdl lcm
@@ -1382,7 +1382,7 @@
                (type-fix+ (cast q type-fix-))
                (else (cast q type-int-)))))
 
-      ; todo, drop this and use just quotrem
+      ; todo, drop this and use just truncate/
       (define (div a b)
          (if (eq? b 0)
             (big-bad-args 'div a b)
@@ -1466,16 +1466,16 @@
       ;(print "math.scm: fix mod")
       (define mod rem)
 
-      ; required when (quotrem a b) -> q,r and b != 0
+      ; required when (truncate/ a b) -> q,r and b != 0
       ;   a = q*b + r
       ;    |r| < |b|
       ;    -a/b = a/-b = -(a/b)
 
       ; note: rem has sign of a, mod that of b
 
-      (define (quotrem a b)
+      (define (truncate/ a b)
          (if (eq? b 0)
-            (big-bad-args 'quotrem a b)
+            (big-bad-args 'truncate/ a b)
             (case (type a)
                (type-fix+
                   (case (type b)
@@ -1483,7 +1483,7 @@
                      (type-int+ (values 0 a))
                      (type-fix- (receive (fxqr 0 a b) (lambda (_ q r) (values (negate q) r))))
                      (type-int- (values 0 a))
-                     (else (big-bad-args 'quotrem a b))))
+                     (else (big-bad-args 'truncate/ a b))))
                (type-int+
                   (case (type b)
                      (type-fix+ (receive (qr-big-small a b) (lambda (q r) (values q r))))
@@ -1491,7 +1491,7 @@
                      (type-fix- (receive (qr-big-small a b) (lambda (q r) (values (negate q) r))))
                      (type-int- (receive (nat-quotrem a (negate b))
                               (lambda (q r) (values (negate q) r))))
-                     (else (big-bad-args 'quotrem a b))))
+                     (else (big-bad-args 'truncate/ a b))))
                (type-fix-
                   (case (type b)
                      (type-fix+
@@ -1499,7 +1499,7 @@
                      (type-fix- (receive (fxqr 0 a b) (lambda (_ q r) (values q (negate r)))))
                      (type-int+ (values 0 a))
                      (type-int- (values 0 a))
-                     (else (big-bad-args 'quotrem a b))))
+                     (else (big-bad-args 'truncate/ a b))))
                (type-int-
                   (case (type b)
                      (type-fix+
@@ -1510,12 +1510,9 @@
                               (lambda (q r) (values (negate q) (negate r)))))
                      (type-int- (receive (nat-quotrem (negate a) (negate b))
                               (lambda (q r) (values q (negate r)))))
-                     (else (big-bad-args 'quotrem a b))))
+                     (else (big-bad-args 'truncate/ a b))))
                (else
-                  (big-bad-args 'quotrem a b)))))
-
-      ;(print "math.scm: fix quotrem")
-      (define divmod quotrem)
+                  (big-bad-args 'truncate/ a b)))))
 
 
       ;;;
@@ -2082,7 +2079,7 @@
 
       (define (render-digits num tl base)
          (fold (λ (a b) (cons b a)) tl
-            (unfold (λ (n) (lets ((q r (quotrem n base))) (values (char-of r) q))) num zero?)))
+            (unfold (λ (n) (lets ((q r (truncate/ n base))) (values (char-of r) q))) num zero?)))
 
       ;; move to math.scm
 

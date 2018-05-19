@@ -256,7 +256,7 @@
              (m *max-fixnum*))
             (if (eq? r m)
                (values rs 0)
-               (lets ((q r (quotrem (* n r) m)))
+               (lets ((q r (truncate/ (* n r) m)))
                   (values rs q)))))
 
       ;; like rand-fixnum, but <= limit instead of <

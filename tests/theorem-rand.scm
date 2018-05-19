@@ -393,10 +393,10 @@
             S ← (λ (x) (* x x))
             (S (* a b)) = (* (S a) (S b))
 
-      theorem quotrem-1
+      theorem quot-rem-1
          ∀ a b ∊ Int
             (nonzero? b) ⇒
-               (lets ((q r (quotrem a b)))
+               (lets ((q r (truncate/ a b)))
                   (and (< (abs r) (abs b)) (= (+ (* q b) r) a)))
 
       theorem expt-1

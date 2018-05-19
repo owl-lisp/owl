@@ -110,9 +110,9 @@
             (else
                (lets
                   ((y   (- y 1))
-                   (a _ (quotrem y 4))
-                   (b _ (quotrem y 100))
-                   (c _ (quotrem y 400)))
+                   (a _ (truncate/ y 4))
+                   (b _ (truncate/ y 100))
+                   (c _ (truncate/ y 400)))
                   (+ 1 (- (+ (- a 0) (- c 0)) (- b 0)))))))
 
       (define (year-start-day y)
@@ -212,8 +212,8 @@
             (let loop ((d 1) (m 1) (y y) (s s))
                (if (< s day)
                   (lets
-                     ((hour s (quotrem s hour))
-                      (min s (quotrem s minute)))
+                     ((hour s (truncate/ s hour))
+                      (min s (truncate/ s minute)))
                      (values d m y hour min s))
                   (lets ((d m y (next-date d m y)))
                      (loop d m y (- s day)))))))
@@ -233,8 +233,8 @@
          (lets ((d m y H M S (naive-date (+ s tz)))
                 (tz-sign (if (< tz 0) "-" "+"))
                 (tz (abs tz))
-                (tz-mins _ (quotrem tz 60))
-                (tz-hours tz-mins (quotrem tz-mins 60)))
+                (tz-mins _ (truncate/ tz 60))
+                (tz-hours tz-mins (truncate/ tz-mins 60)))
             (str (zpad H) H ":" (zpad M) M ":" (zpad S) S
                  " " d "." m "." y
                  " UTC" tz-sign (zpad tz-hours) tz-hours ":" (zpad tz-mins) tz-mins)))

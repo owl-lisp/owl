@@ -371,7 +371,6 @@
       (define-missing-bad utf8->string)
       (define-missing-bad unless)
       (define-missing-bad u8-ready?)
-      (define-missing-bad truncate/)
       (define-missing-bad truncate-remainder)
       (define-missing-bad truncate-quotient)
       (define-missing-bad string-set!)
