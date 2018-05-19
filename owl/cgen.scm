@@ -105,9 +105,7 @@
       ;; drop code to check that value in ref is a pointer (not immediate) unless this is already known in regs
       (define (assert-alloc regs reg op tl)
          (if (alloc? (get regs reg #false))
-            (begin
-               ;(print " >>> no need to assert <<<")
-               tl)
+            tl
             (ilist "assert(allocp(R["reg"]),R["reg"],"op");" tl)))
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -639,16 +637,13 @@
       ;; obj extras → #false | (arity . c-code-string), to become #[arity 0 hi8 lo8] + c-code in vm
       (define (compile-to-c code extras)
          (if (bytecode? code)
-            (begin
-               (let ((ops (code->bytes code extras)))
-                  ; (print " ************************************************** " ops)
-                  (call/cc
-                     (λ (ret)
-                        (list->string
-                           (foldr render null
-                              (emit-c ops empty (λ () (ret #false)) null)))))))
+            (let ((ops (code->bytes code extras)))
+               (call/cc
+                  (λ (ret)
+                     (list->string
+                        (foldr render null
+                           (emit-c ops empty (λ () (ret #false)) null))))))
             #false))
-
-   ))
+))
 ; (import (owl cgen))
 ; (print (compile-to-c sys-prim *vm-special-ops*))

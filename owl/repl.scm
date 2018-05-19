@@ -130,13 +130,12 @@
          (lets
             ((meta (env-get env meta-tag empty))
              (info (getf meta val)))
-            (if info
-               (begin
-                  (display ";; ")
-                  (if (list? info)
-                     (for-each (λ (x) (display x) (display " ")) info)
-                     info)
-                  (newline)))))
+            (when info
+               (display ";; ")
+               (if (list? info)
+                  (for-each (λ (x) (display x) (display " ")) info)
+                  info)
+               (newline))))
 
       ;; render the value if *interactive*, and print as such (or not at all) if it is a repl-message
       ;; if interactive mode and output fails, the error is fatal

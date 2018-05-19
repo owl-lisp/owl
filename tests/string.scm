@@ -1,10 +1,9 @@
 (define-syntax check
    (syntax-rules ()
       ((check (op a b) res)
-         (if (not (eq? res (op a b)))
-            (begin
-               (write (list op a b))
-               (print "FAIL"))))))
+         (unless (eq? res (op a b))
+            (write (list op a b))
+            (print "FAIL")))))
 
 (check (string<? "" "")      #false)
 (check (string<? "" "a")     #true)
@@ -43,4 +42,3 @@
 
 (check (string-ci>=? "ΑΒΓΔΕΖΗΘ" "αβγδεζηθ") #true)
 (check (string-ci<=? "ΑΒΓΔΕΖΗΘ" "αβγδεζηθ") #true)
-
