@@ -322,6 +322,7 @@
       (define (inexact? n) #f)
       (define exact self)
       (define inexact self)
+      (define exact-integer? integer?)
 
       (define string->number
          (case-lambda
@@ -421,7 +422,6 @@
       (define-missing-bad floor-quotient)
       (define-missing-bad file-error?)
       (define-missing-bad features)
-      (define-missing-bad exact-integer?)
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
