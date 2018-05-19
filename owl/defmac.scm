@@ -3,8 +3,9 @@
 
    (export
       λ syntax-error begin
-      quasiquote letrec let if
+      quasiquote letrec let
       letrec* let*-values
+      if when unless
       cond case define define*
       lets let* or and list
       ilist tuple tuple-case
@@ -144,6 +145,16 @@
             ((if #false then else) else)
             ((if #true then else) then)
             ((if test then else) (_branch 0 test #false else then))))
+
+      (define-syntax when
+         (syntax-rules ()
+            ((when test exp1 exp2 ...)
+               (if test (begin exp1 exp2 ...) #f))))
+
+      (define-syntax unless
+         (syntax-rules ()
+            ((unless test exp1 exp2 ...)
+               (if test #f (begin exp1 exp2 ...)))))
 
       (define-syntax cond
          (syntax-rules (else =>)

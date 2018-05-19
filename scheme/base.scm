@@ -338,11 +338,6 @@
       (define (number->string/base n base)
          (list->string (render-number n null base)))
 
-      (define-syntax when
-         (syntax-rules ()
-            ((when test exp ...)
-               (if test (begin exp ...)))))
-
       (define number->string
          (case-lambda
             ((n) (number->string/base n 10))
@@ -374,7 +369,6 @@
       (define-missing-bad vector-append)
       (define-missing-bad vector->string)
       (define-missing-bad utf8->string)
-      (define-missing-bad unless)
       (define-missing-bad u8-ready?)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
