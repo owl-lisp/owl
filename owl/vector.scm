@@ -344,15 +344,13 @@
 
 
       (define (list->vector l)
-         (cond
-            ((null? l)
-               empty-vector)
-            (else
-               ;; leaves are chunked specially, so do that in a separate pass. also
-               ;; compute length to avoid possibly forcing a computation twice.
-               (lets ((chunks len (chunk-list l null null 0 #true 0)))
-                  ;; convert the list of leaf vectors to a tree
-                  (merge-chunks chunks len)))))
+         (if (null? l)
+            empty-vector
+            ;; leaves are chunked specially, so do that in a separate pass. also
+            ;; compute length to avoid possibly forcing a computation twice.
+            (lets ((chunks len (chunk-list l null null 0 #t 0)))
+               ;; convert the list of leaf vectors to a tree
+               (merge-chunks chunks len))))
 
       (define (vector? x) ; == raw or a variant of major type 11?
          (case (type x)
@@ -482,13 +480,11 @@
          (lets
             ((end (vec-len v))
              (last (band end *vec-leaf-max*)))
-            (cond
-               ((eq? last 0) ; vec is empty or ends to a full leaf
-                  (if (eq? end 0) ; blank vector
-                     null
-                     (vec-iterr-loop v (- end 1)))) ; start from previous leaf
-               (else
-                  (vec-iterr-loop v (- end 1))))))
+            (if (eq? last 0) ; vec is empty or ends to a full leaf
+               (if (eq? end 0) ; blank vector
+                  null
+                  (vec-iterr-loop v (- end 1))) ; start from previous leaf
+               (vec-iterr-loop v (- end 1)))))
 
       ;; vector folds
 
@@ -498,13 +494,11 @@
       ;; list conversions
 
       (define (vec->list vec)
-         (cond
-            ((eq? (type vec) type-vector-raw)
-               ;; convert raw vectors directly to allow this to be used also for large chunks
-               ;; which are often seen near IO code
-               (byte-vector->list vec))
-            (else
-               (vec-foldr cons null vec))))
+         (if (eq? (type vec) type-vector-raw)
+            ;; convert raw vectors directly to allow this to be used also for large chunks
+            ;; which are often seen near IO code
+            (byte-vector->list vec)
+            (vec-foldr cons null vec)))
 
       (define vector->list vec->list)
 

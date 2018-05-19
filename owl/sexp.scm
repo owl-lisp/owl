@@ -92,11 +92,9 @@
          (fold
             (λ (n digit)
                (let ((d (get digit-values digit #false)))
-                  (cond
-                     ((or (not d) (>= d base))
-                        (error "bad digit " digit))
-                     (else
-                        (+ (* n base) d)))))
+                  (if (or (not d) (>= d base))
+                     (error "bad digit " digit)
+                     (+ (* n base) d))))
             0 digits))
 
       (define get-sign

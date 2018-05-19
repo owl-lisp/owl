@@ -252,18 +252,16 @@
                (repl env in))
             ((load)
                (lets ((op in (uncons in #false)))
-                  (cond
-                     ((string? op)
-                        (tuple-case (repl-load repl op in env)
-                           ((ok exp env)
-                              (prompt env (repl-message (string-append ";; Loaded " op)))
-                              (repl env in))
-                           ((error reason envp)
-                              (prompt env (repl-message (string-append ";; Failed to load " op)))
-                              ;; drop out of loading (recursively) files, or hit repl trampoline on toplevel
-                              (repl-fail env reason))))
-                     (else
-                        (repl-fail env (list "expected ,load \"dir/foo.scm\", got " op))))))
+                  (if (string? op)
+                     (tuple-case (repl-load repl op in env)
+                        ((ok exp env)
+                           (prompt env (repl-message (string-append ";; Loaded " op)))
+                           (repl env in))
+                        ((error reason envp)
+                           (prompt env (repl-message (string-append ";; Failed to load " op)))
+                           ;; drop out of loading (recursively) files, or hit repl trampoline on toplevel
+                           (repl-fail env reason)))
+                     (repl-fail env (list "expected ,load \"dir/foo.scm\", got " op)))))
             ((forget-all-but)
                (lets ((op in (uncons in #false)))
                   (if (symbols? op)
