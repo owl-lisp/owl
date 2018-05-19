@@ -269,7 +269,7 @@
                (define-values (x ...)
                   (values (quote x) ...)))))
 
-      (define-symbols ... => unquote unquote-splicing)
+      (define-symbols ... => else unquote unquote-splicing)
 
       (define-syntax define-missing-bad
          (syntax-rules ()
@@ -423,7 +423,6 @@
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
-      (define-missing-bad else)
       (define-missing-bad dynamic-wind)
       (define-missing-bad close-output-port)
       (define-missing-bad close-input-port)
