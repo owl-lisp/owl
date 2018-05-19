@@ -25,7 +25,7 @@
 (define (try rst maxlen alphafact)
    (lets
       ((rst len (rand rst maxlen))
-       (rst alpha (rand rst (ceil (* alphafact len))))
+       (rst alpha (rand rst (ceiling (* alphafact len))))
        (rst nums (random-numbers rst alpha len))
        (data (list->vector nums))
        (sarr (suffix-array data))
@@ -43,4 +43,3 @@
       (begin
          (print n)
          (loop (try rst 1024 2) (+ n 1)))))
-

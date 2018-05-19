@@ -26,12 +26,11 @@
       even? odd?
       gcd gcdl lcm
       min max minl maxl
-      floor ceiling ceil abs
+      floor ceiling abs
       sum product
       numerator denumerator
       log log2
       render-number
-      fx% ;; temp export until it is removed
       zero?
       real? complex? rational?
       negative? positive?
@@ -1864,7 +1863,7 @@
                      (big-bad-args '* a b))))))
 
       ;; todo: division lacks short circuits
-      (define (/ a b)
+      (define (div a b)
          (cond
             ((eq? b 0)
                (error "division by zero " (list '/ a b)))
@@ -1874,21 +1873,21 @@
                      ((ar ai a)
                       (br bi b)
                       (x (add (mul br br) (mul bi bi)))
-                      (r (/ (add (mul ar br) (mul ai bi)) x))
-                      (i (/ (sub (mul ai br) (mul ar bi)) x)))
+                      (r (div (add (mul ar br) (mul ai bi)) x))
+                      (i (div (sub (mul ai br) (mul ar bi)) x)))
                      (if (eq? i 0) r (complex r i)))
                   (lets
                      ((ar ai a)
                       (x (mul b b))
-                      (r (/ (mul ar b) x))
-                      (i (/ (mul ai b) x)))
+                      (r (div (mul ar b) x))
+                      (i (div (mul ai b) x)))
                      (if (eq? i 0) r (complex r i)))))
             ((eq? (type b) type-complex)
                (lets
                   ((br bi b)
                    (x (add (mul br br) (mul bi bi)))
-                   (re (/ (mul a br) x))
-                   (im (/ (sub 0 (mul a bi)) x)))
+                   (re (div (mul a br) x))
+                   (im (div (sub 0 (mul a bi)) x)))
                   (if (eq? im 0) re (complex re im))))
             ((eq? (type a) type-rational)
                (if (eq? (type b) type-rational)
@@ -1955,11 +1954,6 @@
       (define (sum l) (fold add (car l) (cdr l)))
       (define (product l) (fold mul (car l) (cdr l)))
 
-      ;;;
-      ;;; Alternative names
-      ;;;
-
-      (define ceil ceiling)
 
       ; for all numbers n == (/ (numerator n) (denumerator n))
 
@@ -2144,13 +2138,11 @@
             ((a) a)
             (() 1)))
 
-      (define bin-div /)
-
       (define /
          (case-lambda
-            ((a b) (bin-div a b))
-            ((a) (bin-div 1 a))
-            ((a . bs) (bin-div a (product bs)))))
+            ((a b) (div a b))
+            ((a) (div 1 a))
+            ((a . bs) (div a (product bs)))))
 
       ;; fold but stop on first false
       (define (each op x xs)
