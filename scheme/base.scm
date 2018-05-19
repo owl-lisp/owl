@@ -310,7 +310,9 @@
       ;      (lets ((f l l)) (if (null? l) (func a b c d e f)
       ;         (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
 
+      (define floor-remainder modulo)
       (define truncate-quotient quotient)
+      (define truncate-remainder remainder)
 
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
@@ -373,7 +375,6 @@
       (define-missing-bad utf8->string)
       (define-missing-bad unless)
       (define-missing-bad u8-ready?)
-      (define-missing-bad truncate-remainder)
       (define-missing-bad string-set!)
       (define-missing-bad string-map)
       (define-missing-bad string-for-each)
@@ -417,7 +418,6 @@
       (define-missing-bad get-output-bytevector)
       (define-missing-bad flush-output-port)
       (define-missing-bad floor/)
-      (define-missing-bad floor-remainder)
       (define-missing-bad floor-quotient)
       (define-missing-bad file-error?)
       (define-missing-bad features)

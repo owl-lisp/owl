@@ -167,9 +167,9 @@
 		(tuple 'binary any any-nz 'div-twice
 			(lambda (a b)	(= (/ (/ a b) b) (/ a (* b b)))))
 		(tuple 'binary int int-nz 'rem-abs-less
-			(lambda (a b) (< (abs (rem a b)) (abs b))))
+			(lambda (a b) (< (abs (remainder a b)) (abs b))))
 		(tuple 'binary int int-nz 'a=qb+r
-			(lambda (a b) (= a (+ (* (quotient a b) b) (rem a b)))))
+			(lambda (a b) (= a (+ (* (quotient a b) b) (remainder a b)))))
 		(tuple 'binary int nat 'shift-cancel
 			(lambda (a b)
 				(let ((b (band b #x1ff))) (= a (>> (<< a b) b)))))
@@ -177,11 +177,11 @@
 			(lambda (a b)
 				(let ((b (band b #xff)))
 					(= (<< a b) (* a (expt 2 b))))))
-		(tuple 'binary int int-nz 'truncate/=quot-rem
+		(tuple 'binary int int-nz 'truncate/=quotient-remainder
 			(lambda (a b)
 				(receive (truncate/ a b)
 					(lambda (q r)
-						(and (= q (quotient a b)) (= r (rem a b)))))))
+						(and (= q (quotient a b)) (= r (remainder a b)))))))
 		(tuple 'binary nat nat 'xor-trans
 			(lambda (a b) (= (bxor (bxor a b) b) (bxor a (bxor b b)))))
 		(tuple 'binary nat-nz nat-nz 'logarithm
@@ -205,7 +205,7 @@
 		;(tuple 'binary nat nat-nz 'invmod-ok ; fixme, ints
 		;	(lambda (a b)
 		;		(let ((ai (inv-mod a b)))
-		;			(if ai (= (rem (* a ai) b) 1) #true))))
+		;			(if ai (= (remainder (* a ai) b) 1) #true))))
 		(tuple 'unary nat-nz 'isqrt-ok
 			(lambda (a)
 				(if (eq? a 1) #true
@@ -222,9 +222,9 @@
 		;(tuple 'trinary nat nat nat-nz 'discrete-log ; fixme, ints
 		;	(lambda (a b c)
 		;		(let*
-		;			((n (+ 2 (rem c 1000)))
-		;			 (y (rem a n))
-		;			 (a (rem b n))
+		;			((n (+ 2 (remainder c 1000)))
+		;			 (y (remainder a n))
+		;			 (a (remainder b n))
 		;			 (z (print (list 'dlog y a n)))
 		;			 (x (dlog y a n)))
 		;			(if x

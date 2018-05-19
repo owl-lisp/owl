@@ -238,7 +238,7 @@
                ((rs head eq (rand-big rs (ncdr n)))
                 (this rs (uncons rs 0)))
                (if eq
-                  (let ((val (rem this (+ (ncar n) 1))))
+                  (let ((val (remainder this (+ (ncar n) 1))))
                      (if (eq? val 0)
                         (values rs (if (null? head) null (ncons 0 head)) (eq? (ncar n) 0))
                         (values rs (ncons val head) (eq? val (ncar n)))))

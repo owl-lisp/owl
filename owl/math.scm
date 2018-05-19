@@ -21,7 +21,7 @@
       + - * = /
       << < <= = >= > >>
       band bor bxor
-      quotient ediv rem mod truncate/
+      quotient ediv truncate/
       add nat-succ sub mul big-bad-args negate
       even? odd?
       gcd gcdl lcm
@@ -1421,7 +1421,7 @@
             ((fx% a b)
                (lets ((q1 q2 r (fxqr 0 a b))) r))))
 
-      (define (rem a b)
+      (define (remainder a b)
          (case (type a)
             (type-fix+
                (case (type b)
@@ -1429,21 +1429,21 @@
                   (type-fix- (fx% a b))
                   (type-int+ a)
                   (type-int- a)
-                  (else (big-bad-args 'mod a b))))
+                  (else (big-bad-args 'remainder a b))))
             (type-fix-
                (case (type b)
                   (type-fix+ (negate (fx% a b)))
                   (type-fix- (negate (fx% a b)))
                   (type-int+ a)
                   (type-int- a)
-                  (else (big-bad-args 'mod a b))))
+                  (else (big-bad-args 'remainder a b))))
             (type-int+
                (case (type b)
                   (type-fix+ (receive (qr-big-small a b) (lambda (q r) r)))
                   (type-fix- (receive (qr-big-small a b) (lambda (q r) r)))
                   (type-int+ (nat-rem a b))
                   (type-int- (nat-rem a (negate b)))
-                  (else (big-bad-args 'mod a b))))
+                  (else (big-bad-args 'remainder a b))))
             (type-int-
                (case (type b)
                   (type-fix+
@@ -1454,22 +1454,15 @@
                         (lambda (q r) (negate r))))
                   (type-int+ (negate (nat-rem (negate a) b)))
                   (type-int- (negate (nat-rem (negate a) (negate b))))
-                  (else (big-bad-args 'rem a b))))
-            (else (big-bad-args 'rem a b))))
-
-      (define remainder rem)
-
-      ; fixme, only true when the signs are the same, but left here as a placeholder
-
-      ;(print "math.scm: fix mod")
-      (define mod rem)
+                  (else (big-bad-args 'remainder a b))))
+            (else (big-bad-args 'remainder a b))))
 
       ; required when (truncate/ a b) -> q,r and b != 0
       ;   a = q*b + r
       ;    |r| < |b|
       ;    -a/b = a/-b = -(a/b)
 
-      ; note: rem has sign of a, mod that of b
+      ; note: remainder has sign of a, modulo that of b
 
       (define (truncate/ a b)
          (if (eq? b 0)
@@ -1521,7 +1514,7 @@
       (define (gcd-euclid a b)
          (if (eq? b 0)
             a
-            (gcd-euclid b (rem a b))))
+            (gcd-euclid b (remainder a b))))
 
       ;; lazy gcd
 
@@ -2107,7 +2100,7 @@
             (else
                (render-digits num tl base))))
 
-      (define (mod a b)
+      (define (modulo a b)
          (if (negative? a)
             (if (negative? b)
                (remainder a b)
@@ -2121,8 +2114,6 @@
                      r
                      (add b r)))
                (remainder a b))))
-
-      (define modulo mod)
 
 
       ;;;

@@ -124,23 +124,23 @@
             ((eq? (type b) type-int-) (/ 1 (expt a (negate b))))
             (else (big-bad-args 'expt a b))))
 
-      ; (mod (expt a b) m) = (expt-mod a b m)
+      ; (modulo (expt a b) m) = (expt-mod a b m)
 
       (define (expt-mod-loop ap p out m)
          (cond
-            ((eq? p 0) (mod out m))
+            ((eq? p 0) (modulo out m))
             ((eq? (band p 1) 0)
-               (expt-mod-loop (rem (mul ap ap) m) (>> p 1) out m))
+               (expt-mod-loop (remainder (mul ap ap) m) (>> p 1) out m))
             (else
-               (expt-mod-loop (rem (mul ap ap) m) (>> p 1)
-                  (rem (mul out ap) m) m))))
+               (expt-mod-loop (remainder (mul ap ap) m) (>> p 1)
+                  (remainder (mul out ap) m) m))))
 
       (define (expt-mod a b m)
          (cond
-            ((eq? b 0) (mod 1 m))
-            ((eq? b 1) (mod a m))
+            ((eq? b 0) (modulo 1 m))
+            ((eq? b 1) (modulo a m))
             (else
-               (expt-mod-loop (rem a m) (sub b 1) a m))))
+               (expt-mod-loop (remainder a m) (sub b 1) a m))))
 
       ;;;
       ;;; PRIMES AND FACTORING
@@ -255,20 +255,20 @@
                            ((xx (* x x))
                             (yy (* y y))
                             (n (+ (* 4 xx) yy))
-                            (nm (rem n 12))
+                            (nm (remainder n 12))
                             (store
                               (if (and (<= lo n max) (or (eq? nm 1) (eq? nm 5)))
                                  (atkin-flip store n)
                                  store))
                             (n (+ (* 3 xx) yy))
-                            (nm (rem n 12))
+                            (nm (remainder n 12))
                             (store
                               (if (and (<= lo n max) (eq? nm 7))
                                  (atkin-flip store n)
                                  store))
                             (n (- n (<< yy 1))))
                            (if (and (> x y)
-                                 (and (<= lo n max) (eq? (rem n 12) 11)))
+                                 (and (<= lo n max) (eq? (remainder n 12) 11)))
                               (looy (atkin-flip store n) (+ y 1))
                               (looy store (+ y 1))))))))))
 
@@ -468,7 +468,7 @@
       (define (dlp-simple y a n)
          (let loop ((x 0) (v 1) (seen empty))
             (cond
-               ((>= v n) (loop x (rem v n) seen))      ; overflow
+               ((>= v n) (loop x (remainder v n) seen)) ; overflow
                ((= v y) x)                             ; solved
                ((iget seen v #false) #false)             ; looped -> not solvable
                (else                                   ; try next
@@ -477,7 +477,7 @@
       ;; like simple, but has O(1) space at the cost of ~1.5x time
       (define (dlp-th-step v a n)
          (let ((v (* a v)))
-            (if (>= v n) (rem v n) v)))
+            (if (>= v n) (remainder v n) v)))
 
       (define (dlp-th y a n)
          (if (= y 1)
@@ -511,7 +511,7 @@
 
       ;; a silly mod to avoid some remainders
       (define (bound x n)
-         (if (< x n) x (mod x n)))
+         (if (< x n) x (modulo x n)))
 
       ;; this can be done much more efficiently incrementally, but just testing for correctness now
       ;; todo: use incremental construction and an iff to check for matches
@@ -528,7 +528,7 @@
             ((s (sqrt-ceil n))
              (baby
                (sort carless
-                  (map (λ (r) (cons (rem (* y (expt-mod a r n)) n) r)) ; (ya^r. r)
+                  (map (λ (r) (cons (remainder (* y (expt-mod a r n)) n) r)) ; (ya^r. r)
                      (iota 5 1 s)))
                ;(sort carless
                ;   (let loop ((ya (bound y n)) (r 0))
