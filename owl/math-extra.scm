@@ -293,13 +293,12 @@
             (if (eq? n 1)
                (if (eq? these 0)
                   pows
-                  (cons 1 (cons (cons prime these) (cdr pows))))
+                  (ilist 1 (cons prime these) (cdr pows)))
                (let ((q (ediv n prime)))
                   (cond
                      (q (loop q (+ these 1)))
                      ((eq? these 0) pows)
-                     (else
-                        (cons n    (cons (cons prime these) (cdr pows)))))))))
+                     (else (ilist n (cons prime these) (cdr pows))))))))
 
       (define (atkin-apply store pows)
          (call/cc

@@ -222,7 +222,7 @@
          (lets ((ah al b qh ql rem bs (get6 (cdr bs))))
             (values
                (list "{uint64_t a=(uint64_t)immval(R["ah"])<<FBITS|immval(R["al"]);word b=immval(R["b"]);uint64_t q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q&FMAX);R["rem"]=F(a-q*b);}")
-               bs (put (put (put regs qh 'fixnum) ql 'fixnum) rem 'fixnum))))
+               bs (-> regs (put qh 'fixnum) (put ql 'fixnum) (put rem 'fixnum)))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
       (define (cifyer-mkff type)

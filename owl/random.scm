@@ -137,10 +137,8 @@
              (z w)
              (w (bxor w (bxor (>> w 19) (bxor t (>> t 8))))))
             (if (eq? (type w) type-fix+)
-               (cons w (cons 0
-                  (λ () (xorshift-128 x y z w))))
-               (cons (ncar w) (cons (ncar (ncdr w))
-                  (λ () (xorshift-128 x y z w)))))))
+               (ilist w 0 (λ () (xorshift-128 x y z w)))
+               (ilist (ncar w) (ncar (ncdr w)) (λ () (xorshift-128 x y z w))))))
 
       (define xors (xorshift-128 123456789 362436069 521288629 88675123))
 

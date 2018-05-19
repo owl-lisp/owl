@@ -90,9 +90,7 @@
          ;(type-byte-of val)
 
       (define (enc-immediate val tail)
-         (cons 0
-            (cons (type-byte-of val)
-               (send-number (cast val 0) tail))))
+         (ilist 0 (type-byte-of val) (send-number (cast val 0) tail)))
 
       (define (partial-object-closure seen obj)
          (cond

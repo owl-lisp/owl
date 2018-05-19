@@ -341,7 +341,11 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 
                                     ;; store initial state values
                                     (state 'call
-                                       (λ (st) (put (put st 'command-line-arguments vm-args) 'features *features*)))
+                                       (λ (st)
+                                          (-> st
+                                             (put 'command-line-arguments vm-args)
+                                             (put 'features *features*)
+                                             )))
 
                                     ;; repl needs symbol etc interning, which is handled by this thread
                                     (thunk->thread 'intern interner-thunk)
