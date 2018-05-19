@@ -245,7 +245,9 @@
       (owl equal)
       (owl list)
       (only (owl function) procedure?)
+      (only (owl ff) get)
       (only (owl syscall) error)
+      (only (owl variable) link-variable)
       (owl string)
       (owl primop)
       (owl math-extra)
@@ -276,6 +278,9 @@
                   (lambda args
                      (error "Implementation restriction:" (cons (quote name) args)))))))
 
+      (define features
+         (let ((owl-state (link-variable '*state*)))
+            (λ () (get (owl-state) 'features null))))
 
       ;; grr, scheme member functions don't follow the argument conventions of other functions used in owl...
 
@@ -415,7 +420,6 @@
       (define-missing-bad floor/)
       (define-missing-bad floor-quotient)
       (define-missing-bad file-error?)
-      (define-missing-bad features)
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
