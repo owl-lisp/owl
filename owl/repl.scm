@@ -123,7 +123,7 @@
 
       ;; values used by the repl to signal they should be printed as such, not rendered as a value
       (define repl-message-tag "foo")
-      (define repl-message (H cons repl-message-tag))
+      (define (repl-message . args) (cons repl-message-tag args))
       (define (repl-message? foo) (and (pair? foo) (eq? repl-message-tag (car foo))))
 
       (define (maybe-show-metadata env val)
@@ -144,8 +144,7 @@
             (if prompt
                (if (repl-message? val)
                   (begin
-                     (if (cdr val)
-                        (print (cdr val)))
+                     (for-each print (cdr val))
                      (if (not (display "> "))
                         (halt 125)))
                   (begin
@@ -303,14 +302,14 @@
                                     (print
                                        (str "   " (car lib) ": " (apply str (interleave ", " matches)))))))
                            (env-get env '*libraries* null))
-                        (prompt env (repl-message #false)))
+                        (prompt env (repl-message)))
                      (else
                         (prompt env "I would have preferred a regex or a symbol.")))
                   (repl env in)))
             ((libraries libs)
                (print "Currently defined libraries:")
                (for-each print (map car (env-get env library-key null)))
-               (prompt env (repl-message #false))
+               (prompt env (repl-message))
                (repl env in))
             ((expand)
                (lets ((exp in (uncons in #false)))
@@ -319,7 +318,7 @@
                         (print exp))
                      ((fail reason)
                         (print ";; Macro expansion failed: " reason)))
-                  (prompt env (repl-message #false))
+                  (prompt env (repl-message))
                   (repl env in)))
             ((quit)
                ; this goes to repl-trampoline
@@ -738,7 +737,7 @@
 
       ;; run the repl on a fresh input stream, report errors and catch exit
 
-      (define (stdin-sexp-stream env bounced?)
+      (define (stdin-sexp-stream env)
          (λ ()
             (fd->exp-stream stdin sexp-parser
                (resuming-syntax-fail
@@ -749,35 +748,15 @@
                         (display "> ")))))))  ;; reprint prompt
 
       (define (repl-trampoline repl env)
-         (let boing ((repl repl) (env env) (bounced? #false))
-            (lets
-               ((stdin (stdin-sexp-stream env bounced?))
-                (stdin
-                  (if bounced?
-                     (begin ;; we may need to reprint a prompt here
-                        (if (env-get env '*interactive* #false)
-                           (display "> "))  ;; reprint prompt
-                        stdin)
-                     stdin))
-                (env (bind-toplevel env)))
-               (tuple-case (repl env stdin)
-                  ((ok val env)
-                     ;; the end
-                     (if (env-get env '*interactive* #false)
-                        (print "bye bye _o/~"))
-                     (halt 0))
-                  ((error reason env)
-                     ; better luck next time
-                     (cond
-                        ((list? reason)
-                           (print-repl-error reason)
-                           (boing repl env #true))
-                        (else
-                           (print reason)
-                           (boing repl env #true))))
-                  (else is foo
-                     (print "Repl is rambling: " foo)
-                     (boing repl env #true))))))
+         (tuple-case (repl env (stdin-sexp-stream env))
+            ((ok val env)
+               ;; the end
+               (if (env-get env '*interactive* #false)
+                  (print "bye bye _o/~"))
+               (halt 0))
+            ((error reason env)
+               (prompt env (repl-message (str ";; " reason)))
+               (repl-trampoline repl env))))
 
       (define (repl-port env fd)
          (repl env

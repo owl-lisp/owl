@@ -80,12 +80,12 @@
 
       (define (evaluate exp env)
          (try-evaluate exp env
-            (tuple 'fail "compiler bug")))
+            (tuple 'fail "an error occurred")))
 
       (define (exported-eval exp env)
          (tuple-case (macro-expand exp env)
             ((ok exp env)
-               (tuple-case (try-evaluate exp env (tuple 'fail "compiler bug"))
+               (tuple-case (evaluate exp env)
                   ((ok value env)
                      value)
                   ((fail reason)
