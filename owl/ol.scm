@@ -62,18 +62,11 @@
       (string->symbol (string-append "owl-lisp-" *owl-version*))
       '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
 
-(define initial-environment-sans-macros
-   (-> *owl-core*
-      (env-set '*features* *features*)
-      (env-set '*include-dirs* *include-dirs*)
-      (env-set '*libraries* *libraries*)))
-
 (define initial-environment
    (bind-toplevel
-      (library-import initial-environment-sans-macros
-         '((owl base))
-         (H error "bootstrap import error: ")
-         (λ (env exp) (error "bootstrap import requires repl: " exp)))))
+      (env-fold env-put-raw
+         *owl-core*
+         (cdr (assoc '(owl base) *libraries*)))))
 
 (define (path->string path)
    (let ((data (file->vector path)))
@@ -348,6 +341,9 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                              (list
                                                 (cons '*owl* (directory-of (car vm-args)))
                                                 (cons '*args* vm-args)
+                                                (cons '*features* *features*)
+                                                (cons '*include-dirs* *include-dirs*) ;; todo: add command line flag
+                                                (cons '*libraries* *libraries*)
                                                 (cons 'dump compiler)
                                                 (cons '*owl-version* *owl-version*)
                                                 (cons '*owl-names* initial-names)

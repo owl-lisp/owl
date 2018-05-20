@@ -380,6 +380,7 @@
       (define (library-definition? x)
          (and (pair? x) (list? x) (eq? (car x) '_define-library)))
 
+      ;; used to get definiton of *toplevel*, mainly for use with eval
       (define (bind-toplevel env)
          (env-set env '*toplevel*
             (env-del env '*toplevel)))
