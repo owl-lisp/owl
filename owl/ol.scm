@@ -25,9 +25,9 @@
 
 (define build-start (time-ms))
 
-(mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
+(mail 'intern (tuple 'flush)) ;; ask symbol interner to forget all symbols it knows
 
-(define *libraries* '())
+(define *libraries* '()) ;; clear loaded libraries
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
@@ -56,32 +56,17 @@
    (owl base)
    (owl variable))
 
-(define-syntax share-bindings
-   (syntax-rules (defined)
-      ((share-bindings) null)
-      ((share-bindings this . rest)
-         (cons
-            (cons 'this (tuple 'defined (mkval this)))
-            (share-bindings . rest)))))
-
 ;; implementation features, used by cond-expand
 (define *features*
    (cons
       (string->symbol (string-append "owl-lisp-" *owl-version*))
       '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
 
-(define shared-bindings
-   (share-bindings
-      *features*
-      *include-dirs*
-      *libraries*      ;; all currently loaded libraries
-      ))
-
 (define initial-environment-sans-macros
-   (fold
-      (λ (env pair) (env-put-raw env (car pair) (cdr pair)))
-      *owl-core*
-      shared-bindings))
+   (-> *owl-core*
+      (env-set '*features* *features*)
+      (env-set '*include-dirs* *include-dirs*)
+      (env-set '*libraries* *libraries*)))
 
 (define initial-environment
    (bind-toplevel
@@ -365,21 +350,17 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                                 (cons '*args* vm-args)
                                                 (cons 'dump compiler)
                                                 (cons '*owl-version* *owl-version*)
-                                                ;(cons '*owl-metadata* *owl-metadata*)
                                                 (cons '*owl-names* initial-names)
                                                 (cons 'eval exported-eval)
-                                                (cons 'render render) ;; can be removed when all rendering is done via libraries
+                                                (cons 'render render)
                                                 (cons '*vm-special-ops* vm-special-ops)
-                                                (cons '*state* state)
-                                                ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
-                                                )))))))))
+                                                (cons '*state* state))))))))))
                      null)))))))
 
 
 (define command-line-rules
    (cl-rules
       `((output "-o" "--output" has-arg comment "output path")
-        ;(format "-f" "--format" has-arg comment "output format (c or fasl)")
         (specialize "-s" "--specialize" has-arg comment "vm extensions (none, some, all)"))))
 
 (define (choose-natives str all)
@@ -389,7 +370,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       ((equal? str "all") all)
       (else (print "Bad native selection: " str))))
 
-(print "Code loaded at " (- (time-ms) build-start) "ms.")
+; (print "Code loaded at " (- (time-ms) build-start) "ms.")
 
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"
@@ -408,5 +389,5 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   (choose-natives
                      (get opts 'specialize "none")
                      heap-entry))
-               (print "Output written at " (- (time-ms) build-start) "ms.")
+               ; (print "Output written at " (- (time-ms) build-start) "ms.")
                0)))))
