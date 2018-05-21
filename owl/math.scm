@@ -52,24 +52,18 @@
       (define zero?
          (C eq? 0))
 
-      ;; check how many fixnum bits the vm supports with fx<<
+      ;; get the largest value the VM supports in fixnum
       ;; idea is to allow the vm to be compiled with different ranges, initially fixed to 24
       (define *max-fixnum*
-         (let loop ((f 0))
-            (lets
-               ((o f (fx<< f 1)) ;; repeat (f<<1)|1 until overflow
-                (f (fxbor f 1)))
-               (if (eq? o 0)
-                  (loop f)
-                  f))))
+         (lets ((m _ (fx- 0 1)))
+            m))
 
       ;; biggest before highest bit is set (needed in some bignum ops)
       (define *pre-max-fixnum*
-         (lets
-            ((f o (fx>> *max-fixnum* 1)))
+         (lets ((f o (fx>> *max-fixnum* 1)))
             f))
 
-      ;; count the number of bits in *max-fixnum*
+      ;; count the number of bits the VM supports in fixnum
       (define *fixnum-bits*
          (let loop ((f *max-fixnum*) (n 0))
             (if (eq? f 0)
@@ -547,8 +541,7 @@
       ;;; BITWISE OPERATIONS
       ;;;
 
-      ; fxband, fxbor, fx<<, fx>>
-      ; fxband, fxor -> result
+      ; fxband, fxbor, fxbxor -> result
       ; fx<< -> hi + lo
       ; fx>> -> hi + lo
 
