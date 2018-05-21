@@ -1487,7 +1487,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(x >> n);
       A3 = F(x << (FBITS - n) & FMAX);
       NEXT(4); }
-   op59: { /* fx<< a b hi lo */
+   op59: /* unused */
+      /* FIXME: remove this after the next fasl update: */ {
       uint64_t res = (uint64_t)immval(A0) << immval(A1);
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);

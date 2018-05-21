@@ -71,7 +71,7 @@
             ;; note that these could now come straight from primops
             '(cons car cdr eq? type size cast ref sys-prim refb sys fxbor fxbxor
               raw mkt bind set lesser? mkred mkblack ff-bind listuple fxband fx+
-              fxqr fx* fx- fx<< fx>> ncons ncar ncdr clock sizeb type-byte)))
+              fxqr fx* fx- fx>> ncons ncar ncdr clock sizeb type-byte)))
 
       ;; toplevel variable to which loaded libraries are added
 

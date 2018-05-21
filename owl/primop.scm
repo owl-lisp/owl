@@ -124,7 +124,7 @@
 
       ;; fixme: handle multiple return value primops sanely (now a list)
       (define multiple-return-variable-primops
-         '(49 11 26 38 39 40 58 59 37 61))
+         '(49 11 26 38 39 40 58 37 61))
 
       (define variable-input-arity? (C eq? 23)) ;; mkt
 
@@ -161,7 +161,6 @@
       (define fx+ (func '(4 38 4 5 6 7 24 7)))
       (define fx- (func '(4 40 4 5 6 7 24 7)))
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
-      (define fx<< (func '(4 59 4 5 6 7 24 7)))
 
       (define apply (bytes->bytecode '(20))) ;; <- no arity, just call 20
       (define apply-cont (bytes->bytecode (list (fxbor 20 64))))
@@ -184,7 +183,6 @@
             (tuple 'ncdr         31 1 1 ncdr)   ;;
             (tuple 'fx-          40 2 2 fx-)   ;; (fx- a b)       ;; 2 out
             (tuple 'fx>>         58 2 2 fx>>)   ;; (fx>> a b) -> hi lo, lo are the lost bits
-            (tuple 'fx<<         59 2 2 fx<<)   ;; (fx<< a b) -> hi lo, hi is the overflow
             (tuple 'clock        61 0 2 clock) ; (clock) → posix-time x ms
             (tuple 'set-ticker   62 1 1 set-ticker)
             (tuple 'sys-prim     63 4 1 sys-prim)))

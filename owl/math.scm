@@ -73,6 +73,10 @@
                    (n _ (fx+ n 1)))
                   (loop f n)))))
 
+      (define last-bit
+         (lets ((n _ (fx- *fixnum-bits* 1)))
+            n))
+
       (define *big-one*
          (ncons 1 null))
 
@@ -542,7 +546,6 @@
       ;;;
 
       ; fxband, fxbor, fxbxor -> result
-      ; fx<< -> hi + lo
       ; fx>> -> hi + lo
 
       (define (shift-right-walk this rest n first?)
@@ -615,7 +618,7 @@
             (if (eq? last 0)
                null
                (ncons last null))
-            (lets ((hi lo (fx<< (ncar num) n)))
+            (lets ((hi lo (fx>> (ncar num) n)))
                (ncons (fxbor last lo)
                   (shift-left (ncdr num) n hi)))))
 
@@ -633,10 +636,12 @@
          (cond
             ((eq? a 0) 0)
             ((eq? (type b) type-fix+)
-               (lets ((_ words bits (fxqr 0 b *fixnum-bits*)))
+               (lets
+                  ((_ words bits (fxqr 0 b *fixnum-bits*))
+                   (bits _ (fx- *fixnum-bits* bits))) ; convert shift width for fx>>
                   (case (type a)
                      (type-fix+
-                        (lets ((hi lo (fx<< a bits)))
+                        (lets ((hi lo (fx>> a bits)))
                            (if (eq? hi 0)
                               (if (eq? words 0)
                                  lo
@@ -647,7 +652,7 @@
                                     (ncons lo (ncons hi null))
                                     words)))))
                      (type-fix-
-                        (lets ((hi lo (fx<< a bits)))
+                        (lets ((hi lo (fx>> a bits)))
                            (if (eq? hi 0)
                               (if (eq? words 0)
                                  (cast lo type-fix-)
@@ -1082,7 +1087,8 @@
             ((eq? a b) (subi n 1))
             ((lesser? a b) (subi n 1))
             (else
-               (lets ((over b (fx<< b 1)))
+               ; FIXME: using (b over (fx+ b b)) here increases the runtime of tests/math-rand.scm notably
+               (lets ((over b (fx>> b last-bit)))
                   (if (eq? over 0)
                      (shift-local-up a b (nat-succ n))
                      (subi n 1))))))
@@ -1301,8 +1307,6 @@
       ; b is usually shorter, so shift b right and then substract instead
       ; of moving a by s
 
-      (define last-bit (subi *fixnum-bits* 1))
-
       (define (divex bit bp a b out)
          (cond
             ((eq? (type a) type-fix-) #false) ;; not divisible
@@ -1315,7 +1319,7 @@
                       (a (if (null? (ncdr a)) (ncar a) a)))
                      (divex 1 0 a b (ncons 0 out)))
                   (lets
-                     ((_ bit (fx<< bit 1))
+                     ((bit _ (fx+ bit bit))
                       (bp _  (fx+ bp 1)))
                      (divex bit bp a b out))))
             (else ; shift + substract = amortized O(2b) + O(log a)
@@ -1524,7 +1528,7 @@
                               (cons 1 (ncar tl))
                               (cons 1 tl))))))
                (else
-                  (lets ((hi lo (fx<< s 1)))
+                  (lets ((lo _ (fx+ s s)))
                      (cons lo (cdr n)))))))
 
       ;; FIXME - consider carrying these instead

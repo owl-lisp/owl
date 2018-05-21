@@ -203,13 +203,6 @@
                (list "{word r=(immval(R["a"])|(1<<FBITS))-immval(R["b"]);R["u"]=(r&(1<<FBITS))?IFALSE:ITRUE;R["r"]=F(r&FMAX);}")
                bs (put (put regs r 'fixnum) u 'bool))))
 
-      ; fx<< a b hi lo
-      (define (cify-fxleft bs regs fail)
-         (lets ((a b hi lo bs (get4 (cdr bs))))
-            (values
-               (list "{uint64_t res=(uint64_t)immval(R["a"])<<immval(R["b"]);R["hi"]=F(res>>FBITS);R["lo"]=F(res&FMAX);}")
-               bs (put (put regs lo 'fixnum) hi 'fixnum))))
-
       ; fx>> x n hi lo
       (define (cify-fxright bs regs fail)
          (lets ((x n hi lo bs (get4 (cdr bs))))
@@ -585,7 +578,6 @@
                (cons 56 cify-fxbor)
                (cons 57 cify-fxbxor)
                (cons 58 cify-fxright)
-               (cons 59 cify-fxleft)
                (cons 63 cify-sysprim)
                ;; below are lower primop + extra info (like 13=ldi<what>)
                (cons 77 ;; ldn r
