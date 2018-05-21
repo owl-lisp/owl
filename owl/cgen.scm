@@ -210,11 +210,11 @@
                (list "{uint64_t res=(uint64_t)immval(R["a"])<<immval(R["b"]);R["hi"]=F(res>>FBITS);R["lo"]=F(res&FMAX);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
-      ; fx>> a b hi lo
+      ; fx>> x n hi lo
       (define (cify-fxright bs regs fail)
-         (lets ((a b hi lo bs (get4 (cdr bs))))
+         (lets ((x n hi lo bs (get4 (cdr bs))))
             (values
-               (list "{uint64_t r=(uint64_t)immval(R["a"])<<(FBITS-immval(R["b"]));R["hi"]=F(r>>FBITS);R["lo"]=F(r&FMAX);}")
+               (list "{word x=immval(R["x"]);unsigned int n=immval(R["n"]);R["hi"]=F(x>>n);R["lo"]=F(x<<(FBITS-n)&FMAX);}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem

@@ -1481,10 +1481,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op57: /* bxor a b r, prechecked */
       A2 = A0 ^ (A1 & (FMAX << IPOS)); /* inherit A0's type info */
       NEXT(3);
-   op58: { /* fx>> a b hi lo */
-      uint64_t r = (uint64_t)immval(A0) << (FBITS - immval(A1));
-      A2 = F(r>>FBITS);
-      A3 = F(r&FMAX);
+   op58: { /* fx>> x n hi lo */
+      word x = immval(A0);
+      unsigned int n = immval(A1);
+      A2 = F(x >> n);
+      A3 = F(x << (FBITS - n) & FMAX);
       NEXT(4); }
    op59: { /* fx<< a b hi lo */
       uint64_t res = (uint64_t)immval(A0) << immval(A1);
