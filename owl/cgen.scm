@@ -498,6 +498,7 @@
                            (else (values (list "R[" to "]=G(R[" from "],2);") bs (del regs to)))))))
                (cons 32 cify-bind)
                (cons 36 cify-size)
+               (cons 37 cify-lraw)
                (cons 38 cify-fxadd)
                (cons 39 cify-fxmul)
                (cons 40 cify-fxsub)
@@ -585,7 +586,6 @@
                (cons 57 cify-fxbxor)
                (cons 58 cify-fxright)
                (cons 59 cify-fxleft)
-               (cons 60 cify-lraw)
                (cons 63 cify-sysprim)
                ;; below are lower primop + extra info (like 13=ldi<what>)
                (cons 77 ;; ldn r
