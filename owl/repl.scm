@@ -42,11 +42,6 @@
       (define (ok exp env) (tuple 'ok exp env))
       (define (fail reason) (tuple 'fail reason))
 
-      (define (name->func name)
-         (any
-            (λ (x) (if (eq? (ref x 1) name) (ref x 5) #false))
-            primops))
-
       (define (debug env . msg)
          (if (env-get env '*debug* #false)
             (print* msg)))
@@ -54,8 +49,8 @@
       ;; library (just the value of) containing only special forms, primops and
       (define *owl-core*
          (fold
-            (λ (env thing)
-               (env-set env thing (name->func thing)))
+            (λ (env op)
+               (env-set env (ref op 1) (ref op 5)))
             (env-set-macro
                *tabula-rasa* ;; from (owl env), env with only special form tags, no primops
                'define-syntax
@@ -68,10 +63,7 @@
                   (quote syntax-operation add #false
                         (keyword literals (pattern ...)
                         (template ...)))))))
-            ;; note that these could now come straight from primops
-            '(cons car cdr eq? type size cast ref sys-prim refb sys fxbor fxbxor
-              raw mkt bind set lesser? mkred mkblack ff-bind listuple fxband fx+
-              fxqr fx* fx- fx>> clock sizeb type-byte)))
+            primops))
 
       ;; toplevel variable to which loaded libraries are added
 
