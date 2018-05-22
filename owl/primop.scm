@@ -13,24 +13,17 @@
       ;; primop wrapper functions
       run
       set-ticker
-      clock
-      sys-prim
       bind
-      ff-bind
       mkt
       halt
       wait
       ;; extra ops
       set-memory-limit get-word-size get-memory-limit
-      eq?
 
-      apply apply-cont ;; apply post- and pre-cps
+      apply
       call/cc
       lets/cc
-
       _poll2
-      ;; vm interface
-      vm bytes->bytecode
       )
 
    (import
@@ -40,10 +33,6 @@
 
       (define bytes->bytecode
          (C raw type-bytecode))
-
-      (define eq?
-         (bytes->bytecode
-            '(25 3 0 6 54 4 5 6 24 6 17)))
 
       (define (app a b)
          (if (eq? a '())
@@ -235,29 +224,4 @@
                         (ref (car primops) 1))
                      (else
                         (loop (cdr primops))))))))
-
-      ;; silly runtime exception, error not defined yet here
-      (define (check-equal a b)
-         (if (eq? a b)
-            'ok
-            (car 'assert-fail)))
-
-      ;; exit by returning to r3
-      (define (vm . bytes)
-         ((bytes->bytecode bytes)))
-
-      '(check-equal 42 ;; load 42:
-         (vm 14 42 4  ;;   r4 = fixnum(42)
-             24 4))   ;;   return r4 = call r3 with it
-
-      '(check-equal 0         ;; count down to zero:
-         ((bytes->bytecode   ;;   r4 arg
-               '(14 0 5      ;;   r5 = 0
-                 14 1 6      ;;   r6 = 1
-                 16 4 7 0    ;;   jump forward x if r4 is imm[0] == 0, starting from next instruction
-                 40 4 6 4 7  ;;   r4 - r6 = r4 / r7
-                 12 10       ;;   jump back by 9
-                 24 4))      ;;   return r4
-            100))
-
 ))
