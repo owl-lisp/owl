@@ -1322,12 +1322,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op30: /* unused */
       /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
-      assert(allocp(ob), ob, 30);
       A1 = ob[1];
       NEXT(2); }
-   op31: { /* ncdr a r */
+   op31: /* unused */
+      /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
-      assert(allocp(ob), ob, 31);
       A1 = ob[2];
       NEXT(2); }
    op32: { /* bind tuple <n> <r0> .. <rn> */
