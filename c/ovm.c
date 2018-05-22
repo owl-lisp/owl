@@ -1315,7 +1315,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
       }
       NEXT(2); }
-   op29: { /* ncons a b r */
+   op29: /* unused */
+      /* FIXME: remove this after the next fasl update: */ {
       A2 = mkpair(NUMHDR, A0, A1);
       NEXT(3); }
    op30: { /* ncar a rd */

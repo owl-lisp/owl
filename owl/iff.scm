@@ -12,6 +12,7 @@
    (import
       (owl defmac)
       (owl ff)
+      (only (owl math) ncons)
       (owl list))
 
    (begin
@@ -78,6 +79,4 @@
 
       (define (iff->list iff)
          (ifold (lambda (tail n v) (cons (cons n v) tail)) null iff))
-
 ))
-

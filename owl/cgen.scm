@@ -474,11 +474,6 @@
                ;               ) regs))))
                (cons 26 cify-fxqr)
                (cons 28 cify-sizeb)
-               (cons 29 ;; ncons car cdr to
-                  (λ (bs regs fail)
-                     (lets ((a b to bs (get3 (cdr bs))))
-                        (cond
-                           (else (values (list "*fp=NUMHDR;fp[1]=R["a"];fp[2]=R["b"];R["to"]=(word)fp;fp+=3;") bs (put regs to 'bignum)))))))
                (cons 30 ;; ncar ob to (raw ref first), UNSAFE
                   (λ (bs regs fail)
                      (lets ((from to bs (get2 (cdr bs))))
