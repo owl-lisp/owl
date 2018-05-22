@@ -24,13 +24,10 @@
       (owl math)
       (owl function)
       (owl ff)
-      (owl vector)
       (owl string)
       (owl primop)
       (owl render)
-      (owl io)
       (only (owl syscall) error)
-      (only (owl assemble) inst->op)
       (scheme cxr))
 
    (begin

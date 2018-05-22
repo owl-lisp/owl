@@ -5,9 +5,7 @@
 (define-library (owl assemble)
 
    (export
-      assemble-code
-      bytes->bytecode
-      inst->op)
+      assemble-code)
 
    (import
       (owl defmac)
@@ -49,22 +47,16 @@
               (move2 . 5)     ; two moves, 4 args
               (clos1 . 6)
               (cloc1 . 7)
-              ; 8 = jlq
               (movh . 13)
               (goto-code . 18)
               (goto-proc . 19)
               (goto-clos . 21)
-              (igoto . 26)   ; indirect goto
               (cons . 51)     ; cons a, b, t:   Rt = mkpair(a, b)
               (car  . 52)     ; car a, t:       Rt = car(a);
               (cdr  . 53)     ; cdr a, t:       Rt = cdr(a);
               (eq   . 54)     ; eq a, b, t:     Rt = (Ra == Rb) ? true : false;
               (jlq  . 8)      ; jlq a b o1 o2
-              (mk   . 9)      ; mk n, a0, ..., an, t, size up to 256
-              ;(mki  . 11)     ; mki size, type, v1, ..., vn, to
-              (ref  . 12)     ; ref a, p, t     Rt = Ra[p] + checks, unsigned
               (ld   . 14)     ; ld a, t:        Rt = a, signed byte
-              ;; ldi = 13
               (jz   . ,(+ 16 (<< 0 6)))     ; jump-imm[0], zero
               (jn   . ,(+ 16 (<< 1 6)))     ; jump-imm[1], null
               (jt   . ,(+ 16 (<< 2 6)))     ; jump-imm[2], true
