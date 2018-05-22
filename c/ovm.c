@@ -1164,11 +1164,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op11:
       do_poll(A0, A1, A2, &A3, &A4);
       NEXT(5);
-   op12: /* jb n */
-      ip -= ip[0];
-      if (ticker) /* consume thread time */
-         ticker--;
-      NEXT(0);
+   op12: /* unused */
+      error(12, F(12), IFALSE);
    op13: /* ldi{2bit what} [to] */
       A0 = load_imms[op >> 6];
       NEXT(1);
@@ -1193,18 +1190,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          t[p+1] = R[p+3];
       }
       error(17, ob, t); }
-   op18: /* goto-code p */
-      ob = (word *)A0; /* needed in opof gc */
-      acc = ip[1];
-      ip = (unsigned char *)A0 + W;
-      goto invoke;
-   op19: { /* goto-proc p */
-      word *this = (word *)A0;
-      R[1] = (word) this;
-      acc = ip[1];
-      ob = (word *) this[1];
-      ip = (unsigned char *)ob + W;
-      goto invoke; }
+   op18: /* unused */
+      error(18, F(18), IFALSE);
+   op19: /* unused */
+      error(19, F(19), IFALSE);
    op20: { /* apply */
       int reg, arity;
       word *lst;
@@ -1242,15 +1231,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       acc = arity;
       goto apply; }
-   op21: { /* goto-clos p */
-      word *this = (word *)A0;
-      R[1] = (word) this;
-      acc = ip[1];
-      this = (word *) this[1];
-      R[2] = (word) this;
-      ob = (word *) this[1];
-      ip = (unsigned char *)ob + W;
-      goto invoke; }
+   op21: /* unused */
+      error(21, F(21), IFALSE);
    op22: /* cast o t r */
       A2 = prim_cast((word *)A0, immval(A1));
       NEXT(3);
@@ -1381,7 +1363,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(r & FMAX);
       NEXT(4); }
    op41: /* unused */
-      error(256, F(41), IFALSE);
+      error(41, F(41), IFALSE);
    op42: /* mkblack l k v r t */
       A4 = prim_mkff(TFF, A0, A1, A2, A3);
       NEXT(5);
@@ -1395,7 +1377,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = prim_set(A0, A1, A2);
       NEXT(4); }
    op46: /* unused */
-      error(256, F(46), IFALSE);
+      error(46, F(46), IFALSE);
    op47: /* ref t o r */ /* fixme: deprecate this later */
       A2 = prim_ref(A0, A1);
       NEXT(3);
@@ -1480,7 +1462,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = F(res&FMAX);
       NEXT(4); }
    op60: /* unused */
-      error(256, F(60), IFALSE);
+      error(60, F(60), IFALSE);
    op61: /* clock <secs> <ticks> */ { /* fixme: sys */
       struct timeval tp;
       word *ob;

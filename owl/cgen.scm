@@ -349,29 +349,6 @@
                         (cond ;                                                        .--> note, maybe have #false value set
                            (else (values (list "R[" to "]=R[" from "];") bs (put regs to (get regs from #false))))))))
                (cons 10 cify-type)
-               ;(cons 11 ;; jump-if-immediate-type a type lo8 hi8
-               ;   (λ (bs regs fail)
-               ;      (lets
-               ;         ((a type lo8 hi8 bs (get4 (cdr bs)))
-               ;          (jump-len (bor (<< hi8 8) lo8)))
-               ;         (cond
-               ;            (else (values 'branch
-               ;               (tuple
-               ;                  (list "immediatep(R["a"])&&imm_type((word)R["a"])==" type)
-               ;                  (drop bs jump-len) (put regs a 'immediate)
-               ;                  bs (put regs a 'alloc)) regs))))))
-               ;(cons 12 ;; jump-if-allocated-type a type lo8 hi8
-               ;   (λ (bs regs fail)
-               ;      (lets
-               ;         ((a type lo8 hi8 bs (get4 (cdr bs)))
-               ;          (jump-len (bor (<< hi8 8) lo8)))
-               ;         (cond
-               ;            (else (values 'branch
-               ;               (tuple
-               ;                  (list "allocp(R["a"])&&imm_type(V(R["a"]))==" type)
-               ;                  (drop bs jump-len)
-               ;                  (put regs a (get alloc-types type 'alloc))
-               ;                  bs regs) regs)))))) ; <- raw or immediate
                ;; 13=ldi, see higher ops
                (cons 14 ;; ldfix <n> <to>
                   (λ (bs regs fail)
@@ -391,36 +368,6 @@
                      (values
                         (list "{error(17,ob,F(acc));}")
                         null regs)))
-               (cons 18 ;; goto-code <p>
-                  (λ (bs regs fail)
-                     (lets
-                        ((fun (cadr bs))
-                         (arity (caddr bs)))
-                        (cond
-                           (else
-                              (values
-                                 (list "ob=(word *)R[" fun "];ip=((unsigned char *)ob)+W;acc=" arity ";goto invoke;")
-                                 null regs))))))
-               (cons 19 ;; goto-proc <p>
-                  (λ (bs regs fail)
-                     (lets
-                        ((fun (cadr bs))
-                         (arity (caddr bs)))
-                        (cond
-                           (else
-                              (values
-                                 (list "R[1]=R["fun"];ob=(word *)G(R[1],1);ip=((unsigned char *)ob)+W;acc=" arity ";goto invoke;")
-                                 null regs))))))
-               (cons 21 ;; goto-clos <p>
-                  (λ (bs regs fail)
-                     (lets
-                        ((fun (cadr bs))
-                         (arity (caddr bs)))
-                        (cond
-                           (else
-                              (values
-                                 (list "R[1]=R[" fun"];R[2]=G(R[1],1);ob=(word *)G(R[2],1);ip=((unsigned char *)ob)+W;acc=" arity ";goto invoke;")
-                                 null regs))))))
                (cons 22 cify-cast)
                (cons 23 cify-mkt)
                (cons 24 ;; ret r == call R3 with 1 argument at Rr
