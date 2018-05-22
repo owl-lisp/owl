@@ -73,10 +73,6 @@
                    (n _ (fx+ n 1)))
                   (loop f n)))))
 
-      (define last-bit
-         (lets ((n _ (fx- *fixnum-bits* 1)))
-            n))
-
       (define *big-one*
          (ncons 1 null))
 
@@ -1087,11 +1083,10 @@
             ((eq? a b) (subi n 1))
             ((lesser? a b) (subi n 1))
             (else
-               ; FIXME: using (b over (fx+ b b)) here increases the runtime of tests/math-rand.scm notably
-               (lets ((over b (fx>> b last-bit)))
-                  (if (eq? over 0)
-                     (shift-local-up a b (nat-succ n))
-                     (subi n 1))))))
+               (lets ((b overflow? (fx+ b b)))
+                  (if overflow?
+                     (subi n 1)
+                     (shift-local-up a b (nat-succ n)))))))
 
       (define (div-shift a b n)
          (if (eq? (type a) type-fix+)
@@ -1306,6 +1301,8 @@
       ; later (sub-shifted a b s) in 1-bit positions
       ; b is usually shorter, so shift b right and then substract instead
       ; of moving a by s
+
+      (define last-bit (subi *fixnum-bits* 1))
 
       (define (divex bit bp a b out)
          (cond
