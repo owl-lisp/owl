@@ -215,13 +215,6 @@
                (values (list "R["to"]=prim_mkff("type",R["l"],R["k"],R["v"],R["r"]);") bs
                   (put regs to 'alloc)))))
 
-      ; red? ob to
-      (define (cify-red? bs regs fail)
-         (lets ((ob to bs (get2 (cdr bs))))
-            (values
-               (list "R["to"]=BOOL(allocp(R["ob"])&&(V(R["ob"])&(FFRED<<TPOS)));") bs
-                  (put regs to 'bool))))
-
       ; bind tuple n r0 .. rn
       (define (cify-bind bs regs fail)
          (lets
@@ -471,7 +464,6 @@
                (cons 38 cify-fxadd)
                (cons 39 cify-fxmul)
                (cons 40 cify-fxsub)
-               (cons 41 cify-red?)
                (cons 42 (cifyer-mkff "TFF"))
                (cons 43 (cifyer-mkff "TFF|FFRED"))
                (cons 44 ;; less a b r

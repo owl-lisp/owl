@@ -143,7 +143,6 @@
       (define listuple (func '(4 35 4 5 6 7 24 7)))
       (define mkblack (func '(5 42 4 5 6 7 8 24 8)))
       (define mkred (func '(5 43 4 5 6 7 8 24 8)))
-      (define red? (func '(2 41 4 5 24 5)))
       (define fxqr (func '(4 26))) ;; <- placeholder
       (define fx+ (func '(4 38 4 5 6 7 24 7)))
       (define fx- (func '(4 40 4 5 6 7 24 7)))
@@ -161,7 +160,6 @@
             (tuple 'mkblack      42 4 1 mkblack)   ; (mkblack l k v r)
             (tuple 'mkred        43 4 1 mkred)   ; ditto
             (tuple 'ff-bind      49 1 #false ff-bind)  ;; SPECIAL ** (ffbind thing (lambda (name ...) body))
-            (tuple 'red?         41 1 #false red?)  ;; (red? node) -> bool
             (tuple 'fxqr         26 3 3 'fxqr)   ;; (fxdiv ah al b) -> qh ql r
             (tuple 'fx+          38 2 2 fx+)   ;; (fx+ a b)      ;; 2 out
             (tuple 'fx*          39 2 2 fx*)   ;; (fx* a b)      ;; 2 out

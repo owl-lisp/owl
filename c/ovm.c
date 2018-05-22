@@ -1380,10 +1380,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = r & (1 << FBITS) ? IFALSE : ITRUE;
       A2 = F(r & FMAX);
       NEXT(4); }
-   op41: { /* red? node r (has highest type bit?) */
-      word *node = (word *)A0;
-      A1 = BOOL(allocp(node) && ((*node)&(FFRED<<TPOS)));
-      NEXT(2); }
+   op41: /* unused */
+      error(256, F(41), IFALSE);
    op42: /* mkblack l k v r t */
       A4 = prim_mkff(TFF, A0, A1, A2, A3);
       NEXT(5);
