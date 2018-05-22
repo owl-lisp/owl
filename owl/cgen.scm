@@ -129,15 +129,6 @@
                (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=(rawp(h))?F((hdrsize(h)-1)*W-((h>>8)&7)):IFALSE;}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
-      ;; fftoggle node to
-      (define (cify-fftoggle bs regs fail)
-         (lets ((ob to bs (get2 (cdr bs))))
-            (cond
-               (else
-                  (values
-                     (list "R["to"]=(immediatep(R["ob"]))?IEMPTY:prim_cast((word *)R["ob"],(V(R["ob"])>>TPOS)^FFRED);")
-                     bs (put regs to (get regs ob #false)))))))
-
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-size bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
@@ -494,7 +485,6 @@
                         (cond
                            (else (values (list "R["to"]=prim_set(R["ob"],R["pos"],R["val"]);") bs
                               (put regs to (get regs ob 'alloc))))))))
-               (cons 46 cify-fftoggle)
                (cons 47 cify-ref)
                (cons 48 cify-ref) ;; use refb (being merged)
                (cons 49 cify-bindff)

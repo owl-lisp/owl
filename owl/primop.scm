@@ -97,7 +97,6 @@
       (define cast        (func '(3 22 4 5 6 24 6)))
       (define ref         (func '(3 47 4 5 6 24 6)))
       (define refb        (func '(3 48 4 5 6 24 6)))
-      (define ff-toggle   (func '(2 46 4 5 24 5)))
 
       ;; make thread sleep for a few thread scheduler rounds
       (define (wait n)
@@ -137,8 +136,7 @@
             (tuple 'cast         22 2 1 cast)  ;; cast object type (works for immediates and allocated)
             (tuple 'ref          47 2 1 ref)   ;;
             (tuple 'refb         48 2 1 refb)      ;;
-            (tuple 'mkt          23 'any 1 mkt)   ;; mkt type v0 .. vn t
-            (tuple 'ff-toggle    46 1 1 ff-toggle)))  ;; (fftoggle node) -> node', toggle redness
+            (tuple 'mkt          23 'any 1 mkt))) ;; mkt type v0 .. vn t
 
       (define set (func '(4 45 4 5 6 7 24 7)))
       (define lesser? (func '(3 44 4 5 6 24 6)))

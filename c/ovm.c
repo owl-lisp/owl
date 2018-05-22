@@ -1396,21 +1396,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op45: { /* set t o v r */
       A3 = prim_set(A0, A1, A2);
       NEXT(4); }
-   op46: { /* fftoggle - toggle node color */
-      word *node = (word *)A0;
-      word *new, h;
-      assert(allocp(node), node, 46);
-      new = fp;
-      h = *node++;
-      A1 = (word) new;
-      *new++ = (h^(FFRED<<TPOS));
-      switch(hdrsize(h)) {
-         case 5:  *new++ = *node++;
-         case 4:  *new++ = *node++;
-         default: *new++ = *node++;
-                  *new++ = *node++; }
-      fp = new;
-      NEXT(2); }
+   op46: /* unused */
+      error(256, F(46), IFALSE);
    op47: /* ref t o r */ /* fixme: deprecate this later */
       A2 = prim_ref(A0, A1);
       NEXT(3);
