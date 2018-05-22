@@ -92,7 +92,7 @@
       (define fxbor       (func '(3 56 4 5 6 24 6)))
       (define fxbxor      (func '(3 57 4 5 6 24 6)))
 
-      (define type        type-byte)
+      (define type        (func '(2 15 4 5 24 5)))
       (define size        (func '(2 36 4 5 24 5)))
       (define cast        (func '(3 22 4 5 6 24 6)))
       (define ref         (func '(3 47 4 5 6 24 6)))
@@ -130,7 +130,6 @@
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
             (tuple '_poll2       11 3 2 _poll2) ;; poll rfdlist wfdlist timeout/false → fd/false/null type
-            (tuple 'type-byte    15 1 1 type-byte) ;; get just the type bits (new)
             (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
             (tuple 'cast         22 2 1 cast)  ;; cast object type (works for immediates and allocated)
