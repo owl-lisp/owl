@@ -12,7 +12,7 @@
    (import
       (owl defmac)
       (owl ff)
-      (only (owl math) ncons)
+      (only (owl math) ncar ncons)
       (owl list))
 
    (begin

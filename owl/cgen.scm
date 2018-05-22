@@ -474,11 +474,6 @@
                ;               ) regs))))
                (cons 26 cify-fxqr)
                (cons 28 cify-sizeb)
-               (cons 30 ;; ncar ob to (raw ref first), UNSAFE
-                  (λ (bs regs fail)
-                     (lets ((from to bs (get2 (cdr bs))))
-                        (cond
-                           (else (values (list "R[" to "]=G(R[" from "],1);") bs (put regs to 'fixnum)))))))
                (cons 31 ;; ncdr ob to (raw ref first), UNSAFE
                   (λ (bs regs fail)
                      (lets ((from to bs (get2 (cdr bs))))

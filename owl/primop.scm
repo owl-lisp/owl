@@ -167,7 +167,6 @@
             (tuple 'fxqr         26 3 3 'fxqr)   ;; (fxdiv ah al b) -> qh ql r
             (tuple 'fx+          38 2 2 fx+)   ;; (fx+ a b)      ;; 2 out
             (tuple 'fx*          39 2 2 fx*)   ;; (fx* a b)      ;; 2 out
-            (tuple 'ncar         30 1 1 ncar)   ;;
             (tuple 'ncdr         31 1 1 ncdr)   ;;
             (tuple 'fx-          40 2 2 fx-)   ;; (fx- a b)       ;; 2 out
             (tuple 'fx>>         58 2 2 fx>>)   ;; (fx>> a b) -> hi lo, lo are the lost bits

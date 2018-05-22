@@ -1319,7 +1319,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       /* FIXME: remove this after the next fasl update: */ {
       A2 = mkpair(NUMHDR, A0, A1);
       NEXT(3); }
-   op30: { /* ncar a rd */
+   op30: /* unused */
+      /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
       assert(allocp(ob), ob, 30);
       A1 = ob[1];

@@ -38,7 +38,7 @@
       remainder modulo
       truncate round
       rational complex
-      ncons
+      ncons ncar
       *max-fixnum* *fixnum-bits*
       )
 
@@ -77,6 +77,10 @@
       (define-syntax ncons
          (syntax-rules ()
             ((ncons a d) (mkt type-int+ a d))))
+
+      (define-syntax ncar
+         (syntax-rules ()
+            ((ncar n) (ref n 1))))
 
       (define *big-one*
          (ncons 1 null))
