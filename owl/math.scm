@@ -424,7 +424,7 @@
       (define (add-small->negative a b)
          (lets ((r overflow? (fx+ a b)))
             (if overflow?
-               (cast (ncons r *big-one*) type-int-)
+               (mkt type-int- r *big-one*)
                (cast r type-fix-))))
 
 
@@ -450,10 +450,8 @@
                   0
                   (cast num type-fix-)))   ;; a  -> -a
             (type-fix- (cast num type-fix+))   ;; -a ->  a
-            (type-int+                ;;  A -> -A
-               (mkt type-int- (ncar num) (ncdr num)))
-            (type-int-             ;; -A -> A
-               (ncons (ncar num) (ncdr num)))
+            (type-int+ (cast num type-int-)) ;; A -> -A
+            (type-int- (cast num type-int+)) ;; -A -> A
             (type-rational
                (lets ((a b num))
                   (rational (negate a) b)))
@@ -1907,7 +1905,7 @@
             (type-fix+ n)
             (type-fix- (cast n type-fix+))
             (type-int+ n)
-            (type-int- (ncons (ncar n) (ncdr n)))
+            (type-int- (cast n type-int+))
             (type-rational (if (negative? n) (sub 0 n) n))
             (else (error "bad math: " (list 'abs n)))))
 
