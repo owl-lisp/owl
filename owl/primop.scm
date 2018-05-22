@@ -25,7 +25,7 @@
       eq?
 
       apply apply-cont ;; apply post- and pre-cps
-      call/cc call-with-current-continuation
+      call/cc
       lets/cc
 
       _poll2
@@ -209,8 +209,6 @@
                      ((c a) (k a))
                      ((c a b) (k a b))
                      ((c . x) (apply-cont k x)))))))
-
-      (define call-with-current-continuation call/cc)
 
       (define-syntax lets/cc
          (syntax-rules (call/cc)

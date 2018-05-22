@@ -278,6 +278,8 @@
                   (lambda args
                      (error "Implementation restriction:" (cons (quote name) args)))))))
 
+      (define call-with-current-continuation call/cc)
+
       (define features
          (let ((owl-state (link-variable '*state*)))
             (λ () (get (owl-state) 'features null))))
