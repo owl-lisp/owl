@@ -41,10 +41,14 @@ bin/diet-vm: c/vm.c
 bin/diet-ol: c/diet-ol.c
 	diet $(CC) -O2 -o bin/diet-ol c/diet-ol.c
 
-c/vm.c: c/ovm.c
+c/_vm.c: c/ovm.c
+	# remove duplicate white-space and most comments
+	sed 's/[[:space:]]\{1,\}/ /g;s/^ //;/GENERATED INS/!s,\( */\*[^/]*[^*]*\*/\)* *$$,,;/^$$/d' <c/ovm.c >c/_vm.c
+
+c/vm.c: c/_vm.c
 	# make a vm without a bundled heap
 	echo "unsigned char *heap = 0;" > c/vm.c
-	cat c/ovm.c >> c/vm.c
+	cat c/_vm.c >>c/vm.c
 
 manual.md: doc/manual.md owl/*.scm scheme/*.scm
 	cat doc/manual.md > manual.md
@@ -114,10 +118,10 @@ uninstall:
 
 clean:
 	-rm -f fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
-	-rm -f c/vm.c c/ol.c
+	-rm -f c/_vm.c c/vm.c c/ol.c
 	-rm -f doc/*.gz
 	-rm -f tmp/*
-	-rm -f bin/ol bin/vm
+	-rm -f bin/ol bin/ol-old bin/vm
 
 # make a standalone binary against dietlibc for relase
 standalone: c/ol.c c/vm.c

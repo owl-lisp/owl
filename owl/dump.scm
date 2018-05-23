@@ -78,7 +78,7 @@
       ;; todo: compress the rts source in heap
       ;; todo: include rts source into lib-ccomp instead of keeping it in a separate file
       (define rts-source
-         (file->string "c/ovm.c"))
+         (file->string "c/_vm.c"))
 
       ; str -> str' | #false
       (define (utf8-decode-string str)
