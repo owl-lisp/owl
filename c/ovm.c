@@ -349,16 +349,6 @@ void signal_handler(int signal) {
    }
 }
 
-/* small functions defined locally after hitting some portability issues */
-static void bytecopy(byte *from, byte *to, int n) { while(n--) *to++ = *from++; }
-static void wordcopy(word *from, word *to, int n) { while(n--) *to++ = *from++; }
-
-unsigned int lenn(byte *pos, unsigned int max) { /* added here, strnlen was missing in win32 compile */
-   unsigned int p = 0;
-   while(p < max && *pos++) p++;
-   return p;
-}
-
 /* list length, no overflow or valid termination checks */
 int llen(word *ptr) {
    int len = 0;
@@ -475,7 +465,7 @@ static word prim_cast(word ob, word type) {
       allocate(size, new);
       res = new;
       *new++ = (hdr&(~252))|((type&1087)<<TPOS); /* clear type, allow setting teardown in new one */
-      wordcopy((word *)ob + 1, new, size - 1);
+      memcpy(new, (word *)ob + 1, (size - 1) * W);
       return (word)res;
    }
 }
@@ -616,7 +606,7 @@ static word prim_sys(word op, word a, word b, word c) {
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
          ipa = mkbvec(4, TBVEC);
-         bytecopy((byte *)&addr.sin_addr, (byte *)ipa + W, 4);
+         memcpy(ipa + 1, &addr.sin_addr, 4);
          return cons((word)ipa, make_immediate(fd, TPORT)); }
       case 5: /* read fd len -> bvec | EOF | #f */
          if (is_type(a, TPORT)) {
@@ -672,7 +662,7 @@ static word prim_sys(word op, word a, word b, word c) {
             return IFALSE;
          bvec = mkbvec(recvd, TBVEC);
          ipa = mkbvec(4, TBVEC);
-         bytecopy((byte *)&si_other.sin_addr, (byte *)ipa + W, 4);
+         memcpy(ipa + 1, &si_other.sin_addr, 4);
          return cons((word)ipa, (word)bvec); }
       case 11: /* open-dir path → dirobjptr | #false */
          if (stringp(a)) {
@@ -832,7 +822,7 @@ static word prim_sys(word op, word a, word b, word c) {
             size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
             /* the last byte is temporarily used for the terminating '\0' */
             if (getcwd((char *)fp + W, max) != NULL)
-               return (word)mkbvec(lenn((byte *)fp + W, max - 1), TSTRING);
+               return (word)mkbvec(strnlen((char *)fp + W, max - 1), TSTRING);
          }
          return IFALSE;
       case 37: /* umask mask → mask */
