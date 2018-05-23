@@ -1,6 +1,7 @@
 /* Owl Lisp runtime */
 
 #include <signal.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
@@ -12,6 +13,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -171,24 +173,9 @@ static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 static word state;       /* IFALSE | previous program state across runs */
-
 byte *hp;
 static word *fp;
 byte *file_heap;
-word vm(word *ob, word *arg);
-void exit(int rval);
-void *realloc(void *ptr, size_t size);
-void free(void *ptr);
-char *getenv(const char *name);
-int setenv(const char *name, const char *value, int overwrite);
-int unsetenv(const char *);
-DIR *opendir(const char *name);
-DIR *fdopendir(int fd);
-pid_t fork(void);
-pid_t waitpid(pid_t pid, int *status, int options);
-int chdir(const char *path);
-int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
-int execv(const char *path, char *const argv[]);
 struct termios tsettings;
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
