@@ -1124,12 +1124,13 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          ip += ip[2] + (ip[3] << 8);
       NEXT(4);
    op9: A1 = A0; NEXT(2);
-   op10: error(10, F(42), F(42));
+   op10:
+      goto unused;
    op11:
       do_poll(A0, A1, A2, &A3, &A4);
       NEXT(5);
-   op12: /* unused */
-      error(12, F(12), IFALSE);
+   op12:
+      goto unused;
    op13: /* ldi{2bit what} [to] */
       A0 = load_imms[op >> 6];
       NEXT(1);
@@ -1153,10 +1154,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       for (p = 0; p < acc; ++p)
          t[p+1] = R[p+3];
       error(17, ob, t); }
-   op18: /* unused */
-      error(18, F(18), IFALSE);
-   op19: /* unused */
-      error(19, F(19), IFALSE);
+   op18:
+      goto unused;
+   op19:
+      goto unused;
    op20: { /* apply */
       int reg, arity;
       word *lst;
@@ -1193,8 +1194,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       }
       acc = arity;
       goto apply; }
-   op21: /* unused */
-      error(21, F(21), IFALSE);
+   op21:
+      goto unused;
    op22: /* cast o t r */
       A2 = prim_cast(A0, A1);
       NEXT(3);
@@ -1259,20 +1260,23 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
       }
       NEXT(2); }
-   op29: /* unused */
+   op29:
       /* FIXME: remove this after the next fasl update: */ {
       A2 = mkpair(NUMHDR, A0, A1);
       NEXT(3); }
-   op30: /* unused */
+      goto unused;
+   op30:
       /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
       A1 = ob[1];
       NEXT(2); }
-   op31: /* unused */
+      goto unused;
+   op31:
       /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
       A1 = ob[2];
       NEXT(2); }
+      goto unused;
    op32: { /* bind tuple <n> <r0> .. <rn> */
       word *tuple = (word *) R[*ip++];
       word hdr, pos = 1, n = *ip++ + 1;
@@ -1283,7 +1287,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          R[*ip++] = tuple[pos++];
       NEXT(0); }
    op33:
-      error(33, IFALSE, IFALSE);
+      goto unused;
    op34: /* jmp-nargs a hi li */
       if (acc != *ip)
          ip += (ip[1] << 8) | ip[2];
@@ -1341,17 +1345,18 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op45: /* set t o v r */
       A3 = prim_set(A0, A1, A2);
       NEXT(4);
-   op46: /* unused */
-      error(46, F(46), IFALSE);
+   op46:
+      goto unused;
    op47: /* ref t o r */ /* fixme: deprecate this later */
       A2 = prim_ref(A0, A1);
       NEXT(3);
-   op48: /* unused */
+   op48:
       /* FIXME: remove this after the next fasl update: */ {
       word ob = A0;
       assert(immediatep(ob) || rawp(header(ob)), ob, 48);
       A2 = prim_ref(ob, A1);
       NEXT(3); }
+      goto unused;
    op49: { /* withff node l k v r */
       word hdr, *ob = (word *)A0;
       hdr = *ob++;
@@ -1400,13 +1405,14 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op51: /* cons a b r */
       A2 = cons(A0, A1);
       NEXT(3);
-   op52: /* unused */
-   op53: /* unused */
+   op52:
+   op53:
       /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
       assert(pairp(ob), ob, 52);
       A1 = ob[op - 51];
       NEXT(2); }
+      goto unused;
    op54: /* eq a b r */
       A2 = BOOL(A0 == A1);
       NEXT(3);
@@ -1425,14 +1431,15 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A2 = F(x >> n);
       A3 = F(x << (FBITS - n) & FMAX);
       NEXT(4); }
-   op59: /* unused */
+   op59:
       /* FIXME: remove this after the next fasl update: */ {
       uint64_t res = (uint64_t)immval(A0) << immval(A1);
       A2 = F(res>>FBITS);
       A3 = F(res&FMAX);
       NEXT(4); }
-   op60: /* unused */
-      error(60, F(60), IFALSE);
+      goto unused;
+   op60:
+      goto unused;
    op61: /* clock <secs> <ticks> */ { /* fixme: sys */
       struct timeval tp;
       word *ob;
@@ -1453,6 +1460,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op63: /* sys-prim op arg1 arg2 arg3 r1 */
       A4 = prim_sys(A0, A1, A2, A3);
       NEXT(5);
+   unused:
+      error(256, F(op), IFALSE);
 
 super_dispatch: /* run macro instructions */
    switch (op) {

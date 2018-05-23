@@ -231,6 +231,8 @@
                `("error: car on non-pair" ,a))
             ((169)
                `("error: cdr on non-pair" ,a))
+            ((256)
+               `("error: hit unimplemented opcode" ,a))
             (else
                `("error: instruction" ,(primop-name opcode) "reported error:" ,a ,b))))
 
