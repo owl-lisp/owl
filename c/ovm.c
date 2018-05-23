@@ -173,10 +173,10 @@ static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 static word state;       /* IFALSE | previous program state across runs */
-byte *hp;
+static byte *hp;
 static word *fp;
-byte *file_heap;
-struct termios tsettings;
+static byte *file_heap;
+static struct termios tsettings;
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -243,7 +243,7 @@ static word *compact() {
    return new;
 }
 
-void fix_pointers(word *pos, wdiff delta) {
+static void fix_pointers(word *pos, wdiff delta) {
    for (;;) {
       word hdr = *pos;
       int n = hdrsize(hdr);
@@ -265,7 +265,7 @@ void fix_pointers(word *pos, wdiff delta) {
 
 /* emulate sbrk with malloc'd memory, because sbrk is no longer properly supported */
 /* n-cells-wanted → heap-delta (to be added to pointers), updates memstart and memend */
-wdiff adjust_heap(wdiff cells) {
+static wdiff adjust_heap(wdiff cells) {
    word *old = memstart;
    word nwords = memend - memstart + MEMPAD; /* MEMPAD is after memend */
    word new_words = nwords + (cells > 0xffffff ? 0xffffff : cells); /* limit heap growth speed */
@@ -337,7 +337,7 @@ static word *gc(int size, word *regs) {
 
 /*** OS Interaction and Helpers ***/
 
-void signal_handler(int signal) {
+static void signal_handler(int signal) {
    switch (signal) {
       case SIGINT:
          breaked |= 2;
@@ -350,7 +350,7 @@ void signal_handler(int signal) {
 }
 
 /* list length, no overflow or valid termination checks */
-int llen(word *ptr) {
+static int llen(word *ptr) {
    int len = 0;
    while (pairp(ptr)) {
       len++;
@@ -366,7 +366,7 @@ static word payl_len(word hdr) {
    return len;
 }
 
-void set_signal_handler() {
+static void set_signal_handler() {
    struct sigaction sa;
    sa.sa_handler = signal_handler;
    sigemptyset(&sa.sa_mask);
@@ -543,7 +543,7 @@ static word prim_set(word wptr, word pos, word val) {
    return (word) new;
 }
 
-void setdown() {
+static void setdown() {
    tcsetattr(0, TCSANOW, &tsettings); /* return stdio settings */
 }
 
@@ -923,7 +923,7 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    return (word) ob;
 }
 
-void do_poll(word a, word b, word c, word *r1, word *r2) {
+static void do_poll(word a, word b, word c, word *r1, word *r2) {
    fd_set rs, ws, es;
    word *cur;
    int nfds = 1;
@@ -972,7 +972,7 @@ void do_poll(word a, word b, word c, word *r1, word *r2) {
    }
 }
 
-word vm(word *ob, word *arg) {
+static word vm(word *ob, word *arg) {
    byte *ip;
    unsigned int bank = 0;
    unsigned int ticker = TICKS;
@@ -1475,7 +1475,7 @@ invoke_mcp: /* R4-R6 set, set R3=cont and R4=syscall and call mcp */
 
 /* Initial FASL image decoding */
 
-word get_nat() {
+static word get_nat() {
    word result = 0;
    word new, i;
    do {
@@ -1487,7 +1487,7 @@ word get_nat() {
    return result;
 }
 
-word *get_field(word *ptrs, int pos) {
+static word *get_field(word *ptrs, int pos) {
    if (0 == *hp) {
       byte type;
       word val;
@@ -1503,7 +1503,7 @@ word *get_field(word *ptrs, int pos) {
    return fp;
 }
 
-word *get_obj(word *ptrs, int me) {
+static word *get_obj(word *ptrs, int me) {
    int type, size;
    if (ptrs != NULL)
       ptrs[me] = (word)fp;
@@ -1538,7 +1538,7 @@ word *get_obj(word *ptrs, int me) {
 }
 
 /* dry run fasl decode - just compute sizes */
-void get_obj_metrics(int *rwords, int *rnobjs) {
+static void get_obj_metrics(int *rwords, int *rnobjs) {
    int size;
    switch (*hp++) {
       case 1:
@@ -1565,14 +1565,14 @@ void get_obj_metrics(int *rwords, int *rnobjs) {
 }
 
 /* count number of objects and measure heap size */
-void heap_metrics(int *rwords, int *rnobjs) {
+static void heap_metrics(int *rwords, int *rnobjs) {
    byte *hp_start = hp;
    while (*hp != 0)
       get_obj_metrics(rwords, rnobjs);
    hp = hp_start;
 }
 
-byte *read_heap(char *path) {
+static byte *read_heap(char *path) {
    struct stat st;
    int fd, pos = 0;
    if(stat(path, &st)) exit(1);
@@ -1591,7 +1591,7 @@ byte *read_heap(char *path) {
 }
 
 /* find a fasl image source to *hp or exit */
-void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
+static void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
    file_heap = NULL;
    if ((word)heap == 0) {
       /* if no preloaded heap, try to load it from first vm arg */
@@ -1608,7 +1608,7 @@ void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
    heap_metrics(nwords, nobjs);
 }
 
-word *decode_fasl(int nobjs) {
+static word *decode_fasl(int nobjs) {
    word *ptrs;
    word *entry;
    int pos = 0;
@@ -1624,14 +1624,14 @@ word *decode_fasl(int nobjs) {
    return entry;
 }
 
-word *load_heap(int nobjs) {
+static word *load_heap(int nobjs) {
    word *entry = decode_fasl(nobjs);
    if (file_heap != NULL)
       free(file_heap);
    return entry;
 }
 
-void setup(int nwords, int nobjs) {
+static void setup(int nwords, int nobjs) {
    tcgetattr(0, &tsettings);
    state = IFALSE;
    set_signal_handler();
