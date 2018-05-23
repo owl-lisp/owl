@@ -199,41 +199,40 @@
       (define env-fold ff-fold)
 
       (define (tuple->list t)
-        (let loop ((pos 1))
-          (if (eq? pos (size t))
-            (list (ref t pos))
-            (cons (ref t pos) (loop (+ pos 1))))))
+         (let loop ((pos 1))
+            (if (eq? pos (size t))
+               (list (ref t pos))
+               (cons (ref t pos) (loop (+ pos 1))))))
 
       (define (env-serializer env thing)
-        ((make-serializer (env-get env name-tag empty))
-          thing null))
+         ((make-serializer (env-get env name-tag empty)) thing null))
 
       (define (verbose-vm-error env opcode a b)
-        (cond
-          ((eq? opcode 17) ;; arity error
+         (case opcode
+            ((17)
             ;; arity error, could be variable
             ; this is either a call, in which case it has an implicit continuation,
             ; or a return from a function which doesn't have it. it's usually a call,
             ; so -1 to not count continuation. there is no way to differentiate the
             ; two, since there are no calls and returns, just jumps.
-            (let ((func (list->string (env-serializer env a))))
-              ;; use the updated renderer from toplevel to possible get a name for the function
-              (cond
-                ((fixnum? b)
-                   `(arity error ,func got ,b arguments))
-                ((function? (ref b 1))
-                   `(arity error ,func arguments ,(cdr (tuple->list b))
-                     or return arity error where first is function))
-                (else
-                   `(wrong number of returned values ,(tuple->list b))))))
-          ((eq? opcode 0)
-             `("error: bad call: operator " ,a ", args w/ cont " ,b))
-          ((eq? opcode 105)
-            `("error: car on non-pair " ,a))
-          ((eq? opcode 169)
-            `("error: cdr on non-pair " ,a))
-          (else
-            `("error: instruction" ,(primop-name opcode) "reported error: " ,a " " ,b))))
+               (let ((func (list->string (env-serializer env a))))
+                  ;; use the updated renderer from toplevel to possibly get a name for the function
+                  (cond
+                     ((fixnum? b)
+                        `(arity error ,func got ,b arguments))
+                     ((function? (ref b 1))
+                        `(arity error ,func arguments ,(cdr (tuple->list b))
+                        or return arity error where first is function))
+                     (else
+                        `(wrong number of returned values ,(tuple->list b))))))
+            ((0)
+               `("error: bad call: operator" ,a "- args w/ cont" ,b))
+            ((105)
+               `("error: car on non-pair" ,a))
+            ((169)
+               `("error: cdr on non-pair" ,a))
+            (else
+               `("error: instruction" ,(primop-name opcode) "reported error:" ,a ,b))))
 
       ;; ff of wrapper-fn → opcode
       (define prim-opcodes
