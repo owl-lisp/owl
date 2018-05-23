@@ -52,8 +52,8 @@
               (goto-proc . 19)
               (goto-clos . 21)
               (cons . 51)     ; cons a, b, t:   Rt = mkpair(a, b)
-              (car  . 52)     ; car a, t:       Rt = car(a);
-              (cdr  . 53)     ; cdr a, t:       Rt = cdr(a);
+              (car  . 105)    ; car a, t:       Rt = car(a);
+              (cdr  . 169)    ; cdr a, t:       Rt = cdr(a);
               (eq   . 54)     ; eq a, b, t:     Rt = (Ra == Rb) ? true : false;
               (jlq  . 8)      ; jlq a b o1 o2
               (ld   . 14)     ; ld a, t:        Rt = a, signed byte

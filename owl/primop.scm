@@ -77,8 +77,8 @@
          )
 
       ;; these rest are easy
-      (define car         (func '(2 52 4 5 24 5)))
-      (define cdr         (func '(2 53 4 5 24 5)))
+      (define car         (func '(2 105 4 5 24 5)))
+      (define cdr         (func '(2 169 4 5 24 5)))
       (define cons        (func '(3 51 4 5 6 24 6)))
       (define run         (func '(3 50 4 5 6 24 6)))
       (define set-ticker  (func '(2 62 4 5 24 5)))
@@ -122,8 +122,8 @@
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
             (tuple 'raw          37 2 1 raw)   ;; make raw object, and *add padding byte count to type variant*
             (tuple 'cons         51 2 1 cons)
-            (tuple 'car          52 1 1 car)
-            (tuple 'cdr          53 1 1 cdr)
+            (tuple 'car         105 1 1 car) ;; opcode: 1 << 6 | 41
+            (tuple 'cdr         169 1 1 cdr) ;; opcode: 2 << 6 | 41
             (tuple 'eq?          54 2 1 eq?)
             (tuple 'fxband       55 2 1 fxband)
             (tuple 'fxbor        56 2 1 fxbor)

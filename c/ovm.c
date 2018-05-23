@@ -977,7 +977,7 @@ static word vm(word *ob, word *arg) {
    unsigned int bank = 0;
    unsigned int ticker = TICKS;
    unsigned short acc = 0;
-   int op;
+   unsigned int op;
    word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE}; /* for ldi and jv */
@@ -1324,8 +1324,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A3 = BOOL(r & (1 << FBITS));
       A2 = F(r & FMAX);
       NEXT(4); }
-   op41: /* unused */
-      error(41, F(41), IFALSE);
+   op41: { /* car a r, or cdr d r */
+      word *ob = (word *)A0;
+      assert(pairp(ob), ob, op);
+      A1 = ob[op >> 6];
+      NEXT(2); }
    op42: /* mkblack l k v r t */
       A4 = prim_mkff(TFF, A0, A1, A2, A3);
       NEXT(5);
@@ -1397,15 +1400,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op51: /* cons a b r */
       A2 = cons(A0, A1);
       NEXT(3);
-   op52: { /* car a r */
+   op52: /* unused */
+   op53: /* unused */
+      /* FIXME: remove this after the next fasl update: */ {
       word *ob = (word *)A0;
       assert(pairp(ob), ob, 52);
-      A1 = ob[1];
-      NEXT(2); }
-   op53: { /* cdr a r */
-      word *ob = (word *)A0;
-      assert(pairp(ob), ob, 53);
-      A1 = ob[2];
+      A1 = ob[op - 51];
       NEXT(2); }
    op54: /* eq a b r */
       A2 = BOOL(A0 == A1);

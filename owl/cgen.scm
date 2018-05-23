@@ -430,7 +430,7 @@
                                  ;; cons directly to free area to avoid register overwriting
                                  (list "R["to"]=cons(R["a"],R["b"]);")
                                  bs (put regs to 'pair)))))))
-               (cons 52 ;; car ob to <- use this to test whether the compiler type handling
+               (cons 105 ;; car ob to <- use this to test whether the compiler type handling
                   (λ (bs regs fail)
                      (lets
                         ((from to bs (get2 (cdr bs)))
@@ -442,15 +442,15 @@
                            ((eq? 'alloc known-type)
                               ;(print " >>> omitting immediate check from car  <<< ")
                               (values
-                                 (list "assert(V(R[" from "])==PAIRHDR,R[" from "],1052);R[" to "]=G(R[" from "],1);")
+                                 (list "assert(V(R[" from "])==PAIRHDR,R[" from "],1105);R[" to "]=G(R[" from "],1);")
                                  bs (del (put regs from 'pair) to))) ;; upgrade to pair
                            (else
                               ;(if known-type (print " >>> car on unknown type <<< " known-type))
                               ;; check that it is a pointer and an object of correct type
                               (values
-                                 (list "assert(pairp(R[" from "]),R[" from "],1052);R[" to "]=G(R[" from "],1);")
+                                 (list "assert(pairp(R[" from "]),R[" from "],1105);R[" to "]=G(R[" from "],1);")
                                  bs (del (put regs from 'pair) to)))))))
-               (cons 53 ;; cdr ob to
+               (cons 169 ;; cdr ob to
                   (λ (bs regs fail)
                      (lets
                         ((from to bs (get2 (cdr bs)))
@@ -462,13 +462,13 @@
                            ((eq? 'alloc known-type)
                               ;(print " >>> omitting immediate check from cdr  <<< ")
                               (values
-                                 (list "assert(V(R[" from "])==PAIRHDR,R[" from "],1053);R[" to "]=G(R[" from "],2);")
+                                 (list "assert(V(R[" from "])==PAIRHDR,R[" from "],1169);R[" to "]=G(R[" from "],2);")
                                  bs (del (put regs from 'pair) to))) ;; upgrade to pair
                            (else
                               ;(if known-type (print " >>> cdr on unknown type <<< " known-type))
                               ;; check that it is a pointer and an object of correct type
                               (values
-                                 (list "assert(pairp(R[" from "]),R[" from "],1053);R[" to "]=G(R[" from "],2);")
+                                 (list "assert(pairp(R[" from "]),R[" from "],1169);R[" to "]=G(R[" from "],2);")
                                  bs (del (put regs from 'pair) to)))))))
                (cons 54 ;; eq a b to
                   (λ (bs regs fail)

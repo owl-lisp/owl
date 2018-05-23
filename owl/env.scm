@@ -228,9 +228,9 @@
                    `(wrong number of returned values ,(tuple->list b))))))
           ((eq? opcode 0)
              `("error: bad call: operator " ,a ", args w/ cont " ,b))
-          ((eq? opcode 52)
+          ((eq? opcode 105)
             `("error: car on non-pair " ,a))
-          ((eq? opcode 53)
+          ((eq? opcode 169)
             `("error: cdr on non-pair " ,a))
           (else
             `("error: instruction" ,(primop-name opcode) "reported error: " ,a " " ,b))))
