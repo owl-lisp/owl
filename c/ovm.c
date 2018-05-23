@@ -498,12 +498,6 @@ static word prim_cast(word *ob, int type) {
    }
 }
 
-static word prim_refb(word pword, unsigned int pos) {
-   if (immediatep(pword) || pos >= payl_len(header(pword)))
-      return IFALSE;
-   return F(((byte *)pword)[W + pos]);
-}
-
 static word prim_ref(word pword, word pos) {
    word *ob = (word *)pword;
    word hdr, size;
@@ -1381,8 +1375,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op47: /* ref t o r */ /* fixme: deprecate this later */
       A2 = prim_ref(A0, A1);
       NEXT(3);
-   op48: { /* refb t o r */ /* todo: merge with ref, though 0-based  */
-      A2 = prim_refb(A0, immval(A1));
+   op48: /* unused */
+      /* FIXME: remove this after the next fasl update: */ {
+      word ob = A0;
+      assert(immediatep(ob) || rawp(header(ob)), ob, 48);
+      A2 = prim_ref(ob, A1);
       NEXT(3); }
    op49: { /* withff node l k v r */
       word hdr, *ob = (word *)A0;

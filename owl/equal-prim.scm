@@ -19,7 +19,7 @@
             (else #false)))
 
       (define (eq-bytes a b pos)
-         (if (eq? (refb a pos) (refb b pos))
+         (if (eq? (ref a pos) (ref b pos))
             (if (eq? pos 0)
                #true
                (receive (fx- pos 1)
@@ -59,4 +59,5 @@
       ;; equality (mainly for theorem checks) which does not depend on
       ;; any libraries one would like to be able to test
       (define (simple-equal? a b)
-         (equal-prim? simple-equal? a b))))
+         (equal-prim? simple-equal? a b))
+))

@@ -119,7 +119,7 @@
       (define (compare-bytes a b pos end)
          (if (eq? pos end)
             is-equal
-            (let ((ab (refb a pos)) (bb (refb b pos)))
+            (let ((ab (ref a pos)) (bb (ref b pos)))
                (cond
                   ((eq? ab bb) (compare-bytes a b (+ pos 1) end))
                   ((lesser? ab bb) is-less)

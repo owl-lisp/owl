@@ -36,7 +36,7 @@
       (define (count-gensym-id str pos end n)
          (if (= pos end)
             n
-            (let ((this (refb str pos)))
+            (let ((this (ref str pos)))
                (cond
                   ((< 47 this 58)
                      (count-gensym-id str (+ pos 1) end (+ (* n 10) (- this 48))))
@@ -46,7 +46,7 @@
          (if (symbol? exp)
             (let ((str (symbol->string exp)))
                (let ((len (string-length str)))
-                  (if (and (> len 1) (eq? (refb str 0) 103))
+                  (if (and (> len 1) (eq? (ref str 0) 103))
                      (count-gensym-id str 1 len 0)
                      #false)))
             #false))

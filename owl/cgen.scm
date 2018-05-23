@@ -53,7 +53,7 @@
       ; -> list of bytes | #false
       (define (code->bytes code extras)
          (if (bytecode? code)
-            (let ((bytes (map (H refb code) (iota 0 1 (sizeb code)))))
+            (let ((bytes (map (H ref code) (iota 0 1 (sizeb code)))))
                (if (eq? (car bytes) 0) ;; (0 <hi8> <lo8>) == call extra instruction
                   (lets
                      ((opcode (+ (<< (cadr bytes) 8) (car (cddr bytes))))
@@ -422,7 +422,6 @@
                            (else (values (list "R["to"]=prim_set(R["ob"],R["pos"],R["val"]);") bs
                               (put regs to (get regs ob 'alloc))))))))
                (cons 47 cify-ref)
-               (cons 48 cify-ref) ;; use refb (being merged)
                (cons 49 cify-bindff)
                (cons 51 ;; cons car cdr to
                   (λ (bs regs fail)

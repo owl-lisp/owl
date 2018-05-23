@@ -95,7 +95,7 @@
          (let ((s (sizeb str)))
             (if (lesser? s 1)
                #false
-               (eq? 45 (refb str 0)))))
+               (eq? 45 (ref str 0)))))
 
       (define (walk rules args dict others)
          (cond

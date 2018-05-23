@@ -142,7 +142,7 @@
       (define (copy-bytes out vec p)
          (if (eq? p -1)
             out
-            (copy-bytes (cons (refb vec p) out) vec (- p 1))))
+            (copy-bytes (cons (ref vec p) out) vec (- p 1))))
 
       ;; todo - pack type to this now that they fit 6 bits
       (define (encode-allocated clos cook)

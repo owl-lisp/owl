@@ -358,7 +358,7 @@
       (define (dir->list path)
          (dir-fold
             (λ (seen this)
-               (if (eq? #\. (refb this 0))
+               (if (eq? #\. (ref this 0))
                   seen
                   (cons this seen)))
             null path))

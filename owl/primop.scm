@@ -96,7 +96,6 @@
       (define size        (func '(2 36 4 5 24 5)))
       (define cast        (func '(3 22 4 5 6 24 6)))
       (define ref         (func '(3 47 4 5 6 24 6)))
-      (define refb        (func '(3 48 4 5 6 24 6)))
 
       ;; make thread sleep for a few thread scheduler rounds
       (define (wait n)
@@ -134,7 +133,6 @@
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
             (tuple 'cast         22 2 1 cast)  ;; cast object type (works for immediates and allocated)
             (tuple 'ref          47 2 1 ref)   ;;
-            (tuple 'refb         48 2 1 refb)      ;;
             (tuple 'mkt          23 'any 1 mkt))) ;; mkt type v0 .. vn t
 
       (define set (func '(4 45 4 5 6 7 24 7)))

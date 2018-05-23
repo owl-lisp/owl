@@ -373,14 +373,14 @@
          ;(let ((t (type obj)))
          ;   (cond
          ;      ((eq? type-bytecode t) ;; raw bytecode
-         ;         (let ((op (refb obj 0)))
+         ;         (let ((op (ref obj 0)))
          ;            (if (eq? op 17)
-         ;               (tuple 'code (refb obj 1))
+         ;               (tuple 'code (ref obj 1))
          ;               #false)))
          ;      ((eq? t type-proc)
-         ;         (tuple 'proc (refb (ref obj 1) 0)))
+         ;         (tuple 'proc (ref (ref obj 1) 0)))
          ;      ((eq? t type-clos)
-         ;         (tuple 'clos (refb (ref (ref obj 1) 1) 0)))
+         ;         (tuple 'clos (ref (ref (ref obj 1) 1) 0)))
          ;      (else
          ;         (tuple 'bad-fn 0))))
          #false)
@@ -601,7 +601,7 @@
       (define (bytecode->list thing)
          (cond
             ((bytecode? thing)
-               (map (H refb thing) (iota 0 1 (sizeb thing))))
+               (map (H ref thing) (iota 0 1 (sizeb thing))))
             ((function? thing)
                ;; get the bytecode
                (bytecode->list (ref thing 1)))

@@ -100,7 +100,7 @@
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (H refb bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
+         (raw (map (H ref bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
          ;; stdio ports are in blocking mode, so poll always
@@ -435,7 +435,7 @@
                (let loop ((pos (- end 1)) (tail tail))
                   (if (eq? pos -1)
                      tail
-                     (loop (- pos 1) (cons (refb block pos) tail)))))))
+                     (loop (- pos 1) (cons (ref block pos) tail)))))))
 
       (define (read-blocks->list port buff)
          (let ((block (get-block port 4096)))
@@ -503,10 +503,10 @@
 
       (define (stream-chunk buff pos tail)
          (if (eq? pos 0)
-            (cons (refb buff pos) tail)
+            (cons (ref buff pos) tail)
             (lets ((next x (fx- pos 1)))
                (stream-chunk buff next
-                  (cons (refb buff pos) tail)))))
+                  (cons (ref buff pos) tail)))))
 
       (define (sleep ms)
          (interact 'iomux (tuple 'alarm ms)))

@@ -95,7 +95,7 @@
 
       ;; walk over raw string using primops and look for bytes > 127
       (define (high-point? str pos)
-         (if (lesser? (refb str pos) 128)
+         (if (lesser? (ref str pos) 128)
             (lets ((pos underflow? (fx- pos 1)))
                (if underflow?
                   #false
@@ -209,13 +209,13 @@
 
       ; obj -> fixnum|#false
       (define (extended-opcode obj)
-         (if (and (bytecode? obj) (eq? 0 (refb obj 0)))
-            (+ (<< (refb obj 1) 8) (refb obj 2))
+         (if (and (bytecode? obj) (eq? 0 (ref obj 0)))
+            (+ (<< (ref obj 1) 8) (ref obj 2))
             #false))
 
       (define (show-func val)
          (cons 'bytecode
-            (map (H refb val) (iota 0 1 (sizeb val)))))
+            (map (H ref val) (iota 0 1 (sizeb val)))))
 
       ; native-ops → (obj → obj')
       ;; fixme: rewrite...
@@ -249,7 +249,7 @@
                         (clone-code original extras)
                         (error "bug: no original code found for superinstruction " opcode)))))
             (else
-               (let ((bytes (map (H refb bc) (iota 0 1 (sizeb bc)))))
+               (let ((bytes (map (H ref bc) (iota 0 1 (sizeb bc)))))
                   (if (eq? (cadr bytes) 0)
                      (error "bug: vm speciazation instruction probably referencing code from current vm: " bytes))
                   (raw bytes type-bytecode))))) ; <- reallocate it

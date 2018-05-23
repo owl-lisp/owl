@@ -139,7 +139,7 @@
       (define (vec-ref-digit v n)
          (case (type v)
             (type-vector-raw
-               (refb v (fxband n *vec-leaf-max*)))
+               (ref v (fxband n *vec-leaf-max*)))
             (type-vector-dispatch
                 (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
             (type-vector-leaf
@@ -164,7 +164,7 @@
             (type-fix+
                (cond
                   ((eq? (type v) type-vector-raw)
-                     (refb v n))
+                     (ref v n))
                   ((lesser? n *vec-leaf-size*)
                      (vec-ref-digit v n))
                   (else
@@ -363,9 +363,9 @@
 
       (define (copy-bvec bv pos tail)
          (if (eq? pos 0)
-            (cons (refb bv pos) tail)
+            (cons (ref bv pos) tail)
             (lets
-               ((byte (refb bv pos))
+               ((byte (ref bv pos))
                 (pos _ (fx- pos 1)))
                (copy-bvec bv pos (cons byte tail)))))
 
@@ -383,9 +383,9 @@
 
       (define (iter-raw-leaf v p tl)
          (if (eq? p 0)
-            (cons (refb v p) tl)
+            (cons (ref v p) tl)
             (lets ((n _ (fx- p 1)))
-               (iter-raw-leaf v n (cons (refb v p) tl)))))
+               (iter-raw-leaf v n (cons (ref v p) tl)))))
 
       (define (iter-leaf v p tl)
          (if (eq? p 0)
@@ -454,7 +454,7 @@
          (if (eq? last 0)
             tl
             (lets ((last (- last 1)))
-               (cons (refb v last)
+               (cons (ref v last)
                   (λ () (iterr-raw-leaf v last tl))))))
 
       (define (iterr-leaf v p tl)

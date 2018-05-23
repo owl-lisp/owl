@@ -78,7 +78,7 @@
       (define (str-iter-leaf str tl pos end)
          (if (eq? pos end)
             tl
-            (pair (refb str pos)
+            (pair (ref str pos)
                (lets ((pos u (fx+ pos 1)))
                   (str-iter-leaf str tl pos end)))))
 
@@ -113,8 +113,8 @@
 
       (define (str-iterr-leaf str tl pos)
          (if (eq? pos 0)
-            (cons (refb str pos) tl)
-            (pair (refb str pos)
+            (cons (ref str pos) tl)
+            (pair (ref str pos)
                (lets ((pos u (fx- pos 1)))
                   (str-iterr-leaf str tl pos)))))
 
