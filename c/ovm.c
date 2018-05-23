@@ -477,17 +477,18 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
    return def;
 }
 
-static word prim_cast(word *ob, int type) {
-   if (immediatep((word)ob)) {
-      return make_immediate(immval((word)ob), type & 63);
+static word prim_cast(word ob, word type) {
+   type = immval(type);
+   if (immediatep(ob)) {
+      return make_immediate(immval(ob), type & 63);
    } else { /* make a clone of more desired type */
-      word hdr = *ob++;
+      word hdr = header(ob);
       int size = hdrsize(hdr);
       word *new, *res; /* <- could also write directly using *fp++ */
       allocate(size, new);
       res = new;
       *new++ = (hdr&(~252))|((type&1087)<<TPOS); /* clear type, allow setting teardown in new one */
-      wordcopy(ob, new, size - 1);
+      wordcopy((word *)ob + 1, new, size - 1);
       return (word)res;
    }
 }
@@ -570,8 +571,8 @@ void setdown() {
 }
 
 /* system- and io primops */
-static word prim_sys(int op, word a, word b, word c) {
-   switch (op) {
+static word prim_sys(word op, word a, word b, word c) {
+   switch (immval(op)) {
       case 0: /* write fd data len | #f → nbytes | #f */
          if (is_type(a, TPORT) && allocp(b)) {
             size_t len, size = payl_len(header(b));
@@ -903,7 +904,7 @@ static word prim_sys(int op, word a, word b, word c) {
    }
 }
 
-static word prim_lraw(word wptr, int type) {
+static word prim_lraw(word wptr, word type) {
    word *lst = (word *)wptr;
    byte *pos;
    word *raw, *ob;
@@ -912,7 +913,7 @@ static word prim_lraw(word wptr, int type) {
       len++;
    if ((word)ob != INULL || len > MAXPAYL)
       return IFALSE;
-   raw = mkbvec(len, type);
+   raw = mkbvec(len, immval(type));
    pos = (byte *)raw + W;
    for (ob = lst; (word)ob != INULL; ob = (word *)ob[2])
       *pos++ = immval(ob[1]) & 255;
@@ -1218,7 +1219,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op21: /* unused */
       error(21, F(21), IFALSE);
    op22: /* cast o t r */
-      A2 = prim_cast((word *)A0, immval(A1));
+      A2 = prim_cast(A0, A1);
       NEXT(3);
    op23: { /* mkt t s f1 .. fs r */
       word t = *ip++;
@@ -1329,21 +1330,21 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
       NEXT(2); }
    op37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
-      A2 = prim_lraw(A0, immval(A1));
+      A2 = prim_lraw(A0, A1);
       NEXT(3);
-   op38: { /* fx+ a b r o, types prechecked, signs ignored, assume fixnumbits+1 fits to machine word */
+   op38: { /* fx+ a b r o, types prechecked, signs ignored */
       word res = immval(A0) + immval(A1);
       A3 = BOOL(res & (1 << FBITS));
       A2 = F(res & FMAX);
       NEXT(4); }
    op39: { /* fx* a b l h */
-      uint64_t res = (uint64_t)immval(A0) * (uint64_t)immval(A1);
+      uint64_t res = (uint64_t)immval(A0) * immval(A1);
       A2 = F(res & FMAX);
-      A3 = F((res >> FBITS) & FMAX);
+      A3 = F(res >> FBITS);
       NEXT(4); }
    op40: { /* fx- a b r u, args prechecked, signs ignored */
-      word r = (immval(A0) | (1 << FBITS)) - immval(A1);
-      A3 = r & (1 << FBITS) ? IFALSE : ITRUE;
+      word r = immval(A0) - immval(A1);
+      A3 = BOOL(r & (1 << FBITS));
       A2 = F(r & FMAX);
       NEXT(4); }
    op41: /* unused */
@@ -1473,7 +1474,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       ticker = immval(A0);
       NEXT(2);
    op63: /* sys-prim op arg1 arg2 arg3 r1 */
-      A4 = prim_sys(immval(A0), A1, A2, A3);
+      A4 = prim_sys(A0, A1, A2, A3);
       NEXT(5);
 
 super_dispatch: /* run macro instructions */

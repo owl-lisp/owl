@@ -113,7 +113,7 @@
       (define (cify-sysprim bs regs fail)
          (lets ((op a1 a2 a3 ret bs (get5 (cdr bs))))
             (values
-               (list "R["ret"]=prim_sys(immval(R["op"]), R["a1"], R["a2"], R["a3"]);")
+               (list "R["ret"]=prim_sys(R["op"],R["a1"],R["a2"],R["a3"]);")
                bs (del regs ret))))
 
       (define (cify-type bs regs fail)
@@ -123,7 +123,7 @@
       (define (cify-sizeb bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
             (values
-               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=(rawp(h))?F((hdrsize(h)-1)*W-((h>>8)&7)):IFALSE;}")
+               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=rawp(h)?F(payl_len(h)):IFALSE;}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -138,7 +138,7 @@
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-lraw bs regs fail)
          (lets ((lr tr to bs (get3 (cdr bs))))
-            (values (list "R["to"]=prim_lraw(R["lr"],immval(R["tr"]));") bs
+            (values (list "R["to"]=prim_lraw(R["lr"],R["tr"]);") bs
                (del regs to)))) ; <- lraw can fail
 
       ;; ref ob pos to
@@ -172,23 +172,21 @@
       ; fxbxor a b r
       (define (cify-fxbxor bs regs fail)
          (lets ((a b r bs (get3 (cdr bs))))
-            (values (list "R["r"]=R["a"]^(R["b"]^2);") bs
+            (values (list "R["r"]=R["a"]^(R["b"]&(FMAX<<IPOS));") bs
                (put regs r 'fixnum))))
 
       ; fx* a b l h
       (define (cify-fxmul bs regs fail)
          (lets ((a b l h bs (get4 (cdr bs))))
             (values
-               (list "{uint64_t res=(uint64_t)immval(R["a"])*(uint64_t)immval(R["b"]);R["l"]=F(res&FMAX);R["h"]=F(res>>FBITS);}")
+               (list "{uint64_t p=(uint64_t)immval(R["a"])*immval(R["b"]);R["l"]=F(p&FMAX);R["h"]=F(p>>FBITS);}")
                bs (put (put regs h 'fixnum) l 'fixnum))))
 
       ; fx- a b r u?
       (define (cify-fxsub bs regs fail)
          (lets ((a b r u bs (get4 (cdr bs))))
             (values
-               ;(list "{word a=immval(R["a"]);word b=immval(R["b"]);if(b>a){R["r"]=F((a|0x10000)-b);R["u"]=ITRUE;}else{R["r"]=F(a-b);R["u"]=IFALSE;}}")
-               ;(list "{word res=(R["a"]|0x10000000)-(R["b"]&0xffff000);R["r"]=res&0xffff002;;R["u"]=(res&0x10000000)?IFALSE:ITRUE;}")
-               (list "{word r=(immval(R["a"])|(1<<FBITS))-immval(R["b"]);R["u"]=(r&(1<<FBITS))?IFALSE:ITRUE;R["r"]=F(r&FMAX);}")
+               (list "{word r=immval(R["a"])-immval(R["b"]);R["u"]=BOOL(r&(1<<FBITS));R["r"]=F(r&FMAX);}")
                bs (put (put regs r 'fixnum) u 'bool))))
 
       ; fx>> x n hi lo
@@ -221,7 +219,7 @@
             (values
                (ilist "{word *ob=(word *)R["ob"];word hdr;"
                   (assert-alloc regs ob "IFALSE"
-                     (ilist "hdr=*ob;assert_not((rawp(hdr)||hdrsize(hdr)!="(+ 1 n)"),ob,IFALSE);"
+                     (ilist "hdr=*ob;assert_not(rawp(hdr)||hdrsize(hdr)!="(+ 1 n)",ob,IFALSE);"
                         (foldr
                            (λ (n tl) ;; n = (reg . pos)
                               (ilist "R[" (car n) "]=ob[" (cdr n) "];" tl))
@@ -237,14 +235,14 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049
-                  (list "{word *ob=(word *)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=IEMPTY;R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default: R["l"]=ob[3];R["r"]=ob[4];}}"))
+                  (list "{word *ob=(word *)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default: R["l"]=ob[3];R["r"]=ob[4];}}"))
                bs
                (fold del regs (list l k v r)))))
 
       (define (cify-cast bs regs fail)
          (lets ((ob type to bs (get3 (cdr bs))))
             (values
-               (list "R["to"]=prim_cast((word *)R["ob"],immval(R["type"])&63);") bs
+               (list "R["to"]=prim_cast(R["ob"],R["type"]);") bs
                (del regs to))))
 
       (define (cify-mkt bs regs fail)
@@ -366,7 +364,7 @@
                (cons 17 ;; arity-fail
                   (λ (bs regs fail)
                      (values
-                        (list "{error(17,ob,F(acc));}")
+                        (list "error(17,ob,F(acc));")
                         null regs)))
                (cons 22 cify-cast)
                (cons 23 cify-mkt)
@@ -430,7 +428,7 @@
                            (else
                               (values
                                  ;; cons directly to free area to avoid register overwriting
-                                 (list "*fp=PAIRHDR;fp[1]=R["a"];fp[2]=R["b"];R["to"]=(word)fp;fp+=3;")
+                                 (list "R["to"]=cons(R["a"],R["b"]);")
                                  bs (put regs to 'pair)))))))
                (cons 52 ;; car ob to <- use this to test whether the compiler type handling
                   (λ (bs regs fail)
@@ -444,7 +442,7 @@
                            ((eq? 'alloc known-type)
                               ;(print " >>> omitting immediate check from car  <<< ")
                               (values
-                                 (list "assert((G(R[" from "])==PAIRHDR),R[" from "],1052);R[" to "]=G(R[" from "],1);")
+                                 (list "assert(V(R[" from "])==PAIRHDR,R[" from "],1052);R[" to "]=G(R[" from "],1);")
                                  bs (del (put regs from 'pair) to))) ;; upgrade to pair
                            (else
                               ;(if known-type (print " >>> car on unknown type <<< " known-type))
@@ -464,7 +462,7 @@
                            ((eq? 'alloc known-type)
                               ;(print " >>> omitting immediate check from cdr  <<< ")
                               (values
-                                 (list "assert((G(R[" from "])==PAIRHDR),R[" from "],1053);R[" to "]=G(R[" from "],2);")
+                                 (list "assert(V(R[" from "])==PAIRHDR,R[" from "],1053);R[" to "]=G(R[" from "],2);")
                                  bs (del (put regs from 'pair) to))) ;; upgrade to pair
                            (else
                               ;(if known-type (print " >>> cdr on unknown type <<< " known-type))
@@ -478,7 +476,7 @@
                         (cond
                            (else
                               (values
-                                 (list "R["to"]=(R["a"]==R["b"])?ITRUE:IFALSE;")
+                                 (list "R["to"]=BOOL(R["a"]==R["b"]);")
                                  bs regs))))))
                (cons (+ 16 (<< 0 6)) (cify-jump-imm 0))
                (cons (+ 16 (<< 1 6)) (cify-jump-imm null))
