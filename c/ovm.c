@@ -360,10 +360,7 @@ static int llen(word *ptr) {
 }
 
 static word payl_len(word hdr) {
-   word len = (hdrsize(hdr) - 1) * W;
-   if (rawp(hdr))
-      len -= (hdr >> 8) & 7;
-   return len;
+   return (hdrsize(hdr) - 1) * W - (hdr >> 8 & 7);
 }
 
 static void set_signal_handler() {
@@ -1100,15 +1097,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
 
    op = *ip++;
 
-   if (op) {
-      main_dispatch:
-      EXEC;
-   } else {
+main_dispatch:
+   EXEC;
+   op0:
       op = *ip<<8 | ip[1];
       goto super_dispatch;
-   }
-
-   op0: op = (*ip << 8) | ip[1]; goto super_dispatch;
    op1: A2 = G(A0, ip[1]); NEXT(3);
    op2: ob = (word *)A0; acc = ip[1]; goto apply;
    op3: OCLOSE(TCLOS); NEXT(0);
