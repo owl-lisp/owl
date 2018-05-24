@@ -42,8 +42,8 @@ bin/diet-ol: c/diet-ol.c
 	diet $(CC) -O2 -o bin/diet-ol c/diet-ol.c
 
 c/_vm.c: c/ovm.c
-	# remove duplicate white-space and most comments
-	sed 's/[[:space:]]\{1,\}/ /g;s/^ //;/GENERATED INS/!s,\( */\*[^/]*[^*]*\*/\)* *$$,,;/^$$/d' <c/ovm.c >c/_vm.c
+	# remove comments and duplicate white-space
+	sed -f bin/compact.sed c/ovm.c >c/_vm.c
 
 c/vm.c: c/_vm.c
 	# make a vm without a bundled heap
