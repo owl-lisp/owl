@@ -217,7 +217,7 @@
              (targets (take bs n))
              (bs (drop bs n)))
             (values
-               (ilist "{word *ob=(word *)R["ob"];word hdr;"
+               (ilist "{word*ob=(word*)R["ob"];word hdr;"
                   (assert-alloc regs ob "IFALSE"
                      (ilist "hdr=*ob;assert_not(rawp(hdr)||hdrsize(hdr)!="(+ 1 n)",ob,IFALSE);"
                         (foldr
@@ -235,7 +235,7 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049
-                  (list "{word *ob=(word *)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default: R["l"]=ob[3];R["r"]=ob[4];}}"))
+                  (list "{word*ob=(word*)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
                bs
                (fold del regs (list l k v r)))))
 
@@ -320,7 +320,7 @@
                (cons 2 ;; goto <rator> <nargs>
                   (λ (bs regs fail)
                      (lets ((rator nargs bs (get2 (cdr bs))))
-                        (let ((code (list "ob=(word *)R[" rator "];acc=" nargs ";" )))
+                        (let ((code (list "ob=(word*)R[" rator "];acc=" nargs ";" )))
                            (values code null regs)))))
                (cons 3 (cify-closer "TCLOS"))
                (cons 4 (cify-closer "TPROC"))
@@ -374,7 +374,7 @@
                         (cond
                            (else
                               (values
-                                 (list "ob=(word *)R[3];R[3]=R[" res "];acc=1;") ; the goto apply is automatic
+                                 (list "ob=(word*)R[3];R[3]=R[" res "];acc=1;") ; the goto apply is automatic
                                  null regs)))))) ;; <- always end compiling (another branch may continue here)
                (cons 34 ;; fixed jump-arity n hi8 lo8
                   (λ (bs regs fail)
