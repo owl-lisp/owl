@@ -97,7 +97,6 @@ typedef intptr_t wdiff;
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
 #define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
-#define NEXT_ALT(n)                 ip += n; op = *ip++; EXEC /* more branch predictor friendly, bigger vm */
 #define PAIRHDR                     make_header(3, 1)
 #define NUMHDR                      make_header(3, 40) /* <- on the way to 40, see type-int+ in defmac.scm */
 #define NUMNHDR                     make_header(3, 41)
@@ -148,19 +147,6 @@ typedef intptr_t wdiff;
 #define INITCELLS                   100000
 #define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
 #define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
-#define EXEC switch (op & 63) { \
-      case 0: goto op0; case 1: goto op1; case 2: goto op2; case 3: goto op3; case 4: goto op4; case 5: goto op5; \
-      case 6: goto op6; case 7: goto op7; case 8: goto op8; case 9: goto op9; \
-      case 10: goto op10; case 11: goto op11; case 12: goto op12; case 13: goto op13; case 14: goto op14; case 15: goto op15; \
-      case 16: goto op16; case 17: goto op17; case 18: goto op18; case 19: goto op19; case 20: goto op20; case 21: goto op21; \
-      case 22: goto op22; case 23: goto op23; case 24: goto op24; case 25: goto op25; case 26: goto op26; case 27: goto op27; \
-      case 28: goto op28; case 29: goto op29; case 30: goto op30; case 31: goto op31; case 32: goto op32; case 33: goto op33; \
-      case 34: goto op34; case 35: goto op35; case 36: goto op36; case 37: goto op37; case 38: goto op38; case 39: goto op39; \
-      case 40: goto op40; case 41: goto op41; case 42: goto op42; case 43: goto op43; case 44: goto op44; case 45: goto op45; \
-      case 46: goto op46; case 47: goto op47; case 48: goto op48; case 49: goto op49; case 50: goto op50; case 51: goto op51; \
-      case 52: goto op52; case 53: goto op53; case 54: goto op54; case 55: goto op55; case 56: goto op56; case 57: goto op57; \
-      case 58: goto op58; case 59: goto op59; case 60: goto op60; case 61: goto op61; case 62: goto op62; case 63: goto op63; \
-   }
 
 /*** Globals and Prototypes ***/
 
@@ -1098,363 +1084,361 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
    op = *ip++;
 
 main_dispatch:
-   EXEC;
-   op0:
-      op = *ip<<8 | ip[1];
-      goto super_dispatch;
-   op1: A2 = G(A0, ip[1]); NEXT(3);
-   op2: ob = (word *)A0; acc = ip[1]; goto apply;
-   op3: OCLOSE(TCLOS); NEXT(0);
-   op4: OCLOSE(TPROC); NEXT(0);
-   op5: /* mov2 from1 to1 from2 to2 */
-      A1 = A0;
-      A3 = A2;
-      NEXT(4);
-   op6: CLOSE1(TCLOS); NEXT(0);
-   op7: CLOSE1(TPROC); NEXT(0);
-   op8: /* jlq a b o, extended jump */
-      if (A0 == A1)
-         ip += ip[2] + (ip[3] << 8);
-      NEXT(4);
-   op9: A1 = A0; NEXT(2);
-   op10:
-      goto unused;
-   op11:
-      do_poll(A0, A1, A2, &A3, &A4);
-      NEXT(5);
-   op12:
-      goto unused;
-   op13: /* ldi{2bit what} [to] */
-      A0 = load_imms[op >> 6];
-      NEXT(1);
-   op14: A1 = F(*ip); NEXT(2);
-   op15: { /* type-byte o r <- actually sixtet */
-      word ob = A0;
-      if (allocp(ob))
-         ob = V(ob);
-      A1 = F(imm_type(ob));
-      NEXT(2); }
-   op16: /* jv[which] a o1 a2*/
-      /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
-      if (A0 == load_imms[op >> 6])
-         ip += ip[1] + (ip[2] << 8);
-      NEXT(3);
-   op17: { /* arity error */
-      word *t;
-      int p;
-      allocate(acc+1, t);
-      *t = make_header(acc+1, TTUPLE);
-      for (p = 0; p < acc; ++p)
-         t[p+1] = R[p+3];
-      error(17, ob, t); }
-   op18:
-      goto unused;
-   op19:
-      goto unused;
-   op20: { /* apply */
-      int reg, arity;
-      word *lst;
-      if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5 */
-         reg = 4; /* include cont */
-         arity = 1;
-         ob = (word *) R[reg];
-         acc -= 3; /* ignore cont, function and stop before last one (the list) */
-         while (acc--) { /* move explicitly given arguments down by one to correct positions */
-            R[reg] = R[reg+1]; /* copy args down*/
-            reg++;
-            arity++;
-         }
-         lst = (word *) R[reg+1];
-      } else { /* _sans_cps apply: func=r3, a0=r4 */
-         reg = 3; /* include cont */
-         arity = 0;
-         ob = (word *) R[reg];
-         acc -= 2; /* ignore function and stop before last one (the list) */
-         while (acc--) { /* move explicitly given arguments down by one to correct positions */
-            R[reg] = R[reg+1]; /* copy args down*/
-            reg++;
-            arity++;
-         }
-         lst = (word *) R[reg+1];
-      }
-      while (pairp(lst)) { /* unwind argument list */
-         /* FIXME: unwind only up to last register and add limited rewinding to arity check */
-         if (reg > 128) /* dummy handling for now */
-            exit(3);
-         R[reg++] = lst[1];
-         lst = (word *) lst[2];
-         arity++;
-      }
-      acc = arity;
-      goto apply; }
-   op21:
-      goto unused;
-   op22: /* cast o t r */
-      A2 = prim_cast(A0, A1);
-      NEXT(3);
-   op23: { /* mkt t s f1 .. fs r */
-      word t = *ip++;
-      word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
-      word *ob, p = 0;
-      allocate(s+1, ob); /* s fields + header */
-      *ob = make_header(s+1, t);
-      while (p < s) {
-         ob[p+1] = R[ip[p]];
-         p++;
-      }
-      R[ip[p]] = (word) ob;
-      NEXT(s+1); }
-   op24: /* ret val == implicit call r3 with 1 arg */
-      ob = (word *) R[3];
-      R[3] = A0;
-      acc = 1;
-      goto apply;
-   op25: { /* jmp-nargs(>=?) a hi lo */
-      int needed = *ip;
-      if (acc == needed) {
-         if (op & 64) /* add empty extra arg list */
-            R[acc + 3] = INULL;
-      } else if ((op & 64) && acc > needed) {
-         word tail = INULL; /* todo: no call overflow handling yet */
-         while (acc > needed) {
-            tail = cons(R[acc + 2], tail);
-            acc--;
-         }
-         R[acc + 3] = tail;
-      } else {
-         ip += (ip[1] << 8) | ip[2];
-      }
-      NEXT(3); }
-   op26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-      uint64_t a = ((uint64_t)immval(A0) << FBITS) | immval(A1);
-      word b = immval(A2);
-      uint64_t q;
-      q = a / b;
-      A3 = F(q>>FBITS);
-      A4 = F(q&FMAX);
-      A5 = F(a - q*b);
-      NEXT(6); }
-   op27: /* syscall cont op arg1 arg2 */
-      ob = (word *) R[0];
-      R[0] = IFALSE;
-      R[3] = A1;
-      R[4] = A0;
-      R[5] = A2;
-      R[6] = A3;
-      acc = 4;
-      if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
-      goto apply;
-   op28: { /* sizeb obj to */
-      word ob = A0;
-      if (immediatep(ob)) {
-         A1 = IFALSE;
-      } else {
-         word hdr = header(ob);
-         A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
-      }
-      NEXT(2); }
-   op29:
-      /* FIXME: remove this after the next fasl update: */ {
-      A2 = mkpair(NUMHDR, A0, A1);
-      NEXT(3); }
-      goto unused;
-   op30:
-      /* FIXME: remove this after the next fasl update: */ {
-      word *ob = (word *)A0;
-      A1 = ob[1];
-      NEXT(2); }
-      goto unused;
-   op31:
-      /* FIXME: remove this after the next fasl update: */ {
-      word *ob = (word *)A0;
-      A1 = ob[2];
-      NEXT(2); }
-      goto unused;
-   op32: { /* bind tuple <n> <r0> .. <rn> */
-      word *tuple = (word *) R[*ip++];
-      word hdr, pos = 1, n = *ip++ + 1;
-      assert(allocp(tuple), tuple, 32);
-      hdr = *tuple;
-      assert_not(rawp(hdr) || hdrsize(hdr) != n, tuple, 32);
-      while (--n)
-         R[*ip++] = tuple[pos++];
-      NEXT(0); }
-   op33:
-      goto unused;
-   op34: /* jmp-nargs a hi li */
-      if (acc != *ip)
-         ip += (ip[1] << 8) | ip[2];
-      NEXT(3);
-   op35: { /* listuple type size lst to */
-      word type = immval(A0);
-      word size = immval(A1) + 1;
-      word *lst = (word *)A2;
-      word *ob;
-      allocate(size, ob);
-      A3 = (word) ob;
-      *ob++ = make_header(size, type);
-      while (--size) {
-         assert(pairp(lst), lst, 35);
-         *ob++ = lst[1];
-         lst = (word *) lst[2];
-      }
-      NEXT(4); }
-   op36: { /* size o r */
-      word *ob = (word *)A0;
-      A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
-      NEXT(2); }
-   op37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
-      A2 = prim_lraw(A0, A1);
-      NEXT(3);
-   op38: { /* fx+ a b r o, types prechecked, signs ignored */
-      word res = immval(A0) + immval(A1);
-      A3 = BOOL(res & (1 << FBITS));
-      A2 = F(res & FMAX);
-      NEXT(4); }
-   op39: { /* fx* a b l h */
-      uint64_t res = (uint64_t)immval(A0) * immval(A1);
-      A2 = F(res & FMAX);
-      A3 = F(res >> FBITS);
-      NEXT(4); }
-   op40: { /* fx- a b r u, args prechecked, signs ignored */
-      word r = immval(A0) - immval(A1);
-      A3 = BOOL(r & (1 << FBITS));
-      A2 = F(r & FMAX);
-      NEXT(4); }
-   op41: { /* car a r, or cdr d r */
-      word *ob = (word *)A0;
-      assert(pairp(ob), ob, op);
-      A1 = ob[op >> 6];
-      NEXT(2); }
-   op42: /* mkblack l k v r t */
-      A4 = prim_mkff(TFF, A0, A1, A2, A3);
-      NEXT(5);
-   op43: /* mkred l k v r t */
-      A4 = prim_mkff(TFF | FFRED, A0, A1, A2, A3);
-      NEXT(5);
-   op44: /* less a b r */
-      A2 = prim_less(A0, A1);
-      NEXT(3);
-   op45: /* set t o v r */
-      A3 = prim_set(A0, A1, A2);
-      NEXT(4);
-   op46:
-      goto unused;
-   op47: /* ref t o r */ /* fixme: deprecate this later */
-      A2 = prim_ref(A0, A1);
-      NEXT(3);
-   op48:
-      /* FIXME: remove this after the next fasl update: */ {
-      word ob = A0;
-      assert(immediatep(ob) || rawp(header(ob)), ob, 48);
-      A2 = prim_ref(ob, A1);
-      NEXT(3); }
-      goto unused;
-   op49: { /* withff node l k v r */
-      word hdr, *ob = (word *)A0;
-      hdr = *ob++;
-      A2 = *ob++; /* key */
-      A3 = *ob++; /* value */
-      switch (hdrsize(hdr)) {
-         case 3:
-            A1 = A4 = IEMPTY;
-            break;
-         case 4:
-            if (hdr & (1 << TPOS)) { /* has right? */
-               A1 = IEMPTY;
-               A4 = *ob;
-            } else {
-               A1 = *ob;
-               A4 = IEMPTY;
+
+   switch(op & 63) {
+      case 0:
+         op = *ip<<8 | ip[1];
+         goto super_dispatch;
+      case 1:
+         A2 = G(A0, ip[1]); NEXT(3);
+      case 2:
+         ob = (word *)A0; acc = ip[1]; goto apply;
+      case 3: OCLOSE(TCLOS); NEXT(0);
+      case 4: OCLOSE(TPROC); NEXT(0);
+      case 5: /* mov2 from1 to1 from2 to2 */
+         A1 = A0;
+         A3 = A2;
+         NEXT(4);
+      case 6: CLOSE1(TCLOS); NEXT(0);
+      case 7: CLOSE1(TPROC); NEXT(0);
+      case 8: /* jlq a b o, extended jump */
+         if (A0 == A1)
+            ip += ip[2] + (ip[3] << 8);
+         NEXT(4);
+      case 9: A1 = A0; NEXT(2);
+      case 10:
+         goto unused;
+      case 11:
+         do_poll(A0, A1, A2, &A3, &A4);
+         NEXT(5);
+      case 12:
+         goto unused;
+      case 13: /* ldi{2bit what} [to] */
+         A0 = load_imms[op >> 6];
+         NEXT(1);
+      case 14: A1 = F(*ip); NEXT(2);
+      case 15: { /* type-byte o r <- actually sixtet */
+         word ob = A0;
+         if (allocp(ob))
+            ob = V(ob);
+         A1 = F(imm_type(ob));
+         NEXT(2); }
+      case 16: /* jv[which] a o1 a2*/
+         /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
+         if (A0 == load_imms[op >> 6])
+            ip += ip[1] + (ip[2] << 8);
+         NEXT(3);
+      case 17: { /* arity error */
+         word *t;
+         int p;
+         allocate(acc+1, t);
+         *t = make_header(acc+1, TTUPLE);
+         for (p = 0; p < acc; ++p)
+            t[p+1] = R[p+3];
+         error(17, ob, t); }
+      case 18:
+      case 19:
+         goto unused;
+      case 20: { /* apply */
+         int reg, arity;
+         word *lst;
+         if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5 */
+            reg = 4; /* include cont */
+            arity = 1;
+            ob = (word *) R[reg];
+            acc -= 3; /* ignore cont, function and stop before last one (the list) */
+            while (acc--) { /* move explicitly given arguments down by one to correct positions */
+               R[reg] = R[reg+1]; /* copy args down*/
+               reg++;
+               arity++;
             }
-            break;
-         default:
-            A1 = *ob++;
-            A4 = *ob;
-      }
-      NEXT(5); }
-   op50: { /* run thunk quantum */
-      word hdr;
-      ob = (word *)A0;
-      R[0] = R[3];
-      ticker = bank ? bank : immval(A1);
-      bank = 0;
-      assert(allocp(ob), ob, 50);
-      hdr = *ob;
-      if (is_type(hdr, TTHREAD)) {
-         int pos = hdrsize(hdr) - 1;
-         word code = ob[pos];
-         acc = pos - 3;
-         while (--pos)
-            R[pos] = ob[pos];
-         ip = (byte *)code + W;
-      } else {
-         /* call a thunk with terminal continuation */
-         R[3] = IHALT; /* exit via R0 when the time comes */
+            lst = (word *) R[reg+1];
+         } else { /* _sans_cps apply: func=r3, a0=r4 */
+            reg = 3; /* include cont */
+            arity = 0;
+            ob = (word *) R[reg];
+            acc -= 2; /* ignore function and stop before last one (the list) */
+            while (acc--) { /* move explicitly given arguments down by one to correct positions */
+               R[reg] = R[reg+1]; /* copy args down*/
+               reg++;
+               arity++;
+            }
+            lst = (word *) R[reg+1];
+         }
+         while (pairp(lst)) { /* unwind argument list */
+            /* FIXME: unwind only up to last register and add limited rewinding to arity check */
+            if (reg > 128) /* dummy handling for now */
+               exit(3);
+            R[reg++] = lst[1];
+            lst = (word *) lst[2];
+            arity++;
+         }
+         acc = arity;
+         goto apply; }
+      case 21:
+         goto unused;
+      case 22: /* cast o t r */
+         A2 = prim_cast(A0, A1);
+         NEXT(3);
+      case 23: { /* mkt t s f1 .. fs r */
+         word t = *ip++;
+         word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
+         word *ob, p = 0;
+         allocate(s+1, ob); /* s fields + header */
+         *ob = make_header(s+1, t);
+         while (p < s) {
+            ob[p+1] = R[ip[p]];
+            p++;
+         }
+         R[ip[p]] = (word) ob;
+         NEXT(s+1); }
+      case 24: /* ret val == implicit call r3 with 1 arg */
+         ob = (word *) R[3];
+         R[3] = A0;
          acc = 1;
          goto apply;
-      }
-      NEXT(0); }
-   op51: /* cons a b r */
-      A2 = cons(A0, A1);
-      NEXT(3);
-   op52:
-   op53:
-      /* FIXME: remove this after the next fasl update: */ {
-      word *ob = (word *)A0;
-      assert(pairp(ob), ob, 52);
-      A1 = ob[op - 51];
-      NEXT(2); }
-      goto unused;
-   op54: /* eq a b r */
-      A2 = BOOL(A0 == A1);
-      NEXT(3);
-   op55: /* band a b r, prechecked */
-      A2 = A0 & A1;
-      NEXT(3);
-   op56: /* bor a b r, prechecked */
-      A2 = A0 | A1;
-      NEXT(3);
-   op57: /* bxor a b r, prechecked */
-      A2 = A0 ^ (A1 & (FMAX << IPOS)); /* inherit A0's type info */
-      NEXT(3);
-   op58: { /* fx>> x n hi lo */
-      word x = immval(A0);
-      unsigned int n = immval(A1);
-      A2 = F(x >> n);
-      A3 = F(x << (FBITS - n) & FMAX);
-      NEXT(4); }
-   op59:
-      /* FIXME: remove this after the next fasl update: */ {
-      uint64_t res = (uint64_t)immval(A0) << immval(A1);
-      A2 = F(res>>FBITS);
-      A3 = F(res&FMAX);
-      NEXT(4); }
-      goto unused;
-   op60:
-      goto unused;
-   op61: /* clock <secs> <ticks> */ { /* fixme: sys */
-      struct timeval tp;
-      word *ob;
-      allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
-      ob[0] = ob[3] = NUMHDR;
-      A0 = (word) (ob + 3);
-      ob[2] = INULL;
-      ob[5] = (word) ob;
-      gettimeofday(&tp, NULL);
-      A1 = F(tp.tv_usec / 1000);
-      ob[1] = F(tp.tv_sec >> FBITS);
-      ob[4] = F(tp.tv_sec & FMAX);
-      NEXT(2); }
-   op62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
-      A1 = F(ticker & FMAX);
-      ticker = immval(A0);
-      NEXT(2);
-   op63: /* sys-prim op arg1 arg2 arg3 r1 */
-      A4 = prim_sys(A0, A1, A2, A3);
-      NEXT(5);
-   unused:
-      error(256, F(op), IFALSE);
+      case 25: { /* jmp-nargs(>=?) a hi lo */
+         int needed = *ip;
+         if (acc == needed) {
+            if (op & 64) /* add empty extra arg list */
+               R[acc + 3] = INULL;
+         } else if ((op & 64) && acc > needed) {
+            word tail = INULL; /* todo: no call overflow handling yet */
+            while (acc > needed) {
+               tail = cons(R[acc + 2], tail);
+               acc--;
+            }
+            R[acc + 3] = tail;
+         } else {
+            ip += (ip[1] << 8) | ip[2];
+         }
+         NEXT(3); }
+      case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
+         uint64_t a = ((uint64_t)immval(A0) << FBITS) | immval(A1);
+         word b = immval(A2);
+         uint64_t q;
+         q = a / b;
+         A3 = F(q>>FBITS);
+         A4 = F(q&FMAX);
+         A5 = F(a - q*b);
+         NEXT(6); }
+      case 27: /* syscall cont op arg1 arg2 */
+         ob = (word *) R[0];
+         R[0] = IFALSE;
+         R[3] = A1;
+         R[4] = A0;
+         R[5] = A2;
+         R[6] = A3;
+         acc = 4;
+         if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
+         goto apply;
+      case 28: { /* sizeb obj to */
+         word ob = A0;
+         if (immediatep(ob)) {
+            A1 = IFALSE;
+         } else {
+            word hdr = header(ob);
+            A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
+         }
+         NEXT(2); }
+      case 29:
+         /* FIXME: remove this after the next fasl update: */ {
+         A2 = mkpair(NUMHDR, A0, A1);
+         NEXT(3); }
+      case 30:
+         /* FIXME: remove this after the next fasl update: */ {
+         word *ob = (word *)A0;
+         A1 = ob[1];
+         NEXT(2); }
+      case 31:
+         /* FIXME: remove this after the next fasl update: */ {
+         word *ob = (word *)A0;
+         A1 = ob[2];
+         NEXT(2); }
+      case 32: { /* bind tuple <n> <r0> .. <rn> */
+         word *tuple = (word *) R[*ip++];
+         word hdr, pos = 1, n = *ip++ + 1;
+         assert(allocp(tuple), tuple, 32);
+         hdr = *tuple;
+         assert_not(rawp(hdr) || hdrsize(hdr) != n, tuple, 32);
+         while (--n)
+            R[*ip++] = tuple[pos++];
+         NEXT(0); }
+      case 33:
+         goto unused;
+      case 34: /* jmp-nargs a hi li */
+         if (acc != *ip)
+            ip += (ip[1] << 8) | ip[2];
+         NEXT(3);
+      case 35: { /* listuple type size lst to */
+         word type = immval(A0);
+         word size = immval(A1) + 1;
+         word *lst = (word *)A2;
+         word *ob;
+         allocate(size, ob);
+         A3 = (word) ob;
+         *ob++ = make_header(size, type);
+         while (--size) {
+            assert(pairp(lst), lst, 35);
+            *ob++ = lst[1];
+            lst = (word *) lst[2];
+         }
+         NEXT(4); }
+      case 36: { /* size o r */
+         word *ob = (word *)A0;
+         A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
+         NEXT(2); }
+      case 37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
+         A2 = prim_lraw(A0, A1);
+         NEXT(3);
+      case 38: { /* fx+ a b r o, types prechecked, signs ignored */
+         word res = immval(A0) + immval(A1);
+         A3 = BOOL(res & (1 << FBITS));
+         A2 = F(res & FMAX);
+         NEXT(4); }
+      case 39: { /* fx* a b l h */
+         uint64_t res = (uint64_t)immval(A0) * immval(A1);
+         A2 = F(res & FMAX);
+         A3 = F(res >> FBITS);
+         NEXT(4); }
+      case 40: { /* fx- a b r u, args prechecked, signs ignored */
+         word r = immval(A0) - immval(A1);
+         A3 = BOOL(r & (1 << FBITS));
+         A2 = F(r & FMAX);
+         NEXT(4); }
+      case 41: { /* car a r, or cdr d r */
+         word *ob = (word *)A0;
+         assert(pairp(ob), ob, op);
+         A1 = ob[op >> 6];
+         NEXT(2); }
+      case 42: /* mkblack l k v r t */
+         A4 = prim_mkff(TFF, A0, A1, A2, A3);
+         NEXT(5);
+      case 43: /* mkred l k v r t */
+         A4 = prim_mkff(TFF | FFRED, A0, A1, A2, A3);
+         NEXT(5);
+      case 44: /* less a b r */
+         A2 = prim_less(A0, A1);
+         NEXT(3);
+      case 45: /* set t o v r */
+         A3 = prim_set(A0, A1, A2);
+         NEXT(4);
+      case 46:
+         goto unused;
+      case 47: /* ref t o r */ /* fixme: deprecate this later */
+         A2 = prim_ref(A0, A1);
+         NEXT(3);
+      case 48:
+         /* FIXME: remove this after the next fasl update: */ {
+         word ob = A0;
+         assert(immediatep(ob) || rawp(header(ob)), ob, 48);
+         A2 = prim_ref(ob, A1);
+         NEXT(3); }
+      case 49: { /* withff node l k v r */
+         word hdr, *ob = (word *)A0;
+         hdr = *ob++;
+         A2 = *ob++; /* key */
+         A3 = *ob++; /* value */
+         switch (hdrsize(hdr)) {
+            case 3:
+               A1 = A4 = IEMPTY;
+               break;
+            case 4:
+               if (hdr & (1 << TPOS)) { /* has right? */
+                  A1 = IEMPTY;
+                  A4 = *ob;
+               } else {
+                  A1 = *ob;
+                  A4 = IEMPTY;
+               }
+               break;
+            default:
+               A1 = *ob++;
+               A4 = *ob;
+         }
+         NEXT(5); }
+      case 50: { /* run thunk quantum */
+         word hdr;
+         ob = (word *)A0;
+         R[0] = R[3];
+         ticker = bank ? bank : immval(A1);
+         bank = 0;
+         assert(allocp(ob), ob, 50);
+         hdr = *ob;
+         if (is_type(hdr, TTHREAD)) {
+            int pos = hdrsize(hdr) - 1;
+            word code = ob[pos];
+            acc = pos - 3;
+            while (--pos)
+               R[pos] = ob[pos];
+            ip = (byte *)code + W;
+         } else {
+            /* call a thunk with terminal continuation */
+            R[3] = IHALT; /* exit via R0 when the time comes */
+            acc = 1;
+            goto apply;
+         }
+         NEXT(0); }
+      case 51: /* cons a b r */
+         A2 = cons(A0, A1);
+         NEXT(3);
+      case 52:
+      case 53:
+         /* FIXME: remove this after the next fasl update: */ {
+         word *ob = (word *)A0;
+         assert(pairp(ob), ob, 52);
+         A1 = ob[op - 51];
+         NEXT(2); }
+      case 54: /* eq a b r */
+         A2 = BOOL(A0 == A1);
+         NEXT(3);
+      case 55: /* band a b r, prechecked */
+         A2 = A0 & A1;
+         NEXT(3);
+      case 56: /* bor a b r, prechecked */
+         A2 = A0 | A1;
+         NEXT(3);
+      case 57: /* bxor a b r, prechecked */
+         A2 = A0 ^ (A1 & (FMAX << IPOS)); /* inherit A0's type info */
+         NEXT(3);
+      case 58: { /* fx>> x n hi lo */
+         word x = immval(A0);
+         unsigned int n = immval(A1);
+         A2 = F(x >> n);
+         A3 = F(x << (FBITS - n) & FMAX);
+         NEXT(4); }
+      case 59:
+         /* FIXME: remove this after the next fasl update: */ {
+         uint64_t res = (uint64_t)immval(A0) << immval(A1);
+         A2 = F(res>>FBITS);
+         A3 = F(res&FMAX);
+         NEXT(4); }
+      case 60:
+         goto unused;
+      case 61: /* clock <secs> <ticks> */ { /* fixme: sys */
+         struct timeval tp;
+         word *ob;
+         allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
+         ob[0] = ob[3] = NUMHDR;
+         A0 = (word) (ob + 3);
+         ob[2] = INULL;
+         ob[5] = (word) ob;
+         gettimeofday(&tp, NULL);
+         A1 = F(tp.tv_usec / 1000);
+         ob[1] = F(tp.tv_sec >> FBITS);
+         ob[4] = F(tp.tv_sec & FMAX);
+         NEXT(2); }
+      case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
+         A1 = F(ticker & FMAX);
+         ticker = immval(A0);
+         NEXT(2);
+      case 63: /* sys-prim op arg1 arg2 arg3 r1 */
+         A4 = prim_sys(A0, A1, A2, A3);
+	 NEXT(5);
+   }
+
+unused:
+   error(256, F(op), IFALSE);
 
 super_dispatch: /* run macro instructions */
    switch (op) {
