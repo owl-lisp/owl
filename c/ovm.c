@@ -96,7 +96,8 @@ typedef intptr_t wdiff;
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
-#define NEXT(n)                     ip += n; op = *ip++; goto main_dispatch /* default NEXT, smaller vm */
+#define NEXT(n)                     ip += n; continue
+#define UNUSED                      break
 #define PAIRHDR                     make_header(3, 1)
 #define NUMHDR                      make_header(3, 40) /* <- on the way to 40, see type-int+ in defmac.scm */
 #define NUMNHDR                     make_header(3, 41)
@@ -1081,11 +1082,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       ip = (byte *)ob + W;
    }
 
-   op = *ip++;
-
-main_dispatch:
-
-   switch(op & 63) {
+   for (op = *ip++; ; op = *ip++) {
+      switch (op & 63) { /* main dispatch */
       case 0:
          op = *ip<<8 | ip[1];
          goto super_dispatch;
@@ -1107,12 +1105,12 @@ main_dispatch:
          NEXT(4);
       case 9: A1 = A0; NEXT(2);
       case 10:
-         goto unused;
+         UNUSED;
       case 11:
          do_poll(A0, A1, A2, &A3, &A4);
          NEXT(5);
       case 12:
-         goto unused;
+         UNUSED;
       case 13: /* ldi{2bit what} [to] */
          A0 = load_imms[op >> 6];
          NEXT(1);
@@ -1138,7 +1136,7 @@ main_dispatch:
          error(17, ob, t); }
       case 18:
       case 19:
-         goto unused;
+         UNUSED;
       case 20: { /* apply */
          int reg, arity;
          word *lst;
@@ -1176,7 +1174,7 @@ main_dispatch:
          acc = arity;
          goto apply; }
       case 21:
-         goto unused;
+         UNUSED;
       case 22: /* cast o t r */
          A2 = prim_cast(A0, A1);
          NEXT(3);
@@ -1265,7 +1263,7 @@ main_dispatch:
             R[*ip++] = tuple[pos++];
          NEXT(0); }
       case 33:
-         goto unused;
+         UNUSED;
       case 34: /* jmp-nargs a hi li */
          if (acc != *ip)
             ip += (ip[1] << 8) | ip[2];
@@ -1324,7 +1322,7 @@ main_dispatch:
          A3 = prim_set(A0, A1, A2);
          NEXT(4);
       case 46:
-         goto unused;
+         UNUSED;
       case 47: /* ref t o r */ /* fixme: deprecate this later */
          A2 = prim_ref(A0, A1);
          NEXT(3);
@@ -1414,7 +1412,7 @@ main_dispatch:
          A3 = F(res&FMAX);
          NEXT(4); }
       case 60:
-         goto unused;
+         UNUSED;
       case 61: /* clock <secs> <ticks> */ { /* fixme: sys */
          struct timeval tp;
          word *ob;
@@ -1434,11 +1432,10 @@ main_dispatch:
          NEXT(2);
       case 63: /* sys-prim op arg1 arg2 arg3 r1 */
          A4 = prim_sys(A0, A1, A2, A3);
-	 NEXT(5);
+         NEXT(5);
+      }
+      error(256, F(op), IFALSE);
    }
-
-unused:
-   error(256, F(op), IFALSE);
 
 super_dispatch: /* run macro instructions */
    switch (op) {
