@@ -146,8 +146,6 @@ typedef intptr_t wdiff;
 #define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
 #define MINGEN                      1024 * 32 /* minimum generation size before doing full GC */
 #define INITCELLS                   100000
-#define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; for (tmp = 2; tmp != size; ++tmp) ob[tmp] = R[*ip++]; R[*ip++] = (word)ob; }
-#define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; for (tmp = 2; tmp != size; ++tmp) ob[tmp] = R[*ip++]; R[*ip++] = (word)ob; }
 
 /*** Globals and Prototypes ***/
 
@@ -1073,14 +1071,25 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = G(A0, ip[1]); NEXT(3);
       case 2:
          ob = (word *)A0; acc = ip[1]; goto apply;
-      case 3: OCLOSE(TCLOS); NEXT(0);
-      case 4: OCLOSE(TPROC); NEXT(0);
+      case 3:
+      case 6:
+      case 7:
+      case 4: {
+         word size = *ip++, tmp;
+         word *ob;
+         op = (op == 3 || op == 6) << 7 | (op == 6 || op == 7) << 6; /* TODO: encode this directly into the opcode */
+         tmp = R[op & 64 ? 1 : *ip++];
+         allocate(size, ob);
+         *ob = make_header(size, (op >> 7) + TPROC);
+         ob[1] = G(tmp, *ip++);
+         for (tmp = 2; tmp != size; ++tmp)
+            ob[tmp] = R[*ip++];
+         R[*ip++] = (word)ob;
+         NEXT(0); }
       case 5: /* mov2 from1 to1 from2 to2 */
          A1 = A0;
          A3 = A2;
          NEXT(4);
-      case 6: CLOSE1(TCLOS); NEXT(0);
-      case 7: CLOSE1(TPROC); NEXT(0);
       case 8: /* jlq a b o, extended jump */
          if (A0 == A1)
             ip += ip[2] + (ip[3] << 8);
