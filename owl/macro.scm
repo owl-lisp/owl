@@ -1,9 +1,11 @@
-; already loaded when booting.
+;; This library implements hygienic macro expansion.
 
 (define-library (owl macro)
 
-   ; remove make-transformer when it is no longer referred
-   (export macro-expand match make-transformer)
+   (export
+      macro-expand
+      match
+      define-syntax-transformer)
 
    (import
       (owl defmac)
@@ -22,6 +24,7 @@
       (scheme cxr))
 
    (begin
+
       ;;; Misc
 
       (define (ok exp env) (tuple 'ok exp env))
@@ -43,7 +46,7 @@
 
       ;;;
       ;;; Basic pattern matching for matching the rule pattern against sexp
-      ;;;
+
 
       (define (? x) #true)
 
@@ -240,6 +243,18 @@
                            (tuple new free))
                         #false)))
                rules)))
+
+      ;; value (= transformer) of define-syntax -macro, which is used to define other macros
+      (define define-syntax-transformer
+         (make-transformer
+            '(define-syntax syntax-rules add quote)
+            '(
+               ((define-syntax keyword
+                  (syntax-rules literals (pattern template) ...))
+            ()
+            (quote syntax-operation add #false
+                  (keyword literals (pattern ...)
+                  (template ...)))))))
 
       ; add fresh symbol list -> ((pattern fresh template) ...)
 

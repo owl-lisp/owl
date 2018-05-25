@@ -54,15 +54,7 @@
             (env-set-macro
                *tabula-rasa* ;; from (owl env), env with only special form tags, no primops
                'define-syntax
-               (make-transformer
-                  '(define-syntax syntax-rules add quote)
-                  '(
-                     ((define-syntax keyword
-                        (syntax-rules literals (pattern template) ...))
-                  ()
-                  (quote syntax-operation add #false
-                        (keyword literals (pattern ...)
-                        (template ...)))))))
+               define-syntax-transformer)
             primops))
 
       ;; toplevel variable to which loaded libraries are added
