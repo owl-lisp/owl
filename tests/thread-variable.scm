@@ -3,7 +3,7 @@
 
 (define foo (make-variable))
 
-(foo 'set 11)
+(foo 11)
 (print (foo) " = " 11)
 
 (begin
