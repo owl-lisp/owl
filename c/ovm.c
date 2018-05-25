@@ -140,7 +140,7 @@ typedef intptr_t wdiff;
 #define G(ptr, n)                   (((word *)(ptr))[n])
 #define TICKS                       10000 /* # of function calls in a thread quantum */
 #define allocate(size, to)          (to = fp, fp += size)
-#define error(opcode, a, b)         { R[4] = F(opcode); R[5] = (word)(a); R[6] = (word)(b); goto invoke_mcp; } while (0)
+#define error(opcode, a, b)         do { R[4] = F(opcode); R[5] = (word)(a); R[6] = (word)(b); goto invoke_mcp; } while (0)
 #define assert(exp, val, code)      if (!(exp)) error(code, val, ITRUE)
 #define assert_not(exp, val, code)  if (exp) error(code, val, ITRUE)
 #define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
