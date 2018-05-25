@@ -146,8 +146,8 @@ typedef intptr_t wdiff;
 #define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
 #define MINGEN                      1024 * 32 /* minimum generation size before doing full GC */
 #define INITCELLS                   100000
-#define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
-#define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; tmp = 2; while (tmp != size) ob[tmp++] = R[*ip++]; R[*ip++] = (word)ob; }
+#define OCLOSE(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[*ip++]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; for (tmp = 2; tmp != size; ++tmp) ob[tmp] = R[*ip++]; R[*ip++] = (word)ob; }
+#define CLOSE1(proctype)            { word size = *ip++, tmp; word *ob; allocate(size, ob); tmp = R[1]; tmp = G(tmp, *ip++); *ob = make_header(size, proctype); ob[1] = tmp; for (tmp = 2; tmp != size; ++tmp) ob[tmp] = R[*ip++]; R[*ip++] = (word)ob; }
 
 /*** Globals and Prototypes ***/
 
@@ -204,7 +204,7 @@ static word *compact() {
    word *new = genstart;
    word *old = new;
    word *end = memend - 1;
-   while (((word)old) < ((word)end)) {
+   while (old < end) {
       word val = *old;
       if (flagged(val)) {
          word h;
@@ -239,12 +239,10 @@ static void fix_pointers(word *pos, wdiff delta) {
       if (rawp(hdr)) {
          pos += n; /* no pointers in raw objects */
       } else {
-         pos++;
-         while (--n) {
+         for (++pos; --n; ++pos) {
             word val = *pos;
             if (allocp(val))
                *pos = val + delta;
-            pos++;
          }
       }
    }
@@ -676,12 +674,11 @@ static word prim_sys(word op, word a, word b, word c) {
       case 17: { /* exec[v] path argl ret */
          char *path = (char *)a + W;
          int nargs = llen((word *)b);
-         char **args = realloc(NULL, (nargs + 1) * sizeof(char *));
-         char **argp = args;
+         char **argp, **args = realloc(NULL, (nargs + 1) * sizeof(char *));
          if (args == NULL)
             return IFALSE;
-         while (nargs--) {
-            *argp++ = (char *)G(b, 1) + W;
+         for (argp = args; nargs--; ++argp) {
+            *argp = (char *)G(b, 1) + W;
             b = G(b, 2);
          }
          *argp = NULL;
@@ -914,23 +911,19 @@ static void do_poll(word a, word b, word c, word *r1, word *r2) {
    struct timeval tv;
    int res;
    FD_ZERO(&rs); FD_ZERO(&ws); FD_ZERO(&es);
-   cur = (word *)a;
-   while ((word)cur != INULL) {
+   for (cur = (word *)a; (word)cur != INULL; cur = (word *)cur[2]) {
       int fd = immval(G(cur[1], 1));
       FD_SET(fd, &rs);
       FD_SET(fd, &es);
       if (fd >= nfds)
          nfds = fd + 1;
-      cur = (word *) cur[2];
    }
-   cur = (word *)b;
-   while ((word)cur != INULL) {
+   for (cur = (word *)b; (word)cur != INULL; cur = (word *)cur[2]) {
       int fd = immval(G(cur[1], 1));
       FD_SET(fd, &ws);
       FD_SET(fd, &es);
       if (fd >= nfds)
          nfds = fd + 1;
-      cur = (word *) cur[2];
    }
    if (c == IFALSE) {
       res = select(nfds, &rs, &ws, &es, NULL);
@@ -960,15 +953,15 @@ static word vm(word *ob, word *arg) {
    byte *ip;
    unsigned int bank = 0;
    unsigned int ticker = TICKS;
-   unsigned short acc = 0;
+   unsigned short acc;
    unsigned int op;
    word R[NR];
 
    word load_imms[] = {F(0), INULL, ITRUE, IFALSE}; /* for ldi and jv */
 
    /* clear blank regs */
-   while (acc < NR)
-      R[acc++] = INULL;
+   for (acc = 1; acc != NR; ++acc)
+      R[acc] = INULL;
    R[0] = IFALSE;
    R[3] = IHALT;
    R[4] = (word) arg;
@@ -1027,13 +1020,10 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          state = R[4];
       return R[3];
    } else {
-      word *state, pos = 1;
+      word *state;
       allocate(acc+1, state);
       *state = make_header(acc+1, TTUPLE);
-      while (pos <= acc) {
-         state[pos] = R[pos+2]; /* first arg at R3*/
-         pos++;
-      }
+      memcpy(state + 1, R + 3, acc * W); /* first arg at R3 */
       error(0, ob, state); /* not callable */
    }
 
@@ -1043,7 +1033,7 @@ switch_thread: /* enter mcp if present */
       goto apply;
    } else {
       /* save vm state and enter mcp cont at R0 */
-      word *state, pos = 1;
+      word *state;
       ticker=0xffffff;
       bank = 0;
       acc = acc + 4;
@@ -1051,10 +1041,7 @@ switch_thread: /* enter mcp if present */
       allocate(acc, state);
       *state = make_header(acc, TTHREAD);
       state[acc-1] = R[acc];
-      while (pos < acc - 1) {
-         state[pos] = R[pos];
-         pos++;
-      }
+      memcpy(state + 1, R + 1, (acc - 2) * W);
       ob = (word *) R[0];
       R[0] = IFALSE; /* remove mcp cont */
       /* R3 marks the syscall to perform */
@@ -1068,17 +1055,12 @@ switch_thread: /* enter mcp if present */
    }
 invoke: /* nargs and regs ready, maybe gc and execute ob */
    if (((word)fp) + 1024*64 >= ((word) memend)) {
-      int p = 0;
       *fp = make_header(NR + 2, 50); /* hdr r_0 .. r_(NR-1) ob */
-      while (p < NR) {
-         fp[p + 1] = R[p];
-         p++;
-      }
-      fp[p+1] = (word) ob;
+      memcpy(fp + 1, R, NR * W);
+      fp[NR + 1] = (word)ob;
       fp = gc(1024*64, fp);
-      ob = (word *) fp[p+1];
-      while (--p >= 0)
-         R[p] = fp[p + 1];
+      ob = (word *)fp[NR + 1];
+      memcpy(R, fp + 1, NR * W);
       ip = (byte *)ob + W;
    }
 
@@ -1128,11 +1110,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3);
       case 17: { /* arity error */
          word *t;
-         int p;
          allocate(acc+1, t);
          *t = make_header(acc+1, TTUPLE);
-         for (p = 0; p < acc; ++p)
-            t[p+1] = R[p+3];
+         memcpy(t + 1, R + 3, acc * W);
          error(17, ob, t); }
       case 18:
       case 19:
@@ -1181,13 +1161,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 23: { /* mkt t s f1 .. fs r */
          word t = *ip++;
          word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
-         word *ob, p = 0;
+         word *ob;
+         unsigned int p;
          allocate(s+1, ob); /* s fields + header */
          *ob = make_header(s+1, t);
-         while (p < s) {
+         for (p = 0; p != s; ++p)
             ob[p+1] = R[ip[p]];
-            p++;
-         }
          R[ip[p]] = (word) ob;
          NEXT(s+1); }
       case 24: /* ret val == implicit call r3 with 1 arg */
@@ -1201,11 +1180,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             if (op & 64) /* add empty extra arg list */
                R[acc + 3] = INULL;
          } else if ((op & 64) && acc > needed) {
-            word tail = INULL; /* todo: no call overflow handling yet */
-            while (acc > needed) {
+            word tail; /* todo: no call overflow handling yet */
+            for (tail = INULL; acc > needed; --acc)
                tail = cons(R[acc + 2], tail);
-               acc--;
-            }
             R[acc + 3] = tail;
          } else {
             ip += (ip[1] << 8) | ip[2];
@@ -1487,7 +1464,7 @@ static word *get_field(word *ptrs, int pos) {
 }
 
 static word *get_obj(word *ptrs, int me) {
-   int type, size;
+   unsigned int type, size;
    if (ptrs != NULL)
       ptrs[me] = (word)fp;
    switch (*hp++) { /* todo: adding type information here would reduce fasl and executable size */
@@ -1499,19 +1476,10 @@ static word *get_obj(word *ptrs, int me) {
             fp = get_field(ptrs, me);
          break;
       case 2: {
-         int bytes, pads;
-         byte *wp;
          type = *hp++ & 31; /* low 5 bits, the others are pads */
-         bytes = get_nat();
-         size = OBJWORDS(bytes);
-         pads = (size-1)*W - bytes;
-         *fp++ = make_raw_header(size, type, pads);
-         wp = (byte *) fp;
-         while (bytes--)
-            *wp++ = *hp++;
-         while (pads--)
-            *wp++ = 0;
-         fp = (word *) wp;
+         size = get_nat();
+         memcpy(mkbvec(size, type) + 1, hp, size);
+         hp += size;
          break;
       }
       default:
@@ -1591,16 +1559,15 @@ static void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
    heap_metrics(nwords, nobjs);
 }
 
-static word *decode_fasl(int nobjs) {
+static word *decode_fasl(unsigned int nobjs) {
    word *ptrs;
    word *entry;
-   int pos = 0;
+   unsigned int pos;
    allocate(nobjs + 1, ptrs);
-   while (pos < nobjs) {
+   for (pos = 0; pos != nobjs; ++pos) {
       if (fp >= memend) /* bug */
          exit(1);
       fp = get_obj(ptrs, pos);
-      pos++;
    }
    entry = (word *) ptrs[pos - 1];
    ptrs[0] = make_raw_header(nobjs + 1, 0, 0);
