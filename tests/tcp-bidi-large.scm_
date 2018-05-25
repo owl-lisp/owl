@@ -34,8 +34,7 @@
    (lets
       ((rst n (rand rst block-size))
        (rst vec (rand rst 2))
-       (hd (take lst n))
-       (tl (drop lst n)))
+       (hd tl (split-at lst n)))
       (values rst (if (eq? vec 0) hd (list->vector hd)) tl)))
 
 (define (explode bvec tail)

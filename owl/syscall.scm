@@ -127,8 +127,6 @@
                ;; get a fresh name unless otherwise specified
                (fork-named (tuple 'anonimas) thunk))))
 
-      (define fork thunk->thread)
-
       (define-syntax thread
          (syntax-rules ()
             ((thread id val)

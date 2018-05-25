@@ -214,8 +214,7 @@
       (define (cify-bind bs regs fail)
          (lets
             ((ob n bs (get2 (cdr bs)))
-             (targets (take bs n))
-             (bs (drop bs n)))
+             (targets bs (split-at bs n)))
             (values
                (ilist "{word*ob=(word*)R["ob"];word hdr;"
                   (assert-alloc regs ob "IFALSE"
@@ -249,8 +248,7 @@
          (lets
             ((type sp bs (get2 (cdr bs))) ; object size is nfields + 1, being the header
              (nfields (+ sp 1))
-             (fields (take bs nfields))
-             (bs (drop bs nfields))
+             (fields bs (split-at bs nfields))
              (to bs bs))
             (values
                (ilist "*fp=make_header(" (+ nfields 1)","type");"
@@ -267,8 +265,7 @@
             (lets
                ((size litp litoff bs (get3 (cdr bs)))
                 (nfields (- size 2)) ;; #[hdr <code> ...]
-                (fields (take bs nfields))
-                (bs (drop bs nfields))
+                (fields bs (split-at bs nfields))
                 (to bs bs))
                (values
                   (ilist "*fp=make_header(" size "," type ");fp[1]=G(R["litp"],"litoff");"
@@ -287,8 +284,7 @@
                ((size litoff bs (get2 (cdr bs)))
                 (litp 1)
                 (nfields (- size 2)) ;; #[hdr <code> ...]
-                (fields (take bs nfields))
-                (bs (drop bs nfields))
+                (fields bs (split-at bs nfields))
                 (to bs bs))
                (values
                   (ilist "*fp=make_header(" size "," type ");fp[1]=G(R["litp"],"litoff");"

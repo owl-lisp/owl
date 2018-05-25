@@ -202,7 +202,7 @@
                ((> n 4)
                   ; use 234-nodes for now
                   (lets
-                     ((q (quotient n 4))
+                     ((q (>> n 2))
                       (a l (split-at chunks q))
                       (b l (split-at l q))
                       (c d (split-at l q))

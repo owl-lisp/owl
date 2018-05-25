@@ -140,7 +140,7 @@ typedef intptr_t wdiff;
 #define G(ptr, n)                   (((word *)(ptr))[n])
 #define TICKS                       10000 /* # of function calls in a thread quantum */
 #define allocate(size, to)          (to = fp, fp += size)
-#define error(opcode, a, b)         { R[4] = F(opcode); R[5] = (word)(a); R[6] = (word)(b); goto invoke_mcp; }
+#define error(opcode, a, b)         { R[4] = F(opcode); R[5] = (word)(a); R[6] = (word)(b); goto invoke_mcp; } while (0)
 #define assert(exp, val, code)      if (!(exp)) error(code, val, ITRUE)
 #define assert_not(exp, val, code)  if (exp) error(code, val, ITRUE)
 #define MEMPAD                      (NR + 2) * 8 /* space at end of heap for starting GC */
@@ -215,7 +215,8 @@ static word *compact() {
             old += h;
             new += h;
          } else {
-            while (--h) *++new = *++old;
+            while (--h)
+               *++new = *++old;
             old++;
             new++;
          }
@@ -991,7 +992,8 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } else if (!is_type(hdr, TBYTECODE)) { /* not even code, extend bits later */
          error(259, ob, INULL);
       }
-      if (!ticker--) goto switch_thread;
+      if (!ticker--)
+         goto switch_thread;
       ip = (byte *)ob + W;
       goto invoke;
    } else if ((word)ob == IEMPTY && acc > 1) { /* ff application: (False key def) -> def */
@@ -1009,7 +1011,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
          R[3] = F(2);
          R[5] = IFALSE;
          R[6] = IFALSE;
-         ticker = 0xffffff;
+         ticker = FMAX;
          bank = 0;
          acc = 4;
          goto apply;
@@ -1032,7 +1034,7 @@ switch_thread: /* enter mcp if present */
    } else {
       /* save vm state and enter mcp cont at R0 */
       word *state;
-      ticker=0xffffff;
+      ticker = FMAX;
       bank = 0;
       acc = acc + 4;
       R[acc] = (word) ob;
@@ -1062,15 +1064,20 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       ip = (byte *)ob + W;
    }
 
-   for (op = *ip++; ; op = *ip++) {
-      switch (op & 63) { /* main dispatch */
+   for (;;) {
+      op = *ip++;
+      /* main dispatch */
+      switch (op & 63) {
       case 0:
-         op = *ip<<8 | ip[1];
+         op = *ip << 8 | ip[1];
          goto super_dispatch;
       case 1:
-         A2 = G(A0, ip[1]); NEXT(3);
+         A2 = G(A0, ip[1]);
+         NEXT(3);
       case 2:
-         ob = (word *)A0; acc = ip[1]; goto apply;
+         ob = (word *)A0;
+         acc = ip[1];
+         goto apply;
       case 3:
       case 6:
       case 7:
@@ -1175,8 +1182,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          allocate(s+1, ob); /* s fields + header */
          *ob = make_header(s+1, t);
          for (p = 0; p != s; ++p)
-            ob[p+1] = R[ip[p]];
-         R[ip[p]] = (word) ob;
+            ob[p + 1] = R[ip[p]];
+         R[ip[p]] = (word)ob;
          NEXT(s+1); }
       case 24: /* ret val == implicit call r3 with 1 arg */
          ob = (word *) R[3];
@@ -1194,7 +1201,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
                tail = cons(R[acc + 2], tail);
             R[acc + 3] = tail;
          } else {
-            ip += (ip[1] << 8) | ip[2];
+            ip += ip[1] << 8 | ip[2];
          }
          NEXT(3); }
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
@@ -1214,7 +1221,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          R[5] = A2;
          R[6] = A3;
          acc = 4;
-         if (ticker > 10) bank = ticker; /* deposit remaining ticks for return to thread */
+         if (ticker > 10)
+            bank = ticker; /* deposit remaining ticks for return to thread */
          goto apply;
       case 28: { /* sizeb obj to */
          word ob = A0;
@@ -1230,14 +1238,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = mkpair(NUMHDR, A0, A1);
          NEXT(3); }
       case 30:
-         /* FIXME: remove this after the next fasl update: */ {
-         word *ob = (word *)A0;
-         A1 = ob[1];
-         NEXT(2); }
       case 31:
          /* FIXME: remove this after the next fasl update: */ {
-         word *ob = (word *)A0;
-         A1 = ob[2];
+         A1 = G(A0, op - 29);
          NEXT(2); }
       case 32: { /* bind tuple <n> <r0> .. <rn> */
          word *tuple = (word *) R[*ip++];
@@ -1252,7 +1255,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          UNUSED;
       case 34: /* jmp-nargs a hi li */
          if (acc != *ip)
-            ip += (ip[1] << 8) | ip[2];
+            ip += ip[1] << 8 | ip[2];
          NEXT(3);
       case 35: { /* listuple type size lst to */
          word type = immval(A0);
@@ -1314,9 +1317,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3);
       case 48:
          /* FIXME: remove this after the next fasl update: */ {
-         word ob = A0;
-         assert(immediatep(ob) || rawp(header(ob)), ob, 48);
-         A2 = prim_ref(ob, A1);
+         A2 = prim_ref(A0, A1);
          NEXT(3); }
       case 49: { /* withff node l k v r */
          word hdr, *ob = (word *)A0;
@@ -1450,7 +1451,8 @@ static word get_nat() {
    do {
       i = *hp++;
       new = result << 7;
-      if (result != (new >> 7)) exit(9); /* overflow kills */
+      if (result != new >> 7)
+         exit(9); /* overflow kills */
       result = new + (i & 127);
    } while (i & 128);
    return result;
