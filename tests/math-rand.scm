@@ -248,8 +248,8 @@
 						(error "Math unreliable: " (list 'test name 'a a 'rst rst))))))
 		((binary gen-a gen-b name test)
 			(let*
-				(((rst a) (gen-a rst))
-				 ((rst b) (gen-b rst)))
+				((rst a (gen-a rst))
+				 (rst b (gen-b rst)))
 				;(print (list name a b))
 				(if (test a b)
 					#true
@@ -257,9 +257,9 @@
 						(list 'test name 'a a 'b b 'rst rst)))))
 		((trinary gen-a gen-b gen-c name test)
 			(let*
-				(((rst a) (gen-a rst))
-				 ((rst b) (gen-b rst))
-				 ((rst c) (gen-c rst)))
+				((rst a (gen-a rst))
+				 (rst b (gen-b rst))
+				 (rst c (gen-c rst)))
 				;(print (list name a b c))
 				(if (test a b c)
 					#true

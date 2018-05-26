@@ -222,7 +222,6 @@
       ;(define list ((lambda (x) x) (lambda x x)))
 
       ;; fixme, should use a print-limited variant for debugging
-
       (define-syntax define*
          (syntax-rules (print list)
             ((define* (op . args) . body)
@@ -232,13 +231,14 @@
             ((define* name (lambda (arg ...) . body))
                (define* (name arg ...) . body))))
 
+      ;; let sequence
       (define-syntax lets
          (syntax-rules (<=)
-            ((lets (((var ...) gen) . rest) . body)
-               (receive gen (lambda (var ...) (lets rest . body))))
             ((lets ((var val) . rest-bindings) exp . rest-exps)
+               ;; (var val) ≡ ((λ (var) ...) val)
                ((lambda (var) (lets rest-bindings exp . rest-exps)) val))
             ((lets ((var ... (op . args)) . rest-bindings) exp . rest-exps)
+               ;; (v1 v2 .. vn (op a1 .. an)) ≡ call-with-values, this is a generalization of the above
                (receive (op . args)
                   (lambda (var ...)
                      (lets rest-bindings exp . rest-exps))))
@@ -261,6 +261,7 @@
                   (lets ((val ... (begin . body)))
                      (list val ...))))))
 
+      ;; let*[-values] could be moved to a Scheme core - let and lets are enough in owl
       (define-syntax let*-values
          (syntax-rules ()
             ((let*-values (((var ...) gen) . rest) . body)
@@ -269,9 +270,6 @@
             ((let*-values () . rest)
                (begin . rest))))
 
-      ; i hate special characters, especially in such common operations.
-      ; lets (let sequence) is way prettier and a bit more descriptive
-
       (define-syntax let*
          (syntax-rules ()
             ((let* . stuff) (lets . stuff))))
@@ -279,6 +277,7 @@
       (define-syntax or
          (syntax-rules ()
             ((or) #false)
+            ((or a) a)
             ((or (a . b) . c)
                (let ((x (a . b)))
                   (or x . c)))
