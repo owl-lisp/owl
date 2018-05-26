@@ -1,6 +1,4 @@
-;; vm rimops
-
-;; todo: convert tuple to variable arity
+;; VM primops
 
 (define-library (owl primop)
    (export

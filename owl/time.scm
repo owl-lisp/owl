@@ -1,5 +1,3 @@
-;; todo: date handling
-
 (define-library (owl time)
 
    (export

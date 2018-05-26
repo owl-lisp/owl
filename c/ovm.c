@@ -88,7 +88,7 @@ typedef intptr_t wdiff;
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define immval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
-#define NR                          190 /* fixme, should be ~32, see n-registers in register.scm */
+#define NR                          190 /* FIXME: should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
 #define imm_type(x)                 (((x) >> TPOS) & 63)
 #define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
@@ -265,7 +265,7 @@ static wdiff adjust_heap(wdiff cells) {
       fix_pointers(memstart, delta);
       return delta;
    } else {
-      breaked |= 8; /* will be passed over to mcp at thread switch*/
+      breaked |= 8; /* will be passed over to mcp at thread switch */
       return 0;
    }
 }
@@ -964,7 +964,7 @@ static word vm(word *ob, word *arg) {
    R[0] = IFALSE;
    R[3] = IHALT;
    R[4] = (word) arg;
-   acc = 2; /* boot always calls with 2 args*/
+   acc = 2; /* boot always calls with 2 args */
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
 
@@ -1119,7 +1119,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             ob = V(ob);
          A1 = F(imm_type(ob));
          NEXT(2); }
-      case 16: /* jv[which] a o1 a2*/
+      case 16: /* jv[which] a o1 a2 */
          /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
          if (A0 == load_imms[op >> 6])
             ip += ip[1] + (ip[2] << 8);
@@ -1142,7 +1142,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             ob = (word *) R[reg];
             acc -= 3; /* ignore cont, function and stop before last one (the list) */
             while (acc--) { /* move explicitly given arguments down by one to correct positions */
-               R[reg] = R[reg+1]; /* copy args down*/
+               R[reg] = R[reg + 1]; /* copy args down */
                reg++;
                arity++;
             }
@@ -1153,7 +1153,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             ob = (word *) R[reg];
             acc -= 2; /* ignore function and stop before last one (the list) */
             while (acc--) { /* move explicitly given arguments down by one to correct positions */
-               R[reg] = R[reg+1]; /* copy args down*/
+               R[reg] = R[reg + 1]; /* copy args down */
                reg++;
                arity++;
             }
@@ -1190,12 +1190,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          R[3] = A0;
          acc = 1;
          goto apply;
-      case 25: { /* jmp-nargs(>=?) a hi lo */
+      case 25: { /* jmp-var-args a hi lo */
          int needed = *ip;
          if (acc == needed) {
             R[acc + 3] = INULL; /* add empty extra arg list */
          } else if (acc > needed) {
-            word tail; /* todo: no call overflow handling yet */
+            word tail; /* TODO: no call overflow handling yet */
             for (tail = INULL; acc > needed; --acc)
                tail = cons(R[acc + 2], tail);
             R[acc + 3] = tail;
@@ -1311,7 +1311,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4);
       case 46:
          UNUSED;
-      case 47: /* ref t o r */ /* fixme: deprecate this later */
+      case 47: /* ref t o r */ /* FIXME: deprecate this later */
          A2 = prim_ref(A0, A1);
          NEXT(3);
       case 48:
@@ -1477,7 +1477,7 @@ static word *get_obj(word *ptrs, int me) {
    unsigned int type, size;
    if (ptrs != NULL)
       ptrs[me] = (word)fp;
-   switch (*hp++) { /* todo: adding type information here would reduce fasl and executable size */
+   switch (*hp++) { /* TODO: adding type information here would reduce fasl and executable size */
       case 1:
          type = *hp++;
          size = get_nat();
