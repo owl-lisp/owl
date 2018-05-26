@@ -1047,10 +1047,8 @@
       (define (qr-bs-loop a1 as b out)
          (if (null? as)
             (if (null? (ncdr out))
-               (begin
-                  (values (ncar out) a1))
-               (begin
-                  (values out a1)))
+               (values (ncar out) a1)
+               (values out a1))
             (lets
                ((a2 as as)
                 (q1 q2 r (fxqr a1 a2 b)))

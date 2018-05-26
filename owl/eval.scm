@@ -71,8 +71,7 @@
                      (fold
                         (λ (state next)
                            (if (ok? state)
-                              (begin
-                                 (next (ref state 2) (ref state 3)))
+                              (next (ref state 2) (ref state 3))
                               (exit state)))
                         (ok exp env)
                         compiler-passes))))

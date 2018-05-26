@@ -232,10 +232,9 @@
          (if (eq? op 23) ; generalize this later. mkt is not a safe instruction!
             (if (null? args)
                (error "rtl-primitive: no type for mkt" args)
-               (begin
-                  (rtl-primitive regs
-                     (+ (<< op 8) (band (value-of (car args)) #xff))
-                     formals (cdr args) cont)))
+               (rtl-primitive regs
+                  (+ (<< op 8) (band (value-of (car args)) #xff))
+                  formals (cdr args) cont))
             (rtl-args regs args
                (λ (regs args)
                   ;; args = input registers

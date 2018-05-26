@@ -38,7 +38,7 @@
                #true)))
 
       (define (variable-input-arity? op)
-         (eq? (car (get primop-arities op '(0 . 0))) 'any))
+         (eq? (car (get primop-arities op '(0))) 'any))
 
       (define (multiple-return-variable-primop? op)
          (and

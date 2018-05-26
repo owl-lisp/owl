@@ -186,20 +186,19 @@
                      sexp-parser
                      (silent-syntax-fail null)))))
             (if exps
-               (begin
-                  (lets
-                     ((current-prompt (env-get env '*interactive* #false)) ; <- switch prompt during loading
-                      (load-env
-                        (if prompt
-                           (env-set env '*interactive* #false) ;; <- switch prompt during load (if enabled)
-                           env))
-                      (outcome (repl load-env exps)))
-                     (tuple-case outcome
-                        ((ok val env)
-                           (ok val (env-set env '*interactive* current-prompt)))
-                        ((error reason partial-env)
-                           ; fixme, check that the fd is closed!
-                           (repl-fail env (list "Could not load" path "because" reason))))))
+               (lets
+                  ((current-prompt (env-get env '*interactive* #false)) ; <- switch prompt during loading
+                   (load-env
+                     (if prompt
+                        (env-set env '*interactive* #false) ;; <- switch prompt during load (if enabled)
+                        env))
+                   (outcome (repl load-env exps)))
+                  (tuple-case outcome
+                     ((ok val env)
+                        (ok val (env-set env '*interactive* current-prompt)))
+                     ((error reason partial-env)
+                        ; FIXME: check that the fd is closed!
+                        (repl-fail env (list "Could not load" path "because" reason)))))
                (repl-fail env
                   (list "Could not find any of"
                      (list path (string-append (env-get env '*owl* "") path))
