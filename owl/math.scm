@@ -93,11 +93,7 @@
          (ncons 0 *big-one*))
 
       (define (fixnum? x)
-         (let ((t (type x)))
-            (or
-               (eq? t type-fix+)
-               ;(eq? t type-fix-) ;; <- FIXME - breaks build, someone isn't expecting negative fixnums
-               )))
+         (eq? (fxbor (type x) type-fix-) type-fix-))
 
       ;; deprecated primop
       ;(define-syntax fxdivmod

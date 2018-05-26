@@ -30,13 +30,6 @@
 
       (define try-n-perms 1000)	 ;; how many load permutations to try before evicting more registers
 
-      (define (small-value? val)
-         (or
-            (and (fixnum? val) (< -128 val 127))
-            (eq? val #true)
-            (eq? val #false)
-            (eq? val null)))
-
       (define (ok exp env) (tuple 'ok exp env))
       (define (fail reason) (tuple 'fail reason))
 

@@ -16,7 +16,11 @@
 
    (begin
 
-      (define char? fixnum?)
+      (define (char? x)
+         (let ((t (type x)))
+            (or
+               (eq? t type-fix+)
+               (eq? t type-int+))))
 
       (define char=? =)
       (define char<? <)
