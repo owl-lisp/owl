@@ -1084,13 +1084,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          ob = (word *)A0;
          acc = ip[1];
          goto apply;
-      case 3:
-      case 6:
-      case 7:
-      case 4: {
+      case 3: case 6: case 7: /* FIXME: remove this line after fasl update */
+      case 4: { /* opcodes 132, 4, 196, 68 */
          word size = *ip++, tmp;
          word *ob;
-         op = (op == 3 || op == 6) << 7 | (op == 6 || op == 7) << 6; /* TODO: encode this directly into the opcode */
+         op |= (op == 3 || op == 6) << 7 | (op == 6 || op == 7) << 6; /* FIXME: remove this line after fasl update */
          tmp = R[op & 64 ? 1 : *ip++];
          allocate(size, ob);
          *ob = make_header(size, (op >> 7) + TPROC);

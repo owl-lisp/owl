@@ -318,8 +318,10 @@
                      (lets ((rator nargs bs (get2 (cdr bs))))
                         (let ((code (list "ob=(word*)R[" rator "];acc=" nargs ";" )))
                            (values code null regs)))))
-               (cons 3 (cify-closer "TCLOS"))
+               (cons 132 (cify-closer "TCLOS"))
                (cons 4 (cify-closer "TPROC"))
+               (cons 196 (cify-closer-1 "TCLOS"))
+               (cons 68 (cify-closer-1 "TPROC"))
                (cons 5 ;; move2 from1 to1 from2 to2
                   (λ (bs regs fail)
                      (lets
@@ -329,8 +331,6 @@
                          (regs (put regs to2 (get regs from2 #false))))
                         (cond
                            (else (values (list "R[" to1 "]=R[" from1 "];R[" to2 "]=R[" from2 "];") bs regs))))))
-               (cons 6 (cify-closer-1 "TCLOS"))
-               (cons 7 (cify-closer-1 "TPROC"))
                (cons 8 ;; jump-if-equal a b lo8 hi8
                   (λ (bs regs fail)
                      (lets
