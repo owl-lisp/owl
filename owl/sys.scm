@@ -61,6 +61,8 @@
       read
       write
       port->non-blocking
+      CLOCK_REALTIME
+      clock_gettime
       set-terminal-rawness
       mem-string      ;; pointer to null terminated string → raw string
       mem-strings     ;; **string → (raw-string ...)
@@ -536,6 +538,18 @@
                   (cons
                      (raw-string k)
                      (if (pair? v) (raw-string (cdr v)) ""))))))
+
+      ;;;
+      ;;; time
+      ;;;
+
+      (sc CLOCK_MONOTONIC 127)
+      (sc CLOCK_PROCESS_CPUTIME_ID 128)
+      (sc CLOCK_REALTIME 129)
+      (sc CLOCK_THREAD_CPUTIME_ID 130)
+
+      (define (clock_gettime clock)
+         (sys 42 clock))
 
       ;;;
       ;;; terminal control

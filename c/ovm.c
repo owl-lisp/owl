@@ -624,7 +624,8 @@ static word prim_sys(word op, word a, word b, word c) {
             O_SEARCH, O_WRONLY, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_DSYNC, O_EXCL,
             O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_RSYNC, O_SYNC, O_TRUNC, O_TTY_INIT, O_ACCMODE,
             FD_CLOEXEC, F_DUPFD, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, F_GETFL, F_SETFL, F_GETOWN,
-            F_SETOWN, F_GETLK, F_SETLK, F_SETLKW, F_RDLCK, F_UNLCK, F_WRLCK
+            F_SETOWN, F_GETLK, F_SETLK, F_SETLKW, F_RDLCK, F_UNLCK, F_WRLCK, CLOCK_MONOTONIC,
+            CLOCK_PROCESS_CPUTIME_ID, CLOCK_REALTIME, CLOCK_THREAD_CPUTIME_ID
          };
          return onum(sysconst[immval(a) % (sizeof sysconst / W)], 0); }
       case 9: /* return process variables */
@@ -856,6 +857,11 @@ static word prim_sys(word op, word a, word b, word c) {
             b == F(8) ? *(uint64_t *)p :
             V(p), 0);
          }
+      case 42: { /* clock_gettime clock_id → nanoseconds */
+         struct timespec ts;
+         if (clock_gettime(cnum(a), &ts) != -1)
+            return onum(ts.tv_sec * INT64_C(1000000000) + ts.tv_nsec, 1);
+         return IFALSE; }
       default:
          return IFALSE;
    }
@@ -1399,7 +1405,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4); }
       case 60:
          UNUSED;
-      case 61: /* clock <secs> <ticks> */ { /* fixme: sys */
+      case 61:
+         /* FIXME: remove this after the next fasl update: */ {
          struct timeval tp;
          gettimeofday(&tp, NULL);
          A0 = onum(tp.tv_sec, 1);

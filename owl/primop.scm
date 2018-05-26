@@ -78,7 +78,6 @@
       (define run         (func '(3 50 4 5 6 24 6)))
       (define set-ticker  (func '(2 62 4 5 24 5)))
       (define sys-prim    (func '(5 63 4 5 6 7 8 24 8)))
-      (define clock       (func '(1 9 3 5 61 3 4 2 5 2)))
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
       (define raw         (func '(3 37 4 5 6 24 6)))
@@ -152,7 +151,6 @@
             (tuple 'fx*          39 2 2 fx*)   ;; (fx* a b)      ;; 2 out
             (tuple 'fx-          40 2 2 fx-)   ;; (fx- a b)       ;; 2 out
             (tuple 'fx>>         58 2 2 fx>>)   ;; (fx>> a b) -> hi lo, lo are the lost bits
-            (tuple 'clock        61 0 2 clock) ; (clock) → posix-time x ms
             (tuple 'set-ticker   62 1 1 set-ticker)
             (tuple 'sys-prim     63 4 1 sys-prim)))
 

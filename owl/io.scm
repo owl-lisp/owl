@@ -740,8 +740,7 @@
 
       ;; including time currently causes a circular dependency - resolve later
       (define (time-ms)
-         (lets ((ss ms (clock)))
-            (+ (* ss 1000) ms)))
+         (quotient (sys-clock_gettime (sys-CLOCK_REALTIME)) 1000000))
 
       (define (muxer-add rs ws alarms mail)
          (tuple-case (ref mail 2)
