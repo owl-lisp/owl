@@ -1193,9 +1193,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 25: { /* jmp-nargs(>=?) a hi lo */
          int needed = *ip;
          if (acc == needed) {
-            if (op & 64) /* add empty extra arg list */
-               R[acc + 3] = INULL;
-         } else if ((op & 64) && acc > needed) {
+            R[acc + 3] = INULL; /* add empty extra arg list */
+         } else if (acc > needed) {
             word tail; /* todo: no call overflow handling yet */
             for (tail = INULL; acc > needed; --acc)
                tail = cons(R[acc + 2], tail);

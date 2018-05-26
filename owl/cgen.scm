@@ -372,17 +372,6 @@
                               (values
                                  (list "ob=(word*)R[3];R[3]=R[" res "];acc=1;") ; the goto apply is automatic
                                  null regs)))))) ;; <- always end compiling (another branch may continue here)
-               (cons 34 ;; fixed jump-arity n hi8 lo8
-                  (λ (bs regs fail)
-                     (lets
-                        ((arity hi8 lo8 bs (get3 (cdr bs)))
-                         (jump-len (bor (<< hi8 8) lo8)))
-                         (values 'branch
-                           (tuple
-                              (list "acc==" arity)
-                              bs regs
-                              (drop bs jump-len) regs
-                              ) regs))))
                ;(cons 25 ;; jump-variable-arity n
                ;   (λ (bs regs fail)
                ;      (lets
@@ -397,6 +386,17 @@
                (cons 26 cify-fxqr)
                (cons 28 cify-sizeb)
                (cons 32 cify-bind)
+               (cons 34 ;; fixed jump-arity n hi8 lo8
+                  (λ (bs regs fail)
+                     (lets
+                        ((arity hi8 lo8 bs (get3 (cdr bs)))
+                         (jump-len (bor (<< hi8 8) lo8)))
+                         (values 'branch
+                           (tuple
+                              (list "acc==" arity)
+                              bs regs
+                              (drop bs jump-len) regs)
+			   regs))))
                (cons 36 cify-size)
                (cons 37 cify-lraw)
                (cons 38 cify-fxadd)

@@ -66,7 +66,6 @@
               (ldt  . 141)     ; ldt t:          Rt = true
               (jeq  . 20)     ; jeq a, b, o:    ip += o if Ra == Rb      ; jump if eq?
               (ret  . 24)     ; ret a:          call R3 (usually cont) with Ra
-              (jf2  . 25)     ; jf a, ol, oh
               (set . 25)     ; set a, p, b     Ra[Rp] = Rb
               (jbf . 26)     ; jump-binding tuple n f offset ... r1 ... rn
               )))
@@ -284,7 +283,7 @@
                                     (if (null? tail)
                                        (list 17)
                                        tail)))
-                              (ilist 89 (if fixed? arity (- arity 1))       ;; last is the optional one
+                              (ilist 25 (if fixed? arity (- arity 1)) ;; last is the optional one
                                  (band 255 (>> len 8))    ;; hi jump
                                  (band 255 len)           ;; low jump
                                  (append bytes
