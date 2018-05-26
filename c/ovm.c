@@ -1401,16 +1401,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          UNUSED;
       case 61: /* clock <secs> <ticks> */ { /* fixme: sys */
          struct timeval tp;
-         word *ob;
-         allocate(6, ob); /* space for 32-bit bignum - [NUM hi [NUM lo null]] */
-         ob[0] = ob[3] = NUMHDR;
-         A0 = (word) (ob + 3);
-         ob[2] = INULL;
-         ob[5] = (word) ob;
          gettimeofday(&tp, NULL);
+         A0 = onum(tp.tv_sec, 1);
          A1 = F(tp.tv_usec / 1000);
-         ob[1] = F(tp.tv_sec >> FBITS);
-         ob[4] = F(tp.tv_sec & FMAX);
          NEXT(2); }
       case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
          A1 = F(ticker & FMAX);
