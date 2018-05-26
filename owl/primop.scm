@@ -4,8 +4,6 @@
    (export
       primops
       primop-name ;; primop → symbol | primop
-      multiple-return-variable-primops
-      variable-input-arity?
       special-bind-primop?
       ;; primop wrapper functions
       run
@@ -106,12 +104,6 @@
       ;; from cps
       (define (special-bind-primop? op)
          (or (eq? op 32) (eq? op 49)))
-
-      ;; fixme: handle multiple return value primops sanely (now a list)
-      (define multiple-return-variable-primops
-         '(49 11 26 38 39 40 58 37 61))
-
-      (define variable-input-arity? (C eq? 23)) ;; mkt
 
       (define primops-1
          (list

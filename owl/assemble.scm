@@ -37,6 +37,14 @@
                   (or (eq? out (cdr node)) (not (cdr node))))
                #true)))
 
+      (define (variable-input-arity? op)
+         (eq? (car (get primop-arities op '(0 . 0))) 'any))
+
+      (define (multiple-return-variable-primop? op)
+         (and
+            (not (eq? op 32)) ; bind
+            (lesser? 1 (cdr (get primop-arities op '(0 . 0))))))
+
       (define vm-instructions
          (list->ff
             `((move . 9)      ; move a, t:      Rt = Ra
@@ -133,7 +141,7 @@
                         (fail (list "Bad opcode arity for " op (length args) 1))))
                   ((list? to)
                      (if (opcode-arity-ok? op (length args) (length to))
-                        (if (memq op multiple-return-variable-primops)
+                        (if (multiple-return-variable-primop? op)
                            (cons op
                               (append (map reg args)
                                  ; <- nargs implicit, FIXME check nargs opcode too
