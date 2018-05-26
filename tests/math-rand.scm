@@ -118,7 +118,7 @@
 ;; all numbers are funny and some more than others
 
 (define funny-numbers
-	(let*
+	(lets
 		((ns (map (H << 1) (map (H expt 2) (iota 0 1 6))))
 		 (ns (append ns (map (C - 1) ns)))
 		 (ns (append ns (map (H - 0) ns))))
@@ -221,7 +221,7 @@
 				(= (* a (+ b c)) (+ (* a b) (* a c)))))
 		;(tuple 'trinary nat nat nat-nz 'discrete-log ; fixme, ints
 		;	(lambda (a b c)
-		;		(let*
+		;		(lets
 		;			((n (+ 2 (remainder c 1000)))
 		;			 (y (remainder a n))
 		;			 (a (remainder b n))
@@ -247,7 +247,7 @@
 						#true
 						(error "Math unreliable: " (list 'test name 'a a 'rst rst))))))
 		((binary gen-a gen-b name test)
-			(let*
+			(lets
 				((rst a (gen-a rst))
 				 (rst b (gen-b rst)))
 				;(print (list name a b))
@@ -256,7 +256,7 @@
 					(error "Math unreliable: "
 						(list 'test name 'a a 'b b 'rst rst)))))
 		((trinary gen-a gen-b gen-c name test)
-			(let*
+			(lets
 				((rst a (gen-a rst))
 				 (rst b (gen-b rst))
 				 (rst c (gen-c rst)))

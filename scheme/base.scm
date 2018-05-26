@@ -365,6 +365,41 @@
       (define (newline . port)
          (write-really '#(#\newline) (if (null? port) stdout (car port))))
 
+      (define-syntax call-with-values
+         (syntax-rules ()
+            ((call-with-values (lambda () exp) (lambda (arg ...) body))
+               (receive exp (lambda (arg ...) body)))
+            ((call-with-values thunk (lambda (arg ...) body))
+               (receive (thunk) (lambda (arg ...) body)))))
+
+      (define-syntax do
+         (syntax-rules (__init)
+            ((do __init () ((var init step) ...) (test then ...) command ...)
+               (let loop ((var init) ...)
+                  (if test
+                     (begin then ...)
+                     (begin
+                        command ...
+                        (loop step ...)))))
+            ((do __init ((var init step) . rest) done . tail)
+               (do __init rest ((var init step) . done) . tail))
+            ((do __init ((var init) . rest) done . tail)
+               (do __init rest ((var init var) . done) . tail))
+            ((do (vari ...) (test exp ...) command ...)
+               (do __init (vari ...) () (test exp ...) command ...))))
+
+      (define-syntax let*-values
+         (syntax-rules ()
+            ((let*-values (((var ...) gen) . rest) . body)
+               (receive gen
+                  (λ (var ...) (let*-values rest . body))))
+            ((let*-values () . rest)
+               (begin . rest))))
+
+      (define-syntax let*
+         (syntax-rules ()
+            ((let* . stuff) (lets . stuff))))
+
       (define-missing-bad write-u8)
       (define-missing-bad write-string)
       (define-missing-bad write-char)

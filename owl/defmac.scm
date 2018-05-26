@@ -4,12 +4,12 @@
    (export
       λ syntax-error begin
       quasiquote letrec let
-      letrec* let*-values
+      letrec*
       if when unless
       cond case define define*
-      lets let* or and list
+      lets or and list
       ilist tuple tuple-case
-      call-with-values do define-library
+      define-library
       case-lambda
       define-values
       define-record-type
@@ -85,14 +85,13 @@
                (_case-lambda (lambda formals . body)
                   (case-lambda . rest)))))
 
-      ;; note, no let-values yet, so using let*-values in define-values
       (define-syntax begin
-         (syntax-rules (define letrec define-values let*-values)
+         (syntax-rules (define letrec define-values lets)
             ((begin exp) exp)
             ((begin (define . a) (define . b) ... . rest)
                (begin 42 () (define . a) (define . b) ... . rest))
             ((begin (define-values (val ...) . body) . rest)
-               (let*-values (((val ...) (begin . body))) . rest))
+               (lets ((val ... (begin . body))) (begin . rest)))
             ((begin 42 done (define ((op . args1) . args2) . body) . rest)
                (begin 42 done (define (op . args1) (lambda args2 . body)) . rest))
             ((begin 42 done (define (var . args) . body) . rest)
@@ -132,14 +131,14 @@
                ((let keyword ((var init) ...) exp . rest)
                   (letrec ((keyword (lambda (var ...) exp . rest))) (keyword init ...)))))
 
-      ; Temporary hack: if inlines some predicates.
 
+      ;; todo: these essential optimizations and more should be handled by partial eval later
       (define-syntax if
          (syntax-rules (not eq? null? empty?)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
-            ((if (empty? test) then else) (if (eq? test #empty) then else)) ;; FIXME - handle with partial eval later
+            ((if (empty? test) then else) (if (eq? test #empty) then else))
             ((if (eq? a b) then else) (_branch 0 a b then else))
             ((if (a . b) then else) (let ((x (a . b))) (if x then else)))
             ((if #false then else) else)
@@ -218,8 +217,7 @@
             ((define op val)
                (_define op val))))
 
-      ;; not defining directly because rlambda doesn't yet do variable arity
-      ;(define list ((lambda (x) x) (lambda x x)))
+      (define list (lambda x x))
 
       ;; fixme, should use a print-limited variant for debugging
       (define-syntax define*
@@ -261,19 +259,6 @@
                   (lets ((val ... (begin . body)))
                      (list val ...))))))
 
-      ;; let*[-values] could be moved to a Scheme core - let and lets are enough in owl
-      (define-syntax let*-values
-         (syntax-rules ()
-            ((let*-values (((var ...) gen) . rest) . body)
-               (receive gen
-                  (λ (var ...) (let*-values rest . body))))
-            ((let*-values () . rest)
-               (begin . rest))))
-
-      (define-syntax let*
-         (syntax-rules ()
-            ((let* . stuff) (lets . stuff))))
-
       (define-syntax or
          (syntax-rules ()
             ((or) #false)
@@ -291,7 +276,6 @@
             ((and a . b)
                (if a (and . b) #false))))
 
-      ;; now a function
       (define-syntax list
          (syntax-rules ()
             ((list) '())
@@ -365,29 +349,6 @@
                (let ((type (ref tuple 1)))
                   (tuple-case 42 tuple type case ...)))))
 
-      (define-syntax call-with-values
-         (syntax-rules ()
-            ((call-with-values (lambda () exp) (lambda (arg ...) body))
-               (receive exp (lambda (arg ...) body)))
-            ((call-with-values thunk (lambda (arg ...) body))
-               (receive (thunk) (lambda (arg ...) body)))))
-
-      (define-syntax do
-         (syntax-rules (__init)
-            ((do __init () ((var init step) ...) (test then ...) command ...)
-               (let loop ((var init) ...)
-                  (if test
-                     (begin then ...)
-                     (begin
-                        command ...
-                        (loop step ...)))))
-            ((do __init ((var init step) . rest) done . tail)
-               (do __init rest ((var init step) . done) . tail))
-            ((do __init ((var init) . rest) done . tail)
-               (do __init rest ((var init var) . done) . tail))
-            ((do (vari ...) (test exp ...) command ...)
-               (do __init (vari ...) () (test exp ...) command ...))))
-
       (define-syntax define-library
          (syntax-rules (export _define-library define-library)
             ;; push export to the end (should syntax-error on multiple exports before this)
@@ -408,8 +369,6 @@
 
       (define (not x)
          (if x #false #true))
-
-      ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
 
       (define (B f g) (λ (x) (f (g x))))
 

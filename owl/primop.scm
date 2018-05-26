@@ -180,6 +180,9 @@
       ;; stop the vm *immediately* without flushing input or anything else with return value n
       (define (halt n) (sys-prim 6 n #f #f))
 
+      ;; a minimal definition would be this, but we also want variable arities here
+      ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
+
       (define call/cc
          ('_sans_cps
             (λ (k f)
