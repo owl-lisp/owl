@@ -93,7 +93,7 @@
        ;(interactive "-i" "--interactive" comment "use builtin interactive line editor")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
-       (bare #false "--bare" comment "do not add anything to generated code (like threads or UTF-8 decoding)"))))
+       (bare #false "--bare" comment "output the bare fasl-encoded result"))))
 
 (define brief-usage-text "Usage: ol [args] [file] ...")
 
