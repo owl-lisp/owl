@@ -82,17 +82,17 @@ typedef intptr_t wdiff;
 #define MAXPAYL                     ((MAXOBJ - 1) * W) /* maximum payload in an allocated object */
 #define RAWBIT                      2048
 #define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
-#define make_immediate(value, type) (((word)(value) << IPOS) | ((type) << TPOS) | 2)
-#define make_header(size, type)     (((word)(size) << SPOS) | ((type) << TPOS) | 2)
-#define make_raw_header(s, t, p)    (((word)(s) << SPOS) | RAWBIT | ((p) << 8) | ((t) << TPOS) | 2)
+#define make_immediate(value, type) ((word)(value) << IPOS | (type) << TPOS | 2)
+#define make_header(size, type)     ((word)(size) << SPOS | (type) << TPOS | 2)
+#define make_raw_header(s, t, p)    ((word)(s) << SPOS | RAWBIT | (p) << 8 | (t) << TPOS | 2)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define immval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
 #define NR                          190 /* FIXME: should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
-#define imm_type(x)                 (((x) >> TPOS) & 63)
+#define imm_type(x)                 ((x) >> TPOS & 63)
 #define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
-#define hdrsize(x)                  (((word)(x) >> SPOS) & MAXOBJ)
+#define hdrsize(x)                  ((word)(x) >> SPOS & MAXOBJ)
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
@@ -397,7 +397,7 @@ static word prim_connect(word *host, word port, word type) {
    addr.sin_family = AF_INET;
    addr.sin_port = htons(port);
    addr.sin_addr.s_addr = (in_addr_t) host[1];
-   ipfull = (ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | ip[3];
+   ipfull = ip[0] << 24 | ip[1] << 16 | ip[2] << 8 | ip[3];
    addr.sin_addr.s_addr = htonl(ipfull);
    if (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0) {
       close(sock);
@@ -424,9 +424,9 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
             return def;
          case 4:
             if (key < this)
-               ff = (word *)(hdr & (1 << TPOS) ? IEMPTY : ff[3]);
+               ff = (word *)(1 << TPOS & hdr ? IEMPTY : ff[3]);
             else
-               ff = (word *)(hdr & (1 << TPOS) ? ff[3] : IEMPTY);
+               ff = (word *)(1 << TPOS & hdr ? ff[3] : IEMPTY);
             break;
          default:
             ff = (word *)(key < this ? ff[3] : ff[4]);
@@ -445,7 +445,7 @@ static word prim_cast(word ob, word type) {
       word *new, *res; /* <- could also write directly using *fp++ */
       allocate(size, new);
       res = new;
-      *new++ = (hdr&(~252))|((type&1087)<<TPOS); /* clear type, allow setting teardown in new one */
+      *new++ = (type & 1087) << TPOS | (hdr & ~252); /* clear type, allow setting teardown in new one */
       memcpy(new, (word *)ob + 1, (size - 1) * W);
       return (word)res;
    }
@@ -495,10 +495,10 @@ static word onum(int64_t a, int s) {
    if (x > FMAX) {
       word p = INULL;
       unsigned int shift = (63 / FBITS) * FBITS;
-      while (!(x & ((uint64_t)FMAX << shift)))
+      while (!((uint64_t)FMAX << shift & x))
          shift -= FBITS;
       do {
-         p = mkpair(NUMHDR, F((x >> shift) & FMAX), p);
+         p = mkpair(NUMHDR, F(x >> shift & FMAX), p);
          shift -= FBITS;
       } while (shift + FBITS);
       header(p) = h;
@@ -758,7 +758,7 @@ static word prim_sys(word op, word a, word b, word c) {
          ip = (byte *)G(b, 2) + W;
          peer.sin_family = AF_INET;
          peer.sin_port = htons(port);
-         peer.sin_addr.s_addr = htonl((ip[0]<<24) | (ip[1]<<16) | (ip[2]<<8) | (ip[3]));
+         peer.sin_addr.s_addr = htonl(ip[0] << 24 | ip[1] << 16 | ip[2] << 8 | ip[3]);
          return BOOL(sendto(sock, data, len, 0, (struct sockaddr *)&peer, sizeof(peer)) != -1); }
       case 28: /* setenv <owl-raw-bvec-or-ascii-leaf-string> <owl-raw-bvec-or-ascii-leaf-string-or-#f> */
          if (stringp(a) && (b == IFALSE || stringp(b))) {
@@ -981,7 +981,7 @@ apply: /* apply something at ob to values in regs, or maybe switch context */
       } else if (hdr == make_header(0, TCLOS)) { /* clos */
          R[1] = (word) ob; ob = (word *) ob[1];
          R[2] = (word) ob; ob = (word *) ob[1];
-      } else if (((hdr>>TPOS)&60) == TFF) { /* low bits have special meaning */
+      } else if ((hdr >> TPOS & 60) == TFF) { /* low bits have special meaning */
          word *cont = (word *) R[3];
          if (acc == 3) {
             R[3] = prim_get(ob, R[4], R[5]);
@@ -1210,12 +1210,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          }
          NEXT(3); }
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
-         uint64_t a = ((uint64_t)immval(A0) << FBITS) | immval(A1);
+         uint64_t a = (uint64_t)immval(A0) << FBITS | immval(A1);
          word b = immval(A2);
          uint64_t q;
          q = a / b;
-         A3 = F(q>>FBITS);
-         A4 = F(q&FMAX);
+         A3 = F(q >> FBITS);
+         A4 = F(q & FMAX);
          A5 = F(a - q*b);
          NEXT(6); }
       case 27: /* syscall cont op arg1 arg2 */
@@ -1285,7 +1285,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3);
       case 38: { /* fx+ a b r o, types prechecked, signs ignored */
          word res = immval(A0) + immval(A1);
-         A3 = BOOL(res & (1 << FBITS));
+         A3 = BOOL(1 << FBITS & res);
          A2 = F(res & FMAX);
          NEXT(4); }
       case 39: { /* fx* a b l h */
@@ -1295,7 +1295,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4); }
       case 40: { /* fx- a b r u, args prechecked, signs ignored */
          word r = immval(A0) - immval(A1);
-         A3 = BOOL(r & (1 << FBITS));
+         A3 = BOOL(1 << FBITS & r);
          A2 = F(r & FMAX);
          NEXT(4); }
       case 41: { /* car a r, or cdr d r */
@@ -1334,7 +1334,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
                A1 = A4 = IEMPTY;
                break;
             case 4:
-               if (hdr & (1 << TPOS)) { /* has right? */
+               if (1 << TPOS & hdr) { /* has right? */
                   A1 = IEMPTY;
                   A4 = *ob;
                } else {
@@ -1389,7 +1389,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = A0 | A1;
          NEXT(3);
       case 57: /* bxor a b r, prechecked */
-         A2 = A0 ^ (A1 & (FMAX << IPOS)); /* inherit A0's type info */
+         A2 = A0 ^ (FMAX << IPOS & A1); /* inherit A0's type info */
          NEXT(3);
       case 58: { /* fx>> x n hi lo */
          word x = immval(A0);
@@ -1400,8 +1400,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 59:
          /* FIXME: remove this after the next fasl update: */ {
          uint64_t res = (uint64_t)immval(A0) << immval(A1);
-         A2 = F(res>>FBITS);
-         A3 = F(res&FMAX);
+         A2 = F(res >> FBITS);
+         A3 = F(res & FMAX);
          NEXT(4); }
       case 60:
          UNUSED;

@@ -168,7 +168,7 @@
       ; fxbxor a b r
       (define (cify-fxbxor bs regs fail)
          (lets ((a b r bs (get3 (cdr bs))))
-            (values (list "R["r"]=R["a"]^(R["b"]&(FMAX<<IPOS));") bs
+            (values (list "R["r"]=R["a"]^(FMAX<<IPOS&R["b"]);") bs
                (put regs r 'fixnum))))
 
       ; fx* a b l h
@@ -182,7 +182,7 @@
       (define (cify-fxsub bs regs fail)
          (lets ((a b r u bs (get4 (cdr bs))))
             (values
-               (list "{word r=immval(R["a"])-immval(R["b"]);R["u"]=BOOL(r&(1<<FBITS));R["r"]=F(r&FMAX);}")
+               (list "{word r=immval(R["a"])-immval(R["b"]);R["u"]=BOOL(1<<FBITS&r);R["r"]=F(r&FMAX);}")
                bs (put (put regs r 'fixnum) u 'bool))))
 
       ; fx>> x n hi lo
@@ -230,7 +230,7 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049
-                  (list "{word*ob=(word*)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(hdr&(1<<TPOS)){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
+                  (list "{word*ob=(word*)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(1<<TPOS&hdr){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
                bs
                (fold del regs (list l k v r)))))
 
