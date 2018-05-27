@@ -8,6 +8,9 @@ compiler:
   - clang
   - gcc
 
+notifications:
+  irc: "chat.freenode.net#owl-lisp"
+  
 before_script: uname -a
 
 script: make 'CFLAGS=-Wall -O2'
