@@ -484,6 +484,11 @@
                (cons 58 cify-fxright)
                (cons 63 cify-sysprim)
                ;; below are lower primop + extra info (like 13=ldi<what>)
+               (cons 13 ;; ldz r
+                  (λ (bs regs fail)
+                     (let ((res (cadr bs)))
+                        (cond
+                           (else (values (list "R[" res "]=F(0);") (cddr bs) (put regs res 'null)))))))
                (cons 77 ;; ldn r
                   (λ (bs regs fail)
                      (let ((res (cadr bs)))

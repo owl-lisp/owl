@@ -55,7 +55,6 @@
               (clos1 . 196)
               (cloc1 . 68)
               (move2 . 5)     ; two moves, 4 args
-              (movh . 13)
               (goto-code . 18)
               (goto-proc . 19)
               (goto-clos . 21)
@@ -69,6 +68,7 @@
               (jn   . ,(+ 16 (<< 1 6)))     ; jump-imm[1], null
               (jt   . ,(+ 16 (<< 2 6)))     ; jump-imm[2], true
               (jf   . ,(+ 16 (<< 3 6)))     ; jump-imm[3], false
+              (ldz . 13)
               (ldn  . 77)     ; 13 + 1<<6
               (ldf  . 205)     ; ldf t:          Rt = false
               (ldt  . 141)     ; ldt t:          Rt = true
@@ -193,7 +193,9 @@
                                     (assemble more fail)))))))))
             ((ld val to cont)
                (cond
-                  ;; todo: add implicit load values to free bits of the instruction
+                  ((eq? val 0)
+                     (ilist (inst->op 'ldz) (reg to)
+                        (assemble cont fail)))
                   ((eq? val null)
                      (ilist (inst->op 'ldn) (reg to)
                         (assemble cont fail)))
