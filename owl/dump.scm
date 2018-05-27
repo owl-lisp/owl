@@ -383,10 +383,12 @@
                 (entry ;; possibly add code to utf-8 decode command line arguments
                   (if (get opts 'no-utf8-decode #false)
                      entry
-                     (with-decoded-args entry)))
+                     (with-decoded-args entry))) ;; must be pulled
 
                 (entry ;; pull command line args to owl from **argv
-                     (with-args entry))
+                   (if (get opts 'bare #f)
+                      entry
+                      (with-args entry)))
 
                 (native-cook ;; make a function to possibly rewrite bytecode during save (usually to native code wrappers)
                    (make-native-cook native-ops extras))
@@ -412,9 +414,9 @@
                      (print "Use -o file.c, -o file.fasl, or defined format with -x c or -x fasl")
                      #false)
                   ((eq? format 'fasl) ;; just save the fasl dump
-                     (write-bytes port bytes)
-                     (close-port port)
-                     #true)
+                     (if (write-bytes port bytes)
+                        (close-port port)
+                        #false))
                   ((eq? format 'c)
                      (write-bytes port ;; output fasl-encoded heap as an array
                         (append
