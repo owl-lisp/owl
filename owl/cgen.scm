@@ -341,7 +341,7 @@
                (cons 14 ;; ldfix <n> <to>
                   (λ (bs regs fail)
                      (lets ((n to bs (get2 (cdr bs))))
-                        (values (list "R["to"]=F("n");") bs (put regs to 'fixnum)))))
+                        (values (list "R["to"]=onum((int8_t)("n"),1);") bs (put regs to 'fixnum)))))
                ;; 15=type-byte o r
                (cons 15
                   (λ (bs regs fail)

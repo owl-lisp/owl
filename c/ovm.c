@@ -1116,7 +1116,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 13: /* ldi{2bit what} [to] */
          A0 = load_imms[op >> 6];
          NEXT(1);
-      case 14: A1 = F(*ip); NEXT(2);
+      case 14:
+         A1 = onum((int8_t)*ip, 1);
+         NEXT(2);
       case 15: { /* type-byte o r <- actually sixtet */
          word ob = A0;
          if (allocp(ob))
