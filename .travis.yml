@@ -9,8 +9,12 @@ compiler:
   - gcc
 
 notifications:
-  irc: "chat.freenode.net#owl-lisp"
-  
+  irc:
+    channels: "chat.freenode.net#owl-lisp"
+    template: "%{branch}/%{commit}: %{message} (%{author}: ${commit_subject})"
+    skip_join: true
+    use_notice: true
+
 before_script: uname -a
 
 script: make 'CFLAGS=-Wall -O2'
