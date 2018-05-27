@@ -123,7 +123,7 @@
       (define (cify-sizeb bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
             (values
-               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R[" ob "]);R["to"]=rawp(h)?F(payl_len(h)):IFALSE;}")
+               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R["ob"]);R["to"]=rawp(h)?F(payl_len(h)):IFALSE;}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -247,7 +247,7 @@
              (fields bs (split-at bs nfields))
              (to bs bs))
             (values
-               (ilist "*fp=make_header(" (+ nfields 1)","type");"
+               (ilist "*fp=make_header("(+ nfields 1)","type");"
                    (foldr ; <- fixme: switch to foldr to write in-order
                      (λ (p tl) ; <- (pos . reg)
                         (ilist "fp[" (car p) "]=R[" (cdr p) "];" tl))
@@ -264,7 +264,7 @@
                 (fields bs (split-at bs nfields))
                 (to bs bs))
                (values
-                  (ilist "*fp=make_header(" size "," type ");fp[1]=G(R["litp"],"litoff");"
+                  (ilist "*fp=make_header("size","type");fp[1]=G(R["litp"],"litoff");"
                       (fold
                         (λ (tl p) ; <- (pos . reg)
                            (ilist "fp[" (car p) "]=R[" (cdr p) "];" tl))
@@ -283,7 +283,7 @@
                 (fields bs (split-at bs nfields))
                 (to bs bs))
                (values
-                  (ilist "*fp=make_header(" size "," type ");fp[1]=G(R["litp"],"litoff");"
+                  (ilist "*fp=make_header("size","type");fp[1]=G(R["litp"],"litoff");"
                       (fold
                         (λ (tl p) ; <- (pos . reg)
                            (ilist "fp[" (car p) "]=R[" (cdr p) "];" tl))

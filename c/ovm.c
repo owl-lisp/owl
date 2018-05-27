@@ -962,7 +962,7 @@ static word vm(word *ob, word *arg) {
    unsigned int op;
    word R[NR];
 
-   word load_imms[] = {F(0), INULL, ITRUE, IFALSE}; /* for ldi and jv */
+   static const word load_imms[] = { F(0), INULL, ITRUE, IFALSE };
 
    /* clear blank regs */
    for (acc = 1; acc != NR; ++acc)
@@ -1103,7 +1103,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4);
       case 8: /* jlq a b o, extended jump */
          if (A0 == A1)
-            ip += ip[2] + (ip[3] << 8);
+            ip += ip[3] << 8 | ip[2];
          NEXT(4);
       case 9: A1 = A0; NEXT(2);
       case 10:
@@ -1126,9 +1126,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = F(imm_type(ob));
          NEXT(2); }
       case 16: /* jv[which] a o1 a2 */
-         /* FIXME, convert this to jump-const <n> comparing to make_immediate(<n>,TCONST) */
          if (A0 == load_imms[op >> 6])
-            ip += ip[1] + (ip[2] << 8);
+            ip += ip[2] << 8 | ip[1];
          NEXT(3);
       case 17: { /* arity error */
          word *t;
