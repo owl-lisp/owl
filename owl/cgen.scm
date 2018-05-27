@@ -129,11 +129,9 @@
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-size bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
-            (cond
-               (else
-                  (values
-                     (list "R["to"]=(immediatep(R["ob"]))?IFALSE:F(hdrsize(V(R["ob"]))-1);")
-                     bs (put regs to 'fixnum))))))
+            (values
+               (list "R["to"]=(immediatep(R["ob"]))?IFALSE:F(hdrsize(V(R["ob"]))-1);")
+               bs (put regs to 'fixnum))))
 
       ;; lraw lst-reg type-reg flipp-reg to
       (define (cify-lraw bs regs fail)
@@ -150,12 +148,10 @@
       ; fx+ a b r o?
       (define (cify-fxadd bs regs fail)
          (lets ((a b r o bs (get4 (cdr bs))))
-            (cond
-               (else
-                  (values
-                     ;; res is shifted down, so there is room for high bit
-                     (list "{word res=immval(R["a"])+immval(R["b"]);R["o"]=BOOL(res&(1<<FBITS));R["r"]=F(res&FMAX);}")
-                     bs (put (put regs r 'fixnum) o 'bool))))))
+            (values
+               ;; res is shifted down, so there is room for an overflow bit
+               (list "{word res=immval(R["a"])+immval(R["b"]);R["o"]=BOOL(1<<FBITS&res);R["r"]=F(res&FMAX);}")
+               bs (put (put regs r 'fixnum) o 'bool))))
 
       ; fxband a b r
       (define (cify-fxband bs regs fail)
@@ -311,8 +307,7 @@
                (cons 1 ;; indirect-ref from-reg offset to-reg
                   (λ (bs regs fail)
                      (lets ((from offset to bs (get3 (cdr bs))))
-                        (cond
-                           (else (values (list "R[" to "]=G(R[" from "],"offset");") bs (del regs to)))))))
+                        (values (list "R["to"]=G(R["from"],"offset");") bs (del regs to)))))
                (cons 2 ;; goto <rator> <nargs>
                   (λ (bs regs fail)
                      (lets ((rator nargs bs (get2 (cdr bs))))
@@ -329,8 +324,7 @@
                          (from2 to2 bs (get2 bs))
                          (regs (put regs to1 (get regs from1 #false)))
                          (regs (put regs to2 (get regs from2 #false))))
-                        (cond
-                           (else (values (list "R[" to1 "]=R[" from1 "];R[" to2 "]=R[" from2 "];") bs regs))))))
+                           (values (list "R["to1"]=R["from1"];R["to2"]=R["from2"];") bs regs))))
                (cons 8 ;; jump-if-equal a b lo8 hi8
                   (λ (bs regs fail)
                      (lets
@@ -347,8 +341,7 @@
                (cons 14 ;; ldfix <n> <to>
                   (λ (bs regs fail)
                      (lets ((n to bs (get2 (cdr bs))))
-                        (cond
-                           (else (values (list "R["to"]=F(" n ");") bs (put regs to 'fixnum)))))))
+                        (values (list "R["to"]=F("n");") bs (put regs to 'fixnum)))))
                ;; 15=type-byte o r
                (cons 15
                   (λ (bs regs fail)
@@ -367,11 +360,9 @@
                (cons 24 ;; ret r == call R3 with 1 argument at Rr
                   (λ (bs regs fail)
                      (let ((res (cadr bs)))
-                        (cond
-                           (else
-                              (values
-                                 (list "ob=(word*)R[3];R[3]=R[" res "];acc=1;") ; the goto apply is automatic
-                                 null regs)))))) ;; <- always end compiling (another branch may continue here)
+                        (values
+                           (list "ob=(word*)R[3];R[3]=R["res"];acc=1;") ; the goto apply is automatic
+                           null regs)))) ;; <- always end compiling (another branch may continue here)
                ;(cons 25 ;; jump-variable-arity n
                ;   (λ (bs regs fail)
                ;      (lets
@@ -407,25 +398,20 @@
                (cons 44 ;; less a b r
                   (λ (bs regs fail)
                      (lets ((a b to bs (get3 (cdr bs))))
-                        (cond
-                           (else (values (list "R["to"]=prim_less(R["a"],R["b"]);") bs (put regs to 'bool)))))))
+                        (values (list "R["to"]=prim_less(R["a"],R["b"]);") bs (put regs to 'bool)))))
                (cons 45 ;; set obj offset value to ;; TODO <- was adding this one
                   (λ (bs regs fail)
                      (lets ((ob pos val to bs (get4 (cdr bs))))
-                        (cond
-                           (else (values (list "R["to"]=prim_set(R["ob"],R["pos"],R["val"]);") bs
-                              (put regs to (get regs ob 'alloc))))))))
+                        (values (list "R["to"]=prim_set(R["ob"],R["pos"],R["val"]);") bs
+                           (put regs to (get regs ob 'alloc))))))
                (cons 47 cify-ref)
                (cons 49 cify-bindff)
                (cons 51 ;; cons car cdr to
                   (λ (bs regs fail)
                      (lets ((a b to bs (get3 (cdr bs))))
-                        (cond
-                           (else
-                              (values
-                                 ;; cons directly to free area to avoid register overwriting
-                                 (list "R["to"]=cons(R["a"],R["b"]);")
-                                 bs (put regs to 'pair)))))))
+                        (values
+                           (list "R["to"]=cons(R["a"],R["b"]);")
+                           bs (put regs to 'pair)))))
                (cons 105 ;; car ob to <- use this to test whether the compiler type handling
                   (λ (bs regs fail)
                      (lets
@@ -469,11 +455,9 @@
                (cons 54 ;; eq a b to
                   (λ (bs regs fail)
                      (lets ((a b to bs (get3 (cdr bs))))
-                        (cond
-                           (else
-                              (values
-                                 (list "R["to"]=BOOL(R["a"]==R["b"]);")
-                                 bs regs))))))
+                        (values
+                           (list "R["to"]=BOOL(R["a"]==R["b"]);")
+                           bs regs))))
                (cons (+ 16 (<< 0 6)) (cify-jump-imm 0))
                (cons (+ 16 (<< 1 6)) (cify-jump-imm null))
                (cons (+ 16 (<< 2 6)) (cify-jump-imm #true))
@@ -487,23 +471,19 @@
                (cons 13 ;; ldz r
                   (λ (bs regs fail)
                      (let ((res (cadr bs)))
-                        (cond
-                           (else (values (list "R[" res "]=F(0);") (cddr bs) (put regs res 'null)))))))
+                        (values (list "R["res"]=F(0);") (cddr bs) (put regs res 'null)))))
                (cons 77 ;; ldn r
                   (λ (bs regs fail)
                      (let ((res (cadr bs)))
-                        (cond
-                           (else (values (list "R[" res "]=INULL;") (cddr bs) (put regs res 'null)))))))
+                        (values (list "R["res"]=INULL;") (cddr bs) (put regs res 'null)))))
                (cons 141 ;; ldt r
                   (λ (bs regs fail)
                      (let ((res (cadr bs)))
-                        (cond
-                           (else (values (list "R[" res "]=ITRUE;") (cddr bs) (put regs res 'bool)))))))
+                        (values (list "R["res"]=ITRUE;") (cddr bs) (put regs res 'bool)))))
                (cons 205 ;; ldf r
                   (λ (bs regs fail)
                      (let ((res (cadr bs)))
-                        (cond
-                           (else (values (list "R[" res "]=IFALSE;") (cddr bs) (put regs res 'bool)))))))
+                        (values (list "R["res"]=IFALSE;") (cddr bs) (put regs res 'bool)))))
                )))
 
       ;; regs is a ff of partial knowledge going downwards about things currently in registers
