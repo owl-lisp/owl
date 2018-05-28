@@ -21,11 +21,14 @@ fasl/boot.fasl: fasl/init.fasl
 
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm tests/*.scm tests/*.sh
 	# selfcompile boot.fasl until a fixed point is reached
+	@bin/vm fasl/init.fasl -e '(time-ms)' > .start
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
-	ls -l fasl/bootp.fasl
+	@bin/vm fasl/init.fasl -e '(print "bootstrap " (- (time-ms) (read (open-input-file ".start"))) "ms")'
 	# check that the new image passes tests
+	@bin/vm fasl/init.fasl -e '(time-ms)' > .start
 	CC="$(CC)" sh tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
+	@bin/vm fasl/init.fasl -e '(print "tests " (- (time-ms) (read (open-input-file ".start"))) "ms")'
 	cmp -s fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
 
 
@@ -120,7 +123,7 @@ clean:
 	-rm -f fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
 	-rm -f c/_vm.c c/vm.c c/ol.c
 	-rm -f doc/*.gz
-	-rm -f tmp/*
+	-rm -f tmp/* .start
 	-rm -f bin/ol bin/ol-old bin/vm
 
 # make a standalone binary against dietlibc for relase
