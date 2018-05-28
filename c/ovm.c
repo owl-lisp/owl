@@ -1533,18 +1533,21 @@ static void heap_metrics(int *rwords, int *rnobjs) {
 
 static byte *read_heap(char *path) {
    struct stat st;
-   int fd, pos = 0;
-   if(stat(path, &st)) exit(1);
+   off_t pos = 0;
+   ssize_t n;
+   int fd = open(path, O_RDONLY);
+   if (fd == -1)
+      exit(1);
+   if (fstat(fd, &st) != 0)
+      exit(2);
    hp = realloc(NULL, st.st_size);
    if (hp == NULL)
-      exit(2);
-   fd = open(path, O_RDONLY);
-   if (fd < 0) exit(3);
-   while(pos < st.st_size) {
-      int n = read(fd, hp+pos, st.st_size-pos);
-      if (n < 0) exit(4);
-      pos += n;
-   }
+      exit(3);
+   do {
+      n = read(fd, hp + pos, st.st_size - pos);
+      if (n == -1)
+         exit(4);
+   } while (n && (pos += n) < st.st_size);
    close(fd);
    return hp;
 }
