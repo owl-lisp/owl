@@ -229,20 +229,32 @@
                (values (gensym free) (cons (list name free) dict)))
             free dict names))
 
-      (define (make-transformer literals rules)
-         (λ (form free)
-            (any
-               (λ (rule)
-                  ;; rule = (pattern gensyms template)
-                  (let ((dictionary (try-pattern (car rule) literals form)))
-                     (if dictionary
-                        (lets
-                           ((free dictionary
-                              (add-fresh-bindings (cadr rule) free dictionary))
-                            (new (rewrite dictionary (caddr rule))))
-                           (tuple new free))
-                        #false)))
-               rules)))
+      (define (apply-local-env literals rules env)
+         (map
+            (λ (rule)
+               (apply
+                  (λ (pattern gensyms template)
+                     ;(print pattern ", " gensyms ", " template)
+                     ;; todo: fix first part of macro references here
+                     (list pattern gensyms template))
+                  rule))
+            rules))
+
+      (define (make-transformer literals rules env)
+         (let ((rules (apply-local-env literals rules env)))
+            (λ (form free)
+               (any
+                  (λ (rule)
+                     ;; rule = (pattern gensyms template)
+                     (let ((dictionary (try-pattern (car rule) literals form)))
+                        (if dictionary
+                           (lets
+                              ((free dictionary
+                                 (add-fresh-bindings (cadr rule) free dictionary))
+                               (new (rewrite dictionary (caddr rule))))
+                              (tuple new free))
+                           #false)))
+                  rules))))
 
       ;; value (= transformer) of define-syntax -macro, which is used to define other macros
       (define define-syntax-transformer
@@ -251,10 +263,11 @@
             '(
                ((define-syntax keyword
                   (syntax-rules literals (pattern template) ...))
-            ()
-            (quote syntax-operation add #false
-                  (keyword literals (pattern ...)
-                  (template ...)))))))
+               ()
+               (quote syntax-operation add #false
+                     (keyword literals (pattern ...)
+                     (template ...)))))
+            *tabula-rasa*))
 
       ; add fresh symbol list -> ((pattern fresh template) ...)
 
@@ -394,7 +407,7 @@
                         (lambda (sym)
                            (not (env-get-raw env sym #false)))))
                    (transformer
-                     (make-transformer (cons keyword literals) rules)))
+                     (make-transformer (cons keyword literals) rules env)))
                   (let ((env (env-set-macro env keyword transformer)))
                      (ok (list 'quote keyword) env))))
             (else
