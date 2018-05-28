@@ -23,12 +23,12 @@ fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm tests/*.scm tests/*.s
 	# selfcompile boot.fasl until a fixed point is reached
 	@bin/vm fasl/init.fasl -e '(time-ms)' > .start
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
-	@bin/vm fasl/init.fasl -e '(print "bootstrap " (- (time-ms) (read (open-input-file ".start"))) "ms")'
+	@bin/vm fasl/init.fasl -e '(import(only(owl sys)stat))`(bootstrap:,(-(time-ms)(read(open-input-file".start")))ms,(cdr(assq(quote size)(stat"fasl/bootp.fasl"#f)))bytes)'
 	# check that the new image passes tests
 	@bin/vm fasl/init.fasl -e '(time-ms)' > .start
 	CC="$(CC)" sh tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
-	@bin/vm fasl/init.fasl -e '(print "tests " (- (time-ms) (read (open-input-file ".start"))) "ms")'
+	@bin/vm fasl/init.fasl -e '`(tests:,(-(time-ms)(read(open-input-file".start")))"ms")'
 	cmp -s fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
 
 
