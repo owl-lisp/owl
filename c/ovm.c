@@ -34,6 +34,12 @@
 #ifndef ENOSTR
 #define ENOSTR -1
 #endif
+#ifndef ENOTRECOVERABLE
+#define ENOTRECOVERABLE -1
+#endif
+#ifndef EOWNERDEAD
+#define EOWNERDEAD -1
+#endif
 #ifndef ETIME
 #define ETIME -1
 #endif
