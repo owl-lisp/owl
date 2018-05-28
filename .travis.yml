@@ -11,7 +11,7 @@ compiler:
 notifications:
   irc:
     channels: "chat.freenode.net#owl-lisp"
-    template: "%{branch}/%{commit}: %{message} (%{author}: %{commit_subject})"
+    template: "%{branch}/%{commit}: %{result} (%{author}: %{commit_subject})"
     skip_join: true
     use_notice: true
 
