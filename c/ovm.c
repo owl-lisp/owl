@@ -365,8 +365,8 @@ static word mkpair(word h, word a, word d) {
    return (word)pair;
 }
 
-/* make a byte vector object to hold len bytes (compute size, advance fp, set padding count) */
-static word *mkbvec(size_t len, int type) {
+/* make a raw object to hold len bytes (compute size, advance fp, clear padding) */
+static word mkraw(unsigned int type, size_t len) {
    int nwords = OBJWORDS(len);
    int pads = (nwords-1)*W - len;
    word *ob;
@@ -376,7 +376,7 @@ static word *mkbvec(size_t len, int type) {
    *ob = make_raw_header(nwords, type, pads);
    while (pads--)
       *end++ = 0; /* clear the padding bytes */
-   return ob;
+   return (word)ob;
 }
 
 /*** Primops called from VM and generated C-code ***/
@@ -583,12 +583,12 @@ static word prim_sys(word op, word a, word b, word c) {
          struct sockaddr_in addr;
          socklen_t len = sizeof(addr);
          int fd;
-         word *ipa;
+         word ipa;
          fd = accept(sock, (struct sockaddr *)&addr, &len);
          if (fd < 0) return IFALSE;
-         ipa = mkbvec(4, TBVEC);
-         memcpy(ipa + 1, &addr.sin_addr, 4);
-         return cons((word)ipa, make_immediate(fd, TPORT)); }
+         ipa = mkraw(TBVEC, 4);
+         memcpy((word *)ipa + 1, &addr.sin_addr, 4);
+         return cons(ipa, make_immediate(fd, TPORT)); }
       case 5: /* read fd len -> bvec | EOF | #f */
          if (is_type(a, TPORT)) {
             size_t len = memend - fp;
@@ -598,7 +598,7 @@ static word prim_sys(word op, word a, word b, word c) {
             if (len == 0)
                return IEOF;
             if (len != (size_t)-1)
-               return (word)mkbvec(len, TBVEC);
+               return mkraw(TBVEC, len);
          }
          return IFALSE;
       case 6:
@@ -636,16 +636,15 @@ static word prim_sys(word op, word a, word b, word c) {
       case 10: { /* receive-udp-packet sock → (ip-bvec . payload-bvec)| #false */
          struct sockaddr_in si_other;
          socklen_t slen = sizeof(si_other);
-         word *bvec;
-         word *ipa;
+         word bvec, ipa;
          int recvd;
          recvd = recvfrom(immval(a), fp + 1, 65528, 0, (struct sockaddr *)&si_other, &slen);
          if (recvd < 0)
             return IFALSE;
-         bvec = mkbvec(recvd, TBVEC);
-         ipa = mkbvec(4, TBVEC);
-         memcpy(ipa + 1, &si_other.sin_addr, 4);
-         return cons((word)ipa, (word)bvec); }
+         bvec = mkraw(TBVEC, recvd);
+         ipa = mkraw(TBVEC, 4);
+         memcpy((word *)ipa + 1, &si_other.sin_addr, 4);
+         return cons(ipa, bvec); }
       case 11: /* open-dir path → dirobjptr | #false */
          if (stringp(a)) {
             DIR *dirp = opendir((const char *)a + W);
@@ -794,7 +793,7 @@ static word prim_sys(word op, word a, word b, word c) {
             /* the last byte is temporarily used to check, if the string fits */
             len = readlink((const char *)a + W, (char *)fp + W, max);
             if (len != (size_t)-1 && len != max)
-               return (word)mkbvec(len, TSTRING);
+               return mkraw(TSTRING, len);
          }
          return IFALSE;
       case 36: /* getcwd → raw-sting | #false */
@@ -803,7 +802,7 @@ static word prim_sys(word op, word a, word b, word c) {
             size_t max = len > MAXOBJ ? MAXPAYL + 1 : (len - 1) * W;
             /* the last byte is temporarily used for the terminating '\0' */
             if (getcwd((char *)fp + W, max) != NULL)
-               return (word)mkbvec(strnlen((char *)fp + W, max - 1), TSTRING);
+               return mkraw(TSTRING, strnlen((char *)fp + W, max - 1));
          }
          return IFALSE;
       case 37: /* umask mask → mask */
@@ -870,17 +869,17 @@ static word prim_sys(word op, word a, word b, word c) {
 static word prim_lraw(word wptr, word type) {
    word *lst = (word *)wptr;
    byte *pos;
-   word *raw, *ob;
+   word *ob, raw;
    unsigned int len = 0;
    for (ob = lst; pairp(ob); ob = (word *)ob[2])
       len++;
    if ((word)ob != INULL || len > MAXPAYL)
       return IFALSE;
-   raw = mkbvec(len, immval(type));
+   raw = mkraw(immval(type), len);
    pos = (byte *)raw + W;
    for (ob = lst; (word)ob != INULL; ob = (word *)ob[2])
       *pos++ = immval(ob[1]) & 255;
-   return (word)raw;
+   return raw;
 }
 
 static word prim_mkff(word t, word l, word k, word v, word r) {
@@ -1487,7 +1486,7 @@ static word *get_obj(word *ptrs, int me) {
       case 2: {
          type = *hp++ & 31; /* low 5 bits, the others are pads */
          size = get_nat();
-         memcpy(mkbvec(size, type) + 1, hp, size);
+         memcpy((word *)mkraw(type, size) + 1, hp, size);
          hp += size;
          break;
       }
