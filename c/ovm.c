@@ -158,7 +158,7 @@ static word *memend;
 static word max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 static word state;       /* IFALSE | previous program state across runs */
-static byte *hp;
+static const byte *hp;
 static word *fp;
 static byte *file_heap;
 static struct termios tsettings;
@@ -1525,13 +1525,13 @@ static void get_obj_metrics(int *rwords, int *rnobjs) {
 
 /* count number of objects and measure heap size */
 static void heap_metrics(int *rwords, int *rnobjs) {
-   byte *hp_start = hp;
+   const byte *hp_start = hp;
    while (*hp != 0)
       get_obj_metrics(rwords, rnobjs);
    hp = hp_start;
 }
 
-static byte *read_heap(char *path) {
+static void read_heap(const char *path) {
    struct stat st;
    off_t pos = 0;
    ssize_t n;
@@ -1540,16 +1540,15 @@ static byte *read_heap(char *path) {
       exit(1);
    if (fstat(fd, &st) != 0)
       exit(2);
-   hp = realloc(NULL, st.st_size);
-   if (hp == NULL)
+   file_heap = realloc(NULL, st.st_size);
+   if (file_heap == NULL)
       exit(3);
    do {
-      n = read(fd, hp + pos, st.st_size - pos);
+      n = read(fd, file_heap + pos, st.st_size - pos);
       if (n == -1)
          exit(4);
    } while (n && (pos += n) < st.st_size);
    close(fd);
-   return hp;
 }
 
 /* find a fasl image source to *hp or exit */
@@ -1559,11 +1558,12 @@ static void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
       /* if no preloaded heap, try to load it from first vm arg */
       if (*nargs < 2)
          exit(1);
-      file_heap = read_heap((*argv)[1]);
+      read_heap(argv[0][1]);
+      ++*argv;
+      --*nargs;
+      hp = file_heap;
       if (*hp == '#')
          while (*hp++ != '\n');
-      *nargs -= 1;
-      *argv += 1;
    } else {
       hp = (byte *)&heap; /* builtin heap */
    }
