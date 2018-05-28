@@ -23,8 +23,6 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
-(define build-start (time-ms))
-
 (mail 'intern (tuple 'flush)) ;; ask symbol interner to forget all symbols it knows
 
 (define *libraries* '()) ;; clear loaded libraries
@@ -32,7 +30,7 @@
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (quote *libraries* _branch _define build-start rlambda)
+,forget-all-but (quote *libraries* _branch _define rlambda)
 
 ;; --------------------------------------------------------------------------------
 
@@ -366,16 +364,11 @@ Check out https://github.com/owl-lisp/owl for more information.")
       ((equal? str "all") all)
       (else (print "Bad native selection: " str))))
 
-; (print "Code loaded at " (- (time-ms) build-start) "ms.")
-
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"
       (λ (opts extra)
          (cond
-            ((not (null? extra))
-               (print "Unknown arguments: " extra)
-               1)
-            (else
+            ((null? extra)
                (compiler heap-entry "unused historical thingy"
                   (list->ff
                      `((output . ,(get opts 'output 'bug))
@@ -385,5 +378,7 @@ Check out https://github.com/owl-lisp/owl for more information.")
                   (choose-natives
                      (get opts 'specialize "none")
                      heap-entry))
-               ; (print "Output written at " (- (time-ms) build-start) "ms.")
-               0)))))
+               0)
+            (else
+               (print "Unknown arguments: " extra)
+               1)))))
