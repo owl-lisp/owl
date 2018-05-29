@@ -90,10 +90,8 @@ typedef intptr_t wdiff;
 #define RAWBIT                      2048
 #define FPOS                        (SPOS - LDW) /* offset of the fractional part in the header size */
 #define payl_len(hdr)               (((uint32_t)hdr >> FPOS) - (W + W - 1))
-#define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
 #define make_immediate(value, type) ((word)(value) << IPOS | (type) << TPOS | 2)
 #define make_header(size, type)     ((word)(size) << SPOS | (type) << TPOS | 2)
-#define make_raw_header(s, t, p)    ((word)(s) << SPOS | RAWBIT | (p) << 8 | (t) << TPOS | 2)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
 #define immval(desc)                ((desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
@@ -101,7 +99,7 @@ typedef intptr_t wdiff;
 #define header(x)                   V(x)
 #define imm_type(x)                 ((x) >> TPOS & 63)
 #define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
-#define hdrsize(x)                  ((word)(x) >> SPOS & MAXOBJ)
+#define hdrsize(x)                  ((uint32_t)(x) >> SPOS)
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
@@ -883,7 +881,7 @@ static word prim_lraw(word wptr, word type) {
    raw = mkraw(immval(type), len);
    pos = (byte *)raw + W;
    for (ob = lst; (word)ob != INULL; ob = (word *)ob[2])
-      *pos++ = immval(ob[1]) & 255;
+      *pos++ = immval(ob[1]);
    return raw;
 }
 
@@ -1293,8 +1291,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4); }
       case 39: { /* fx* a b l h */
          uint64_t res = (uint64_t)immval(A0) * immval(A1);
-         A2 = F(res & FMAX);
          A3 = F(res >> FBITS);
+         A2 = F(res & FMAX);
          NEXT(4); }
       case 40: { /* fx- a b r u, args prechecked, signs ignored */
          word r = immval(A0) - immval(A1);
@@ -1520,7 +1518,7 @@ static void get_obj_metrics(int *rwords, int *rnobjs) {
          hp++;
          size = get_nat();
          *rnobjs += 1;
-         *rwords += OBJWORDS(size);
+         *rwords += (W + size + W - 1) / W;
          hp += size;
          break;
       default:
@@ -1570,7 +1568,7 @@ static void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
       if (*hp == '#')
          while (*hp++ != '\n');
    } else {
-      hp = (byte *)&heap; /* builtin heap */
+      hp = heap; /* builtin heap */
    }
    heap_metrics(nwords, nobjs);
 }
@@ -1586,7 +1584,7 @@ static word *decode_fasl(unsigned int nobjs) {
       fp = get_obj(ptrs, pos);
    }
    entry = (word *) ptrs[pos - 1];
-   ptrs[0] = make_raw_header(nobjs + 1, 0, 0);
+   ptrs[0] = make_header(nobjs + 1, 0) | RAWBIT;
    return entry;
 }
 
