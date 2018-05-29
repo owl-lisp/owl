@@ -81,12 +81,15 @@ typedef intptr_t wdiff;
 #define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       (*(word *)(ob))
 #define W                           ((unsigned int)sizeof(word))
+#define LDW                         ((W >> 3) + 2) /* poor man's log2(W), valid for 4, 8, 16 */
 #define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
 #define FMAX                        ((1<<FBITS)-1) /* maximum fixnum (and most negative fixnum) */
 #define MAXOBJ                      0xffff         /* max words in tuple including header */
 #define MAXPAYL                     ((MAXOBJ - 1) * W) /* maximum payload in an allocated object */
 #define RAWBIT                      2048
+#define FPOS                        (SPOS - LDW) /* offset of the fractional part in the header size */
+#define payl_len(hdr)               (((uint32_t)hdr >> FPOS) - (W + W - 1))
 #define OBJWORDS(bytes)             ((W + (bytes) + W - 1) / W)
 #define make_immediate(value, type) ((word)(value) << IPOS | (type) << TPOS | 2)
 #define make_header(size, type)     ((word)(size) << SPOS | (type) << TPOS | 2)
@@ -349,10 +352,6 @@ static int llen(word *ptr) {
    return len;
 }
 
-static word payl_len(word hdr) {
-   return (hdrsize(hdr) - 1) * W - (hdr >> 8 & 7);
-}
-
 static void set_signal_handler() {
    struct sigaction sa;
    sa.sa_handler = signal_handler;
@@ -372,14 +371,14 @@ static word mkpair(word h, word a, word d) {
 }
 
 /* make a raw object to hold len bytes (compute size, advance fp, clear padding) */
-static word mkraw(unsigned int type, size_t len) {
-   int nwords = OBJWORDS(len);
-   int pads = (nwords-1)*W - len;
+static word mkraw(unsigned int type, uint32_t len) {
    word *ob;
    byte *end;
-   allocate(nwords, ob);
+   uint32_t hdr = (W + len + W - 1) << FPOS | RAWBIT | make_header(0, type);
+   unsigned int pads = -len & (W - 1);
+   allocate(hdrsize(hdr), ob);
+   *ob = hdr;
    end = (byte *)ob + W + len;
-   *ob = make_raw_header(nwords, type, pads);
    while (pads--)
       *end++ = 0; /* clear the padding bytes */
    return (word)ob;
