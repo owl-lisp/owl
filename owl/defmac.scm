@@ -131,7 +131,6 @@
                ((let keyword ((var init) ...) exp . rest)
                   (letrec ((keyword (lambda (var ...) exp . rest))) (keyword init ...)))))
 
-
       ;; todo: these essential optimizations and more should be handled by partial eval later
       (define-syntax if
          (syntax-rules (not eq? null? empty?)
@@ -386,7 +385,6 @@
       ;;;
       ;;; DESCRIPTOR FORMAT
       ;;;
-      ;
       ;                            .------------> 24-bit payload if immediate
       ;                            |      .-----> type tag if immediate
       ;                            |      |.----> immediateness
@@ -396,7 +394,6 @@
       ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
       ;
       ; object headers are further
-      ;
       ;                                    .----> immediate
       ;  [ssssssss ssssssss ffffrt?? tttttt10]
       ;   '---------------| '--|||'| '----|
@@ -406,10 +403,6 @@
       ;                   |    |'---------------> rawness bit (raw objects have no descriptors in them)
       ;                   |    '----------------> fractional part of raw object payload size
       ;                   '---------------------> object size in words
-      ;
-      ;; note - there are 6 type bits, but one is currently wasted in old header position
-      ;; to the right of them, so all types must be <32 until they can be slid to right
-      ;; position.
 
       ;; these are core data structure type tags which are fixed and some also relied on by the vm
 
@@ -516,5 +509,4 @@
 
       (define (maybe op arg)
          (if arg (op arg) arg))
-
 ))
