@@ -10,3 +10,4 @@ tmp
 bin/ol
 bin/ol-old
 bin/vm
+.start

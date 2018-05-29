@@ -319,7 +319,7 @@
       ; replace this with typed destructuring compare later on
 
       (define-syntax tuple-case
-         (syntax-rules (else _ is eq? bind)
+         (syntax-rules (else _ is eq? bind type)
             ((tuple-case (op . args) . rest)
                (let ((foo (op . args)))
                   (tuple-case foo . rest)))
@@ -347,6 +347,7 @@
             ((tuple-case tuple case ...)
                (let ((type (ref tuple 1)))
                   (tuple-case 42 tuple type case ...)))))
+
 
       (define-syntax define-library
          (syntax-rules (export _define-library define-library)

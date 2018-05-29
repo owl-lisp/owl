@@ -1,4 +1,4 @@
-;; in Scheme this gives 43, but this may change for owl later
+;; macros must preserve bindings
 
 (define foo 42)
 

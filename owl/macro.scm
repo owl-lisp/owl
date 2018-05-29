@@ -73,8 +73,6 @@
       ;;; Matching and rewriting based on rewrite rules
       ;;;
 
-      ; fixme, there are ffs now
-
       ; store nulls to variables in exp
       (define (init-variables exp literals dict)
          (fold
@@ -229,14 +227,59 @@
                (values (gensym free) (cons (list name free) dict)))
             free dict names))
 
+      ;; is x bound here currently at toplevel to some value?
+      ;; other options being lexical local bindings and macro bindigns
+      (define (defined-in? env)
+         (λ (x)
+            (eq? 'defined (ref (lookup env x) 1))))
+
+      ;; when leaving a value form macro environment to term, it may need to be quoted
+      ;; (kind of local version of apply-env)
+      (define (maybe-quote val)
+         (if (or (pair? val) (symbol? val))
+            (list 'quote val)
+            val))
+
+      (define (bind-bound-values exp env which full?)
+         (cond
+            ((symbol? exp)
+               (if (memq exp which)
+                  ;; get the value of #(defined #(value <x>))
+                  (maybe-quote (ref (ref (lookup env exp) 2) 2))
+                  exp))
+            ((pair? exp)
+               (cond
+                  ((and full? (eq? (car exp) 'lambda))
+                     (ilist 'lambda (cadr exp)
+                        (bind-bound-values (cddr exp) env
+                           (diff which (symbols-of (cadr exp)))
+                           #f)))
+                  ((and full? (eq? (car exp) 'quote))
+                     exp)
+                  (else
+                     (cons
+                        (bind-bound-values (car exp) env which #t)
+                        (bind-bound-values (cdr exp) env which #f)))))
+            (else exp)))
+
       (define (apply-local-env literals rules env)
          (map
             (λ (rule)
                (apply
                   (λ (pattern gensyms template)
-                     ;(print pattern ", " gensyms ", " template)
-                     ;; todo: fix first part of macro references here
-                     (list pattern gensyms template))
+                     (lets
+                        ((extras
+                           ;; things that could refer to bindings
+                           (-> (symbols-of template)
+                              (diff literals)
+                              (diff (symbols-of pattern))))
+                         (bound-extras
+                           ;; things that are currently bound
+                           (filter (defined-in? env) extras)))
+                        (list pattern gensyms
+                           (if (pair? bound-extras)
+                              (bind-bound-values template env bound-extras #t)
+                              template))))
                   rule))
             rules))
 
@@ -259,7 +302,7 @@
       ;; value (= transformer) of define-syntax -macro, which is used to define other macros
       (define define-syntax-transformer
          (make-transformer
-            '(define-syntax syntax-rules add quote)
+            '(define-syntax syntax-rules add quote syntax-operation)
             '(
                ((define-syntax keyword
                   (syntax-rules literals (pattern template) ...))
@@ -291,6 +334,7 @@
 
       ; expand all macros top to bottom
       ; exp env free -> #(exp' free')
+
 
       (define (expand exp env free abort)
 
@@ -412,8 +456,6 @@
                      (ok (list 'quote keyword) env))))
             (else
                (ok exp env))))
-
-      ;; bug: exported macros do not preserve bindinds
 
       (define (macro-expand exp env)
          (lets/cc exit

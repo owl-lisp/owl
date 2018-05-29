@@ -195,10 +195,6 @@
             ((function? func) (bytecode-of (ref func 1)))
             (else #false)))
 
-      ;(define (debug . args)
-      ;   ;(apply print-to (cons stderr args))
-      ;   42)
-
       ;; thread with string → symbol, ...
       (define (interner root codes)
          ;(debug "interner: wait")
