@@ -415,7 +415,7 @@
                (else #false))))
 
       (define null-value? (value-pred null?))
-      (define false-value? (value-pred (C eq? #f)))
+      (define false-value? (value-pred not))
       (define zero-value? (value-pred zero?))
 
       (define (simple-first a b cont)

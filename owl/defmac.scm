@@ -367,9 +367,6 @@
       ;(define-syntax import  (syntax-rules (_import)  ((import  thing ...) (_import  (quote thing) ...))))
       ;(define-syntax include (syntax-rules (_include) ((include thing ...) (_include (quote thing) ...))))
 
-      (define (not x)
-         (if x #false #true))
-
       (define (B f g) (λ (x) (f (g x))))
 
       (define (C f y) (λ (x) (f x y)))
@@ -381,6 +378,8 @@
       (define (K x y) x)
 
       (define self I)
+
+      (define not (C eq? #f))
 
 
       ;;;
