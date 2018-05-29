@@ -136,7 +136,7 @@ typedef intptr_t wdiff;
 #define flag(n)                     ((word)(n) ^ FLAG)
 #define flagged(n)                  ((word)(n) & FLAG)
 #define flagged_or_raw(n)           ((word)(n) & (RAWBIT | FLAG))
-#define TBIT                        0x1000
+#define TBIT                        1024
 #define teardown_needed(hdr)        ((word)(hdr) & TBIT)
 #define A0                          R[*ip]
 #define A1                          R[ip[1]]
@@ -373,7 +373,7 @@ static word mkraw(unsigned int type, uint32_t len) {
    word *ob;
    byte *end;
    uint32_t hdr = (W + len + W - 1) << FPOS | RAWBIT | make_header(0, type);
-   unsigned int pads = -len & (W - 1);
+   unsigned int pads = -len % W;
    allocate(hdrsize(hdr), ob);
    *ob = hdr;
    end = (byte *)ob + W + len;
@@ -448,7 +448,7 @@ static word prim_cast(word ob, word type) {
       word *new, *res; /* <- could also write directly using *fp++ */
       allocate(size, new);
       res = new;
-      *new++ = (type & 1087) << TPOS | (hdr & ~252); /* clear type, allow setting teardown in new one */
+      *new++ = (type & 319) << TPOS | (hdr & ~252); /* clear type, allow setting teardown in new one */
       memcpy(new, (word *)ob + 1, (size - 1) * W);
       return (word)res;
    }
