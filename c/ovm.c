@@ -70,8 +70,9 @@
 #define st_ctim st_ctimespec
 #endif
 
+typedef unsigned int uint;
 typedef uintptr_t word;
-typedef uint8_t   byte;
+typedef uint8_t byte;
 typedef intptr_t wdiff;
 
 /*** Macros ***/
@@ -80,7 +81,7 @@ typedef intptr_t wdiff;
 #define SPOS                        16 /* offset of size bits in header immediate values */
 #define TPOS                        2  /* offset of type bits in header */
 #define V(ob)                       (*(word *)(ob))
-#define W                           ((unsigned int)sizeof(word))
+#define W                           ((uint)sizeof(word))
 #define LDW                         ((W >> 3) + 2) /* poor man's log2(W), valid for 4, 8, 16 */
 #define NWORDS                      1024*1024*8    /* static malloc'd heap size if used as a library */
 #define FBITS                       24             /* bits in fixnum, on the way to 24 and beyond */
@@ -341,8 +342,8 @@ static void signal_handler(int signal) {
 }
 
 /* list length, no overflow or valid termination checks */
-static int llen(word *ptr) {
-   int len = 0;
+static uint llen(word *ptr) {
+   uint len = 0;
    while (pairp(ptr)) {
       len++;
       ptr = (word *) ptr[2];
@@ -369,11 +370,11 @@ static word mkpair(word h, word a, word d) {
 }
 
 /* make a raw object to hold len bytes (compute size, advance fp, clear padding) */
-static word mkraw(unsigned int type, uint32_t len) {
+static word mkraw(uint type, uint32_t len) {
    word *ob;
    byte *end;
    uint32_t hdr = (W + len + W - 1) << FPOS | RAWBIT | make_header(0, type);
-   unsigned int pads = -len % W;
+   uint pads = -len % W;
    allocate(hdrsize(hdr), ob);
    *ob = hdr;
    end = (byte *)ob + W + len;
@@ -474,7 +475,7 @@ static int64_t cnum(word a) {
    uint64_t x;
    if (allocp(a)) {
       word *p = (word *)a;
-      unsigned int shift = 0;
+      uint shift = 0;
       x = 0;
       do {
          x |= immval(p[1]) << shift;
@@ -497,7 +498,7 @@ static word onum(int64_t a, int s) {
    }
    if (x > FMAX) {
       word p = INULL;
-      unsigned int shift = (63 / FBITS) * FBITS;
+      uint shift = (63 / FBITS) * FBITS;
       while (!((uint64_t)FMAX << shift & x))
          shift -= FBITS;
       do {
@@ -873,7 +874,7 @@ static word prim_lraw(word wptr, word type) {
    word *lst = (word *)wptr;
    byte *pos;
    word *ob, raw;
-   unsigned int len = 0;
+   uint len = 0;
    for (ob = lst; pairp(ob); ob = (word *)ob[2])
       len++;
    if ((word)ob != INULL || len > MAXPAYL)
@@ -958,10 +959,10 @@ static void do_poll(word a, word b, word c, word *r1, word *r2) {
 
 static word vm(word *ob, word *arg) {
    byte *ip;
-   unsigned int bank = 0;
-   unsigned int ticker = TICKS;
+   uint bank = 0;
+   uint ticker = TICKS;
    unsigned short acc;
-   unsigned int op;
+   uint op;
    word R[NR];
 
    static const word load_imms[] = { F(0), INULL, ITRUE, IFALSE };
@@ -1185,7 +1186,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          word t = *ip++;
          word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
          word *ob;
-         unsigned int p;
+         uint p;
          allocate(s+1, ob); /* s fields + header */
          *ob = make_header(s+1, t);
          for (p = 0; p != s; ++p)
@@ -1198,7 +1199,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          acc = 1;
          goto apply;
       case 25: { /* jmp-var-args a hi lo */
-         int needed = *ip;
+         uint needed = *ip;
          if (acc == needed) {
             R[acc + 3] = INULL; /* add empty extra arg list */
          } else if (acc > needed) {
@@ -1394,7 +1395,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3);
       case 58: { /* fx>> x n hi lo */
          word x = immval(A0);
-         unsigned int n = immval(A1);
+         uint n = immval(A1);
          A2 = F(x >> n);
          A3 = F(x << (FBITS - n) & FMAX);
          NEXT(4); }
@@ -1475,7 +1476,7 @@ static word *get_field(word *ptrs, int pos) {
 }
 
 static word *get_obj(word *ptrs, int me) {
-   unsigned int type, size;
+   uint type, size;
    if (ptrs != NULL)
       ptrs[me] = (word)fp;
    switch (*hp++) { /* TODO: adding type information here would reduce fasl and executable size */
@@ -1573,10 +1574,10 @@ static void find_heap(int *nargs, char ***argv, int *nobjs, int *nwords) {
    heap_metrics(nwords, nobjs);
 }
 
-static word *decode_fasl(unsigned int nobjs) {
+static word *decode_fasl(uint nobjs) {
    word *ptrs;
    word *entry;
-   unsigned int pos;
+   uint pos;
    allocate(nobjs + 1, ptrs);
    for (pos = 0; pos != nobjs; ++pos) {
       if (fp >= memend) /* bug */
@@ -1588,7 +1589,7 @@ static word *decode_fasl(unsigned int nobjs) {
    return entry;
 }
 
-static word *load_heap(int nobjs) {
+static word *load_heap(uint nobjs) {
    word *entry = decode_fasl(nobjs);
    if (file_heap != NULL)
       free(file_heap);
