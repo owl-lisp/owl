@@ -62,17 +62,13 @@
               (car  . 105)    ; car a, t:       Rt = car(a);
               (cdr  . 169)    ; cdr a, t:       Rt = cdr(a);
               (eq   . 54)     ; eq a, b, t:     Rt = (Ra == Rb) ? true : false;
-              (jlq  . 8)      ; jlq a b o1 o2
+              (jeq . 8)       ; jeq a b o1 o2   ip += o if Ra == Rb
+              (jeqi . 16)     ; jeqi a o1 o2    ip += o if Ra == imm[i>>6]
               (ld   . 14)     ; ld a, t:        Rt = a, signed byte
-              (jz   . ,(+ 16 (<< 0 6)))     ; jump-imm[0], zero
-              (jn   . ,(+ 16 (<< 1 6)))     ; jump-imm[1], null
-              (jt   . ,(+ 16 (<< 2 6)))     ; jump-imm[2], true
-              (jf   . ,(+ 16 (<< 3 6)))     ; jump-imm[3], false
               (ldz . 13)
               (ldn  . 77)     ; 13 + 1<<6
               (ldf  . 205)     ; ldf t:          Rt = false
               (ldt  . 141)     ; ldt t:          Rt = true
-              (jeq  . 20)     ; jeq a, b, o:    ip += o if Ra == Rb      ; jump if eq?
               (ret  . 24)     ; ret a:          call R3 (usually cont) with Ra
               (set . 25)     ; set a, p, b     Ra[Rp] = Rb
               (jbf . 26)     ; jump-binding tuple n f offset ... r1 ... rn
@@ -227,38 +223,22 @@
             ((goto-clos op n)
                (list (inst->op 'goto-clos) (reg op) n))
             ;; todo: all jumps could have parameterized lengths (0 = 1-byte, n>0 = 2-byte, being the max code length)
+            ((jeqi i a then else)
+               (lets
+                  ((then (assemble then fail))
+                   (else (assemble else fail))
+                   (len (length else)))
+                  (if (< len #x10000)
+                     (ilist (bor (inst->op 'jeqi) i) (reg a) (band len #xff) (>> len 8) (append else then))
+                     (fail (list "invalid jump offset: " len)))))
             ((jeq a b then else)
                (lets
                   ((then (assemble then fail))
                    (else (assemble else fail))
                    (len (length else)))
-                  (cond
-                     ((< len #xffff) (ilist (inst->op 'jlq) (reg a) (reg b) (band len #xff) (>> len 8) (append else then)))
-                     (else (fail (list "need a bigger jump instruction: length is " len))))))
-            ((jz a then else)
-               (lets
-                  ((then (assemble then fail))
-                   (else (assemble else fail))
-                   (len (length else)))
-                  (cond
-                     ((< len #xffff) (ilist (inst->op 'jz) (reg a) (band len #xff) (>> len 8) (append else then)))
-                     (else (fail (list "need a bigger jump instruction: length is " len))))))
-            ((jf a then else)
-               (lets
-                  ((then (assemble then fail))
-                   (else (assemble else fail))
-                   (len (length else)))
-                  (cond
-                     ((< len #xffff) (ilist (inst->op 'jf) (reg a) (band len #xff) (>> len 8) (append else then)))
-                     (else (fail (list "need a bigger jump instruction: length is " len))))))
-            ((jn a then else)
-               (lets
-                  ((then (assemble then fail))
-                   (else (assemble else fail))
-                   (len (length else)))
-                  (cond
-                     ((< len #xffff) (ilist (inst->op 'jn) (reg a) (band len #xff) (>> len 8) (append else then)))
-                     (else (fail (list "need a bigger jump instruction: length is " len))))))
+                  (if (< len #x10000)
+                     (ilist (inst->op 'jeq) (reg a) (reg b) (band len #xff) (>> len 8) (append else then))
+                     (fail (list "invalid jump offset: " len)))))
             (else
                ;(print "assemble: what is " code)
                (fail (list "Unknown opcode " code)))))

@@ -1104,7 +1104,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = A0;
          A3 = A2;
          NEXT(4);
-      case 8: /* jlq a b o, extended jump */
+      case 8: /* jeq a b o, extended jump */
          if (A0 == A1)
             ip += ip[3] << 8 | ip[2];
          NEXT(4);

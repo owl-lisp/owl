@@ -464,19 +464,19 @@
                                     (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
-                                       (tuple 'jn bp then else)))))
+                                       (tuple 'jeqi 64 bp then else)))))
                               ((false-value? a) ; jump-if-false
                                  (rtl-simple regs b (λ (regs bp)
                                     (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
-                                       (tuple 'jf bp then else)))))
+                                       (tuple 'jeqi 192 bp then else)))))
                               ((zero-value? a) ; jump-if-false
                                  (rtl-simple regs b (λ (regs bp)
                                     (let
                                        ((then (rtl-any regs then))
                                         (else (rtl-any regs else)))
-                                       (tuple 'jz bp then else)))))
+                                       (tuple 'jeqi 0 bp then else)))))
                               (else
                                  (rtl-simple regs a (λ (regs ap)
                                     (rtl-simple regs b (λ (regs bp)

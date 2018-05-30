@@ -125,14 +125,10 @@
                (tuple 'goto-proc (op fn) nargs))
             ((goto-clos fn nargs)
                (tuple 'goto-clos (op fn) nargs))
+            ((jeqi i a then else)
+               (tuple 'jeqi i (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
             ((jeq a b then else)
                (tuple 'jeq (op a) (op b) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jn a then else)
-               (tuple 'jn (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jz a then else)
-               (tuple 'jz (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jf a then else)
-               (tuple 'jf (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
             (else
                (error "rtl-rename: what is this: " code))))
 
@@ -161,13 +157,10 @@
          (lets
             ((then then-uses (proc then))
              (else else-uses (proc else))
-             (uses (merge-usages then-uses else-uses))
-             (uses (reg-touch uses a)))
-            (case op
-               ((jeq)
-                  (values (tuple op a b then else) (reg-touch uses b)))
-               (else
-                  (values (tuple op a then else) uses)))))
+             (uses (merge-usages then-uses else-uses)))
+            (values
+               (tuple op a b then else)
+               (reg-touch (if (eq? op 'jeq) (reg-touch uses a) uses) b))))
 
       (define (rtl-retard-closure rtl-retard code)
          (lets
@@ -290,16 +283,12 @@
                (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-clos op nargs)
                (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
+            ((jeqi i a then else)
+               (rtl-retard-jump rtl-retard 'jeqi i a then else))
             ((jeq a b then else)
-               (rtl-retard-jump rtl-retard 'jeq a b     then else))
-            ((jn a then else)
-               (rtl-retard-jump rtl-retard 'jn a empty  then else)) ; fp
-            ((jf a then else)
-               (rtl-retard-jump rtl-retard 'jf a empty  then else)) ; fp
-            ((jz a then else)
-               (rtl-retard-jump rtl-retard 'jz a empty  then else)) ; fp
+               (rtl-retard-jump rtl-retard 'jeq a b then else))
             ((jab a type then else)
-               (rtl-retard-jump rtl-retard 'jab a type then else))
+               (rtl-retard-jump rtl-retard 'jab type a then else))
             (else
                (error "rtl-retard: unknown code: " code))))
 
