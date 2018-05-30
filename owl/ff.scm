@@ -250,11 +250,22 @@
                (ff-bind name (lambda (l k v r) . rest)))
             ))
 
+      ;; emulate former 'cast' primop
+      (define (tuple-list obj pos lst)
+         (if (eq? pos 0)
+            lst
+            (tuple-list obj
+               (lets ((d _ (fx- pos 1))) d)
+               (cons (ref obj pos) lst))))
+      (define (cast-allocated obj type)
+         (let ((len (size obj)))
+            (listuple type len (tuple-list obj len null))))
+
       ;; toggle redness, name of old prim
       (define-syntax ff-toggle
          (syntax-rules ()
             ((ff-toggle node)
-               (cast node (fxbxor (type node) redness)))))
+               (cast-allocated node (fxbxor (type node) redness)))))
 
       ;; FIXME: misleading names!
       (define-syntax color-black (syntax-rules () ((color-black x) (ff-toggle x))))

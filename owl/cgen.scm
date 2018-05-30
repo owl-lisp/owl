@@ -234,12 +234,6 @@
                bs
                (fold del regs (list l k v r)))))
 
-      (define (cify-cast bs regs fail)
-         (lets ((ob type to bs (get3 (cdr bs))))
-            (values
-               (list "R["to"]=prim_cast(R["ob"],R["type"]);") bs
-               (del regs to))))
-
       (define (cify-mkt bs regs fail)
          (lets
             ((type sp bs (get2 (cdr bs))) ; object size is nfields + 1, being the header
@@ -355,7 +349,6 @@
                      (values
                         (list "error(17,ob,F(acc));")
                         null regs)))
-               (cons 22 cify-cast)
                (cons 23 cify-mkt)
                (cons 24 ;; ret r == call R3 with 1 argument at Rr
                   (λ (bs regs fail)

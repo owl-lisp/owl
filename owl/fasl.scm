@@ -90,7 +90,7 @@
          ;(type-byte-of val)
 
       (define (enc-immediate val tail)
-         (ilist 0 (type-byte-of val) (send-number (cast val 0) tail)))
+         (ilist 0 (type-byte-of val) (send-number (fxbxor 0 val) tail))) ; cast to fix+ via fxbxor
 
       (define (partial-object-closure seen obj)
          (cond
@@ -249,7 +249,7 @@
          (lets
             ((ll type (grab ll fail))
              (ll val  (get-nat ll fail 0)))
-            (values ll (cast val type))))
+            (values ll (cast-immediate val type))))
 
       (define nan "not here") ; eq?-unique
 

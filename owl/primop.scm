@@ -19,6 +19,7 @@
       call/cc
       lets/cc
       _poll2
+      cast-immediate
       )
 
    (import
@@ -89,7 +90,6 @@
 
       (define type        (func '(2 15 4 5 24 5)))
       (define size        (func '(2 36 4 5 24 5)))
-      (define cast        (func '(3 22 4 5 6 24 6)))
       (define ref         (func '(3 47 4 5 6 24 6)))
 
       ;; make thread sleep for a few thread scheduler rounds
@@ -120,7 +120,6 @@
             (tuple '_poll2       11 3 2 _poll2) ;; poll rfdlist wfdlist timeout/false → fd/false/null type
             (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
-            (tuple 'cast         22 2 1 cast)  ;; cast object type (works for immediates and allocated)
             (tuple 'ref          47 2 1 ref)   ;;
             (tuple 'mkt          23 'any 1 mkt))) ;; mkt type v0 .. vn t
 
@@ -186,6 +185,14 @@
                (syntax-error "let/cc: continuation name cannot be " (quote (om . nom))))
             ((lets/cc var . body)
                (call/cc (λ (var) (lets . body))))))
+
+      (define cast-immediate
+         (let ((get-header (raw '(1 4 0 5 24 5) type-bytecode)))
+            (λ (x type)
+               (fxbxor
+                  (let ((hdr (get-header (raw '() type))))
+                     (fxbxor hdr hdr))
+                  x))))
 
       ;; non-primop instructions that can report errors
       (define (instruction-name op)
