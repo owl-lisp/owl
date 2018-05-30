@@ -458,7 +458,7 @@
                (if (eq? num 0)
                   0
                   (cast num type-fix-)))   ;; a  -> -a
-            (type-fix- (cast num type-fix+))   ;; -a ->  a
+            (type-fix- (fxbxor 0 num))     ;; -a -> a
             (type-int+ (cast num type-int-)) ;; A -> -A
             (type-int- (cast num type-int+)) ;; -A -> A
             (type-rational
@@ -1910,7 +1910,7 @@
       (define (abs n)
          (case (type n)
             (type-fix+ n)
-            (type-fix- (cast n type-fix+))
+            (type-fix- (fxbxor 0 n))
             (type-int+ n)
             (type-int- (cast n type-int+))
             (type-rational (if (negative? n) (sub 0 n) n))
