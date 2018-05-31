@@ -111,7 +111,6 @@
       empty?
 
       getf       ; (getf ff key) == (get ff key #false)
-
       )
 
    (import
@@ -119,7 +118,7 @@
       (owl list)
       (owl proof)
       (only (owl syscall) error)
-      )
+      (only (owl tuple) tuple->list))
 
    (begin
 
@@ -251,15 +250,8 @@
             ))
 
       ;; emulate former 'cast' primop
-      (define (tuple-list obj pos lst)
-         (if (eq? pos 0)
-            lst
-            (tuple-list obj
-               (lets ((d _ (fx- pos 1))) d)
-               (cons (ref obj pos) lst))))
       (define (cast-allocated obj type)
-         (let ((len (size obj)))
-            (listuple type len (tuple-list obj len null))))
+         (listuple type (size obj) (tuple->list obj)))
 
       ;; toggle redness, name of old prim
       (define-syntax ff-toggle
@@ -668,5 +660,4 @@
             (get ff 'a 0) = 1
             (get ff 'x 0) = 0
             ))
-
 ))

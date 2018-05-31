@@ -20,6 +20,7 @@
       lets/cc
       _poll2
       cast-immediate
+      len
       )
 
    (import
