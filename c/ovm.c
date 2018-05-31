@@ -1619,7 +1619,8 @@ static void setup(int nwords, int nobjs) {
 
 int main(int nargs, char **argv) {
    word *prog;
-   int rval, nobjs=0, nwords=0, nalloc=0, maxheap=0;
+   int rval, nobjs=0, nwords=0;
+   nalloc = maxheap = 0;
    find_heap(&nargs, &argv, &nobjs, &nwords);
    setup(nwords, nobjs);
    prog = load_heap(nobjs);
