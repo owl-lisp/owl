@@ -69,6 +69,8 @@
       ;peek-word       ;; these are mainly for internal (owl sys) use
       ;peek-byte       ;;
       get-environment
+      get-heap-bytes-written
+      get-heap-max-live
       )
 
    (import
@@ -557,4 +559,14 @@
 
       (define (set-terminal-rawness bool)
          (sys 26 bool))
+
+      ;;;
+      ;;; runtime statistics
+      ;;;
+
+      (define (get-heap-bytes-written)
+         (sys 43))
+
+      (define (get-heap-max-live)
+         (sys 44))
 ))

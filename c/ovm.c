@@ -170,6 +170,8 @@ static const byte *hp;
 static word *fp;
 static byte *file_heap;
 static struct termios tsettings;
+static uint64_t nalloc;
+static uint64_t maxheap;
 
 /*** Garbage Collector, based on "Efficient Garbage Compaction Algorithm" by Johannes Martin (1982) ***/
 
@@ -288,6 +290,7 @@ static word *gc(int size, word *regs) {
    root = fp+1;
    *root = (word) regs;
    memend = fp;
+   nalloc += fp - genstart;
    mark(root, fp);
    fp = compact();
    regs = (word *)*root;
@@ -296,6 +299,8 @@ static word *gc(int size, word *regs) {
    if (genstart == memstart) {
       word heapsize = (word) memend - (word) memstart;
       word nused = heapsize - nfree;
+      if (maxheap < nused)
+         maxheap = nused;
       if (heapsize / (1024 * 1024) > max_heap_mb)
          breaked |= 8; /* will be passed over to mcp at thread switch */
       nfree -= size*W + MEMPAD; /* how much really could be snipped off */
@@ -865,6 +870,10 @@ static word prim_sys(word op, word a, word b, word c) {
          if (clock_gettime(cnum(a), &ts) != -1)
             return onum(ts.tv_sec * INT64_C(1000000000) + ts.tv_nsec, 1);
          return IFALSE; }
+      case 43: /* total allocated objects so far */
+         return onum(nalloc + (fp - memstart)*W, 1);
+      case 44: /* maximum heap size in a major gc */
+         return onum(maxheap, 1);
       default:
          return IFALSE;
    }
@@ -1610,7 +1619,7 @@ static void setup(int nwords, int nobjs) {
 
 int main(int nargs, char **argv) {
    word *prog;
-   int rval, nobjs=0, nwords=0;
+   int rval, nobjs=0, nwords=0, nalloc=0, maxheap=0;
    find_heap(&nargs, &argv, &nobjs, &nwords);
    setup(nwords, nobjs);
    prog = load_heap(nobjs);
