@@ -18,7 +18,6 @@
       apply
       call/cc
       lets/cc
-      _poll2
       cast-immediate
       len
       )
@@ -83,7 +82,6 @@
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
       (define raw         (func '(3 37 4 5 6 24 6)))
-      (define _poll2      (func '(4 9 3 11 11 4 5 6 3 4 2 11 2)))
       (define eq?         (func '(3 54 4 5 6 24 6)))
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
@@ -118,7 +116,6 @@
             (tuple 'fxband       55 2 1 fxband)
             (tuple 'fxbor        56 2 1 fxbor)
             (tuple 'fxbxor       57 2 1 fxbxor)
-            (tuple '_poll2       11 3 2 _poll2) ;; poll rfdlist wfdlist timeout/false → fd/false/null type
             (tuple 'type         15 1 1 type)
             (tuple 'size         36 1 1 size)  ;;  get object size (- 1)
             (tuple 'ref          47 2 1 ref)   ;;

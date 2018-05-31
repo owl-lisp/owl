@@ -89,7 +89,7 @@
       (owl unicode)
       (owl fasl)
       (owl tuple)
-      (owl primop)
+      (only (owl primop) set-ticker wait)
       (owl port)
       (owl lazy)
       (only (owl vector) merge-chunks vec-leaves))
@@ -741,6 +741,10 @@
       ;; including time currently causes a circular dependency - resolve later
       (define (time-ms)
          (quotient (sys-clock_gettime (sys-CLOCK_REALTIME)) 1000000))
+
+      (define (_poll2 rs ws timeout)
+         (let ((res (sys-prim 43 rs ws timeout)))
+            (values (car res) (cdr res))))
 
       (define (muxer-add rs ws alarms mail)
          (tuple-case (ref mail 2)

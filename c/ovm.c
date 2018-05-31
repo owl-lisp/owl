@@ -537,6 +537,8 @@ static void setdown() {
    tcsetattr(0, TCSANOW, &tsettings); /* return stdio settings */
 }
 
+static void do_poll(word, word, word, word*, word*);
+
 /* system- and io primops */
 static word prim_sys(word op, word a, word b, word c) {
    switch (immval(op)) {
@@ -874,6 +876,10 @@ static word prim_sys(word op, word a, word b, word c) {
             }
          }
          return IFALSE;
+      case 43: { /* FIXME: simplify after fasl update */
+         word r1, r2;
+         do_poll(a, b, c, &r1, &r2);
+         return cons(r1, r2); }
       default:
          return IFALSE;
    }
@@ -1120,7 +1126,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 9: A1 = A0; NEXT(2);
       case 10:
          UNUSED;
-      case 11:
+      case 11: /* FIXME: unused after fasl update */
          do_poll(A0, A1, A2, &A3, &A4);
          NEXT(5);
       case 12:
