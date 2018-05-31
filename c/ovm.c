@@ -444,22 +444,6 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
    return def;
 }
 
-static word prim_cast(word ob, word type) {
-   type = immval(type);
-   if (immediatep(ob)) {
-      return make_immediate(immval(ob), type & 63);
-   } else { /* make a clone of more desired type */
-      word hdr = header(ob);
-      int size = hdrsize(hdr);
-      word *new, *res; /* <- could also write directly using *fp++ */
-      allocate(size, new);
-      res = new;
-      *new++ = (type & 319) << TPOS | (hdr & ~252); /* clear type, allow setting teardown in new one */
-      memcpy(new, (word *)ob + 1, (size - 1) * W);
-      return (word)res;
-   }
-}
-
 static word prim_ref(word pword, word pos) {
    word hdr;
    if (immediatep(pword))
@@ -542,8 +526,8 @@ static void do_poll(word, word, word, word*, word*);
 /* system- and io primops */
 static word prim_sys(word op, word a, word b, word c) {
    switch (immval(op)) {
-      /* FIXME: rename to case 0 after fasl update */
-      case 99: { /* clock_gettime clock_id → nanoseconds */
+      case 99: /* FIXME: remove this line after fasl update */
+      case 0: { /* clock_gettime clock_id → nanoseconds */
          struct timespec ts;
          if (clock_gettime(cnum(a), &ts) != -1)
             return onum(ts.tv_sec * INT64_C(1000000000) + ts.tv_nsec, 1);
@@ -864,7 +848,6 @@ static word prim_sys(word op, word a, word b, word c) {
             b == F(8) ? *(uint64_t *)p :
             V(p), 0);
          }
-      case 0: /* FIXME: remove this line after soon */
       case 42: /* write fd data len | #f → nbytes | #f */
          if (is_type(a, TPORT) && allocp(b)) {
             size_t len, size = payl_len(header(b));
@@ -1102,11 +1085,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          ob = (word *)A0;
          acc = ip[1];
          goto apply;
-      case 3: case 6: case 7: /* FIXME: remove this line after fasl update */
+      case 3:
+         UNUSED;
       case 4: { /* opcodes 132, 4, 196, 68 */
          word size = *ip++, tmp;
          word *ob;
-         op |= (op == 3 || op == 6) << 7 | (op == 6 || op == 7) << 6; /* FIXME: remove this line after fasl update */
          tmp = R[op & 64 ? 1 : *ip++];
          allocate(size, ob);
          *ob = make_header(size, (op >> 7) + TPROC);
@@ -1119,6 +1102,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = A0;
          A3 = A2;
          NEXT(4);
+      case 6:
+      case 7:
+         UNUSED;
       case 8: /* jeq a b o, extended jump */
          if (A0 == A1)
             ip += ip[3] << 8 | ip[2];
@@ -1126,9 +1112,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 9: A1 = A0; NEXT(2);
       case 10:
          UNUSED;
-      case 11: /* FIXME: unused after fasl update */
-         do_poll(A0, A1, A2, &A3, &A4);
-         NEXT(5);
+      case 11:
+         UNUSED;
       case 12:
          UNUSED;
       case 13: /* ldi{2bit what} [to] */
@@ -1155,6 +1140,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          error(17, ob, t); }
       case 18:
       case 19:
+         UNUSED;
+      case 20:
          UNUSED;
       case 60: { /* apply */
          int reg, arity;
@@ -1193,10 +1180,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          acc = arity;
          goto apply; }
       case 21:
+      case 22:
          UNUSED;
-      case 22: /* cast o t r */
-         A2 = prim_cast(A0, A1);
-         NEXT(3);
       case 23: { /* mkt t s f1 .. fs r */
          word t = *ip++;
          word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
@@ -1256,14 +1241,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          }
          NEXT(2); }
       case 29:
-         /* FIXME: remove this soon */ {
-         A2 = mkpair(NUMHDR, A0, A1);
-         NEXT(3); }
       case 30:
       case 31:
-         /* FIXME: remove this soon */ {
-         A1 = G(A0, op - 29);
-         NEXT(2); }
+         UNUSED;
       case 32: { /* bind tuple <n> <r0> .. <rn> */
          word *tuple = (word *) R[*ip++];
          word hdr, pos = 1, n = *ip++ + 1;
@@ -1338,9 +1318,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = prim_ref(A0, A1);
          NEXT(3);
       case 48:
-         /* FIXME: remove this soon */ {
-         A2 = prim_ref(A0, A1);
-         NEXT(3); }
+         UNUSED;
       case 49: { /* withff node l k v r */
          word hdr, *ob = (word *)A0;
          hdr = *ob++;
@@ -1391,11 +1369,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3);
       case 52:
       case 53:
-         /* FIXME: remove this soon */ {
-         word *ob = (word *)A0;
-         assert(pairp(ob), ob, 52);
-         A1 = ob[op - 51];
-         NEXT(2); }
+         UNUSED;
       case 54: /* eq a b r */
          A2 = BOOL(A0 == A1);
          NEXT(3);
@@ -1414,14 +1388,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = F(x >> n);
          A3 = F(x << (FBITS - n) & FMAX);
          NEXT(4); }
+      case 59:
+         UNUSED;
    /* case 60: FIXME: move apply here after fasl update */
       case 61:
-         /* FIXME: remove this soon */ {
-         struct timeval tp;
-         gettimeofday(&tp, NULL);
-         A0 = onum(tp.tv_sec, 1);
-         A1 = F(tp.tv_usec / 1000);
-         NEXT(2); }
+         UNUSED;
       case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
          A1 = F(ticker & FMAX);
          ticker = immval(A0);

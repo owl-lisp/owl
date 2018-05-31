@@ -551,7 +551,7 @@
       (sc CLOCK_THREAD_CPUTIME_ID 130)
 
       (define (clock_gettime clock)
-         (sys 99 clock))
+         (sys 0 clock))
 
       ;;;
       ;;; terminal control
