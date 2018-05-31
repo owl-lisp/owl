@@ -131,8 +131,8 @@
       (define fx- (func '(4 40 4 5 6 7 24 7)))
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
 
-      (define apply (bytes->bytecode '(20))) ;; <- no arity, just call 20
-      (define apply-cont (bytes->bytecode (list (fxbor 20 64))))
+      (define apply (bytes->bytecode '(60))) ;; <- no arity, just call 60
+      (define apply-cont (bytes->bytecode '(124))) ;; 64 | 60
 
       (define primops-2
          (list

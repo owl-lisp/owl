@@ -1156,10 +1156,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 18:
       case 19:
          UNUSED;
-      case 20: { /* apply */
+      case 60: { /* apply */
          int reg, arity;
          word *lst;
-         if (op == 20) { /* normal apply: cont=r3, fn=r4, a0=r5 */
+         if (!(op & 64)) { /* normal apply: cont=r3, fn=r4, a0=r5 */
             reg = 4; /* include cont */
             arity = 1;
             ob = (word *) R[reg];
@@ -1420,8 +1420,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = F(res >> FBITS);
          A3 = F(res & FMAX);
          NEXT(4); }
-      case 60:
-         UNUSED;
+   /* case 60: FIXME: move apply here after fasl update */
       case 61:
          /* FIXME: remove this after the next fasl update: */ {
          struct timeval tp;
