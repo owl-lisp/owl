@@ -365,7 +365,7 @@ Check out https://github.com/owl-lisp/owl for more information.")
       (else (print "Bad native selection: " str))))
 
 (import (owl sys))
-(print-to stderr "writes: " (>> (get-heap-bytes-written) 20) "MB")
+(print-to stderr "writes: " (>> (get-heap-bytes-written) 20) "MWords")
 (print-to stderr "max live: " (>> (get-heap-max-live) 10) "KB")
 
 (λ (args)

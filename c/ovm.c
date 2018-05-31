@@ -641,6 +641,8 @@ static word prim_sys(word op, word a, word b, word c) {
          return onum(
             a == F(0) ? errno :
             a == F(1) ? (word)environ :
+            a == F(8) ? nalloc + fp - memstart : /* total allocated objects so far */
+            a == F(9) ? maxheap : /* maximum heap size in a major gc */
             max_heap_mb, 0);
       case 10: { /* receive-udp-packet sock → (ip-bvec . payload-bvec)| #false */
          struct sockaddr_in si_other;
@@ -870,10 +872,6 @@ static word prim_sys(word op, word a, word b, word c) {
          if (clock_gettime(cnum(a), &ts) != -1)
             return onum(ts.tv_sec * INT64_C(1000000000) + ts.tv_nsec, 1);
          return IFALSE; }
-      case 43: /* total allocated objects so far */
-         return onum(nalloc + fp - memstart, 0);
-      case 44: /* maximum heap size in a major gc */
-         return onum(maxheap, 0);
       default:
          return IFALSE;
    }

@@ -565,8 +565,8 @@
       ;;;
 
       (define (get-heap-bytes-written)
-         (sys 43))
+         (sys 9 8))
 
       (define (get-heap-max-live)
-         (sys 44))
+         (sys 9 9))
 ))
