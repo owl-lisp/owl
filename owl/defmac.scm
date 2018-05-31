@@ -446,9 +446,9 @@
       ;; (size  x)         n                       n               #false
       ;; (sizeb x)       #false                    n               #false
 
-      (define (immediate? obj) (eq? #false (size obj)))
+      (define (immediate? obj) (eq? (size obj) #f))
       (define allocated? size)
-      (define raw?       sizeb)
+      (define raw? sizeb)
       (define (record? x) (eq? type-record (type x)))
 
       (define-syntax _record-values

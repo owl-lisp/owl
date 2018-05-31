@@ -365,10 +365,8 @@ Check out https://github.com/owl-lisp/owl for more information.")
       (else (print "Bad native selection: " str))))
 
 (import (owl sys))
-(print-to stderr
-   (str "writes: " (quotient (get-heap-bytes-written) (* 1024 1024)) "MB"))
-(print-to stderr
-   (str "max live: " (quotient (get-heap-max-live) (* 1024)) "KB"))
+(print-to stderr "writes: " (>> (get-heap-bytes-written) 20) "MB")
+(print-to stderr "max live: " (>> (get-heap-max-live) 10) "KB")
 
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"

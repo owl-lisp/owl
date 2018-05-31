@@ -488,7 +488,7 @@
              (block (* 1024 32)) ; write in 32kb blocks
              (megs (* 1024 500))) ; ~1GB is enough for dieharder and smallcrush, 500 might be enough for crush?
             (if port
-               (let loop ((rs rs) (n (* megs (* 1024 1024))))
+               (let loop ((rs rs) (n (<< megs 20)))
                   (print* (list path ": left " n " bytes"))
                   (if (eq? n 0)
                      (close-port port)

@@ -15,7 +15,8 @@
 
 (define-library (owl tuple)
 
-   (export tuple?
+   (export
+      tuple?
       list->tuple
       tuple->list)
 
