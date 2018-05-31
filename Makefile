@@ -21,13 +21,13 @@ fasl/boot.fasl: fasl/init.fasl
 
 fasl/ol.fasl: bin/vm fasl/boot.fasl owl/*.scm scheme/*.scm tests/*.scm tests/*.sh
 	# selfcompile boot.fasl until a fixed point is reached
+	@bin/vm fasl/init.fasl -e '(time-ms)' >.start
 	bin/vm fasl/boot.fasl --run owl/ol.scm -s none -o fasl/bootp.fasl
-	ls -l fasl/bootp.fasl
+	@bin/vm fasl/init.fasl -e '(str"bootstrap: "(-(time-ms)(read(open-input-file".start")))"ms\nfasl: "(file-size"fasl/bootp.fasl")"b")'
 	# check that the new image passes tests
 	CC="$(CC)" sh tests/run all bin/vm fasl/bootp.fasl
 	# copy new image to ol.fasl if it is a fixed point, otherwise recompile
-	cmp -s fasl/boot.fasl fasl/bootp.fasl && cp fasl/bootp.fasl fasl/ol.fasl || cp fasl/bootp.fasl fasl/boot.fasl && make fasl/ol.fasl
-
+	if cmp -s fasl/boot.fasl fasl/bootp.fasl; then mv fasl/bootp.fasl fasl/ol.fasl; else mv fasl/bootp.fasl fasl/boot.fasl && exec make fasl/ol.fasl; fi
 
 ## building just the virtual machine to run fasl images
 
@@ -36,19 +36,21 @@ bin/vm: c/vm.c
 
 bin/diet-vm: c/vm.c
 	diet $(CC) -Os -o bin/diet-vm c/vm.c
-	strip bin/diet-vm 
+	strip bin/diet-vm
 
 bin/diet-ol: c/diet-ol.c
 	diet $(CC) -O2 -o bin/diet-ol c/diet-ol.c
 
-c/vm.c: c/ovm.c
+c/_vm.c: c/ovm.c
+	# remove comments and most white-space
+	sed -f bin/compact.sed c/ovm.c >c/_vm.c
+
+c/vm.c: c/_vm.c
 	# make a vm without a bundled heap
-	echo "unsigned char *heap = 0;" > c/vm.c
-	cat c/ovm.c >> c/vm.c
+	echo 'static void *heap = 0;' | cat - c/_vm.c >c/vm.c
 
 manual.md: doc/manual.md owl/*.scm scheme/*.scm
-	cat doc/manual.md > manual.md
-	bin/find-documentation.sh >> manual.md
+	bin/find-documentation.sh | cat doc/manual.md - >manual.md
 
 manual.pdf: manual.md
 	pandoc --latex-engine xelatex -o manual.pdf manual.md
@@ -56,7 +58,7 @@ manual.pdf: manual.md
 ## building standalone image out of the fixed point fasl image
 
 c/ol.c: fasl/ol.fasl
-	# compile the repl using the fixed point image 
+	# compile the repl using the fixed point image
 	bin/vm fasl/ol.fasl --run owl/ol.scm -s some -o c/ol.c
 
 c/diet-ol.c: fasl/ol.fasl
@@ -83,20 +85,20 @@ random-test: bin/vm bin/ol fasl/ol.fasl
 	CC="$(CC)" sh tests/run random bin/ol
 
 
-## data 
+## data
 
 owl/unicode-char-folds.scm:
-	echo "(define char-folds '(" > owl/unicode-char-folds.scm 
-	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.scm 
-	echo "))" >> owl/unicode-char-folds.scm
+	echo "(define char-folds '(" >owl/unicode-char-folds.scm
+	curl http://www.unicode.org/Public/6.0.0/ucd/CaseFolding.txt | grep "[0-9A-F]* [SFC]; " | sed -re 's/ #.*//' -e 's/( [SFC])?;//g' -e 's/^/ /' -e 's/ / #x/g' -e 's/ /(/' -e 's/$$/)/' | tr "[A-F]" "[a-f]" >> owl/unicode-char-folds.scm
+	echo '))' >>owl/unicode-char-folds.scm
 
 ## meta
 
 doc/ol.1.gz: doc/ol.1
-	cat doc/ol.1 | gzip -9 > doc/ol.1.gz
+	gzip -9n <doc/ol.1 >doc/ol.1.gz
 
 doc/ovm.1.gz: doc/ovm.1
-	cat doc/ovm.1 | gzip -9 > doc/ovm.1.gz
+	gzip -9n <doc/ovm.1 >doc/ovm.1.gz
 
 install: bin/ol bin/vm doc/ol.1.gz doc/ovm.1.gz
 	-mkdir -p $(DESTDIR)$(PREFIX)$(BINDIR)
@@ -114,12 +116,12 @@ uninstall:
 
 clean:
 	-rm -f fasl/boot.fasl fasl/bootp.fasl fasl/ol.fasl
-	-rm -f c/vm.c c/ol.c
-	-rm -f doc/*.gz
-	-rm -f tmp/*
-	-rm -f bin/ol bin/vm
+	-rm -f c/_vm.c c/vm.c c/ol.c
+	-rm -f doc/*.gz manual.md
+	-rm -f tmp/* .start
+	-rm -f bin/ol bin/ol-old bin/vm
 
-# make a standalone binary against dietlibc for relase
+# make a standalone binary against dietlibc for release
 standalone: c/ol.c c/vm.c
 	diet gcc -O2 -o bin/vm c/vm.c
 	strip --strip-all bin/vm
@@ -129,7 +131,4 @@ standalone: c/ol.c c/vm.c
 fasl-update: fasl/ol.fasl
 	cp fasl/ol.fasl fasl/init.fasl
 
-todo: bin/vm 
-	bin/vm fasl/ol.fasl -n owl/*.scm | less
-
-.PHONY: all owl install uninstall todo test fasltest random-test owl standalone fasl-update clean simple-ol
+.PHONY: all clean fasl-update fasltest install owl random-test simple-ol standalone test uninstall

@@ -4,8 +4,9 @@
 
 (define-library (owl closure)
 
-   (export 
-      build-closures 
+   (export
+      build-closures
+      small-value?
       uncompiled-closure?)
 
    (import
@@ -26,7 +27,7 @@
 
       (define (small-value? val)
          (or
-            (and (fixnum? val) (>= val -127) (< val 127))
+            (and (fixnum? val) (< -129 val 128))
             (eq? val #true)
             (eq? val #false)
             (eq? val null)))
@@ -78,7 +79,7 @@
             ((value val)
                (values exp used))
             ((var sym)
-               (if (has? used sym)
+               (if (memq sym used)
                   (values exp used)
                   (values exp (cons sym used))))
             ((branch kind a b then else)
@@ -87,8 +88,8 @@
                   ((a used (closurize a used #true))
                    (b used (closurize b used #true))
                    (then used
-                     (closurize then used 
-                        (if (eq? 4 kind) 
+                     (closurize then used
+                        (if (eq? 4 kind)
                            (begin (print "Not closurizing " then) #false)
                            #true)))
                    (else used (closurize else used #true)))
@@ -119,21 +120,21 @@
                      (union used clos))))
             ((case-lambda func else)
                ;; fixme: operator position handling of resulting unclosurized case-lambdas is missing
-               (if close? 
-                  ;; a normal value requiring a closure, and first node only 
+               (if close?
+                  ;; a normal value requiring a closure, and first node only
                   (lets
                      ((func this-used (closurize func null #false)) ;; no used, don't close
-                      (else this-used (closurize else this-used #false))) ;; same used, dont' close rest 
+                      (else this-used (closurize else this-used #false))) ;; same used, dont' close rest
                      (values
                         (tuple 'closure-case (tuple 'case-lambda func else) this-used)  ;; used the ones in here
                         (union used this-used)))                   ;; needed others and the ones in closure
-                  ;; operator position case-lambda, which can (but isn't yet) be dispatche at compile 
-                  ;; time, or a subsequent case-lambda node (above case requests no closurization) 
+                  ;; operator position case-lambda, which can (but isn't yet) be dispatche at compile
+                  ;; time, or a subsequent case-lambda node (above case requests no closurization)
                   ;; which doesn't need to be closurized
-                  (lets 
+                  (lets
                      ((func used (closurize func used #false)) ;; don't closurize codes
                       (else used (closurize else used #false))) ;; ditto for the rest of the tail
-                     (values 
+                     (values
                         (tuple 'case-lambda func else)
                         used))))
             (else
@@ -149,11 +150,11 @@
 
       (define (literalize-call literalize rator rands used)
          (lets
-            ((rator used 
+            ((rator used
                (if (value-primop rator)
                   (values rator used)
                   (literalize rator used)))
-             (rands used 
+             (rands used
                (literalize-list literalize rands used)))
             (values (mkcall rator rands) used)))
 
@@ -166,7 +167,7 @@
          (tuple-case exp
             ((value val)
                (values exp
-                  (if (or (has? used val) (small-value? val))
+                  (if (or (memq val used) (small-value? val))
                      used
                      (append used (list val)))))
             ((var sym)
@@ -189,9 +190,9 @@
                (lets ((body used (literalize body used)))
                   (values (tuple 'lambda-var fixed? formals body) used)))
             ((closure formals body clos)
-               ;; note, the same closure exp (as in eq?) is stored to both literals 
-               ;; and code. the one in code will be used to make instructions 
-               ;; for closing it and the one in literals will be the executable 
+               ;; note, the same closure exp (as in eq?) is stored to both literals
+               ;; and code. the one in code will be used to make instructions
+               ;; for closing it and the one in literals will be the executable
                ;; part to close against.
                (lets
                   ((body bused (literalize body null))
@@ -200,8 +201,8 @@
                   (values
                      ;;; literals will be #(header <code> l0 ... ln)
                      (tuple 'make-closure (+ 1 (length used)) clos bused)
-                     ;; also literals are passed, since the closure type 
-                     ;; and calling protocol are different depending on 
+                     ;; also literals are passed, since the closure type
+                     ;; and calling protocol are different depending on
                      ;; whether there are literals
                      used)))
             ((closure-var fixed? formals body clos) ;; clone branch, merge later
@@ -230,7 +231,7 @@
              (exp lits (literalize exp null)))
             (if (and (pair? lits) (uncompiled-closure? (car lits)))
                (ok (cdar lits) env)
-               (error "Bad closurize output: " 
+               (error "Bad closurize output: "
                   (list 'exp exp 'lits lits)))))
 
 ))

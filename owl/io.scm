@@ -33,24 +33,22 @@
       udp-client-socket       ;; temp
       wait-udp-packet         ;; port → (ip . bvec), blocks
       check-udp-packet        ;; port → #false | (ip . bvec), does not block
-      send-udp-packet         ;; sock ip port bvec → bool 
+      send-udp-packet         ;; sock ip port bvec → bool
 
       file->vector            ;; vector io, may be moved elsewhere later
       file->list              ;; list io, may be moved elsewhere later
       file->byte-stream       ;; path → #false | (byte ...)
       vector->file
       write-vector            ;; vec port
-      port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk 
+      port->meta-byte-stream  ;; fd → (byte|'io-error|'block ...) | thunk
       port->byte-stream       ;; fd → (byte ...) | thunk
-      port->tail-byte-stream  ;; fd → (byte ...) | thunk 
+      port->tail-byte-stream  ;; fd → (byte ...) | thunk
       byte-stream->port       ;; bs fd → bool
       port->block-stream      ;; fd → (bvec ...)
       block-stream->port      ;; (bvec ...) fd → bool
 
-      stdin stdout stderr
       display-to        ;; port val → bool
       print-to          ;; port val → bool
-      display
       print
       print*
       print*-to         ;; port val → bool
@@ -91,27 +89,22 @@
       (owl unicode)
       (owl fasl)
       (owl tuple)
-      (owl primop)
+      (only (owl primop) set-ticker wait)
       (owl port)
       (owl lazy)
       (only (owl vector) merge-chunks vec-leaves))
 
    (begin
 
-      ;; standard io ports
-      (define stdin sys-stdin)
-      (define stdout sys-stdout)
-      (define stderr sys-stderr)
-
       ;;; Writing
 
       ;; #[0 1 .. n .. m] n → #[n .. m]
       (define (bvec-tail bvec n)
-         (raw (map (H refb bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
+         (raw (map (H ref bvec) (iota n 1 (sizeb bvec))) type-vector-raw))
 
       (define (try-write-block fd bvec len)
          ;; stdio ports are in blocking mode, so poll always
-         (if (sys-stdio? fd)
+         (if (stdio-port? fd)
             (interact 'iomux (tuple 'write fd)))
          (sys-write fd bvec len))
 
@@ -161,7 +154,7 @@
 
       (define (try-get-block fd block-size block?)
          ;; stdio ports are in blocking mode, so poll always
-         (if (sys-stdio? fd)
+         (if (stdio-port? fd)
             (interact 'iomux (tuple 'read fd)))
          (let ((res (sys-read fd block-size)))
             (if (eq? res #true) ;; would block
@@ -285,10 +278,10 @@
 
       (define socket-read-delay 2)
 
-      ;; In case one doesn't need asynchronous atomic io operations, one can use 
+      ;; In case one doesn't need asynchronous atomic io operations, one can use
       ;; threadless stream-based blocking (for the one thred) IO.
 
-      ;; write a stream of byte vectors to a fd and 
+      ;; write a stream of byte vectors to a fd and
       ;; (bvec ...) fd → ll' n-written, doesn't close port
       ;;                  '-> null if all written without errors
       (define (blocks->port ll fd)
@@ -385,9 +378,6 @@
       (define (display-to to obj)
          (printer (render obj '()) 0 null to))
 
-      (define display
-         (H display-to stdout))
-
       (define print
          (case-lambda
             ((obj) (print-to stdout obj))
@@ -445,7 +435,7 @@
                (let loop ((pos (- end 1)) (tail tail))
                   (if (eq? pos -1)
                      tail
-                     (loop (- pos 1) (cons (refb block pos) tail)))))))
+                     (loop (- pos 1) (cons (ref block pos) tail)))))))
 
       (define (read-blocks->list port buff)
          (let ((block (get-block port 4096)))
@@ -513,10 +503,10 @@
 
       (define (stream-chunk buff pos tail)
          (if (eq? pos 0)
-            (cons (refb buff pos) tail)
+            (cons (ref buff pos) tail)
             (lets ((next x (fx- pos 1)))
                (stream-chunk buff next
-                  (cons (refb buff pos) tail)))))
+                  (cons (ref buff pos) tail)))))
 
       (define (sleep ms)
          (interact 'iomux (tuple 'alarm ms)))
@@ -750,8 +740,11 @@
 
       ;; including time currently causes a circular dependency - resolve later
       (define (time-ms)
-         (lets ((ss ms (clock)))
-            (+ (* ss 1000) ms)))
+         (quotient (sys-clock_gettime (sys-CLOCK_REALTIME)) 1000000))
+
+      (define (_poll2 rs ws timeout)
+         (let ((res (sys-prim 43 rs ws timeout)))
+            (values (car res) (cdr res))))
 
       (define (muxer-add rs ws alarms mail)
          (tuple-case (ref mail 2)

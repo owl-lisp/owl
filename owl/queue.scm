@@ -3,20 +3,20 @@
 ;;;
 
 ; todo:
-;   - halve the list instead of full reversal to keep more 
+;   - halve the list instead of full reversal to keep more
 ;     efficient access to both ends of the list.
 
 ; note, the nice name snoc (reverse of cons) comes from Okasaki's book
 
 (define-library (owl queue)
 
-   (export 
-      qnull 
+   (export
+      qnull
       qnull?         ; Q → bool
       qlen            ; Q → nat
       qcons          ; a Q → Q' -- cons to head
       qsnoc          ; a Q → Q' -- cons to tail
-      quncons         ; Q d → a Q' 
+      quncons         ; Q d → a Q'
       qunsnoc         ; Q d → a Q'
       qcar           ; Q → a Q' -- return first and Q' with O(1) qcar
       qrac           ; Q → a Q' -- return last  and Q' with O(1) qrac

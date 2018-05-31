@@ -1,7 +1,7 @@
 
 (define foo 42)
 
-(define-syntax mac 
+(define-syntax mac
    (syntax-rules ()
       ((mac x) (list x (lambda (x) x)))))
 

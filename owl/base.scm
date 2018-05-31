@@ -33,10 +33,12 @@
       lets/cc
       read
       read-ll
+      ref
       suspend
       wait
       (exports (scheme base))
-      (exports (scheme cxr)))
+      (exports (scheme cxr))
+      (exports (scheme write)))
 
    (import
       (owl defmac)
@@ -66,10 +68,11 @@
       (owl math)
       (owl digest)
       (only (owl dump) suspend)
-      (only (owl primop) halt lets/cc wait)
+      (only (owl primop) halt lets/cc ref wait)
       (only (owl sexp) read read-ll)
       (scheme base)
       (scheme cxr)
+      (scheme write)
 
       ;; just pull into the fasl
       (owl codec)
@@ -77,5 +80,4 @@
       (scheme case-lambda)
       (scheme complex)
       (scheme process-context)
-      (scheme time)
-      (scheme write)))
+      (scheme time)))

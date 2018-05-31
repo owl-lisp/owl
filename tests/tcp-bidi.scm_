@@ -5,7 +5,7 @@
    (let loop ((port 1025))
       (if (< port #x10000)
          (let ((sock (open-socket port)))
-            (if sock 
+            (if sock
                (cons sock port)
                (loop (+ port 1))))
          (error "Couldn't open any ports" port))))
@@ -27,7 +27,7 @@
 ;; all that should be received
 (define all-data (foldr push null elems))
 
-;; read until all-data comes out 
+;; read until all-data comes out
 (define (reader fd)
    (let loop ((read null))
       (if (equal? read all-data)

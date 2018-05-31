@@ -2,9 +2,9 @@
 ;;; Register allocation
 ;;;
 
-; Earlier compilation steps produce RTL that has an unbounded set 
-; of registers. Register allocation handles limiting them to the 
-; number available in VM, while also trying to retarget operations 
+; Earlier compilation steps produce RTL that has an unbounded set
+; of registers. Register allocation handles limiting them to the
+; number available in VM, while also trying to retarget operations
 ; to more sensible registers.
 
 (define-library (owl register)
@@ -30,7 +30,7 @@
       (define highest-register 95) ;; atm lower than NR in ovm.c
       (define n-registers (+ highest-register 1))
 
-      ; reg-touch U r -> mark as live -> make sure it has a value 
+      ; reg-touch U r -> mark as live -> make sure it has a value
       ; (must be in some register)
 
       (define (reg-touch usages reg)
@@ -44,10 +44,10 @@
       (define (reg-root usages reg)
          (put usages reg (list reg)))
 
-      ; return a list of registers from uses (where the value has been moved to), or 
+      ; return a list of registers from uses (where the value has been moved to), or
       ; some list of low registers if this one is outside the available ones
       (define (use-list uses reg)
-         (let ((opts (keep (C < highest-register) (get uses reg null))))
+         (let ((opts (filter (C < highest-register) (get uses reg null))))
             (cond
                ((< reg highest-register)
                   opts)
@@ -70,7 +70,7 @@
       (define (bad? to target op)
          (or (eq? to target) (not (eq? to (op to)))))
 
-      ; try to rename the register and exit via fail if the values are disturbed 
+      ; try to rename the register and exit via fail if the values are disturbed
 
       (define (rtl-rename code op target fail)
          (tuple-case code
@@ -125,23 +125,19 @@
                (tuple 'goto-proc (op fn) nargs))
             ((goto-clos fn nargs)
                (tuple 'goto-clos (op fn) nargs))
+            ((jeqi i a then else)
+               (tuple 'jeqi i (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
             ((jeq a b then else)
                (tuple 'jeq (op a) (op b) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jn a then else)
-               (tuple 'jn (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jz a then else)
-               (tuple 'jz (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
-            ((jf a then else)
-               (tuple 'jf (op a) (rtl-rename then op target fail) (rtl-rename else op target fail)))
             (else
                (error "rtl-rename: what is this: " code))))
 
 
-      ;; try to remap the register to each known good alternative 
+      ;; try to remap the register to each known good alternative
       ;; finish with (cont the-register code)
 
       (define (retarget-first code old news uses cont)
-         (if (or (null? news) (and (has? news old) (< old highest-register)))
+         (if (or (null? news) (and (memq old news) (< old highest-register)))
             (cont old code)         ; no remapping happened
             (let ((new (car news)))
                (if (or (eq? old new) (get uses new #false))
@@ -161,13 +157,10 @@
          (lets
             ((then then-uses (proc then))
              (else else-uses (proc else))
-             (uses (merge-usages then-uses else-uses))
-             (uses (reg-touch uses a)))
-            (case op
-               ((jeq)
-                  (values (tuple op a b then else) (reg-touch uses b)))
-               (else
-                  (values (tuple op a then else) uses)))))
+             (uses (merge-usages then-uses else-uses)))
+            (values
+               (tuple op a b then else)
+               (reg-touch (if (eq? op 'jeq) (reg-touch uses a) uses) b))))
 
       (define (rtl-retard-closure rtl-retard code)
          (lets
@@ -182,7 +175,7 @@
                      (pass)
                      (rtl-retard (tuple clos-type lpos offset env to-new more-new)))))))
 
-      ; retarget register saves to registers where they are moved 
+      ; retarget register saves to registers where they are moved
       ; where possible (register retargeting level 1)
 
       (define (rtl-retard code)
@@ -207,7 +200,7 @@
                         ((more uses (rtl-retard more))
                          (uses (del uses b))
                          (targets (use-list uses a)))
-                        (if (has? targets b)
+                        (if (memq b targets)
                            ; moved to a useful target
                            (values (tuple 'move a b more) uses)
                            ; leave a wish that the value at a could already be in b
@@ -290,16 +283,12 @@
                (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
             ((goto-clos op nargs)
                (values code (fold reg-root empty (cons op (iota 3 1 (+ 4 nargs))))))
+            ((jeqi i a then else)
+               (rtl-retard-jump rtl-retard 'jeqi i a then else))
             ((jeq a b then else)
-               (rtl-retard-jump rtl-retard 'jeq a b     then else))
-            ((jn a then else)
-               (rtl-retard-jump rtl-retard 'jn a empty  then else)) ; fp
-            ((jf a then else)
-               (rtl-retard-jump rtl-retard 'jf a empty  then else)) ; fp
-            ((jz a then else)
-               (rtl-retard-jump rtl-retard 'jz a empty  then else)) ; fp
+               (rtl-retard-jump rtl-retard 'jeq a b then else))
             ((jab a type then else)
-               (rtl-retard-jump rtl-retard 'jab a type then else))
+               (rtl-retard-jump rtl-retard 'jab type a then else))
             (else
                (error "rtl-retard: unknown code: " code))))
 

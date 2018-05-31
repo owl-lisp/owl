@@ -1,10 +1,10 @@
 ;;; It is sometimes useful to get symbols, which do not occur elsewhere.
-;;; This is typically needed in the compiler, but it may also be needed 
-;;; elsewhere. Gensyms in Owl are just regular symbols, which do not 
+;;; This is typically needed in the compiler, but it may also be needed
+;;; elsewhere. Gensyms in Owl are just regular symbols, which do not
 ;;; occur in a given expression. This requires walking through the whole
-;;; expression. To avoid having to walk the original expression in many 
-;;; cases when gensyms are needed, they work in a way that ensures that 
-;;; the gensym of the gensym of an expression also does not occur in the 
+;;; expression. To avoid having to walk the original expression in many
+;;; cases when gensyms are needed, they work in a way that ensures that
+;;; the gensym of the gensym of an expression also does not occur in the
 ;;; original expression.
 ;;;
 ;;; ```
@@ -36,9 +36,9 @@
       (define (count-gensym-id str pos end n)
          (if (= pos end)
             n
-            (let ((this (refb str pos)))
+            (let ((this (ref str pos)))
                (cond
-                  ((and (< 47 this) (< this 58))
+                  ((< 47 this 58)
                      (count-gensym-id str (+ pos 1) end (+ (* n 10) (- this 48))))
                   (else #false)))))
 
@@ -46,7 +46,7 @@
          (if (symbol? exp)
             (let ((str (symbol->string exp)))
                (let ((len (string-length str)))
-                  (if (and (> len 1) (eq? (refb str 0) 103))
+                  (if (and (> len 1) (eq? (ref str 0) 103))
                      (count-gensym-id str 1 len 0)
                      #false)))
             #false))

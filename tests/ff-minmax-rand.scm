@@ -3,7 +3,7 @@
 (define rounds 30)
 
 (define (try rs)
-  (lets 
+  (lets
     ((rs a (rand rs 20))
      (ff (put #empty a a)))
     (let loop ((rs rs) (n steps) (ff ff) (lo a) (hi a))
@@ -25,8 +25,8 @@
 
 (call/cc
   (lambda (ret)
-    (fold 
-      (λ (rs x) 
+    (fold
+      (λ (rs x)
         (let ((rs (try rs)))
           (or rs
             (ret #false))))

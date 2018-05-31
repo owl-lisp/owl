@@ -1,6 +1,6 @@
 ;; compute some factorials
 
-(define (fakt x) 
+(define (fakt x)
    (fold * 1 (iota 1 1 (+ x 1))))
 
 (define (fakti x)
@@ -23,7 +23,7 @@
             (* (self self (- x 1)) x))))))
 
 (for-each print
-   (map 
+   (map
       (λ (op) (op 100))
       (list ! fakt fakti faktr faktl)))
 

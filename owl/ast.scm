@@ -54,11 +54,11 @@
                ((null? lst)
                   (values (reverse out) #true))
                ((symbol? lst) ;; variable arity
-                  (if (has? out lst) ;; reappearence
+                  (if (memq lst out) ;; reappearence
                      (values #f #f)
                      (values (reverse (cons lst out)) #false)))
                ((symbol? (car lst))
-                  (if (has? out (car lst))
+                  (if (memq (car lst) out)
                      (values #f #f)
                      (loop (cdr lst) (cons (car lst) out))))
                (else
@@ -83,7 +83,7 @@
                               (lets
                                  ((formals (cadr exp))
                                   (body (caddr exp))
-                                  (formals fixed? 
+                                  (formals fixed?
                                     (check-formals formals)))
                                  (cond
                                     ((not formals) ;; non-symbols, duplicate variables, etc
@@ -92,24 +92,24 @@
                                        (mklambda formals
                                           (translate body (env-bind env formals) fail)))
                                     (else
-                                       (mkvarlambda formals 
+                                       (mkvarlambda formals
                                           (translate body (env-bind env formals) fail))))))
                            ((> len 3)
                               ;; recurse via translate
                               (let
                                  ((formals (cadr exp))
                                   (body (cddr exp)))
-                                 (translate 
-                                    (list 'lambda formals 
+                                 (translate
+                                    (list 'lambda formals
                                        (cons 'begin body)) env fail)))
                            (else
                               (fail (list "Bad lambda: " exp))))))
                   ((rlambda) ;;; (rlambda formals definitions body)
                      (if (= (length exp) 4)
                         (let
-                           ((formals (lref exp 1))
-                            (values (lref exp 2))
-                            (body (lref exp 3)))
+                           ((formals (list-ref exp 1))
+                            (values (list-ref exp 2))
+                            (body (list-ref exp 3)))
                            (if
                               (and
                                  (list? values)
@@ -126,12 +126,12 @@
                   ((_branch)
                      (if (= (length exp) 6)
                         (let
-                           ((a (lref exp 2))
-                            (b (lref exp 3))
-                            (then (lref exp 4))
-                            (else (lref exp 5)))
+                           ((a (list-ref exp 2))
+                            (b (list-ref exp 3))
+                            (then (list-ref exp 4))
+                            (else (list-ref exp 5)))
                            (tuple 'branch
-                              (lref exp 1) ; type
+                              (list-ref exp 1) ; type
                               (translate a env fail)
                               (translate b env fail)
                               (translate then env fail)
@@ -139,22 +139,22 @@
                         (fail (list "Bad branch: " exp))))
                   ((_case-lambda)
                      (if (= (length exp) 3)
-                        (tuple 'case-lambda 
+                        (tuple 'case-lambda
                            (translate (cadr exp) env fail)
                            (translate (caddr exp) env fail))
                         (fail (list "Bad case-lambda node: " exp))))
                   ((receive) ; (receive <exp> <receiver>)
                      (tuple 'receive
-                        (translate (lref exp 1) env fail)
-                        (translate (lref exp 2) env fail)))
+                        (translate (list-ref exp 1) env fail)
+                        (translate (list-ref exp 2) env fail)))
                   ;; FIXME pattern
                   ((values)
                      (tuple 'values
                         (map (lambda (arg) (translate arg env fail)) (cdr exp))))
                   (else
                      (fail
-                        (list 
-                           "Unknown special operator in ast conversion: " 
+                        (list
+                           "Unknown special operator in ast conversion: "
                            exp)))))
             ((bound)
                (mkcall (mkvar (car exp))
@@ -173,13 +173,13 @@
                ; so just warn for now
                (fail
                   (list
-                     "Unknown value type in ast conversion: " 
+                     "Unknown value type in ast conversion: "
                      (list 'name (car exp) 'value  (lookup env (car exp)))))
                ;(mkval exp)
                )))
 
       (define (translate exp env fail)
-         (cond 
+         (cond
             ((null? exp) (mkval exp))
             ((list? exp)
                (if (symbol? (car exp))
@@ -198,11 +198,11 @@
                   ((defined value)
                      value)
                   ((special thing)
-                     (fail 
+                     (fail
                         (list "a special thing being used as an argument: " exp)))
                   ((undefined)
                      (fail (list "what are '" exp "'?")))
-                  (else 
+                  (else
                      (fail
                         (list "Strange value in ast conversion: "
                            (lookup env exp))))))

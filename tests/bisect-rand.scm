@@ -10,6 +10,6 @@
           (rs m (rand-range rs n (* n 100000))))
          (if (= (isqrt n) (square n))
             (print* (list " -> square ok " limit)))
-         (if (= (div n m) (divide n m))
+         (if (= (quotient n m) (divide n m))
             (print* (list " -> divide ok " limit)))))
    (map (H expt 2) (iota 3 1 100)))

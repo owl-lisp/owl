@@ -1,31 +1,31 @@
-;; todo: date handling
-
 (define-library (owl time)
 
    (export
       elapsed-real-time
       timed
       time
-      time-ms)
+      time-ms
+      time-ns)
 
    (import
       (owl defmac)
       (owl io)
       (owl syscall)
-      (owl math))
+      (owl math)
+      (only (owl sys) clock_gettime CLOCK_REALTIME)
+      (scheme write))
 
    (begin
+
+      (define (time-ns)
+         (clock_gettime (CLOCK_REALTIME)))
 
       (define (elapsed-real-time thunk)
          (display "timing: ")
          (lets
-            ((ss sms (clock))
-             (res (thunk))
-             (es ems (clock))
-             (elapsed
-               (- (+ ems (* es 1000))
-                  (+ sms (* ss 1000)))))
-            (print elapsed "ms")
+            ((ns (time-ns))
+             (res (thunk)))
+            (print (quotient (- (time-ns) ns) 1000000) "ms")
             res))
 
       (define-syntax timed
@@ -34,20 +34,15 @@
                (timed exp (quote exp)))
             ((timed exp comment)
                (lets
-                  ((ss sms (clock))
-                   (res exp)
-                   (es ems (clock))
-                   (elapsed
-                     (- (+ ems (* es 1000))
-                        (+ sms (* ss 1000)))))
-                  (print*-to stderr (list comment ": " elapsed "ms"))
+                  ((ns (time-ns))
+                   (res exp))
+                  (print*-to stderr
+                     (list comment ": " (quotient (- (time-ns) ns) 1000000) "ms"))
                   res))))
 
-      ;; note: just passing unix time without adding the extra seconds
       (define (time)
-         (lets ((ss ms (clock))) ss))
+         (quotient (time-ns) 1000000000))
 
       (define (time-ms)
-         (lets ((ss ms (clock)))
-            (+ (* ss 1000) ms)))
+         (quotient (time-ns) 1000000))
 ))

@@ -3,12 +3,13 @@
 
    (export
       λ syntax-error begin
-      quasiquote letrec let if
-      letrec* let*-values
+      quasiquote letrec let
+      letrec*
+      if when unless
       cond case define define*
-      lets let* or and list
+      lets or and list
       ilist tuple tuple-case
-      call-with-values do define-library
+      define-library
       case-lambda
       define-values
       define-record-type
@@ -84,19 +85,13 @@
                (_case-lambda (lambda formals . body)
                   (case-lambda . rest)))))
 
-      ;; note, no let-values yet, so using let*-values in define-values
       (define-syntax begin
-         (syntax-rules (define define-syntax letrec define-values let*-values)
-            ;((begin
-            ;   (define-syntax key1 rules1)
-            ;   (define-syntax key2 rules2) ... . rest)
-            ;   (letrec-syntax ((key1 rules1) (key2 rules2) ...)
-            ;      (begin . rest)))
+         (syntax-rules (define letrec define-values lets)
             ((begin exp) exp)
             ((begin (define . a) (define . b) ... . rest)
                (begin 42 () (define . a) (define . b) ... . rest))
             ((begin (define-values (val ...) . body) . rest)
-               (let*-values (((val ...) (begin . body))) . rest))
+               (lets ((val ... (begin . body))) (begin . rest)))
             ((begin 42 done (define ((op . args1) . args2) . body) . rest)
                (begin 42 done (define (op . args1) (lambda args2 . body)) . rest))
             ((begin 42 done (define (var . args) . body) . rest)
@@ -136,20 +131,28 @@
                ((let keyword ((var init) ...) exp . rest)
                   (letrec ((keyword (lambda (var ...) exp . rest))) (keyword init ...)))))
 
-      ; Temporary hack: if inlines some predicates.
-
+      ;; todo: these essential optimizations and more should be handled by partial eval later
       (define-syntax if
-         (syntax-rules
-            (not eq? and null? pair? empty? type =)
+         (syntax-rules (not eq? null? empty?)
             ((if test exp) (if test exp #false))
             ((if (not test) then else) (if test else then))
             ((if (null? test) then else) (if (eq? test '()) then else))
-            ((if (empty? test) then else) (if (eq? test #empty) then else)) ;; FIXME - handle with partial eval later
+            ((if (empty? test) then else) (if (eq? test #empty) then else))
             ((if (eq? a b) then else) (_branch 0 a b then else))
             ((if (a . b) then else) (let ((x (a . b))) (if x then else)))
             ((if #false then else) else)
             ((if #true then else) then)
             ((if test then else) (_branch 0 test #false else then))))
+
+      (define-syntax when
+         (syntax-rules ()
+            ((when test exp1 exp2 ...)
+               (if test (begin exp1 exp2 ...) #f))))
+
+      (define-syntax unless
+         (syntax-rules ()
+            ((unless test exp1 exp2 ...)
+               (if test #f (begin exp1 exp2 ...)))))
 
       (define-syntax cond
          (syntax-rules (else =>)
@@ -213,11 +216,9 @@
             ((define op val)
                (_define op val))))
 
-      ;; not defining directly because rlambda doesn't yet do variable arity
-      ;(define list ((lambda (x) x) (lambda x x)))
+      (define list (lambda x x))
 
       ;; fixme, should use a print-limited variant for debugging
-
       (define-syntax define*
          (syntax-rules (print list)
             ((define* (op . args) . body)
@@ -227,13 +228,14 @@
             ((define* name (lambda (arg ...) . body))
                (define* (name arg ...) . body))))
 
+      ;; let sequence
       (define-syntax lets
          (syntax-rules (<=)
-            ((lets (((var ...) gen) . rest) . body)
-               (receive gen (lambda (var ...) (lets rest . body))))
             ((lets ((var val) . rest-bindings) exp . rest-exps)
+               ;; (var val) ≡ ((λ (var) ...) val)
                ((lambda (var) (lets rest-bindings exp . rest-exps)) val))
             ((lets ((var ... (op . args)) . rest-bindings) exp . rest-exps)
+               ;; (v1 v2 .. vn (op a1 .. an)) ≡ call-with-values, this is a generalization of the above
                (receive (op . args)
                   (lambda (var ...)
                      (lets rest-bindings exp . rest-exps))))
@@ -256,24 +258,10 @@
                   (lets ((val ... (begin . body)))
                      (list val ...))))))
 
-      (define-syntax let*-values
-         (syntax-rules ()
-            ((let*-values (((var ...) gen) . rest) . body)
-               (receive gen
-                  (λ (var ...) (let*-values rest . body))))
-            ((let*-values () . rest)
-               (begin . rest))))
-
-      ; i hate special characters, especially in such common operations.
-      ; lets (let sequence) is way prettier and a bit more descriptive 
-
-      (define-syntax let*
-         (syntax-rules ()
-            ((let* . stuff) (lets . stuff))))
-
       (define-syntax or
          (syntax-rules ()
             ((or) #false)
+            ((or a) a)
             ((or (a . b) . c)
                (let ((x (a . b)))
                   (or x . c)))
@@ -287,7 +275,6 @@
             ((and a . b)
                (if a (and . b) #false))))
 
-      ;; now a function
       (define-syntax list
          (syntax-rules ()
             ((list) '())
@@ -329,10 +316,10 @@
             ((tuple a . bs) ;; there are no such things as 0-tuples
                (mkt 2 a . bs))))
 
-      ; replace this with typed destructuring compare later on 
+      ; replace this with typed destructuring compare later on
 
       (define-syntax tuple-case
-         (syntax-rules (else _ is eq? bind div)
+         (syntax-rules (else _ is eq? bind type)
             ((tuple-case (op . args) . rest)
                (let ((foo (op . args)))
                   (tuple-case foo . rest)))
@@ -361,42 +348,12 @@
                (let ((type (ref tuple 1)))
                   (tuple-case 42 tuple type case ...)))))
 
-      (define-syntax call-with-values
-         (syntax-rules ()
-            ((call-with-values (lambda () exp) (lambda (arg ...) body))
-               (receive exp (lambda (arg ...) body)))
-            ((call-with-values thunk (lambda (arg ...) body))
-               (receive (thunk) (lambda (arg ...) body)))))
-
-      (define-syntax do
-         (syntax-rules (__init)
-            ((do __init () ((var init step) ...) (test then ...) command ...)
-               (let loop ((var init) ...)
-                  (if test
-                     (begin then ...)
-                     (begin
-                        command ...
-                        (loop step ...)))))
-            ((do __init ((var init step) . rest) done . tail)
-               (do __init rest ((var init step) . done) . tail))
-            ((do __init ((var init) . rest) done . tail)
-               (do __init rest ((var init var) . done) . tail))
-            ((do (vari ...) (test exp ...) command ...)
-               (do __init (vari ...) () (test exp ...) command ...))))
 
       (define-syntax define-library
-         (syntax-rules (export import begin _define-library define-library)
+         (syntax-rules (export _define-library define-library)
             ;; push export to the end (should syntax-error on multiple exports before this)
             ((define-library x ... (export . e) term . tl)
              (define-library x ... term (export . e) . tl))
-
-            ;; lift all imports above begins
-            ;((define-library x ... (begin . b) (import-old . i) . tl)
-            ; (define-library x ... (import-old . i) (begin . b) . tl))
-
-            ;; convert to special form understood by the repl
-            ;((define-library name (import-old . i) ... (begin . b) ... (export . e))
-            ; (_define-library 'name '(import-old . i) ... '(begin . b) ... '(export . e)))
 
             ;; accept otherwise in whatever order
             ((define-library thing ...)
@@ -410,11 +367,6 @@
       ;(define-syntax import  (syntax-rules (_import)  ((import  thing ...) (_import  (quote thing) ...))))
       ;(define-syntax include (syntax-rules (_include) ((include thing ...) (_include (quote thing) ...))))
 
-      (define (not x)
-         (if x #false #true))
-
-      ; (define call/cc  ('_sans_cps (λ (k f) (f k (λ (r a) (k a))))))
-
       (define (B f g) (λ (x) (f (g x))))
 
       (define (C f y) (λ (x) (f x y)))
@@ -427,11 +379,12 @@
 
       (define self I)
 
+      (define not (C eq? #f))
+
 
       ;;;
       ;;; DESCRIPTOR FORMAT
       ;;;
-      ;
       ;                            .------------> 24-bit payload if immediate
       ;                            |      .-----> type tag if immediate
       ;                            |      |.----> immediateness
@@ -441,20 +394,15 @@
       ;                                   '-----> 4- or 8-byte aligned pointer if not immediate
       ;
       ; object headers are further
-      ;
       ;                                    .----> immediate
-      ;  [ssssssss ssssssss ???trppp tttttt10]
-      ;   '---------------| '-|||'-| '----|
-      ;                   |   |||  |      '-----> object type
-      ;                   |   |||  '------------> number of padding (unused) bytes at end of object if raw (0-(wordsize-1))
-      ;                   |   ||'---------------> rawness bit (raw objects have no decriptors in them)
-      ;                   |   |'----------------> teardown bit - something needs to be done if freed by gc
-      ;                   |   '-----------------> your tags here! e.g. tag for closing file descriptors in gc
+      ;  [ssssssss ssssssss ffffrt?? tttttt10]
+      ;   '---------------| '--|||'| '----|
+      ;                   |    ||| |      '-----> object type
+      ;                   |    ||| '------------> your tags here!
+      ;                   |    ||'--------------> teardown bit - something needs to be done, if freed by gc
+      ;                   |    |'---------------> rawness bit (raw objects have no descriptors in them)
+      ;                   |    '----------------> fractional part of raw object payload size
       ;                   '---------------------> object size in words
-      ;
-      ;; note - there are 6 type bits, but one is currently wasted in old header position
-      ;; to the right of them, so all types must be <32 until they can be slid to right 
-      ;; position.
 
       ;; these are core data structure type tags which are fixed and some also relied on by the vm
 
@@ -498,9 +446,9 @@
       ;; (size  x)         n                       n               #false
       ;; (sizeb x)       #false                    n               #false
 
-      (define (immediate? obj) (eq? #false (size obj)))
+      (define (immediate? obj) (eq? (size obj) #f))
       (define allocated? size)
-      (define raw?       sizeb)
+      (define raw? sizeb)
       (define (record? x) (eq? type-record (type x)))
 
       (define-syntax _record-values
@@ -561,5 +509,4 @@
 
       (define (maybe op arg)
          (if arg (op arg) arg))
-
 ))

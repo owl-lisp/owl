@@ -4,7 +4,7 @@
      (lfold
         (λ (nth client)
            (print "server serving client " nth)
-           (lets 
+           (lets
               ((lines (lines (cdr client)))
                (first lines (uncons lines #false)))
               (print-to (cdr client) first)

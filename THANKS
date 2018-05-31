@@ -9,8 +9,8 @@ in the development:
    Pekka Pietikäinen  Portability suggestions and patches.
    Erno Kuusela       Portability suggestions and general insight.
 
-The code similarly isn't based on any implementation or document, but 
-many have definitely had an impact on it. A partial list of such sources 
+The code similarly isn't based on any implementation or document, but
+many have definitely had an impact on it. A partial list of such sources
 follows:
 
    Recursive Programming Techniques, William H. Burge, 1975

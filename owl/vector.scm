@@ -1,33 +1,33 @@
 ;;;
 ;;; Vectors
 ;;;
-; 
-; vectors are one-dimensional data structures indexable by natural numbers, 
-; having O(n log_256 n) access and memory use (effectively O(1)). They are 
-; mainly intended to be used for static data requiring efficient (modulo 
+;
+; vectors are one-dimensional data structures indexable by natural numbers,
+; having O(n log_256 n) access and memory use (effectively O(1)). They are
+; mainly intended to be used for static data requiring efficient (modulo
 ; owl) iteration and random access.
 ;
-; in owl, vectors are implemented as complete 256-ary trees. small vectors 
-; fitting to one node of the tree are of raw or allocated type 11, meaning 
-; they usually take 8+4n or 4+n bytes of memory, depending on whether the 
+; in owl, vectors are implemented as complete 256-ary trees. small vectors
+; fitting to one node of the tree are of raw or allocated type 11, meaning
+; they usually take 8+4n or 4+n bytes of memory, depending on whether the
 ; values are normal descriptors or fixnums in the range 0-255.
 ;
-; large vectors are 256-ary trees. each dispatch node in the tree handles 
-; one byte of an index, and nodes starting from root each dispatch the 
-; highest byte of an index. when only one byte is left, one reads the 
+; large vectors are 256-ary trees. each dispatch node in the tree handles
+; one byte of an index, and nodes starting from root each dispatch the
+; highest byte of an index. when only one byte is left, one reads the
 ; reached leaf node, or the leaf node stored to the dispatch node.
 ;
-; thus reading the vector in order corresponds to breadth-first walk 
-; of the tree. notice that since no number > 0 has 0 as the highest 
-; byte, the first dispatch position of the root is always free. this 
-; position contains the size of the vector, so that it is accessable 
-; in O(1) without space overhead or special case handling. leaf nodes 
+; thus reading the vector in order corresponds to breadth-first walk
+; of the tree. notice that since no number > 0 has 0 as the highest
+; byte, the first dispatch position of the root is always free. this
+; position contains the size of the vector, so that it is accessable
+; in O(1) without space overhead or special case handling. leaf nodes
 ; have the size as part of the normal owl object header.
 
 ;; order example using binary trees
 ;
 ;           (0 1)                 bits 0 and 1, only 1 can have children
-;              |                  dispatch the top bit 
+;              |                  dispatch the top bit
 ;            (2 3)                bits from top, 10 11, numbers ending here 2 and 3
 ;            /   \                dispatch top and second bit
 ;           /     \
@@ -35,9 +35,9 @@
 ;       /  |       |  \
 ;      /   |       |   \
 ; (9 8) (10 11) (12 13) (14 15)   etc
-; 
-; vectors use the same, but with 256-ary trees, which works well because 
-; it is half of owl's fixnum base, so dispatching can be done easily without 
+;
+; vectors use the same, but with 256-ary trees, which works well because
+; it is half of owl's fixnum base, so dispatching can be done easily without
 ; shifting, and not too wide to make array mutations too bulky later.
 
 
@@ -139,7 +139,7 @@
       (define (vec-ref-digit v n)
          (case (type v)
             (type-vector-raw
-               (refb v (fxband n *vec-leaf-max*)))
+               (ref v (fxband n *vec-leaf-max*)))
             (type-vector-dispatch
                 (vec-ref-digit (ref v 1) n)) ; read the leaf of the node
             (type-vector-leaf
@@ -158,13 +158,13 @@
                (ncar n))
             (ncar n)))
 
-      ; vec x n -> vec[n] or fail 
+      ; vec x n -> vec[n] or fail
       (define (vec-ref v n)
          (case (type n)
             (type-fix+
                (cond
                   ((eq? (type v) type-vector-raw)
-                     (refb v n))
+                     (ref v n))
                   ((lesser? n *vec-leaf-size*)
                      (vec-ref-digit v n))
                   (else
@@ -174,7 +174,7 @@
             (else
                (error "vec-ref: bad index: " n))))
 
-      ;;; searching the leaves containing a pos 
+      ;;; searching the leaves containing a pos
 
       ;; todo: switch vec-ref to use vec-leaf-of for int+ indeces
 
@@ -305,9 +305,9 @@
       (define (merge-levels lst)
          (foldr
             (λ (this below)
-               ;; this = list of leaves which will be as such or in dispatch nodes 
+               ;; this = list of leaves which will be as such or in dispatch nodes
                ;;        on this level of the tree
-               ;; below = possible list of nodes up to 256 of which will be attached 
+               ;; below = possible list of nodes up to 256 of which will be attached
                ;;         as subtrees to each leaf of this level, starting from left
                (let loop ((below below) (this this))
                   (cond
@@ -344,15 +344,13 @@
 
 
       (define (list->vector l)
-         (cond
-            ((null? l)
-               empty-vector)
-            (else
-               ;; leaves are chunked specially, so do that in a separate pass. also 
-               ;; compute length to avoid possibly forcing a computation twice.
-               (lets ((chunks len (chunk-list l null null 0 #true 0)))
-                  ;; convert the list of leaf vectors to a tree
-                  (merge-chunks chunks len)))))
+         (if (null? l)
+            empty-vector
+            ;; leaves are chunked specially, so do that in a separate pass. also
+            ;; compute length to avoid possibly forcing a computation twice.
+            (lets ((chunks len (chunk-list l null null 0 #t 0)))
+               ;; convert the list of leaf vectors to a tree
+               (merge-chunks chunks len))))
 
       (define (vector? x) ; == raw or a variant of major type 11?
          (case (type x)
@@ -365,9 +363,9 @@
 
       (define (copy-bvec bv pos tail)
          (if (eq? pos 0)
-            (cons (refb bv pos) tail)
+            (cons (ref bv pos) tail)
             (lets
-               ((byte (refb bv pos))
+               ((byte (ref bv pos))
                 (pos _ (fx- pos 1)))
                (copy-bvec bv pos (cons byte tail)))))
 
@@ -385,9 +383,9 @@
 
       (define (iter-raw-leaf v p tl)
          (if (eq? p 0)
-            (cons (refb v p) tl)
+            (cons (ref v p) tl)
             (lets ((n _ (fx- p 1)))
-               (iter-raw-leaf v n (cons (refb v p) tl)))))
+               (iter-raw-leaf v n (cons (ref v p) tl)))))
 
       (define (iter-leaf v p tl)
          (if (eq? p 0)
@@ -456,7 +454,7 @@
          (if (eq? last 0)
             tl
             (lets ((last (- last 1)))
-               (cons (refb v last)
+               (cons (ref v last)
                   (λ () (iterr-raw-leaf v last tl))))))
 
       (define (iterr-leaf v p tl)
@@ -482,13 +480,11 @@
          (lets
             ((end (vec-len v))
              (last (band end *vec-leaf-max*)))
-            (cond
-               ((eq? last 0) ; vec is empty or ends to a full leaf
-                  (if (eq? end 0) ; blank vector
-                     null
-                     (vec-iterr-loop v (- end 1)))) ; start from previous leaf
-               (else
-                  (vec-iterr-loop v (- end 1))))))
+            (if (eq? last 0) ; vec is empty or ends to a full leaf
+               (if (eq? end 0) ; blank vector
+                  null
+                  (vec-iterr-loop v (- end 1))) ; start from previous leaf
+               (vec-iterr-loop v (- end 1)))))
 
       ;; vector folds
 
@@ -498,13 +494,11 @@
       ;; list conversions
 
       (define (vec->list vec)
-         (cond
-            ((eq? (type vec) type-vector-raw)
-               ;; convert raw vectors directly to allow this to be used also for large chunks
-               ;; which are often seen near IO code
-               (byte-vector->list vec))
-            (else
-               (vec-foldr cons null vec))))
+         (if (eq? (type vec) type-vector-raw)
+            ;; convert raw vectors directly to allow this to be used also for large chunks
+            ;; which are often seen near IO code
+            (byte-vector->list vec)
+            (vec-foldr cons null vec)))
 
       (define vector->list vec->list)
 
@@ -525,8 +519,8 @@
       ;;; Vector ranges
       ;;;
 
-      ;; fixme: proper vec-range not implemented 
-      (define (vec-range-naive vec from to) ; O(m log n) 
+      ;; fixme: proper vec-range not implemented
+      (define (vec-range-naive vec from to) ; O(m log n)
          (list->vector (map (H vec-ref vec) (iota from 1 to))))
 
       (define vec-range vec-range-naive)
@@ -559,9 +553,9 @@
       (define make-vector
          (case-lambda
             ((n)
-               (list->vector (repeat #false n)))
+               (list->vector (make-list n #f)))
             ((n val)
-               (list->vector (repeat val n)))))
+               (list->vector (make-list n val)))))
 
       ;;;
       ;;; Vector construction

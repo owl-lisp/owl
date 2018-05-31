@@ -6,8 +6,8 @@
 (define-library (owl dump)
 
    (export
-      make-compiler    ; ((make-compiler extra-insts) entry path opts native) 
-      dump-fasl 
+      make-compiler    ; ((make-compiler extra-insts) entry path opts native)
+      dump-fasl
       load-fasl
       suspend)
 
@@ -25,6 +25,7 @@
       (owl list-extra)
       (owl string)
       (owl io)
+      (owl port)
       (owl math)
       (owl render)
       (owl lazy)
@@ -49,19 +50,19 @@
             (cond
                ((immediate? node) trail)
                ((get trail node #false) trail)
-               ((symbol? node) 
+               ((symbol? node)
                   (let ((trail (put trail node 1)))
-                     (put trail tag 
+                     (put trail tag
                         (cons node (get trail tag null)))))
                ((raw? node) trail)
                (else
-                  (fold walk 
+                  (fold walk
                      (put trail node #true)
                      (tuple->list node)))))
          (define trail
             (walk (put empty tag null) node))
 
-         (get 
+         (get
             (walk (put empty tag null) node)
             tag null))
 
@@ -70,14 +71,14 @@
          (bytes->string
             (vec-iter
                (let ((vec (file->vector path)))
-                  (if vec 
+                  (if vec
                      vec
                      (error "Unable to load: " path))))))
 
       ;; todo: compress the rts source in heap
-      ;; todo: include rts source into lib-ccomp instead of keeping it in a separate file 
-      (define rts-source 
-         (file->string "c/ovm.c"))
+      ;; todo: include rts source into lib-ccomp instead of keeping it in a separate file
+      (define rts-source
+         (file->string "c/_vm.c"))
 
       ; str -> str' | #false
       (define (utf8-decode-string str)
@@ -87,14 +88,14 @@
                (begin
                   ;; don't use normal IO, since it may not yet be running.
                   (system-println "warning: bad UTF-8 in command line argument")
-                  ;; return the string although it has broken data. this allows 
-                  ;; paths with broken (or intentional) funny encodings to be 
+                  ;; return the string although it has broken data. this allows
+                  ;; paths with broken (or intentional) funny encodings to be
                   ;; passed as command line arguments.
                   str))))
 
       ;; walk over raw string using primops and look for bytes > 127
       (define (high-point? str pos)
-         (if (lesser? (refb str pos) 128)
+         (if (lesser? (ref str pos) 128)
             (lets ((pos underflow? (fx- pos 1)))
                (if underflow?
                   #false
@@ -106,13 +107,13 @@
          (let ((n (sizeb str))) ;; <- command line args are raw blocks so primitive lenb is ok
             (cond
                ((eq? n 0) str)
-               ((high-point? str (- n 1)) 
+               ((high-point? str (- n 1))
                   (utf8-decode-string str))
                (else str))))
 
       (define (with-decoded-args prog)
-         (λ (vm-args) 
-            (prog 
+         (λ (vm-args)
+            (prog
                (map utf8-decode-string vm-args))))
 
       ; notice that decoding brings bignum math as a dependency to all dumped heaps
@@ -132,7 +133,7 @@
                (render (car bytes) null))
             (else
                (let ((this (car bytes)))
-                  (render this 
+                  (render this
                      (cons 44
                         (render-byte-array (cdr bytes) (+ pos (width this)))))))))
 
@@ -142,14 +143,14 @@
             (if port
                (let loop ((data data))
                   (cond
-                     ((null? data) 
+                     ((null? data)
                         (close-port port)
                         #true)
                      ((pair? data)
                         (if (write-byte-vector port (car data))
                            (loop (cdr data))
                            #false))
-                     (else 
+                     (else
                         (loop (data)))))
                #false)))
 
@@ -195,7 +196,7 @@
                      ((= code 65536)
                         ;; would need a larger wrappers, but will not likely be necessary
                         ;; could be added as (+ (<< 1 6) 0) -> read 4 bytes
-                        (error "too many native opcodes." 
+                        (error "too many native opcodes."
                            "report this as an issue if this happens for a real program."))
                      ((compile-to-c (car obs) extras) =>
                         (λ (src)
@@ -208,13 +209,13 @@
 
       ; obj -> fixnum|#false
       (define (extended-opcode obj)
-         (if (and (bytecode? obj) (eq? 0 (refb obj 0)))
-            (+ (<< (refb obj 1) 8) (refb obj 2))
+         (if (and (bytecode? obj) (eq? 0 (ref obj 0)))
+            (+ (<< (ref obj 1) 8) (ref obj 2))
             #false))
 
       (define (show-func val)
          (cons 'bytecode
-            (map (H refb val) (iota 0 1 (sizeb val)))))
+            (map (H ref val) (iota 0 1 (sizeb val)))))
 
       ; native-ops → (obj → obj')
       ;; fixme: rewrite...
@@ -233,22 +234,22 @@
                         (error "could not find bytecode for opcode " opcode))))
                (else obj))))
 
-      ;; make a ff of opcode → original-bytecode. for example the repl 
-      ;; needs to know what the plain bytecode of each compiled version is in 
+      ;; make a ff of opcode → original-bytecode. for example the repl
+      ;; needs to know what the plain bytecode of each compiled version is in
       ;; order to for example build a new vm with possibly other set of native ops.
 
       (define (clone-code bc extras) ;; clone to not be eq? with the ones being compiled
          (cond
             ((extended-opcode bc) =>
-               ; the opcodes must be described with vanilla bytecode 
+               ; the opcodes must be described with vanilla bytecode
                ; this does not belong here...
                (λ (opcode)
                   (let ((original (get extras opcode #false)))
-                     (if original 
+                     (if original
                         (clone-code original extras)
                         (error "bug: no original code found for superinstruction " opcode)))))
             (else
-               (let ((bytes (map (H refb bc) (iota 0 1 (sizeb bc)))))
+               (let ((bytes (map (H ref bc) (iota 0 1 (sizeb bc)))))
                   (if (eq? (cadr bytes) 0)
                      (error "bug: vm speciazation instruction probably referencing code from current vm: " bytes))
                   (raw bytes type-bytecode))))) ; <- reallocate it
@@ -257,7 +258,7 @@
          (ff-fold
             (λ (sources bytecode info)
                (lets ((opcode wrapper c-code info))
-                  (put sources opcode 
+                  (put sources opcode
                      (clone-code bytecode extras))))
             empty native-ops))
 
@@ -281,20 +282,20 @@
                         (loop seen (cdr lst)
                            (ff-union this here +))))))))
 
-      ; ob → ((nrefs . ob) ..) 
+      ; ob → ((nrefs . ob) ..)
       (define (all-code-refs ob)
          (lets ((refs this (code-refs empty ob)))
             (ff-fold (λ (out x n) (cons (cons n x) out)) null this)))
 
       ;; _ → ((bytecode . bytecode) ...)
-      (define (codes-of ob) 
+      (define (codes-of ob)
          (lets ((refs this (code-refs empty ob)))
             (ff-fold (λ (out x n) (cons (cons x x) out)) null this)))
 
       ;; ob percent → (codevec ...)
       (define (most-linked-code ob perc)
          (print "Picking most shared code vectors:")
-         (lets 
+         (lets
             ((all (all-code-refs ob))
              (sorted (sort (λ (a b) (> (car a) (car b))) all))
              (_ (print " - total code vectors " (length sorted)))
@@ -311,7 +312,7 @@
                      (λ ()
                         (start-base-threads)    ;; get basic io running
                         (exit-owl (ob args))))) ;; exit thread scheduler with exit value of this thread (if it doesn't crash)
-               (list 
+               (list
                   (cons signal-tag signal-halt)
                   (cons 'root qnull)))))   ;; the init thread usually needs a mailbox
 
@@ -346,34 +347,34 @@
       ; dump entry object to path, or stdout if path is "-"
 
       (define (make-compiler extras)
-         (λ (entry path opts native . custom-runtime) ; <- this is the usual compile-owl 
+         (λ (entry path opts native . custom-runtime) ; <- this is the usual compile-owl
             (lets
                ((path (get opts 'output "-")) ; <- path argument deprecated
-                (format 
+                (format
                   ;; use given format (if valid) or choose using output file suffix
                   (or (cook-format (get opts 'output-format #false))
                      (choose-output-format opts path)))
 
                 ;(_ (print " - output format " format))
                 (entry ;; start threading if requested (note how this affects the other args)
-                  (if (get opts 'want-threads #false) 
+                  (if (get opts 'want-threads #false)
                      (with-threading entry)
                      entry)) ; <- continue adding this next
 
                 (entry ;; pass symbols to entry if requested (repls need this)
-                  (if (get opts 'want-symbols #false) 
+                  (if (get opts 'want-symbols #false)
                      (entry (symbols-of entry))
                      entry))
 
                 (entry ;; pass code vectors to entry if requested (repls need this)
-                  (if (get opts 'want-codes #false) 
+                  (if (get opts 'want-codes #false)
                      (entry (codes-of entry))
                      entry))
 
                 (native-ops ;; choose which bytecode vectors to add as extended vm instructions
                   (choose-native-ops (if (get opts 'native #false) entry native) extras))
 
-                (entry ;; possibly tell the entry function about extended opcodes 
+                (entry ;; possibly tell the entry function about extended opcodes
                   (if (get opts 'want-native-ops #false)
                      ;; entry is actually ((ff of extended-opcode → vanilla-bytecode) → entry)
                      (entry (original-sources native-ops extras))
@@ -382,10 +383,12 @@
                 (entry ;; possibly add code to utf-8 decode command line arguments
                   (if (get opts 'no-utf8-decode #false)
                      entry
-                     (with-decoded-args entry)))
+                     (with-decoded-args entry))) ;; must be pulled
 
                 (entry ;; pull command line args to owl from **argv
-                     (with-args entry))
+                   (if (get opts 'bare #f)
+                      entry
+                      (with-args entry)))
 
                 (native-cook ;; make a function to possibly rewrite bytecode during save (usually to native code wrappers)
                    (make-native-cook native-ops extras))
@@ -411,21 +414,21 @@
                      (print "Use -o file.c, -o file.fasl, or defined format with -x c or -x fasl")
                      #false)
                   ((eq? format 'fasl) ;; just save the fasl dump
-                     (write-bytes port bytes)
-                     (close-port port)
-                     #true)
+                     (if (write-bytes port bytes)
+                        (close-port port)
+                        #false))
                   ((eq? format 'c)
                      (write-bytes port ;; output fasl-encoded heap as an array
                         (append
                            (string->bytes "static const unsigned char heap[] = {")
                            (render-byte-array bytes 24)))
                      ;; dump also a fasl if requested
-                     (write-bytes port (string->bytes "};\n "))
-                     ;; dump ovm.c and replace /* AUTOGENERATED INSTRUCTIONS */ with new native ops (if any)
-                     (write-bytes port 
-                        (string->bytes 
+                     (write-bytes port (string->bytes "};\n"))
+                     ;; dump ovm.c and replace /*AUTOGENERATED INSTRUCTIONS*/ with new native ops (if any)
+                     (write-bytes port
+                        (string->bytes
                            (str-replace runtime
-                              "/* AUTOGENERATED INSTRUCTIONS */"
+                              "/*AUTOGENERATED INSTRUCTIONS*/"
                               (render-native-ops native-ops))))
 
                      ;; done, now just gcc -O2 -o foo <path>

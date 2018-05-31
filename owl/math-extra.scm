@@ -6,25 +6,25 @@
 
 (define-library (owl math-extra)
 
-   (export 
+   (export
       exact-integer-sqrt ;; n → m r, m^2 + r = n
       isqrt              ;; n → (floor (sqrt n))
       sqrt               ;; n → m, m^2 = n
       expt expt-mod
-      ncr npr 
+      ncr npr
       ! factor prime?
       primes-between
       totient phi divisor-sum divisor-count
       dlog dlog-simple
       fib
       histogram
-      ; inv-mod mod-solve 
+      ; inv-mod mod-solve
       )
 
-   (import 
+   (import
       (owl defmac)
       (owl math)
-      (owl iff) 
+      (owl iff)
       (owl list)
       (owl list-extra)
       (owl sort)
@@ -86,7 +86,7 @@
          (let ((sq (isqrt n)))
             (values sq (sub n (mul sq sq)))))
 
-      ;; sqrt n → m such that m^2 = n 
+      ;; sqrt n → m such that m^2 = n
       ;; fixme: finish sqrt after adding complex numbers
       (define (sqrt n)
          (case (type n)
@@ -98,7 +98,7 @@
                   (if (eq? r 0) s (error "sqrt: no exact solution for " n))))
             (type-fix- (complex 0 (sqrt (abs n))))
             (type-int- (complex 0 (sqrt (abs n))))
-            (else 
+            (else
                (error "sqrt: math too high: " n))))
 
       ;;; exponentiation
@@ -124,23 +124,23 @@
             ((eq? (type b) type-int-) (/ 1 (expt a (negate b))))
             (else (big-bad-args 'expt a b))))
 
-      ; (mod (expt a b) m) = (expt-mod a b m)
+      ; (modulo (expt a b) m) = (expt-mod a b m)
 
       (define (expt-mod-loop ap p out m)
          (cond
-            ((eq? p 0) (mod out m))
+            ((eq? p 0) (modulo out m))
             ((eq? (band p 1) 0)
-               (expt-mod-loop (rem (mul ap ap) m) (>> p 1) out m))
+               (expt-mod-loop (remainder (mul ap ap) m) (>> p 1) out m))
             (else
-               (expt-mod-loop (rem (mul ap ap) m) (>> p 1) 
-                  (rem (mul out ap) m) m))))
-            
+               (expt-mod-loop (remainder (mul ap ap) m) (>> p 1)
+                  (remainder (mul out ap) m) m))))
+
       (define (expt-mod a b m)
          (cond
-            ((eq? b 0) (mod 1 m))
-            ((eq? b 1) (mod a m))
+            ((eq? b 0) (modulo 1 m))
+            ((eq? b 1) (modulo a m))
             (else
-               (expt-mod-loop (rem a m) (sub b 1) a m))))
+               (expt-mod-loop (remainder a m) (sub b 1) a m))))
 
       ;;;
       ;;; PRIMES AND FACTORING
@@ -155,7 +155,7 @@
       ; n < 341,550,071,728,321, a = 2, 3, 5, 7, 11, 13, and 17.
 
       (define first-primes
-         (list->ff 
+         (list->ff
             (map (λ (x) (cons x x))
                '(2 3 5 7 11 13 17))))
 
@@ -176,9 +176,7 @@
                   (else (loop (expt-mod y 2 n) (+ j 1)))))))
 
       (define (miller-rabin-cases-ok? num tests)
-         (fold
-            (lambda (status a) (and status (miller-rabin num a)))
-            #true tests))
+         (every (H miller-rabin num) tests))
 
       (define assume-riemann-hypothesis? #true)
 
@@ -204,7 +202,7 @@
 
       (define (ln+ n)   ; return a number >= floor(ln(n))
          (let loop ((a 1) (b 1) (p 0))
-            (if (> (div a b) n)
+            (if (> (quotient a b) n)
                p
                (loop (* a 25946) (* b 9545) (+ p 1)))))
 
@@ -220,7 +218,7 @@
                   (else
                      (let loopr ((r (- s 1)))
                         (cond
-                           ((= r -1) #false)   ; composite 
+                           ((= r -1) #false)   ; composite
                            ((= (expt-mod a (<< d r) n) np) (loop (+ a 1)))
                            (else (loopr (- r 1))))))))))
 
@@ -238,16 +236,10 @@
             ((< n 341550071728321) (miller-rabin-cases-ok? n '(2 3 5 7 11 13 17)))
             (else (miller-rabin-det n))))
 
-      ;; Atkin sieve 
+      ;; Atkin sieve
 
       (define (atkin-flip ff num)
          (iput ff num (not (iget ff num #false))))
-
-      (define (between? a x b)
-         (cond
-            ((> a x) #false)
-            ((< b x) #false)
-            (else #true)))
 
       ; later apply the knowledge about limits
       (define (atkin-candidates lo max)
@@ -260,23 +252,23 @@
                         (loox store (+ x 1))
                         ; eww, fix later
                         (lets
-                           ((xx (* x x)) 
+                           ((xx (* x x))
                             (yy (* y y))
                             (n (+ (* 4 xx) yy))
-                            (nm (rem n 12))
+                            (nm (remainder n 12))
                             (store
-                              (if (and (between? lo n max) (or (eq? nm 1) (eq? nm 5)))
+                              (if (and (<= lo n max) (or (eq? nm 1) (eq? nm 5)))
                                  (atkin-flip store n)
                                  store))
                             (n (+ (* 3 xx) yy))
-                            (nm (rem n 12))
+                            (nm (remainder n 12))
                             (store
-                              (if (and (between? lo n max) (eq? nm 7))
+                              (if (and (<= lo n max) (eq? nm 7))
                                  (atkin-flip store n)
                                  store))
                             (n (- n (<< yy 1))))
-                           (if (and (> x y) 
-                                 (and (between? lo n max) (eq? (rem n 12) 11)))
+                           (if (and (> x y)
+                                 (and (<= lo n max) (eq? (remainder n 12) 11)))
                               (looy (atkin-flip store n) (+ y 1))
                               (looy store (+ y 1))))))))))
 
@@ -299,16 +291,15 @@
       (define (atkin-try pows prime)
          (let loop ((n (car pows)) (these 0))
             (if (eq? n 1)
-               (if (eq? these 0)   
+               (if (eq? these 0)
                   pows
-                  (cons 1 (cons (cons prime these) (cdr pows))))
+                  (ilist 1 (cons prime these) (cdr pows)))
                (let ((q (ediv n prime)))
                   (cond
                      (q (loop q (+ these 1)))
                      ((eq? these 0) pows)
-                     (else
-                        (cons n    (cons (cons prime these) (cdr pows)))))))))
-                        
+                     (else (ilist n (cons prime these) (cdr pows))))))))
+
       (define (atkin-apply store pows)
          (call/cc
             (lambda (done)
@@ -327,11 +318,11 @@
          (cond
             ((> lo hi) null)
             ; 2 and 3 are special
-            ((between? lo 2 hi) (cons 2 (atkin-primes-between 3 hi)))
-            ((between? lo 3 hi) (cons 3 (atkin-primes-between 5 hi)))
+            ((<= lo 2 hi) (cons 2 (atkin-primes-between 3 hi)))
+            ((<= lo 3 hi) (cons 3 (atkin-primes-between 5 hi)))
             (else
                (sort <
-                  (ifold 
+                  (ifold
                      (λ (out k v) (if v (cons k out) out))
                      null
                      (atkin-remove-squares hi
@@ -340,7 +331,7 @@
       (define primes-between atkin-primes-between)
 
       (define (factor-atkin-between lo hi pows)
-         (atkin-apply 
+         (atkin-apply
             (atkin-remove-squares hi
                (atkin-candidates lo hi))
             pows))
@@ -349,7 +340,7 @@
          (let ((max (min (<< lo 1) (isqrt (car pows)))))
             (let ((pows (factor-atkin-between lo max pows)))
                (cond
-                  ((eq? (car pows) 1)   
+                  ((eq? (car pows) 1)
                      (cdr pows))
                   ((>= max (isqrt (car pows)))
                      (cons (cons (car pows) 1) (cdr pows)))
@@ -358,30 +349,30 @@
 
       ; fixme, try different options
       ;   - factor out twos first
-      ;   - try low primes 
+      ;   - try low primes
       ;   - more low primes
       ;  - quick prime? check (maybe miller-rabin (2 3 5))
       ;  - limited pollard-rho
       ;   - full trial division
       ;   - intermediate prime? checks
 
-      (define (factor n)   
+      (define (factor n)
          (if (> n 1)
             (or
                ;; prime check is relatively fast (for deterministic range) so try it first
                (if (prime? n)
                   (list (cons n 1))
                   #false)
-               (let 
+               (let
                   ((pows
-                     (fold atkin-try (list n)   
+                     (fold atkin-try (list n)
                         '(2 3 5 7 11 13 17 19 23 29 31))))
                   (if (eq? (car pows) 1)
                      (cdr pows)
                      (atkin-factor-driver pows 32))))
             null))
-      
-               
+
+
       ;;;
       ;;; UNSORTED
       ;;;
@@ -453,7 +444,7 @@
       (define (divisor-count n)
          (if (eq? n 1)
             1
-            (fold 
+            (fold
                (lambda (out n) (* out (+ (cdr n) 1)))
                1 (factor n))))
 
@@ -472,11 +463,11 @@
                   ((iget seen this #false) #false) ; looped, not solvable
                   (else (loop (+ x 1) (iput seen this #true)))))))
 
-      ;; like naive, but avoids useless multiplications and remainders 
+      ;; like naive, but avoids useless multiplications and remainders
       (define (dlp-simple y a n)
          (let loop ((x 0) (v 1) (seen empty))
             (cond
-               ((>= v n) (loop x (rem v n) seen))      ; overflow
+               ((>= v n) (loop x (remainder v n) seen)) ; overflow
                ((= v y) x)                             ; solved
                ((iget seen v #false) #false)             ; looped -> not solvable
                (else                                   ; try next
@@ -485,7 +476,7 @@
       ;; like simple, but has O(1) space at the cost of ~1.5x time
       (define (dlp-th-step v a n)
          (let ((v (* a v)))
-            (if (>= v n) (rem v n) v)))
+            (if (>= v n) (remainder v n) v)))
 
       (define (dlp-th y a n)
          (if (= y 1)
@@ -497,10 +488,9 @@
                   (step?                                 ; fast hare is fast
                      (loop x1 v1 (+ x2 1) (dlp-th-step v2 a n) #false))
                   (else                                  ; enhance
-                     (loop 
+                     (loop
                         (+ x1 1) (dlp-th-step v1 a n)
                         (+ x2 1) (dlp-th-step v2 a n) #true))))))
-     
 
       ;; Shanks' baby-step giant-step algorithm (still not quite working properly)
 
@@ -510,7 +500,7 @@
          (cond
             ((null? b) #false)
             ((null? g) #false)
-            ((= (caar b) (caar g)) 
+            ((= (caar b) (caar g))
                (let ((x (- (cdar g) (cdar b))))
                   (if (pred x)
                      x
@@ -520,7 +510,7 @@
 
       ;; a silly mod to avoid some remainders
       (define (bound x n)
-         (if (< x n) x (mod x n)))
+         (if (< x n) x (modulo x n)))
 
       ;; this can be done much more efficiently incrementally, but just testing for correctness now
       ;; todo: use incremental construction and an iff to check for matches
@@ -537,7 +527,7 @@
             ((s (sqrt-ceil n))
              (baby
                (sort carless
-                  (map (λ (r) (cons (rem (* y (expt-mod a r n)) n) r)) ; (ya^r. r)
+                  (map (λ (r) (cons (remainder (* y (expt-mod a r n)) n) r)) ; (ya^r. r)
                      (iota 5 1 s)))
                ;(sort carless
                ;   (let loop ((ya (bound y n)) (r 0))

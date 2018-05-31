@@ -8,10 +8,11 @@
 (define-library (owl iff)
 
    (export iget iput ifold iff->list)
-   
-   (import 
+
+   (import
       (owl defmac)
       (owl ff)
+      (only (owl math) ncar ncdr ncons)
       (owl list))
 
    (begin
@@ -58,7 +59,7 @@
       (define (iff-walk op st ff taken)
          (lets
             ((this (get ff tag iff-nan))
-             (st (if (eq? this iff-nan) st  
+             (st (if (eq? this iff-nan) st
                      (op st (nrev null taken) this))))
             (ff-fold
                (λ (st digit more)
@@ -66,11 +67,11 @@
                      (iff-walk op st more (ncons digit taken))
                      st))
                st ff)))
-            
+
       (define (ifold op st ff)
          (ff-fold
             (λ (st k v)
-               (if k 
+               (if k
                   (iff-walk op st v (ncons k null))
                   st))
             (ff-fold op st (get ff tag empty))
@@ -78,6 +79,4 @@
 
       (define (iff->list iff)
          (ifold (lambda (tail n v) (cons (cons n v) tail)) null iff))
-
 ))
-

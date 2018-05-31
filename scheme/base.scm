@@ -55,7 +55,6 @@
       close-port
       complex?
       cond
-      cond-expand
       cons
       current-error-port
       current-input-port
@@ -206,7 +205,6 @@
       symbol=?
       symbol?
       syntax-error
-      syntax-rules
       textual-port?
       truncate
       truncate-quotient
@@ -247,7 +245,9 @@
       (owl equal)
       (owl list)
       (only (owl function) procedure?)
+      (only (owl ff) get)
       (only (owl syscall) error)
+      (only (owl variable) link-variable)
       (owl string)
       (owl primop)
       (owl math-extra)
@@ -258,6 +258,7 @@
       (owl list-extra)
       (owl io)
       (owl boolean)
+      (owl char)
       (owl math))
 
    (begin
@@ -268,7 +269,7 @@
                (define-values (x ...)
                   (values (quote x) ...)))))
 
-      (define-symbols ... => unquote unquote-splicing)
+      (define-symbols ... => else unquote unquote-splicing)
 
       (define-syntax define-missing-bad
          (syntax-rules ()
@@ -277,37 +278,32 @@
                   (lambda args
                      (error "Implementation restriction:" (cons (quote name) args)))))))
 
-      (define-syntax define-missing-my-bad
-         (syntax-rules ()
-            ((define-missing-my-bad name)
-               (define name
-                  (lambda args
-                     (error "Currently missing or incompatible:" (cons (quote name) args)))))))
+      (define call-with-current-continuation call/cc)
 
+      (define features
+         (let ((owl-state (link-variable '*state*)))
+            (λ () (get (owl-state) 'features null))))
 
       ;; grr, scheme member functions don't follow the argument conventions of other functions used in owl...
 
-      (define (member x lst)
-         (cond
-            ((null? lst) #false)
-            ((equal? x (car lst)) lst)
-            (else (member x (cdr lst)))))
+      (define (member x lst . cmp)
+         (find-tail
+            (H (if (null? cmp) equal? (car cmp)) x)
+            lst))
 
-      (define memv member)
+      (define (memv x lst)
+         (member x lst eqv?))
 
-      (define (memq x lst)
-         (has? lst x))
+      (define (assoc k lst . cmp)
+         (find
+            (B (H (if (null? cmp) equal? (car cmp)) k) car)
+            lst))
 
-      (define (assq k lst)
-         (getq lst k))
+      (define (assv k lst)
+         (assoc k lst eqv?))
 
-      (define (assv k l)
-         (cond
-            ((null? l) #f)
-            ((equal? (caar l) k) (car l))
-            (else (assv k (cdr l)))))
-
-      (define assoc assv)
+      ;; just for compatibility, as lists are always immutable in owl
+      (define list-copy self)
 
       ;; a silly non-primitive apply
       ;(define (apply func l)
@@ -321,9 +317,22 @@
       ;      (lets ((f l l)) (if (null? l) (func a b c d e f)
       ;         (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
 
+      (define floor-remainder modulo)
+      (define truncate-quotient quotient)
+      (define truncate-remainder remainder)
+
       ;; owl doesn't have inexact numbers, so any argument
       ;; coming in will always be rational differing by 0
       (define rationalize K)
+
+      (define (exact? n) #t)
+      (define (inexact? n) #f)
+      (define exact self)
+      (define inexact self)
+      (define exact-integer? integer?)
+
+      (define (string-for-each proc str)
+         (str-fold (λ (_ c) (proc c)) #t str))
 
       (define string->number
          (case-lambda
@@ -339,17 +348,57 @@
       (define (number->string/base n base)
          (list->string (render-number n null base)))
 
-      (define-syntax when
-         (syntax-rules ()
-            ((when test exp ...)
-               (if test (begin exp ...)))))
-
       (define number->string
          (case-lambda
             ((n) (number->string/base n 10))
             ((n base) (number->string/base n base))))
 
       (define (square x) (* x x))
+
+      (define (current-input-port) stdin)
+      (define (current-output-port) stdout)
+      (define (current-error-port) stderr)
+
+      (define binary-port? port?)
+      (define textual-port? port?)
+
+      (define (newline . port)
+         (write-really '#(#\newline) (if (null? port) stdout (car port))))
+
+      (define-syntax call-with-values
+         (syntax-rules ()
+            ((call-with-values (lambda () exp) (lambda (arg ...) body))
+               (receive exp (lambda (arg ...) body)))
+            ((call-with-values thunk (lambda (arg ...) body))
+               (receive (thunk) (lambda (arg ...) body)))))
+
+      (define-syntax do
+         (syntax-rules (__init)
+            ((do __init () ((var init step) ...) (test then ...) command ...)
+               (let loop ((var init) ...)
+                  (if test
+                     (begin then ...)
+                     (begin
+                        command ...
+                        (loop step ...)))))
+            ((do __init ((var init step) . rest) done . tail)
+               (do __init rest ((var init step) . done) . tail))
+            ((do __init ((var init) . rest) done . tail)
+               (do __init rest ((var init var) . done) . tail))
+            ((do (vari ...) (test exp ...) command ...)
+               (do __init (vari ...) () (test exp ...) command ...))))
+
+      (define-syntax let*-values
+         (syntax-rules ()
+            ((let*-values (((var ...) gen) . rest) . body)
+               (receive gen
+                  (λ (var ...) (let*-values rest . body))))
+            ((let*-values () . rest)
+               (begin . rest))))
+
+      (define-syntax let*
+         (syntax-rules ()
+            ((let* . stuff) (lets . stuff))))
 
       (define-missing-bad write-u8)
       (define-missing-bad write-string)
@@ -365,16 +414,8 @@
       (define-missing-bad vector-append)
       (define-missing-bad vector->string)
       (define-missing-bad utf8->string)
-      (define-missing-bad unless)
       (define-missing-bad u8-ready?)
-      (define-missing-bad truncate/)
-      (define-missing-bad truncate-remainder)
-      (define-missing-bad truncate-quotient)
-      (define-missing-bad textual-port?)
-      (define-missing-bad syntax-rules)
       (define-missing-bad string-set!)
-      (define-missing-bad string-map)
-      (define-missing-bad string-for-each)
       (define-missing-bad string-fill!)
       (define-missing-bad string-copy!)
       (define-missing-bad string->vector)
@@ -400,20 +441,14 @@
       (define-missing-bad open-output-bytevector)
       (define-missing-bad open-input-string)
       (define-missing-bad open-input-bytevector)
-      (define-missing-bad newline)
       (define-missing-bad make-parameter)
-      (define-missing-bad make-list)
       (define-missing-bad make-bytevector)
-      (define-missing-bad list-tail)
       (define-missing-bad list-set!)
-      (define-missing-bad list-copy)
       (define-missing-bad letrec-syntax)
       (define-missing-bad let-values)
       (define-missing-bad let-syntax)
-      (define-missing-bad integer->char)
       (define-missing-bad input-port?)
       (define-missing-bad input-port-open?)
-      (define-missing-bad inexact)
       (define-missing-bad include-ci)
       (define-missing-bad include)
       (define-missing-bad guard)
@@ -421,30 +456,15 @@
       (define-missing-bad get-output-bytevector)
       (define-missing-bad flush-output-port)
       (define-missing-bad floor/)
-      (define-missing-bad floor-remainder)
       (define-missing-bad floor-quotient)
       (define-missing-bad file-error?)
-      (define-missing-bad features)
-      (define-missing-bad exact-integer?)
-      (define-missing-bad exact)
       (define-missing-bad error-object?)
       (define-missing-bad error-object-message)
       (define-missing-bad error-object-irritants)
-      (define-missing-bad else)
       (define-missing-bad dynamic-wind)
-      (define-missing-bad current-output-port)
-      (define-missing-bad current-input-port)
-      (define-missing-bad current-error-port)
-      (define-missing-bad cond-expand)
       (define-missing-bad close-output-port)
       (define-missing-bad close-input-port)
-      (define-missing-bad char?)
-      (define-missing-bad char>?)
-      (define-missing-bad char>=?)
-      (define-missing-bad char<?)
-      (define-missing-bad char<=?)
       (define-missing-bad char-ready?)
-      (define-missing-bad char->integer)
       (define-missing-bad call-with-port)
       (define-missing-bad bytevector?)
       (define-missing-bad bytevector-u8-set!)
@@ -454,6 +474,4 @@
       (define-missing-bad bytevector-copy)
       (define-missing-bad bytevector-append)
       (define-missing-bad bytevector)
-      (define-missing-bad boolean=?)
-      (define-missing-bad binary-port?)
 ))

@@ -12,8 +12,8 @@ echo '(lambda (args) (print "kissa") 42)' > $LISP # <- halt with exit value 42
 
 # check that all compile silently and produce equal code
 $@ -x c -o $C1 $LISP
-$@ -x c < $LISP > $C2 
-$@ -x c -o $C3 < $LISP 
+$@ -x c < $LISP > $C2
+$@ -x c -o $C3 < $LISP
 
 # check that the outputs are equal
 diff $C1 $C2 || exit 1

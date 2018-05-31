@@ -32,7 +32,7 @@
       (owl symbol))
 
    (begin
-      ; hack warning, could use normal = and < here, but 
+      ; hack warning, could use normal = and < here, but
       ; using primitives speeds up parsing a bit
 
       (define empty-symbol-tree #false)
@@ -119,7 +119,7 @@
       (define (compare-bytes a b pos end)
          (if (eq? pos end)
             is-equal
-            (let ((ab (refb a pos)) (bb (refb b pos)))
+            (let ((ab (ref a pos)) (bb (ref b pos)))
                (cond
                   ((eq? ab bb) (compare-bytes a b (+ pos 1) end))
                   ((lesser? ab bb) is-less)
@@ -194,10 +194,6 @@
             ((bytecode? func) func)
             ((function? func) (bytecode-of (ref func 1)))
             (else #false)))
-
-      ;(define (debug . args)
-      ;   ;(apply print-to (cons stderr args))
-      ;   42)
 
       ;; thread with string → symbol, ...
       (define (interner root codes)

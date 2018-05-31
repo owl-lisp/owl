@@ -1,5 +1,6 @@
 doc/ol.1.gz
 doc/ovm.1.gz
+c/_vm.c
 c/ol.c
 c/vm.c
 fasl/boot.fasl
@@ -9,3 +10,4 @@ tmp
 bin/ol
 bin/ol-old
 bin/vm
+.start

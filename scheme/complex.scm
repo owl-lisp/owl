@@ -7,25 +7,27 @@
       (only (owl math-extra) sqrt)
       (only (owl syscall) error))
 
-  (export angle imag-part magnitude make-polar make-rectangular real-part)
+   (export angle imag-part magnitude make-polar make-rectangular real-part)
 
-  (begin
+   (begin
 
-    (define (angle z)
+      (define (angle z)
       (error "angle" "Not supported by the implementation."))
 
-    (define (imag-part z)
-      (lets ((real imag z)) imag))
+      (define (imag-part z)
+         (lets ((real imag z)) imag))
 
-    (define (real-part z)
-      (lets ((real imag z)) real))
+      (define (real-part z)
+         (lets ((real imag z)) real))
 
-    (define (magnitude z)
-      (sqrt (+ (square (imag-part z))
+      (define (magnitude z)
+         (sqrt
+            (+ (square (imag-part z))
                (square (real-part z)))))
 
-    (define (make-polar mag ang)
-      (error "make-polar" "Not supported by the implementation."))
+      (define (make-polar mag ang)
+         (error "make-polar" "Not supported by the implementation."))
 
-    (define (make-rectangular rl im)
-      (+ rl (* im 0+i)))))
+      (define (make-rectangular rl im)
+         (+ rl (* im 0+i)))
+))

@@ -37,7 +37,7 @@
 		(lets ((rst n (rand rst 3)))
 			(cond
 				((eq? n 0) ;; insert
-					(lets 
+					(lets
 						((rst k (rand rst alpha))
 						 (rst v (rand rst alpha)))
 						(work rst (put ff k v) (lput lst k v) end alpha)))
@@ -55,4 +55,3 @@
 	 (rst n (rand-range rst 4 15))
 	 (rst alpha (rand-nbit rst n)))
 	(work rst empty null (+ (time-ms) 100) alpha))
-		

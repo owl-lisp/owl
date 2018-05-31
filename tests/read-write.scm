@@ -13,7 +13,7 @@
      (val (read file)))
     (close-port file)
     val))
-  
+
 (define (test val)
   (output val)
   (let ((x (input)))

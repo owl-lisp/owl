@@ -13,7 +13,6 @@
       string->runes      ; string -> list of unicode code points
       list->string       ; aka runes->string
       string->list       ; aka string->runes
-      string-eq?
       string-append
       c-string           ; str → #false | UTF-8 encoded null-terminated raw data string
       null-terminate     ; see ^
@@ -24,11 +23,9 @@
       str-iterr          ; "a .. n" -> lazy (n .. a) list
       str-fold           ; fold over code points, as in lists
       str-foldr          ; ditto
-      str-app            ; a ++ b, temp
       str-iter-bytes     ; "a .. n" -> lazy list of UTF-8 encoded bytes
-      ; later: str-len str-ref str-set str-append...
       str-replace        ; str pat value -> str' ;; todo: drop str-replace, we have regexen now
-      str-map            ; op str → str'
+      string-map         ; op str → str'
       str-rev
       string             ; (string char ...) → str
       string-copy        ; id
@@ -46,8 +43,6 @@
       string-ci>=?       ; str str → bool
       unicode-fold-char  ; char tail → (char' ... tail)
       make-string        ; n char → str
-      char=?             ; cp cp → bool (temp)
-      char-ci=?          ; cp cp → bool (temp)
       )
 
    (import
@@ -83,7 +78,7 @@
       (define (str-iter-leaf str tl pos end)
          (if (eq? pos end)
             tl
-            (pair (refb str pos)
+            (pair (ref str pos)
                (lets ((pos u (fx+ pos 1)))
                   (str-iter-leaf str tl pos end)))))
 
@@ -114,12 +109,12 @@
 
       (define str-iter (C str-iter-any null))
 
-      ;;; iterate backwards 
+      ;;; iterate backwards
 
       (define (str-iterr-leaf str tl pos)
          (if (eq? pos 0)
-            (cons (refb str pos) tl)
-            (pair (refb str pos)
+            (cons (ref str pos) tl)
+            (pair (ref str pos)
                (lets ((pos u (fx- pos 1)))
                   (str-iterr-leaf str tl pos)))))
 
@@ -199,13 +194,6 @@
 
       ;; making strings (temp)
 
-      (define (split lr lst pos)
-         (cond
-            ((eq? pos 0)
-               (values (reverse lr) lst))
-            (else
-               (split (cons (car lst) lr) (cdr lst) (- pos 1)))))
-
       (define (finish-string chunks)
          (let ((n (length chunks)))
             (cond
@@ -214,10 +202,10 @@
                ((> n 4)
                   ; use 234-nodes for now
                   (lets
-                     ((q (div n 4))
-                      (a l (split null chunks q))
-                      (b l (split null l q))
-                      (c d (split null l q))
+                     ((q (>> n 2))
+                      (a l (split-at chunks q))
+                      (b l (split-at l q))
+                      (c d (split-at l q))
                       (subs (map finish-string (list a b c d)))
                       (len (fold + 0 (map string-length subs))))
                      (listuple type-string-dispatch 5 (cons len subs))))
@@ -266,12 +254,10 @@
 
       ;;; temps
 
-      ; fixme: str-app is VERY temporary
+      ; FIXME: string-append is VERY temporary
       ; figure out how to handle balancing. 234-trees with occasional rebalance?
-      (define (str-app a b)
-         (bytes->string
-            (render-string a
-               (render-string b null))))
+      (define (string-append . lst)
+         (bytes->string (foldr render-string null lst)))
 
       (define (string-eq-walk a b)
          (cond
@@ -294,14 +280,11 @@
                   (else (string-eq-walk a (b)))))
             (else (string-eq-walk (a) b))))
 
-      (define (string-eq? a b)
+      (define (string=? a b)
          (let ((la (string-length a)))
             (if (= (string-length b) la)
                (string-eq-walk (str-iter a) (str-iter b))
                #false)))
-
-      (define (string-append . str)
-         (fold str-app "" str))
 
       (define string->list string->runes)
       (define list->string runes->string)
@@ -314,11 +297,11 @@
       (define (c-string str) ; -> bvec | #false
          (raw
             (str-foldr
-            ;; do not re-encode raw strings. these are normally ASCII strings 
-            ;; which would not need encoding anyway, but explicitly bypass it 
-            ;; to allow these strings to contain *invalid string data*. This 
-            ;; allows bad non UTF-8 strings coming for example from command 
-            ;; line arguments (like paths having invalid encoding) to be used 
+            ;; do not re-encode raw strings. these are normally ASCII strings
+            ;; which would not need encoding anyway, but explicitly bypass it
+            ;; to allow these strings to contain *invalid string data*. This
+            ;; allows bad non UTF-8 strings coming for example from command
+            ;; line arguments (like paths having invalid encoding) to be used
             ;; for opening files.
                (if (eq? (type str) type-string)
                   cons
@@ -328,9 +311,9 @@
 
       (define null-terminate c-string)
 
-      ;; a naive string replace. add one of the usual faster versions and 
+      ;; a naive string replace. add one of the usual faster versions and
       ;; basic regex matching later (maybe that one to lib-lazy instead?)
-      ;; but even a slow one will do for now because it is needd for dumping 
+      ;; but even a slow one will do for now because it is needd for dumping
       ;; sources.
 
       ;; todo: let l be a lazy list and iterate with it over whatever
@@ -364,7 +347,7 @@
                (string->runes pat)
                (string->runes val))))
 
-      (define (str-map op str)
+      (define (string-map op str)
          (runes->string
             (lmap op (str-iter str))))
 
@@ -429,16 +412,6 @@
                      (pair cp (upcase ll))))
                null)))
 
-      (define char=? =)
-
-      ;; fixme: incomplete, added because needed for ascii range elsewhere
-      (define (char-ci=? a b)
-         (or (eq? a b)
-            (=
-               (iget char-fold-iff a a)
-               (iget char-fold-iff b b))))
-
-      (define string=? string-eq?)
       (define (string-ci=? a b) (eq? 2 (str-compare upcase a b)))
 
       (define (string<? a b)       (eq? (str-compare self a b) 1))
@@ -460,5 +433,5 @@
             (str-iter str)))
 
       (define (make-string n char)
-         (list->string (repeat char n)))
+         (list->string (make-list n char)))
 ))

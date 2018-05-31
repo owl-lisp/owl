@@ -1,7 +1,7 @@
 
 (import (owl sys))
 
-(rmdir "tmp/new") ;; in case we have it already 
+(rmdir "tmp/new") ;; in case we have it already
 
 (print "rmdir tmp/new -> " (rmdir "tmp/new")) ;; no
 

@@ -2,7 +2,7 @@
 
 ; ,r "lib/io.scm" (import lib-io)
 
-(define block-size 64)     ;; todo: must add block-size support the channel and vary this above it 
+(define block-size 64)     ;; todo: must add block-size support the channel and vary this above it
 (define data-length 1000)  ;; how much data to transfer
 
 (define sp
@@ -34,8 +34,7 @@
    (lets
       ((rst n (rand rst block-size))
        (rst vec (rand rst 2))
-       (hd (take lst n))
-       (tl (drop lst n)))
+       (hd tl (split-at lst n)))
       (values rst (if (eq? vec 0) hd (list->vector hd)) tl)))
 
 (define (explode bvec tail)
@@ -71,7 +70,7 @@
                (wait n)
                (io fd rst data left reqs)))
          ((and (null? data) (= left 0)) ;; all sent and enough received
-            (let loop ((reqs reqs)) ;; read responses to remaining requests 
+            (let loop ((reqs reqs)) ;; read responses to remaining requests
                (if (= reqs 0)
                   null ;; all done
                   (let ((env (wait-mail)))

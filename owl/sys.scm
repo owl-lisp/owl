@@ -1,4 +1,4 @@
-;;; Owl sys library exports various operating system calls and helper 
+;;; Owl sys library exports various operating system calls and helper
 ;;; functions for using them.
 
 (define-library (owl sys)
@@ -54,10 +54,6 @@
       O_APPEND
       O_CREAT
       O_TRUNC
-      stdin
-      stdout
-      stderr
-      stdio?
       close
       fcntl
       open
@@ -65,12 +61,16 @@
       read
       write
       port->non-blocking
+      CLOCK_REALTIME
+      clock_gettime
       set-terminal-rawness
       mem-string      ;; pointer to null terminated string → raw string
       mem-strings     ;; **string → (raw-string ...)
       ;peek-word       ;; these are mainly for internal (owl sys) use
       ;peek-byte       ;;
       get-environment
+      get-heap-bytes-written
+      get-heap-max-live
       )
 
    (import
@@ -92,11 +92,6 @@
 
       (define (sys-const i)
          (lambda () (sys-prim 8 i #f #f)))
-
-      (define stdin  (fd->port 0))
-      (define stdout (fd->port 1))
-      (define stderr (fd->port 2))
-      (define stdio? (H has? (list stdin stdout stderr)))
 
       ;; owl value → value processable in vm (mainly string conversion)
       (define (sys-arg x)
@@ -294,7 +289,7 @@
 
       (define (port->non-blocking port)
          (if port
-            (toggle-file-status-flag port (O_NONBLOCK) (not (stdio? port))))
+            (toggle-file-status-flag port (O_NONBLOCK) (not (stdio-port? port))))
          port)
 
       (define (open path flags mode)
@@ -307,7 +302,7 @@
                      (sys 30 port new-fd)
                      (let ((fd (fcntl port (F_DUPFD) new-fd)))
                         (and fd (fd->port fd))))))
-            (if (stdio? port)
+            (if (stdio-port? port)
                (toggle-file-status-flag port (O_NONBLOCK) #f))
             port))
 
@@ -319,7 +314,7 @@
 
       (define (write port data len)
          (or
-            (sys 0 port data len)
+            (sys 42 port data len)
             (and
                (let ((err (errno)))
                   (or (eq? (EAGAIN) err) (eq? (EWOULDBLOCK) err)))
@@ -348,7 +343,7 @@
       ;;; Safe derived operations
       ;;;
 
-      ;; dir elements are #false or fake strings, which have the type of small raw ASCII 
+      ;; dir elements are #false or fake strings, which have the type of small raw ASCII
       ;; strings, but may in fact contain anything the OS happens to allow in a file name.
 
       (define (dir-fold op st path)
@@ -367,7 +362,7 @@
       (define (dir->list path)
          (dir-fold
             (λ (seen this)
-               (if (eq? #\. (refb this 0))
+               (if (eq? #\. (ref this 0))
                   seen
                   (cons this seen)))
             null path))
@@ -388,9 +383,7 @@
       ;; list->tuple + internal conversion might also be worth doing in sys-arg instead
       (define (exec path args)
          (lets ((args (map c-string args)))
-            (if (all self args)
-               (sys 17 path args)
-               #false)))
+            (and (every self args) (sys 17 path args))))
 
       ;; → #false on failure, else '(read-port . write-port)
       (define (pipe)
@@ -491,7 +484,7 @@
             (sys 38 arg follow)))
 
       (define (file-type? path type)
-         (let ((mode (getq (stat path #t) 'mode)))
+         (let ((mode (assq 'mode (stat path #t))))
             (and mode (= (band (S_IFMT) (cdr mode)) type))))
 
       (define (directory? path)
@@ -538,25 +531,27 @@
       (define (get-environment-pointer)
          (sys 9 1))
 
-      (define (split-env-value bytes)
-         (let loop ((l null) (r bytes))
-            (cond
-               ((null? r)
-                  (values (reverse l) null))
-               ((eq? (car r) #\=)
-                  (values (reverse l) (cdr r)))
-               (else
-                  (loop (cons (car r) l) (cdr r))))))
-
       ;; ((keystr . valstr) ...)
       (define (get-environment)
          (mem-array-map
             (get-environment-pointer)
             (λ (ptr)
-               (lets ((k v (split-env-value (mem-string-bytes ptr))))
+               (lets ((k v (break (C eq? #\=) (mem-string-bytes ptr))))
                   (cons
                      (raw-string k)
-                     (raw-string v))))))
+                     (if (pair? v) (raw-string (cdr v)) ""))))))
+
+      ;;;
+      ;;; time
+      ;;;
+
+      (sc CLOCK_MONOTONIC 127)
+      (sc CLOCK_PROCESS_CPUTIME_ID 128)
+      (sc CLOCK_REALTIME 129)
+      (sc CLOCK_THREAD_CPUTIME_ID 130)
+
+      (define (clock_gettime clock)
+         (sys 99 clock))
 
       ;;;
       ;;; terminal control
@@ -564,4 +559,14 @@
 
       (define (set-terminal-rawness bool)
          (sys 26 bool))
+
+      ;;;
+      ;;; runtime statistics
+      ;;;
+
+      (define (get-heap-bytes-written)
+         (sys 9 8))
+
+      (define (get-heap-max-live)
+         (sys 9 9))
 ))

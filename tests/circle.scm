@@ -18,10 +18,9 @@
 
 ;; 2-(n-1) just forward to the next
 (let loop ((id (- n 1)) (next n))
-	(if (> id 1)
-		(begin
-			(thread id (forwarder next))
-			(loop (- id 1) id))))
+	(when (> id 1)
+		(thread id (forwarder next))
+		(loop (- id 1) id)))
 
 ;; last one sends to first
 (thread n (forwarder 1))

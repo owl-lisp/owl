@@ -5,33 +5,28 @@
       caar cadr cdar cddr
       list?
       zip fold foldr map for-each
-      has? getq last drop-while
-      mem
+      memq assq last
       fold-map foldr-map
-      append reverse keep remove
-      all some
-      smap unfold
+      append reverse
+      filter remove
+      every any
+      unfold
+      find find-tail
       take-while                ;; pred, lst -> as, bs
+      break
       fold2
-      first
       halve
-      edit                      ;; op lst → lst'
       interleave
-      ╯°□°╯
-
       diff union intersect)
 
    (import
       (owl defmac)
-      (owl primop)
       (owl proof)
-      (owl syscall)
-      (owl boolean))
+      (only (owl syscall) error))
 
    (begin
 
       ;; constants are always inlined, so you pay just one byte of source for readability
-
       (define null '())
 
       ;; any -> bool
@@ -39,11 +34,6 @@
 
       ;; any -> bool
       (define null? (C eq? null))
-
-      (define-syntax withcc
-         (syntax-rules ()
-            ((withcc name proc)
-               (call/cc (λ (name) proc)))))
 
       ;; '((a . b) . c) -> a
       (define caar (B car car))
@@ -71,7 +61,6 @@
                   (cons hd (zip op (cdr a) (cdr b)))))))
 
       ;; op state lst -> state', walk over a list from left and compute a value
-
       (define (fold op state lst)
          (if (null? lst)
             state
@@ -125,23 +114,22 @@
                (op (car lst))
                (for-each op (cdr lst)))))
 
-      ;; lst key -> bool
-      (define (has? lst x)
+      (define (memq x lst)
          (cond
             ((null? lst) #false)
             ((eq? (car lst) x) lst)
-            (else (has? (cdr lst) x))))
+            (else (memq x (cdr lst)))))
 
-      ;; lst k -> #false | value, get a value from an association list
-      (define (getq lst k)
+      ;; key list -> pair | #f, get a pair from an association list
+      (define (assq k lst)
          (cond
             ((null? lst) #false)
             ((eq? k (car (car lst))) (car lst))
-            (else (getq (cdr lst) k))))
+            (else (assq k (cdr lst)))))
 
       (example
-         (getq '((a . 1) (b . 2)) 'a) = '(a . 1)
-         (getq '((a . 1) (b . 2)) 'c) = #false)
+         (assq 'a '((a . 1) (b . 2))) = '(a . 1)
+         (assq 'c '((a . 1) (b . 2))) = #false)
 
 
       ;; last list default -> last-elem | default, get the last value of a list
@@ -151,13 +139,6 @@
       (example
          (last '(1 2 3) 'a) = 3
          (last '() 'a) = 'a)
-
-      ;; mem compare lst elem -> bool, check if lst contains elem comparing with compare
-      (define (mem cmp lst elem)
-         (cond
-            ((null? lst) #false)
-            ((cmp (car lst) elem) lst)
-            (else (mem cmp (cdr lst) elem))))
 
       (define (app a b app)
          (if (null? a)
@@ -182,15 +163,6 @@
       (example
          (append '(1 2 3) '(a b c)) = '(1 2 3 a b c))
 
-      ; todo: update to work like ledit
-      (define (edit op l)
-         (if (null? l)
-            l
-            (let ((x (op (car l))))
-               (if x
-                  (append x (edit op (cdr l)))
-                  (cons (car l) (edit op (cdr l)))))))
-
       ;(define (reverse l) (fold (λ (r a) (cons a r)) null l))
 
       (define (rev-loop a b)
@@ -206,12 +178,25 @@
 
       ;; misc
 
-      (define (drop-while pred lst)
-         (cond
-            ((null? lst) lst)
-            ((pred (car lst))
-               (drop-while pred (cdr lst)))
-            (else lst)))
+      ;; pred lst -> element | #f, SRFI-1
+      (define (find pred lst)
+         (and
+            (pair? lst)
+            (if (pred (car lst))
+               (car lst)
+               (find pred (cdr lst)))))
+
+      (example
+         (find null? '(1 2 3)) = #f
+         (find null? '(1 ())) = ())
+
+      ;; pred lst -> tail-list | #f, SRFI-1
+      (define (find-tail pred lst)
+         (and
+            (pair? lst)
+            (if (pred (car lst))
+               lst
+               (find-tail pred (cdr lst)))))
 
       (define (take-while pred lst)
          (let loop ((lst lst) (taken null))
@@ -220,48 +205,38 @@
                ((pred (car lst)) (loop (cdr lst) (cons (car lst) taken)))
                (else (values (reverse taken) lst)))))
 
-      (define (keep pred lst)
+      ;; pred lst -> head-list tail-list, SRFI-1
+      (define (break pred lst)
+         (if (pair? lst)
+            (if (pred (car lst))
+               (values '() lst)
+               (lets ((l r (break pred (cdr lst))))
+                  (values (cons (car lst) l) r)))
+            (values '() lst)))
+
+      ;; pred lst -> 'list, SRFI-1
+      (define (filter pred lst)
          (foldr (λ (x tl) (if (pred x) (cons x tl) tl)) null lst))
 
+      ;; pred lst -> 'list, SRFI-1
       (define (remove pred lst)
-         (keep (B not pred) lst))
+         (filter (B not pred) lst))
 
       (let ((l '(1 2 () 3 () 4)))
          (example
-            (keep null? l) = '(() ())
+            (filter null? l) = '(() ())
             (remove null? l) = '(1 2 3 4)))
 
-      (define (all pred lst)
-         (withcc ret
-            (fold (λ (ok x) (if (pred x) ok (ret #false))) #true lst)))
+      (define (every pred lst)
+         (or (null? lst) (and (pred (car lst)) (every pred (cdr lst)))))
 
-      (define (some pred lst)
-         (withcc ret
-            (fold (λ (_ x) (let ((v (pred x))) (if v (ret v) #false))) #false lst)))
+      (define (any pred lst)
+         (and (pair? lst) (or (pred (car lst)) (any pred (cdr lst)))))
 
       (let ((l '(#t #f ())))
          (example
-            (some null? l) = #true
-            (all null? l) = #false))
-
-      ; map carrying one state variable down like fold
-      (define (smap op st lst)
-         (if (null? lst)
-            null
-            (lets ((st val (op st (car lst))))
-               (cons val
-                  (smap op st (cdr lst))))))
-
-      ; could also fold
-      (define (first pred l def)
-         (cond
-            ((null? l) def)
-            ((pred (car l)) (car l))
-            (else (first pred (cdr l) def))))
-
-      (example
-         (first null? '(1 2 3) 42) = 42
-         (first null? '(1 ()) 42) = ())
+            (any null? l) = #true
+            (every null? l) = #false))
 
       (define (fold-map o s l)
          (let loop ((s s) (l l) (r null))
@@ -281,7 +256,7 @@
       (define (diff a b)
          (cond
             ((null? a) a)
-            ((has? b (car a))
+            ((memq (car a) b)
                (diff (cdr a) b))
             (else
                (cons (car a)
@@ -290,7 +265,7 @@
       (define (union a b)
          (cond
             ((null? a) b)
-            ((has? b (car a))
+            ((memq (car a) b)
                (union (cdr a) b))
             (else
                (cons (car a)
@@ -299,7 +274,7 @@
       (define (intersect a b)
          (cond
             ((null? a) null)
-            ((has? b (car a))
+            ((memq (car a) b)
                (cons (car a)
                   (intersect (cdr a) b)))
             (else
@@ -338,6 +313,4 @@
          (interleave 'x '()) = ()
          (halve '(a b c d)) = (values '(a b) '(c d))
          (halve '(a b c d e)) = (values '(a b c) '(d e)))
-
-      (define ╯°□°╯ reverse)
 ))

@@ -160,4 +160,4 @@
  | 'c/[ \t\n\r]+/' + 'a  	b	c		d' = '(a b c d)'
  | 'M/(a*)(b*)(c*)/' + 'abbb' = '(a bbb )'
  | 'm/^\*\+\?$/' + '*+?' = '#true'
- '--> ~~\o\ ALL TESTS PASSED /o/~~ 
+ '--> ~~\o\ ALL TESTS PASSED /o/~~

@@ -7,7 +7,7 @@
 (define (echoer)
    (lets
       ((envelope (wait-mail))
-       (from msg envelope)) ; 
+       (from msg envelope)) ;
       (mail from msg)
       (echoer)))
 
@@ -18,5 +18,4 @@
       ((not (eq? n (interact echo n))) (print "error"))
       ((= n 100) (print n))
       (else (loop (+ n 1)))))
-      
 

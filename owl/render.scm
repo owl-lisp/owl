@@ -128,7 +128,7 @@
       ;; hack: positive id = not written yet, negative = written, so just output a reference
 
       ; laziness changes:
-      ;  - use explicit CPS to 'return' 
+      ;  - use explicit CPS to 'return'
       ;  - emit definition on first encounter
 
       (define (make-ser names)
@@ -251,7 +251,7 @@
             (number? val) (string? val) (function? val)
             (ff? val)))
 
-      ;; could drop val earlier to possibly gc it while rendering 
+      ;; could drop val earlier to possibly gc it while rendering
       (define (maybe-quote val lst)
          (if (self-quoting? val)
             lst

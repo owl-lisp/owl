@@ -29,7 +29,8 @@
       (owl string)
       (owl render)
       (owl env)
-      (owl io))
+      (owl io)
+      (owl port))
 
    (begin
 
@@ -286,7 +287,7 @@
                   ((links (get state link-tag empty))
                    (followers (get links target null))
                    (links
-                     (if (has? followers id)
+                     (if (memq id followers)
                         links
                         (put links target (cons id followers)))))
                   (tc tc
@@ -457,7 +458,7 @@
       ;; signal handler which kills the 'repl-eval thread if there, or repl
       ;; if not, meaning we are just at toplevel minding our own business.
       (define (repl-signal-handler threads state controller)
-         (if (first (λ (x) (eq? (ref x 1) 'repl-eval)) threads #false)
+         (if (any (λ (x) (eq? (ref x 1) 'repl-eval)) threads)
             ;; there is a thread evaling user input, linkely gone awry somehow
             (drop-thread 'repl-eval threads null state eval-break-message controller)
             ;; nothing evaling atm, exit owl

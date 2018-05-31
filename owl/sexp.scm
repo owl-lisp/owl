@@ -26,6 +26,7 @@
       (owl lazy)
       (owl symbol)
       (owl io) ; testing
+      (owl port)
       (owl primop)
       (owl unicode)
       (only (owl syscall) error)
@@ -34,23 +35,20 @@
 
    (begin
 
-      (define (between? lo x hi)
-         (and (<= lo x) (<= x hi)))
-
       (define special-symbol-chars (string->bytes "+-=<>!*%?_/~&$^:")) ;; owl uses @ for finite function syntax
 
       (define (symbol-lead-char? n)
          (or
-            (between? #\a n #\z)
-            (between? #\A n #\Z)
-            (has? special-symbol-chars n)
+            (<= #\a n #\z)
+            (<= #\A n #\Z)
+            (memq n special-symbol-chars)
             (> n 127)))         ;; allow high code points in symbols
 
       (define (symbol-char? n)
          (or
             (symbol-lead-char? n)
             (eq? n #\.)
-            (or (between? #\0 n #\9) (> n 127)))) ;; allow high code points in symbols
+            (or (<= #\0 n #\9) (> n 127)))) ;; allow high code points in symbols
 
       (define get-symbol
          (get-either
@@ -72,9 +70,9 @@
                (string->uninterned-symbol (runes->string chars)))))
 
       (define (digit-char? x)
-         (or (between? 48 x 57)
-            (between? 65 x 70)
-            (between? 97 x 102)))
+         (or (<= 48 x 57)
+            (<= 65 x 70)
+            (<= 97 x 102)))
 
       (define digit-values
          (list->ff
@@ -87,18 +85,16 @@
 
       (define (digit-char? base)
          (if (eq? base 10)
-            (λ (n) (between? 48 n 57))
+            (λ (n) (<= 48 n 57))
             (λ (n) (< (get digit-values n 100) base))))
 
       (define (bytes->number digits base)
          (fold
             (λ (n digit)
                (let ((d (get digit-values digit #false)))
-                  (cond
-                     ((or (not d) (>= d base))
-                        (error "bad digit " digit))
-                     (else
-                        (+ (* n base) d)))))
+                  (if (or (not d) (>= d base))
+                     (error "bad digit " digit)
+                     (+ (* n base) d))))
             0 digits))
 
       (define get-sign
@@ -228,7 +224,7 @@
       (define get-a-whitespace
          (one-of
             ;get-hashbang   ;; actually probably better to make it a symbol as above
-            (get-byte-if (H has? '(9 10 32 13)))
+            (get-byte-if (C memq '(9 10 32 13)))
             (let-parses
                ((skip (get-imm #\;))
                 (skip get-rest-of-line))
@@ -293,7 +289,7 @@
                (get-kleene*
                   (get-either
                      get-quoted-string-char
-                     (get-rune-if (B not (H has? '(#\" #\\)))))))
+                     (get-rune-if (B not (C memq '(#\" #\\)))))))
              (skip (get-imm #\")))
             (runes->string chars)))
 
@@ -356,7 +352,7 @@
             ((skip (get-imm #\#))
              (fields (get-list-of parser)))
             (let ((fields (intern-symbols fields)))
-               (if (first pair? fields #false)
+               (if (any pair? fields)
                   ;; vector may have unquoted stuff, so convert it to a sexp constructing a vector, which the macro handler can deal with
                   (cons '_sharp_vector fields) ; <- quasiquote macro expects to see this in vectors
                   (list->vector fields)))))
@@ -431,7 +427,7 @@
       (define get-sexps
          (get-greedy* sexp-parser))
 
-      ;; whitespace at either end 
+      ;; whitespace at either end
       (define get-padded-sexps
          (let-parses
             ((data get-sexps)
@@ -463,9 +459,9 @@
       (define (string->sexp str fail)
          (try-parse sexp-parser (str-iter str) #false #false fail))
 
-      ;; parse all contents of vector to a list of sexps, or fail with 
-      ;; fail-val and print error message with further info if errmsg 
-      ;; is non-false 
+      ;; parse all contents of vector to a list of sexps, or fail with
+      ;; fail-val and print error message with further info if errmsg
+      ;; is non-false
 
       (define (vector->sexps vec fail errmsg)
          ; try-parse parser data maybe-path maybe-error-msg fail-val

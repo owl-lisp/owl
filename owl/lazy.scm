@@ -1,16 +1,16 @@
 ;;; Lazy lists (or streams) are like lists, but they are computed only as far as needed.
-;;; You can for example define a lazy list of all integers below a million, and then 
+;;; You can for example define a lazy list of all integers below a million, and then
 ;;; proceed to run computations on them, without worrying whether you have enough memory
-;;; to hold a million numbers. Lazy lists are for example useful in computations, where 
-;;; you know how something is constructed, but don't yet know how many of them will be 
+;;; to hold a million numbers. Lazy lists are for example useful in computations, where
+;;; you know how something is constructed, but don't yet know how many of them will be
 ;;; needed, or know that you only need them one at a time and don't want to waste memory.
 ;;;
-;;; A lazy list is either null, a pair of a value and rest of the lazy list, or a 
-;;; function of zero arguments (a thunk) which when called will return the rest of the 
-;;; lazy list. Therefore, since normal lists are a subset of lazy lists, all lazy list 
+;;; A lazy list is either null, a pair of a value and rest of the lazy list, or a
+;;; function of zero arguments (a thunk) which when called will return the rest of the
+;;; lazy list. Therefore, since normal lists are a subset of lazy lists, all lazy list
 ;;; functions can also take normal lists as arguments.
 ;;;
-;;; `Scheme warning`: recall that Owl does not have mutable data structures, so lazy 
+;;; `Scheme warning`: recall that Owl does not have mutable data structures, so lazy
 ;;; lists do not cache their results.
 ;;;
 ;;; ```
@@ -55,8 +55,8 @@
                (λ () (op . args)))
             ((delay value) value)))
 
-      ;; force is effectively unnecessary in Owl, so might as well signal a 
-      ;; warning if this is used, because the code probably assumes 
+      ;; force is effectively unnecessary in Owl, so might as well signal a
+      ;; warning if this is used, because the code probably assumes
       ;; mutable state.
 
       (define (force thunk) (thunk))
@@ -173,7 +173,7 @@
                      null
                      (pair st (liota-walk-one (+ st 1) end)))))))
 
-      ; fixnum range iota making 2 cells at a time. this is actually a bit 
+      ; fixnum range iota making 2 cells at a time. this is actually a bit
       ; faster than a corresponding (ugly) local loop.
 
       (define (liota-fix pos end)
@@ -279,7 +279,7 @@
                (λ () (lzip op (a) b)))))
 
       ; lst -> stream of (lst' ...)
-      ; first == lst, changes mostly on the head of the list 
+      ; first == lst, changes mostly on the head of the list
 
       (define (lperm-take l out rest)
          (if (null? l)
@@ -304,7 +304,7 @@
       ;(define (ssubs-take l out more)
       ;   (if (null? l)
       ;      (cons out more)
-      ;      (ssubs-take (cdr l) (cons (car l) out) 
+      ;      (ssubs-take (cdr l) (cons (car l) out)
       ;         (lambda () (ssubs-take (cdr l) out more)))))
       ;
       ;(define (ssubs l)
@@ -318,7 +318,7 @@
                (lpick (cdr l) (cons (car l) out) (- n 1)
                   (lambda () (lpick (cdr l) out n more))))))
 
-       ; subsets of growing size   
+       ; subsets of growing size
       (define (subs l)
          (if (null? l)
             '(())

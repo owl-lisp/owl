@@ -1,10 +1,10 @@
-;;; Randomness is an interesting thing to work with in a purely 
-;;; functional setting. Owl builds randomness around streams of 
-;;; typically deterministically generated 24-bit fixnums. These 
+;;; Randomness is an interesting thing to work with in a purely
+;;; functional setting. Owl builds randomness around streams of
+;;; typically deterministically generated 24-bit fixnums. These
 ;;; are usually called rands in the code.
 ;;;
-;;; A function involving randomness typically receives a rand 
-;;; stream, and also returns it after possibly consuming some 
+;;; A function involving randomness typically receives a rand
+;;; stream, and also returns it after possibly consuming some
 ;;; rands. Behavior like this would be easy to hide using macros
 ;;; or monadic code, but Owl generally strives to be explicit and
 ;;; simple, so the rand streams are handled just like any other
@@ -84,11 +84,11 @@
          (if (not (and (eq? a 0) (eq? b #true)))
             (error "unexpected fixnum size" a)))
 
-      ; random data generators implement an infinite stream of positive fixnums, 
+      ; random data generators implement an infinite stream of positive fixnums,
       ; which are used by the various functions which need a random data source.
-      ; as usual the state variables are explicitly passed into and returned from 
-      ; the functions, usually as the first parameter to each direction. these 
-      ; could be tucked into a monad some time in the future, but at least for now 
+      ; as usual the state variables are explicitly passed into and returned from
+      ; the functions, usually as the first parameter to each direction. these
+      ; could be tucked into a monad some time in the future, but at least for now
       ; it seems nice to be explicit about the flow of data.
 
       ;;; Linear Congruential Generater -- old and simple
@@ -137,10 +137,8 @@
              (z w)
              (w (bxor w (bxor (>> w 19) (bxor t (>> t 8))))))
             (if (eq? (type w) type-fix+)
-               (cons w (cons 0
-                  (λ () (xorshift-128 x y z w))))
-               (cons (ncar w) (cons (ncar (ncdr w))
-                  (λ () (xorshift-128 x y z w)))))))
+               (ilist w 0 (λ () (xorshift-128 x y z w)))
+               (ilist (ncar w) (ncar (ncdr w)) (λ () (xorshift-128 x y z w))))))
 
       (define xors (xorshift-128 123456789 362436069 521288629 88675123))
 
@@ -222,7 +220,7 @@
       (define seed->bytes
          (B rands->bytes seed->rands))
 
-      ;; note, a custom uncons could also promote random seeds to streams, but probably better to force 
+      ;; note, a custom uncons could also promote random seeds to streams, but probably better to force
       ;; being explicit about the choice of prng and require all functions to receive just digit streams.
 
       ;; -- non prng-specific code ---------------------------------------------------------------
@@ -238,7 +236,7 @@
                ((rs head eq (rand-big rs (ncdr n)))
                 (this rs (uncons rs 0)))
                (if eq
-                  (let ((val (rem this (+ (ncar n) 1))))
+                  (let ((val (remainder this (+ (ncar n) 1))))
                      (if (eq? val 0)
                         (values rs (if (null? head) null (ncons 0 head)) (eq? (ncar n) 0))
                         (values rs (ncons val head) (eq? val (ncar n)))))
@@ -247,19 +245,19 @@
                      (values rs (ncons this head) #false))))))
 
       (define (rand-fixnum rs n)
-         ;; could e.g. grab just enough bits of each rand and stop when 
-         ;; the bitwise and <= n, but that isn't robust against more 
-         ;; or less intentionally poor random streams. this slightly more 
+         ;; could e.g. grab just enough bits of each rand and stop when
+         ;; the bitwise and <= n, but that isn't robust against more
+         ;; or less intentionally poor random streams. this slightly more
          ;; expensive approach makes sure we terminate for all random streams.
          (lets
             ((r rs (uncons rs rs))
              (m *max-fixnum*))
             (if (eq? r m)
                (values rs 0)
-               (lets ((q r (quotrem (* n r) m)))
+               (lets ((q r (truncate/ (* n r) m)))
                   (values rs q)))))
 
-      ;; like rand-fixnum, but <= limit instead of < 
+      ;; like rand-fixnum, but <= limit instead of <
       (define (rand-bignum-topdigit rs n)
          (if (eq? n *max-fixnum*)
             ;; no, no, there's no limit
@@ -302,10 +300,10 @@
          ;((lim #b111111111111111111111111))
          (let loop ((rs (seed->rands (time-ms))) (n 0) (sum 0))
             (if (eq? 0 (band 1023 n))
-               (let ((avg (div sum (max n 1))))
+               (let ((avg (quotient sum (max n 1))))
                   (print
                      (list "at " n " sum " sum " avg " avg " delta percent "
-                        (let ((perc (div (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
+                        (let ((perc (quotient (* 100 (abs (- (>> lim 1) avg))) (>> lim 1))))
                            perc)))))
             (lets ((rs val (rand rs lim)))
                (loop rs (+ n 1) (+ sum val)))))
@@ -319,7 +317,7 @@
          (cond
             ((pair? obj)
                (lets ((rs n (rand rs (length obj))))
-                  (values rs (lref obj n))))
+                  (values rs (list-ref obj n))))
             ((tuple? obj)
                (lets ((rs n (rand rs (size obj))))
                   (values rs (ref obj (+ n 1)))))
@@ -490,7 +488,7 @@
              (block (* 1024 32)) ; write in 32kb blocks
              (megs (* 1024 500))) ; ~1GB is enough for dieharder and smallcrush, 500 might be enough for crush?
             (if port
-               (let loop ((rs rs) (n (* megs (* 1024 1024))))
+               (let loop ((rs rs) (n (<< megs 20)))
                   (print* (list path ": left " n " bytes"))
                   (if (eq? n 0)
                      (close-port port)
@@ -529,7 +527,7 @@
       (define (prng-speed str)
          (let
             ((start (time-ms))
-             (ndigits (* 1024 64))) ; make 1mb 
+             (ndigits (* 1024 64))) ; make 1mb
             (let loop ((str str) (n ndigits))
                (if (eq? n 0)
                   (print (floor (/ (* ndigits 16) (- (time-ms) start))) " bits/ms")
@@ -564,7 +562,7 @@
 
 ))
 
-;; test program for dieharder stdout test 
+;; test program for dieharder stdout test
 ;;   $ bin/ol -O2 -o rand.c owl/random.scm && gcc -O2 -o rand rand.c && ./rand | dieharder -a -g 200 | tee report.txt)
 
 ;(import (owl random))
@@ -578,7 +576,7 @@
 ;            (if (write-byte-vector stdout (list->byte-vector (reverse out))) ;; keep order
 ;               (loop rs null 0)))
 ;         (else
-;            (lets 
+;            (lets
 ;               ((byte rs (uncons rs 0))
 ;                (n _ (fx+ n 1)))
 ;               (loop rs (cons byte out) n))))))

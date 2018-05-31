@@ -12,7 +12,7 @@
       (owl io)
       (only (owl syscall) error)
       (only (owl env) primop? primop-of)
-      (owl primop)) 
+      (owl primop))
 
    (begin
       ;; fixme: information about cps-special primops could be stored elsewhere
@@ -60,7 +60,7 @@
                (else
                   (lets
                      ((this free (fresh free))
-                      (rest free 
+                      (rest free
                         (cps-args cps (cons (mkvar this) (cdr args)) call env free)))
                      (cps (car args)
                         env
@@ -87,7 +87,7 @@
       ;; (a0 .. an) → (cons a0 (cons .. (cons an null))), modulo AST
       (define (enlist-tail args)
          (foldr
-            (λ (x tl) 
+            (λ (x tl)
                (mkcall (tuple 'value cons) (list x tl)))
             (tuple 'value null)
             args))
@@ -95,7 +95,7 @@
       ;; (f0 .. fn) (a0 ... am) → #false | (a0 ... an-1 (cons an (cons ... (cons am null))))
       (define (enlist-improper-args formals args)
          (cond
-            ((null? (cdr formals)) 
+            ((null? (cdr formals))
                (list (enlist-tail args)))
             ((null? args) #false) ;; too few args
             ((enlist-improper-args (cdr formals) (cdr args)) =>
@@ -121,7 +121,7 @@
                         rands env cont free))
                   ((enlist-improper-args formals rands) => ;; downgrade to a regular lambda converting arguments
                      (λ (rands)
-                        (cps-call cps 
+                        (cps-call cps
                            (tuple 'lambda formals body)
                            rands env cont free)))
                   (else
@@ -129,7 +129,7 @@
             ((call rator2 rands2)
                (lets
                   ((this free (fresh free))
-                   (call-exp free 
+                   (call-exp free
                      (cps-args cps rands (list cont (mkvar this)) env free)))
                   (cps rator env
                      (mklambda (list this) call-exp)
@@ -169,11 +169,11 @@
             ((call? b)
                (lets
                   ((this free (fresh free))
-                   (rest free 
+                   (rest free
                      (cps-branch cps kind a (mkvar this) then else env cont free)))
                   (cps b env (mklambda (list this) rest) free)))
             ((eq? kind 4)
-               ; a binding type discrimination. matching branch is treated as in bind 
+               ; a binding type discrimination. matching branch is treated as in bind
                ; only cps-ing body to current continuation
                (tuple-case then
                   ((lambda formals body)
@@ -181,7 +181,7 @@
                         ((then-body free (cps body env cont free))
                          (else free (cps else env cont free)))
                         (values
-                           (tuple 'branch kind a b 
+                           (tuple 'branch kind a b
                               (mklambda formals then-body)
                               else)
                            free)))
@@ -199,13 +199,13 @@
          (tuple-case semi-cont
             ((lambda formals  body)
                (lets ((body-cps free (cps body env cont free)))
-                  (cps exp env 
+                  (cps exp env
                      (mklambda formals body-cps)
                      free)))
             ;; FIXME: this ends up as operator, but doesn't go through the call operator variable lambda conversion and thus confuses rtl-* which assume all operator lambdas are already taken care of by CPS
             ((lambda-var fixed? formals  body)
                (lets ((body-cps free (cps body env cont free)))
-                  (cps exp env 
+                  (cps exp env
                      (tuple 'lambda-var fixed? formals body-cps)
                      free)))
             (else
@@ -216,7 +216,7 @@
       (define (cps-case-lambda cps node env cont free)
          (tuple-case node
             ((case-lambda fn else)
-               (lets 
+               (lets
                   ((fn free (cps-case-lambda cps fn env cont free))
                    (else free (cps-case-lambda cps else env cont free)))
                   (values (tuple 'case-lambda fn else) free)))
@@ -268,11 +268,11 @@
                      ; a better solution would be ability to change the
                      ; compiler chain interactively
                      (if (and
-                           (call? exp) 
+                           (call? exp)
                            (val-eq? (ref exp 2) '_sans_cps)
                            (= (length (ref exp 3)) 1))
                         (ok
-                           (mklambda (list cont-sym) 
+                           (mklambda (list cont-sym)
                               (mkcall (mkvar cont-sym)
                                  (list (car (ref exp 3)))))
                            env)

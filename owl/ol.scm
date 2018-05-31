@@ -23,31 +23,23 @@
  | DEALINGS IN THE SOFTWARE.
  |#
 
-(define build-start (time-ms))
+(mail 'intern (tuple 'flush)) ;; ask symbol interner to forget all symbols it knows
 
-(mail 'intern (tuple 'flush)) ;; ask intern to forget all symbols it knows
-
-; forget all other libraries to have them be reloaded and rebuilt
-
-(define *libraries*
-   (keep
-      (λ (lib) (equal? (car lib) '(owl core)))
-      *libraries*))
+(define *libraries* '()) ;; clear loaded libraries
 
 (import (owl defmac)) ;; reload default macros needed for defining libraries etc
 
 ;; forget everhything except these and core values (later list also them explicitly)
-,forget-all-but (quote *vm-special-ops* *libraries* build-start)
+,forget-all-but (quote *libraries* _branch _define rlambda)
 
 ;; --------------------------------------------------------------------------------
 
-(import (owl core))     ;; get special forms, primops and define-syntax
 (import (owl defmac))   ;; get define, define-library, import, ... from the just loaded (owl defmac)
 
-(define *interactive* #false) ;; be verbose 
+(define *interactive* #false) ;; be verbose
 (define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
-(define *owl-version* "0.1.15")
+(define *owl-version* "0.1.16")
 
 (import
    (owl intern)
@@ -56,18 +48,11 @@
    (owl thread)
    (owl args)
    (only (owl dump) make-compiler load-fasl)
+   (only (owl primop) bind mkt)
    (owl eval)
    (owl repl)
    (owl base)
    (owl variable))
-
-(define-syntax share-bindings
-   (syntax-rules (defined)
-      ((share-bindings) null)
-      ((share-bindings this . rest)
-         (cons
-            (cons 'this (tuple 'defined (mkval this)))
-            (share-bindings . rest)))))
 
 ;; implementation features, used by cond-expand
 (define *features*
@@ -75,25 +60,11 @@
       (string->symbol (string-append "owl-lisp-" *owl-version*))
       '(owl-lisp r7rs exact-closed ratios exact-complex full-unicode immutable)))
 
-(define shared-bindings
-   (share-bindings
-      *features*
-      *include-dirs*
-      *libraries*      ;; all currently loaded libraries
-      ))
-
-(define initial-environment-sans-macros
-   (fold
-      (λ (env pair) (env-put-raw env (car pair) (cdr pair)))
-      *owl-core*
-      shared-bindings))
-
 (define initial-environment
    (bind-toplevel
-      (library-import initial-environment-sans-macros
-         '((owl base))
-         (H error "bootstrap import error: ")
-         (λ (env exp) (error "bootstrap import requires repl: " exp)))))
+      (env-fold env-put-raw
+         *owl-core*
+         (cdr (assoc '(owl base) *libraries*)))))
 
 (define (path->string path)
    (let ((data (file->vector path)))
@@ -120,7 +91,7 @@
        ;(interactive "-i" "--interactive" comment "use builtin interactive line editor")
        ;(debug    "-d" "--debug" comment "Define *debug* at toplevel verbose compilation")
        ;(linked  #false "--most-linked" has-arg cook ,string->integer comment "compile most linked n% bytecode vectors to C")
-       (bare #false "--bare" comment "do not add anything to generated code (like threads or UTF-8 decoding)"))))
+       (bare #false "--bare" comment "output the bare fasl-encoded result"))))
 
 (define brief-usage-text "Usage: ol [args] [file] ...")
 
@@ -149,25 +120,25 @@
 (define about-owl
 "Owl Lisp -- a functional scheme
 Copyright (c) Aki Helin
-Check out https://github.com/aoh/owl-lisp for more information.")
+Check out https://github.com/owl-lisp/owl for more information.")
 
 
 (define usual-suspects
    (list
          put get del ff-fold fupd
          - + * /
-         div gcd ediv
+         quotient gcd ediv
          << < <= = >= > >>
-         equal? has? mem
+         equal? memq member
          band bor bxor
          sort
          ; suffix-array bisect
          fold foldr map reverse length zip append unfold
-         lref lset iota
+         list-ref lset iota
          ;vec-ref vec-len vec-fold vec-foldr
          ;print
          mail interact
-         take keep remove
+         take filter remove
          thread-controller
          uncons lfold lmap
          rand seed->rands
@@ -249,7 +220,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 
 (define owl-ohai "You see a prompt.")
 
-;; say hi if interactive mode and fail if cannot do so (the rest are done using 
+;; say hi if interactive mode and fail if cannot do so (the rest are done using
 ;; repl-prompt. this should too, actually)
 (define (greeting env)
    (if (env-get env '*interactive* #f)
@@ -317,13 +288,12 @@ Check out https://github.com/aoh/owl-lisp for more information.")
 (define (directory-of path)
    (runes->string
       (reverse
-         (drop-while
-            (B not (C eq? #\/))
-            (reverse
-               (string->runes path))))))
+         (or
+            (memq #\/ (reverse (string->runes path)))
+            null))))
 
 (define compiler ; <- to compile things out of the currently running repl using the freshly loaded compiler
-   (make-compiler *vm-special-ops*))
+   (make-compiler #empty))
 
 (define (heap-entry symbol-list)
    (λ (codes) ;; all my codes are belong to codes
@@ -335,7 +305,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                ;; still running in the boostrapping system
                ;; the next value after evaluation will be the new repl heap
                (λ (vm-args)
-                  ;; now we're running in the new repl 
+                  ;; now we're running in the new repl
                   (start-thread-controller
                      (list
                         (tuple 'init
@@ -346,12 +316,17 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                     (start-base-threads)
 
                                     ;; store initial state values
-                                    (state 'call (λ (st) (put st 'command-line-arguments vm-args)))
+                                    (state 'call
+                                       (λ (st)
+                                          (-> st
+                                             (put 'command-line-arguments vm-args)
+                                             (put 'features *features*)
+                                             )))
 
                                     ;; repl needs symbol etc interning, which is handled by this thread
                                     (thunk->thread 'intern interner-thunk)
 
-                                    ;; set a signal handler which stop evaluation instead of owl 
+                                    ;; set a signal handler which stop evaluation instead of owl
                                     ;; if a repl eval thread is running
                                     (set-signal-action repl-signal-handler)
 
@@ -364,23 +339,22 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                                              (list
                                                 (cons '*owl* (directory-of (car vm-args)))
                                                 (cons '*args* vm-args)
+                                                (cons '*features* *features*)
+                                                (cons '*include-dirs* *include-dirs*) ;; todo: add command line flag
+                                                (cons '*libraries* *libraries*)
                                                 (cons 'dump compiler)
                                                 (cons '*owl-version* *owl-version*)
-                                                ;(cons '*owl-metadata* *owl-metadata*)
                                                 (cons '*owl-names* initial-names)
                                                 (cons 'eval exported-eval)
-                                                (cons 'render render) ;; can be removed when all rendering is done via libraries
+                                                (cons 'render render)
                                                 (cons '*vm-special-ops* vm-special-ops)
-                                                (cons '*state* state)
-                                                ;(cons '*codes* (vm-special-ops->codes vm-special-ops))
-                                                )))))))))
+                                                (cons '*state* state))))))))))
                      null)))))))
 
 
 (define command-line-rules
    (cl-rules
       `((output "-o" "--output" has-arg comment "output path")
-        ;(format "-f" "--format" has-arg comment "output format (c or fasl)")
         (specialize "-s" "--specialize" has-arg comment "vm extensions (none, some, all)"))))
 
 (define (choose-natives str all)
@@ -390,16 +364,15 @@ Check out https://github.com/aoh/owl-lisp for more information.")
       ((equal? str "all") all)
       (else (print "Bad native selection: " str))))
 
-(print "Code loaded at " (- (time-ms) build-start) "ms.")
+(import (owl sys))
+(print-to stderr "writes: " (>> (get-heap-bytes-written) 20) "MWords")
+(print-to stderr "max live: " (>> (get-heap-max-live) 10) "KB")
 
 (λ (args)
    (process-arguments (cdr args) command-line-rules "you lose"
       (λ (opts extra)
          (cond
-            ((not (null? extra))
-               (print "Unknown arguments: " extra)
-               1)
-            (else
+            ((null? extra)
                (compiler heap-entry "unused historical thingy"
                   (list->ff
                      `((output . ,(get opts 'output 'bug))
@@ -409,5 +382,7 @@ Check out https://github.com/aoh/owl-lisp for more information.")
                   (choose-natives
                      (get opts 'specialize "none")
                      heap-entry))
-               (print "Output written at " (- (time-ms) build-start) "ms.")
-               0)))))
+               0)
+            (else
+               (print "Unknown arguments: " extra)
+               1)))))

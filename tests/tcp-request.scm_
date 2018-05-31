@@ -5,7 +5,7 @@
    (let loop ((port 1025))
       (if (< port #x10000)
          (let ((sock (open-socket port)))
-            (if sock 
+            (if sock
                (cons sock port)
                (loop (+ port 1))))
          (error "Couldn't open any ports" port))))

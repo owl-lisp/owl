@@ -18,7 +18,7 @@
 
    (begin
 
-      ; return the least score by pred 
+      ; return the least score by pred
       (define (least pred lst)
          (if (null? lst)
             #false
@@ -32,7 +32,7 @@
       (define (free-vars exp env)
 
          (define (take sym found bound)
-            (if (or (has? bound sym) (has? found sym))
+            (if (or (memq sym bound) (memq sym found))
                found
                (cons sym found)))
 
@@ -86,11 +86,11 @@
          (or
             ; things which have no dependences
             (maybe 'trivial
-               (keep (B null? deps-of) deps))
+               (filter (B null? deps-of) deps))
 
             ; things which only depend on themselvs (simply recursive)
             (maybe 'simple
-               (keep
+               (filter
                   (lambda (node)
                      (and
                         (lambda? (value-of node) env)
@@ -107,11 +107,11 @@
                   ((node
                      (least
                         (B length deps-of)
-                        (keep (lambda (node) (lambda? (value-of node) env)) deps))))
+                        (filter (lambda (node) (lambda? (value-of node) env)) deps))))
                   (if node
                      (let ((partition (deps-of node)))
-                        (keep
-                           (lambda (node) (has? partition (name-of node)))
+                        (filter
+                           (lambda (node) (memq (name-of node) partition))
                            deps))
                      null)))
 
@@ -125,7 +125,7 @@
                   (diff (deps-of node) lost)))
             (remove
                (lambda (node)
-                  (has? lost (name-of node)))
+                  (memq (name-of node) lost))
                deps)))
 
       (define (make-bindings names values body)
@@ -138,7 +138,7 @@
             ((var s) (eq? s sym))
             (else #false)))
 
-      ; convert all (name ..) to (name .. name), and make wrappers when name 
+      ; convert all (name ..) to (name .. name), and make wrappers when name
       ; is used as a value
 
       (define (carry-simple-recursion exp name deps)
@@ -152,7 +152,7 @@
                         (walk rator)
                         (map walk rands))))
                ((lambda formals body)
-                  (if (has? formals name)
+                  (if (memq name formals)
                      exp
                      (tuple 'lambda formals (walk body))))
                ((branch kind a b then else)
@@ -228,7 +228,7 @@
             (else
                (error "carry-bindings: strage expression: " exp))))
 
-      ;;; ((name (lambda (formals) body) deps) ...) env 
+      ;;; ((name (lambda (formals) body) deps) ...) env
       ;;; -> ((lambda (formals+deps) body') ...)
 
       (define (handle-recursion nodes env)
@@ -297,7 +297,7 @@
                                  body
                                  (env-bind env (map first nodes)))))
                            ; one option is to bind all to wrapper functions. we'll try another alternative now
-                           ; and convert all uses to use the extended functions instead, since they all just 
+                           ; and convert all uses to use the extended functions instead, since they all just
                            ; require passing the same value as the operator as an arument and thus are quaranteed
                            ; not to grow the closures (unlike mutual recursive functions)
                            ; plan A, (original) make the function look like the original
@@ -306,7 +306,7 @@
                            ;   (map make-wrapper nodes)
                            ;   body)
                            ; plan B, convert to direct calls to the wrapper
-                           ; remember, the change is just to append the function name to the call 
+                           ; remember, the change is just to append the function name to the call
                            ; and make a (lambda (v ...) (self v .. self)) if it is used as a value
                            (fold
                               (lambda (body node)
@@ -358,7 +358,7 @@
          (define (grow current deps)
             (lets
                ((related
-                  (keep (lambda (x) (has? current (name-of x))) deps))
+                  (filter (lambda (x) (memq (name-of x) current)) deps))
                 (new-deps
                   (fold union current
                      (map third related))))

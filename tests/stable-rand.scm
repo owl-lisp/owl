@@ -7,7 +7,7 @@
    (let loop ((lst lst) (ff empty))
       (if (null? lst)
          null
-         (lets 
+         (lets
             ((x lst lst)
              (n (get ff x 0)))
             (cons (cons x n)
@@ -15,7 +15,7 @@
 
 (define (car< a b) (< (car a) (car b)))
 
-(define (carcdr< a b) 
+(define (carcdr< a b)
    (cond
       ((< (car a) (car b)) #true)
       ((= (car a) (car b)) (< (cdr a) (cdr b)))

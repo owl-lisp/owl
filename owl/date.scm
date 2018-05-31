@@ -1,9 +1,9 @@
-;;; This library attempts to implement date processing functions. Dates 
-;;; are typically represented as seconds or milliseconds since UNIX Epoch 1.1.1970. 
-;;; These are generally a good way to work with time, apart from assuming 
-;;; that an absolute time exists at all. Sometimes it is however necessary 
-;;; to convert time stamps to human readable form, which means splitting 
-;;; the time according to various more and less sensible rules. 
+;;; This library attempts to implement date processing functions. Dates
+;;; are typically represented as seconds or milliseconds since UNIX Epoch 1.1.1970.
+;;; These are generally a good way to work with time, apart from assuming
+;;; that an absolute time exists at all. Sometimes it is however necessary
+;;; to convert time stamps to human readable form, which means splitting
+;;; the time according to various more and less sensible rules.
 ;;;
 ;;; ```
 ;;;    (time)                → current time in seconds since epoch
@@ -110,9 +110,9 @@
             (else
                (lets
                   ((y   (- y 1))
-                   (a _ (quotrem y 4))
-                   (b _ (quotrem y 100))
-                   (c _ (quotrem y 400)))
+                   (a _ (truncate/ y 4))
+                   (b _ (truncate/ y 100))
+                   (c _ (truncate/ y 400)))
                   (+ 1 (- (+ (- a 0) (- c 0)) (- b 0)))))))
 
       (define (year-start-day y)
@@ -137,8 +137,8 @@
             (else ;; sunday
                (values d 52)))))
 
-      ;; the days during the last week of the year belong instead to week 
-      ;; 1 of the subsequent year, if the thursday of the week belongs to 
+      ;; the days during the last week of the year belong instead to week
+      ;; 1 of the subsequent year, if the thursday of the week belongs to
       ;; the next year
 
       (define (days-to-thursday d)
@@ -212,8 +212,8 @@
             (let loop ((d 1) (m 1) (y y) (s s))
                (if (< s day)
                   (lets
-                     ((hour s (quotrem s hour))
-                      (min s (quotrem s minute)))
+                     ((hour s (truncate/ s hour))
+                      (min s (truncate/ s minute)))
                      (values d m y hour min s))
                   (lets ((d m y (next-date d m y)))
                      (loop d m y (- s day)))))))
@@ -233,8 +233,8 @@
          (lets ((d m y H M S (naive-date (+ s tz)))
                 (tz-sign (if (< tz 0) "-" "+"))
                 (tz (abs tz))
-                (tz-mins _ (quotrem tz 60))
-                (tz-hours tz-mins (quotrem tz-mins 60)))
+                (tz-mins _ (truncate/ tz 60))
+                (tz-hours tz-mins (truncate/ tz-mins 60)))
             (str (zpad H) H ":" (zpad M) M ":" (zpad S) S
                  " " d "." m "." y
                  " UTC" tz-sign (zpad tz-hours) tz-hours ":" (zpad tz-mins) tz-mins)))
@@ -244,7 +244,7 @@
             (date-str-tz s 0)
             (date-str-tz s (hours->secs (car tz)))))
 
-      ; TZ=GMT date -d @1234567890 
+      ; TZ=GMT date -d @1234567890
       (example
          (date-str 0)            = "00:00:00 1.1.1970 UTC+00:00"
          (date-str 0 2.5)        = "02:30:00 1.1.1970 UTC+02:30"

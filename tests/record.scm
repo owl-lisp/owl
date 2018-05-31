@@ -23,7 +23,7 @@
 
 (let ((x (tri 11 22 33)))
    (print
-      (list 
+      (list
          (tri1 x)
          (tri2 x)
          (tri3 x))))

@@ -19,12 +19,14 @@
       (owl math)
       (owl syscall)
       (owl io)
+      (owl port)
       (owl render)
       (owl list)
       (owl string)
       (owl equal)
       (owl ff)
-      (scheme cxr))
+      (scheme cxr)
+      (scheme write))
 
    (begin
       ;; cl-rules is a ff of
@@ -93,7 +95,7 @@
          (let ((s (sizeb str)))
             (if (lesser? s 1)
                #false
-               (eq? 45 (refb str 0)))))
+               (eq? 45 (ref str 0)))))
 
       (define (walk rules args dict others)
          (cond
@@ -103,7 +105,7 @@
                   #false))
             ((dashy? (car args))
                (cond
-                  ((string-eq? (car args) "--")
+                  ((string=? (car args) "--")
                      (walk rules null dict (append (reverse (cdr args)) others)))
                   ((select-rule (car args) rules) =>
                      (λ (rule)
@@ -135,7 +137,7 @@
                   ((explode (car args)) =>
                      (λ (opts) ;; --foo → -f -o -o
                         (walk rules (append opts (cdr args)) dict others)))
-                  ((string-eq? (car args) "-") ;; allow a solitary - to be used as an argument (usually to mean stdin/out)
+                  ((string=? (car args) "-") ;; allow a solitary - to be used as an argument (usually to mean stdin/out)
                      (walk rules (cdr args) dict (cons (car args) others)))
                   (else
                      (fail (list "Unknown argument: " (car args))))))
@@ -154,7 +156,7 @@
                   (print-to stderr error-msg)
                   #false))))
 
-      ;; and now a friendlier way to define the rules 
+      ;; and now a friendlier way to define the rules
 
       (define (cl-rule node lst)
          (if (null? lst)

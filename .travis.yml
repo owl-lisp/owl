@@ -1,10 +1,6 @@
 language: c
 
-before_install: 
-  - uname
-  - (uname | grep Linux && sudo apt-get update -qq && sudo apt-get install -y gcc-multilib libc6-dev-i386) || true
-
-os: 
+os:
   - linux
   - osx
 
@@ -12,7 +8,13 @@ compiler:
   - clang
   - gcc
 
-env:
-  - CFLAGS="-O2"
-   
-script: make
+notifications:
+  irc:
+    channels: "chat.freenode.net#owl-lisp"
+    template: "%{branch}/%{commit}: %{result} (%{author}: %{commit_subject})"
+    skip_join: true
+    use_notice: true
+
+before_script: uname -a
+
+script: make 'CFLAGS=-Wall -O2'
