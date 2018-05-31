@@ -864,7 +864,7 @@ static word prim_sys(word op, word a, word b, word c) {
             b == F(8) ? *(uint64_t *)p :
             V(p), 0);
          }
-      case 0: /* FIXME: remove this line after fasl update */
+      case 0: /* FIXME: remove this line after soon */
       case 42: /* write fd data len | #f → nbytes | #f */
          if (is_type(a, TPORT) && allocp(b)) {
             size_t len, size = payl_len(header(b));
@@ -1256,12 +1256,12 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          }
          NEXT(2); }
       case 29:
-         /* FIXME: remove this after the next fasl update: */ {
+         /* FIXME: remove this soon */ {
          A2 = mkpair(NUMHDR, A0, A1);
          NEXT(3); }
       case 30:
       case 31:
-         /* FIXME: remove this after the next fasl update: */ {
+         /* FIXME: remove this soon */ {
          A1 = G(A0, op - 29);
          NEXT(2); }
       case 32: { /* bind tuple <n> <r0> .. <rn> */
@@ -1334,11 +1334,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4);
       case 46:
          UNUSED;
-      case 47: /* ref t o r */ /* FIXME: deprecate this later */
+      case 47: /* ref t o r */
          A2 = prim_ref(A0, A1);
          NEXT(3);
       case 48:
-         /* FIXME: remove this after the next fasl update: */ {
+         /* FIXME: remove this soon */ {
          A2 = prim_ref(A0, A1);
          NEXT(3); }
       case 49: { /* withff node l k v r */
@@ -1391,7 +1391,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3);
       case 52:
       case 53:
-         /* FIXME: remove this after the next fasl update: */ {
+         /* FIXME: remove this soon */ {
          word *ob = (word *)A0;
          assert(pairp(ob), ob, 52);
          A1 = ob[op - 51];
@@ -1414,15 +1414,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = F(x >> n);
          A3 = F(x << (FBITS - n) & FMAX);
          NEXT(4); }
-      case 59:
-         /* FIXME: remove this after the next fasl update: */ {
-         uint64_t res = (uint64_t)immval(A0) << immval(A1);
-         A2 = F(res >> FBITS);
-         A3 = F(res & FMAX);
-         NEXT(4); }
    /* case 60: FIXME: move apply here after fasl update */
       case 61:
-         /* FIXME: remove this after the next fasl update: */ {
+         /* FIXME: remove this soon */ {
          struct timeval tp;
          gettimeofday(&tp, NULL);
          A0 = onum(tp.tv_sec, 1);

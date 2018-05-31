@@ -39,7 +39,7 @@
 (define *interactive* #false) ;; be verbose
 (define *include-dirs* '(".")) ;; now we can (import <libname>) and have them be autoloaded to current repl
 (define *owl-names* #empty)
-(define *owl-version* "0.1.16a")
+(define *owl-version* "0.1.16")
 
 (import
    (owl intern)
