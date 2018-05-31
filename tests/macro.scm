@@ -42,3 +42,19 @@
 (print (my-foo)) ;; 42, should work even after rename
 (print (my-foo x)) ;; 100, should work via macro even though it's not exported
 (print (my-foo 1 2)) ;; (1 2 100 42 x)
+
+
+(define-library (macro test)
+   (import (owl defmac))
+   (export foo bar)
+   (begin
+      (define x-bar "wrong")
+      (define bar "correct")
+      (define-syntax foo
+         (syntax-rules ()
+            ((foo) bar)))))
+
+(import (prefix (macro test) x-))
+
+(print (x-foo)) ; -> correct
+

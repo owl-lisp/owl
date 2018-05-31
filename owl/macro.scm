@@ -162,7 +162,10 @@
       (define (try-pattern pattern literals form)
          (call/cc
             (lambda (ret)
-               (match-pattern pattern literals form
+               (match-pattern
+                  pattern
+                  (cons (car form) literals)
+                  form
                   (lambda (argh) (ret #false))))))
 
       ;; given dictionary resulting from pattern matching, decide how many times an ellipsis
@@ -451,7 +454,7 @@
                         (lambda (sym)
                            (not (env-get-raw env sym #false)))))
                    (transformer
-                     (make-transformer (cons keyword literals) rules env)))
+                     (make-transformer literals rules env)))
                   (let ((env (env-set-macro env keyword transformer)))
                      (ok (list 'quote keyword) env))))
             (else
