@@ -314,7 +314,7 @@
 
       (define (write port data len)
          (or
-            (sys 0 port data len)
+            (sys 42 port data len)
             (and
                (let ((err (errno)))
                   (or (eq? (EAGAIN) err) (eq? (EWOULDBLOCK) err)))
@@ -551,7 +551,7 @@
       (sc CLOCK_THREAD_CPUTIME_ID 130)
 
       (define (clock_gettime clock)
-         (sys 42 clock))
+         (sys 99 clock))
 
       ;;;
       ;;; terminal control

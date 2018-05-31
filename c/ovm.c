@@ -540,17 +540,12 @@ static void setdown() {
 /* system- and io primops */
 static word prim_sys(word op, word a, word b, word c) {
    switch (immval(op)) {
-      case 0: /* write fd data len | #f → nbytes | #f */
-         if (is_type(a, TPORT) && allocp(b)) {
-            size_t len, size = payl_len(header(b));
-            len = c != IFALSE ? cnum(c) : size;
-            if (len <= size) {
-               len = write(immval(a), (const word *)b + 1, len);
-               if (len != (size_t)-1)
-                  return onum(len, 0);
-            }
-         }
-         return IFALSE;
+      /* FIXME: rename to case 0 after fasl update */
+      case 99: { /* clock_gettime clock_id → nanoseconds */
+         struct timespec ts;
+         if (clock_gettime(cnum(a), &ts) != -1)
+            return onum(ts.tv_sec * INT64_C(1000000000) + ts.tv_nsec, 1);
+         return IFALSE; }
       case 1: /* open path flags mode → port | #f */
          if (stringp(a)) {
             int fd = open((const char *)a + W, cnum(b), immval(c));
@@ -867,11 +862,18 @@ static word prim_sys(word op, word a, word b, word c) {
             b == F(8) ? *(uint64_t *)p :
             V(p), 0);
          }
-      case 42: { /* clock_gettime clock_id → nanoseconds */
-         struct timespec ts;
-         if (clock_gettime(cnum(a), &ts) != -1)
-            return onum(ts.tv_sec * INT64_C(1000000000) + ts.tv_nsec, 1);
-         return IFALSE; }
+      case 0: /* FIXME: remove this line after fasl update */
+      case 42: /* write fd data len | #f → nbytes | #f */
+         if (is_type(a, TPORT) && allocp(b)) {
+            size_t len, size = payl_len(header(b));
+            len = c != IFALSE ? cnum(c) : size;
+            if (len <= size) {
+               len = write(immval(a), (const word *)b + 1, len);
+               if (len != (size_t)-1)
+                  return onum(len, 0);
+            }
+         }
+         return IFALSE;
       default:
          return IFALSE;
    }
