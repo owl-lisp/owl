@@ -231,24 +231,20 @@
       ;; let sequence
       (define-syntax lets
          (syntax-rules (<=)
-            ((lets ((var val) . rest-bindings) exp . rest-exps)
-               ;; (var val) ≡ ((λ (var) ...) val)
-               ((lambda (var) (lets rest-bindings exp . rest-exps)) val))
-            ((lets ((var ... (op . args)) . rest-bindings) exp . rest-exps)
+            ((lets ((name val) . bindings) exp . exps)
+               ;; (name val) ≡ ((λ (name) ...) val)
+               ((lambda (name) (lets bindings exp . exps)) val))
+            ((lets (((name . names) <= val) . bindings) exp . exps)
+               (bind val
+                  (lambda (name . names) (lets bindings exp . exps))))
+            ((lets ((name1 name2 ... (op . args)) . bindings) exp . exps)
                ;; (v1 v2 .. vn (op a1 .. an)) ≡ call-with-values, this is a generalization of the above
                (receive (op . args)
-                  (lambda (var ...)
-                     (lets rest-bindings exp . rest-exps))))
-            ((lets ((var ... node) . rest-bindings) exp . rest-exps)
-               (bind node
-                  (lambda (var ...)
-                     (lets rest-bindings exp . rest-exps))))
-            ((lets (((name ...) <= value) . rest) . code)
-               (bind value
-                  (lambda (name ...)
-                     (lets rest . code))))
-            ((lets ()) exp)
-            ((lets () exp . rest) (begin exp . rest))))
+                  (lambda (name1 name2 ...) (lets bindings exp . exps))))
+            ((lets ((name1 name2 ... val) . bindings) exp . exps)
+               (bind val
+                  (lambda (name1 name2 ...) (lets bindings exp . exps))))
+            ((lets () exp . exps) (begin exp . exps))))
 
       ;; the internal one is handled by begin. this is just for toplevel.
       (define-syntax define-values
