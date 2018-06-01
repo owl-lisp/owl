@@ -249,7 +249,7 @@
          (lets
             ((ll type (grab ll fail))
              (ll val  (get-nat ll fail 0)))
-            (values ll (cast-immediate val type))))
+            (values ll (fxbxor (create-type type) val)))) ; cast via fxbxor
 
       (define nan "not here") ; eq?-unique
 

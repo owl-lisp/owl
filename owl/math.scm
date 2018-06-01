@@ -46,7 +46,7 @@
       (owl list)
       (owl syscall)
       (owl ff)
-      (only (owl primop) cast-immediate))
+      (only (owl primop) create-type))
 
    (begin
 
@@ -90,7 +90,8 @@
          (syntax-rules ()
             ((to-fix+ n) (fxbxor 0 n))))
 
-      (define to-fix- (C cast-immediate type-fix-))
+      (define to-fix-
+         (H fxbxor (create-type type-fix-)))
 
       (define (to-int+ n)
          (mkt type-int+ (ncar n) (ncdr n)))

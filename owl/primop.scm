@@ -18,7 +18,7 @@
       apply
       call/cc
       lets/cc
-      cast-immediate
+      create-type
       len
       )
 
@@ -184,13 +184,11 @@
             ((lets/cc var . body)
                (call/cc (λ (var) (lets . body))))))
 
-      (define cast-immediate
+      (define create-type
          (let ((get-header (raw '(1 4 0 5 24 5) type-bytecode)))
-            (λ (x type)
-               (fxbxor
-                  (let ((hdr (get-header (raw '() type))))
-                     (fxbxor hdr hdr))
-                  x))))
+            (λ (type)
+               (let ((hdr (get-header (raw '() type))))
+                  (fxbxor hdr hdr)))))
 
       ;; non-primop instructions that can report errors
       (define (instruction-name op)

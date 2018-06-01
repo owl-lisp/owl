@@ -11,12 +11,12 @@
    (import
       (owl defmac)
       (only (owl list) memq)
-      (only (owl primop) cast-immediate))
+      (only (owl primop) create-type))
 
    (begin
 
       (define (port? x) (eq? (type x) type-port))
-      (define fd->port (C cast-immediate type-port))
+      (define fd->port (H fxbxor (create-type type-port)))
       (define port->fd (H fxbxor 0))
 
       (define stdin (fd->port 0))
