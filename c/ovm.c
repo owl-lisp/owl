@@ -1140,45 +1140,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          error(17, ob, t); }
       case 18:
       case 19:
-         UNUSED;
       case 20:
-         UNUSED;
-      case 60: { /* apply */
-         int reg, arity;
-         word *lst;
-         if (!(op & 64)) { /* normal apply: cont=r3, fn=r4, a0=r5 */
-            reg = 4; /* include cont */
-            arity = 1;
-            ob = (word *) R[reg];
-            acc -= 3; /* ignore cont, function and stop before last one (the list) */
-            while (acc--) { /* move explicitly given arguments down by one to correct positions */
-               R[reg] = R[reg + 1]; /* copy args down */
-               reg++;
-               arity++;
-            }
-            lst = (word *) R[reg+1];
-         } else { /* _sans_cps apply: func=r3, a0=r4 */
-            reg = 3; /* include cont */
-            arity = 0;
-            ob = (word *) R[reg];
-            acc -= 2; /* ignore function and stop before last one (the list) */
-            while (acc--) { /* move explicitly given arguments down by one to correct positions */
-               R[reg] = R[reg + 1]; /* copy args down */
-               reg++;
-               arity++;
-            }
-            lst = (word *) R[reg+1];
-         }
-         while (pairp(lst)) { /* unwind argument list */
-            /* FIXME: unwind only up to last register and add limited rewinding to arity check */
-            if (reg > 128) /* dummy handling for now */
-               exit(3);
-            R[reg++] = lst[1];
-            lst = (word *) lst[2];
-            arity++;
-         }
-         acc = arity;
-         goto apply; }
       case 21:
       case 22:
          UNUSED;
@@ -1390,9 +1352,27 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4); }
       case 59:
          UNUSED;
-   /* case 60: FIXME: move apply here after fasl update */
-      case 61:
-         UNUSED;
+      case 60:
+         op ^= 64; /* FIXME: unused after fasl update */
+      case 61: { /* apply: cont=r3, fn=r4, a0=r5; _sans_cps: func=r3, a0=r4 */
+         word *lst;
+         uint arity = op >> 6;
+         uint reg = 3 + arity; /* include cont */
+         ob = (word *)R[reg];
+         acc -= 2 + arity; /* ignore cont, function and stop before last one (the list) */
+         for (arity += acc; acc--; ++reg)
+            R[reg] = R[reg + 1]; /* move explicitly given arguments down by one to correct positions */
+         lst = (word *)R[reg + 1];
+         while (pairp(lst)) { /* unwind argument list */
+            /* FIXME: unwind only up to last register and add limited rewinding to arity check */
+            if (reg > 128) /* dummy handling for now */
+               exit(3);
+            R[reg++] = lst[1];
+            lst = (word *)lst[2];
+            ++arity;
+         }
+         acc = arity;
+         goto apply; }
       case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
          A1 = F(ticker & FMAX);
          ticker = immval(A0);
