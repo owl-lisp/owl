@@ -117,8 +117,7 @@
       (owl defmac)
       (owl list)
       (owl proof)
-      (only (owl syscall) error)
-      (only (owl tuple) tuple->list))
+      (only (owl syscall) error))
 
    (begin
 
@@ -249,19 +248,15 @@
                (ff-bind name (lambda (l k v r) . rest)))
             ))
 
-      ;; emulate former 'cast' primop
-      (define (cast-allocated obj type)
-         (listuple type (size obj) (tuple->list obj)))
-
-      ;; toggle redness, name of old prim
-      (define-syntax ff-toggle
-         (syntax-rules ()
-            ((ff-toggle node)
-               (cast-allocated node (fxbxor (type node) redness)))))
-
       ;; FIXME: misleading names!
-      (define-syntax color-black (syntax-rules () ((color-black x) (ff-toggle x))))
-      (define-syntax color-red   (syntax-rules () ((color-red x)   (ff-toggle x))))
+      (define-syntax color-black
+         (syntax-rules ()
+            ((color-black x)
+               (with-ff (x l k v r) (mkblack l k v r)))))
+      (define-syntax color-red
+         (syntax-rules ()
+            ((color-red x)
+               (with-ff (x l k v r) (mkred l k v r)))))
 
 
       ;;;
