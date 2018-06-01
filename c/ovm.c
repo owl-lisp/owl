@@ -521,7 +521,7 @@ static void setdown() {
    tcsetattr(0, TCSANOW, &tsettings); /* return stdio settings */
 }
 
-static void do_poll(word, word, word, word*, word*);
+static word do_poll(word, word, word);
 
 /* system- and io primops */
 static word prim_sys(word op, word a, word b, word c) {
@@ -859,10 +859,8 @@ static word prim_sys(word op, word a, word b, word c) {
             }
          }
          return IFALSE;
-      case 43: { /* FIXME: simplify after fasl update */
-         word r1, r2;
-         do_poll(a, b, c, &r1, &r2);
-         return cons(r1, r2); }
+      case 43:
+         return do_poll(a, b, c);
       default:
          return IFALSE;
    }
@@ -910,9 +908,10 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
    return (word) ob;
 }
 
-static void do_poll(word a, word b, word c, word *r1, word *r2) {
+/* TODO: implement this in owl */
+static word do_poll(word a, word b, word c) {
    fd_set rs, ws, es;
-   word *cur;
+   word *cur, r1, r2;
    int nfds = 1;
    struct timeval tv;
    int res;
@@ -940,19 +939,20 @@ static void do_poll(word a, word b, word c, word *r1, word *r2) {
       res = select(nfds, &rs, &ws, &es, &tv);
    }
    if (res < 1) {
-      *r1 = IFALSE; *r2 = BOOL(res < 0); /* 0 = timeout, otherwise error or signal */
+      r1 = IFALSE; r2 = BOOL(res < 0); /* 0 = timeout, otherwise error or signal */
    } else {
       int fd; /* something active, wake the first thing */
       for (fd = 0; ; ++fd) {
          if (FD_ISSET(fd, &rs)) {
-            *r1 = make_immediate(fd, TPORT); *r2 = F(1); break;
+            r1 = make_immediate(fd, TPORT); r2 = F(1); break;
          } else if (FD_ISSET(fd, &ws)) {
-            *r1 = make_immediate(fd, TPORT); *r2 = F(2); break;
+            r1 = make_immediate(fd, TPORT); r2 = F(2); break;
          } else if (FD_ISSET(fd, &es)) {
-            *r1 = make_immediate(fd, TPORT); *r2 = F(3); break;
+            r1 = make_immediate(fd, TPORT); r2 = F(3); break;
          }
       }
    }
+   return cons(r1, r2);
 }
 
 static word vm(word *ob, word *arg) {
@@ -963,7 +963,7 @@ static word vm(word *ob, word *arg) {
    uint op;
    word R[NR];
 
-   static const word load_imms[] = { F(0), INULL, ITRUE, IFALSE };
+   static const uint16_t load_imms[] = { F(0), INULL, ITRUE, IFALSE };
 
    /* clear blank regs */
    for (acc = 1; acc != NR; ++acc)

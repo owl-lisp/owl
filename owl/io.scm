@@ -743,8 +743,7 @@
          (quotient (sys-clock_gettime (sys-CLOCK_REALTIME)) 1000000))
 
       (define (_poll2 rs ws timeout)
-         (let ((res (sys-prim 43 rs ws timeout)))
-            (values (car res) (cdr res))))
+         (sys-prim 43 rs ws timeout))
 
       (define (muxer-add rs ws alarms mail)
          (tuple-case (ref mail 2)
@@ -770,7 +769,7 @@
                      (muxer rs ws alarms))
                   (lets
                      ((timeout (if (single-thread?) #false 0))
-                      (waked x (_poll2 rs ws timeout)))
+                      ((waked x) <= (_poll2 rs ws timeout)))
                      (cond
                         (waked
                            (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
@@ -789,7 +788,7 @@
                         (lets
                            ((timeout
                               (if (single-thread?) (min *max-fixnum* (- (caar alarms) now)) 0))
-                            (waked x (_poll2 rs ws timeout)))
+                            ((waked x) <= (_poll2 rs ws timeout)))
                            (cond
                               (waked
                                  (lets ((rs ws alarms (wakeup rs ws alarms waked x)))
