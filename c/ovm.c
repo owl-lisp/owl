@@ -105,7 +105,6 @@ typedef intptr_t wdiff;
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
 #define NEXT(n)                     ip += n; continue
-#define UNUSED                      break
 #define PAIRHDR                     make_header(3, 1)
 #define NUMHDR                      make_header(3, 40) /* <- on the way to 40, see type-int+ in defmac.scm */
 #define NUMNHDR                     make_header(3, 41)
@@ -1085,8 +1084,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          ob = (word *)A0;
          acc = ip[1];
          goto apply;
-      case 3:
-         UNUSED;
       case 4: { /* opcodes 132, 4, 196, 68 */
          word size = *ip++, tmp;
          word *ob;
@@ -1102,20 +1099,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = A0;
          A3 = A2;
          NEXT(4);
-      case 6:
-      case 7:
-         UNUSED;
       case 8: /* jeq a b o, extended jump */
          if (A0 == A1)
             ip += ip[3] << 8 | ip[2];
          NEXT(4);
       case 9: A1 = A0; NEXT(2);
-      case 10:
-         UNUSED;
-      case 11:
-         UNUSED;
-      case 12:
-         UNUSED;
       case 13: /* ldi{2bit what} [to] */
          A0 = load_imms[op >> 6];
          NEXT(1);
@@ -1138,12 +1126,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          *t = make_header(acc+1, TTUPLE);
          memcpy(t + 1, R + 3, acc * W);
          error(17, ob, t); }
-      case 18:
-      case 19:
-      case 20:
-      case 21:
-      case 22:
-         UNUSED;
       case 23: { /* mkt t s f1 .. fs r */
          word t = *ip++;
          word s = *ip++ + 1; /* the argument is n-1 to allow making a 256-tuple with 255, and avoid 0-tuples */
@@ -1202,10 +1184,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             A1 = rawp(hdr) ? F(payl_len(hdr)) : IFALSE;
          }
          NEXT(2); }
-      case 29:
-      case 30:
-      case 31:
-         UNUSED;
       case 32: { /* bind tuple <n> <r0> .. <rn> */
          word *tuple = (word *) R[*ip++];
          word hdr, pos = 1, n = *ip++ + 1;
@@ -1215,8 +1193,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          while (--n)
             R[*ip++] = tuple[pos++];
          NEXT(0); }
-      case 33:
-         UNUSED;
       case 34: /* jmp-nargs a hi li */
          if (acc != *ip)
             ip += ip[1] << 8 | ip[2];
@@ -1274,8 +1250,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 45: /* set t o v r */
          A3 = prim_set(A0, A1, A2);
          NEXT(4);
-      case 46:
-         UNUSED;
       case 47: /* ref t o r */
          A2 = prim_ref(A0, A1);
          NEXT(3);
@@ -1330,9 +1304,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 51: /* cons a b r */
          A2 = cons(A0, A1);
          NEXT(3);
-      case 52:
-      case 53:
-         UNUSED;
       case 54: /* eq a b r */
          A2 = BOOL(A0 == A1);
          NEXT(3);
@@ -1351,8 +1322,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = F(x >> n);
          A3 = F(x << (FBITS - n) & FMAX);
          NEXT(4); }
-      case 59:
-         UNUSED;
       case 60:
          op ^= 64; /* FIXME: unused after fasl update */
       case 61: { /* apply: cont=r3, fn=r4, a0=r5; _sans_cps: func=r3, a0=r4 */
@@ -1381,8 +1350,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 63: /* sys-prim op arg1 arg2 arg3 r1 */
          A4 = prim_sys(A0, A1, A2, A3);
          NEXT(5);
+      default:
+         error(256, F(op), IFALSE); /* report unimplemented opcode */
       }
-      error(256, F(op), IFALSE);
    }
 
 super_dispatch: /* run macro instructions */
