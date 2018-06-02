@@ -216,12 +216,6 @@
                   (assemble more fail)))
             ((goto op nargs)
                (list (inst->op 'goto) (reg op) nargs))
-            ((goto-code op n)
-               (list (inst->op 'goto-code) (reg op) n)) ;; <- arity needed for dispatch
-            ((goto-proc op n)
-               (list (inst->op 'goto-proc) (reg op) n))
-            ((goto-clos op n)
-               (list (inst->op 'goto-clos) (reg op) n))
             ;; todo: all jumps could have parameterized lengths (0 = 1-byte, n>0 = 2-byte, being the max code length)
             ((jeqi i a then else)
                (lets

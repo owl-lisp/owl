@@ -1324,11 +1324,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = prim_lraw(A0, A1);
          NEXT(3);
       case 60:
-         op ^= 64; /* FIXME: unused after fasl update */
+         op ^= 64; /* FIXME: remove after fasl update */
       case 61: { /* apply: cont=r3, fn=r4, a0=r5; _sans_cps: func=r3, a0=r4 */
          word *lst;
          uint arity = op >> 6;
-         uint reg = 3 + arity; /* include cont */
+         uint reg = 3 + arity; /* FIXME: remove after fasl update */
          ob = (word *)R[reg];
          acc -= 2 + arity; /* ignore cont, function and stop before last one (the list) */
          for (arity += acc; acc--; ++reg)
@@ -1344,7 +1344,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          }
          acc = arity;
          goto apply; }
-      case 62: /* set-ticker <val> <to> -> old ticker value */ /* fixme: sys */
+      case 62: /* set-ticker <val> <to> -> old ticker value */
+         /* ponder: it should be possible to remove this, if the only use is to yield control */
          A1 = F(ticker & FMAX);
          ticker = immval(A0);
          NEXT(2);

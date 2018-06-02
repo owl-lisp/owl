@@ -277,13 +277,13 @@
                         (define (seek env)
                            (filter (B rex symbol->string) (env-keys env)))
                         (print "current toplevel: "
-                           (apply str (interleave ", " (seek env))))
+                           (fold str "" (interleave ", " (seek env))))
                         (for-each
                            (λ (lib)
                               (let ((matches (seek (cdr lib))))
                                  (if (not (null? matches))
                                     (print
-                                       (str "   " (car lib) ": " (apply str (interleave ", " matches)))))))
+                                       (str "   " (car lib) ": " (fold str "" (interleave ", " matches)))))))
                            (env-get env '*libraries* null))
                         (prompt env (repl-message)))
                      (else
