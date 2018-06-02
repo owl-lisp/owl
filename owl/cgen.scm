@@ -380,9 +380,8 @@
                               (list "acc==" arity)
                               bs regs
                               (drop bs jump-len) regs)
-			   regs))))
+                           regs))))
                (cons 36 cify-size)
-               (cons 37 cify-lraw)
                (cons 38 cify-fxadd)
                (cons 39 cify-fxmul)
                (cons 40 cify-fxsub)
@@ -459,6 +458,7 @@
                (cons 56 cify-fxbor)
                (cons 57 cify-fxbxor)
                (cons 58 cify-fxright)
+               (cons 59 cify-lraw)
                (cons 63 cify-sysprim)
                ;; below are lower primop + extra info (like 13=ldi<what>)
                (cons 13 ;; ldz r

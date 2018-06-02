@@ -1215,9 +1215,6 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          word *ob = (word *)A0;
          A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
          NEXT(2); }
-      case 37: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
-         A2 = prim_lraw(A0, A1);
-         NEXT(3);
       case 38: { /* fx+ a b r o, types prechecked, signs ignored */
          word res = immval(A0) + immval(A1);
          A3 = BOOL(1 << FBITS & res);
@@ -1322,6 +1319,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = F(x >> n);
          A3 = F(x << (FBITS - n) & FMAX);
          NEXT(4); }
+      case 37: /* FIXME: opcode 37 unused in new fasl */
+      case 59: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
+         A2 = prim_lraw(A0, A1);
+         NEXT(3);
       case 60:
          op ^= 64; /* FIXME: unused after fasl update */
       case 61: { /* apply: cont=r3, fn=r4, a0=r5; _sans_cps: func=r3, a0=r4 */

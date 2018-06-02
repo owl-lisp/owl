@@ -81,7 +81,7 @@
       (define sys-prim    (func '(5 63 4 5 6 7 8 24 8)))
       (define sys         (func '(4 27 4 5 6 7 24 7)))
       (define sizeb       (func '(2 28 4 5 24 5)))
-      (define raw         (func '(3 37 4 5 6 24 6)))
+      (define raw         (func '(3 59 4 5 6 24 6)))
       (define eq?         (func '(3 54 4 5 6 24 6)))
       (define fxband      (func '(3 55 4 5 6 24 6)))
       (define fxbor       (func '(3 56 4 5 6 24 6)))
@@ -108,7 +108,7 @@
             ;;; input arity includes a continuation
             (tuple 'sys          27 4 1 sys)
             (tuple 'sizeb        28 1 1 sizeb)   ;; raw-obj -> numbe of bytes (fixnum)
-            (tuple 'raw          37 2 1 raw)   ;; make raw object, and *add padding byte count to type variant*
+            (tuple 'raw          59 2 1 raw) ;; make a raw object
             (tuple 'cons         51 2 1 cons)
             (tuple 'car         105 1 1 car) ;; opcode: 1 << 6 | 41
             (tuple 'cdr         169 1 1 cdr) ;; opcode: 2 << 6 | 41
