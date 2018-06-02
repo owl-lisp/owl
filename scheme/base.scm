@@ -305,18 +305,6 @@
       ;; just for compatibility, as lists are always immutable in owl
       (define list-copy self)
 
-      ;; a silly non-primitive apply
-      ;(define (apply func l)
-      ;   (if (null? l)
-      ;      (func)
-      ;      (lets ((a l l)) (if (null? l) (func a)
-      ;      (lets ((b l l)) (if (null? l) (func a b)
-      ;      (lets ((c l l)) (if (null? l) (func a b c)
-      ;      (lets ((d l l)) (if (null? l) (func a b c d)
-      ;      (lets ((e l l)) (if (null? l) (func a b c d e)
-      ;      (lets ((f l l)) (if (null? l) (func a b c d e f)
-      ;         (error "apply: too many arguments: " (ilist a b c d e f l))))))))))))))))
-
       (define floor-remainder modulo)
       (define truncate-quotient quotient)
       (define truncate-remainder remainder)

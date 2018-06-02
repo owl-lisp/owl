@@ -471,7 +471,7 @@
       (map (lambda (n) (expt n n)) '(1 2 3 4 5))
                                       ===> (1 4 27 256 3125)
 
-      (apply + (list 3 4))            ===> 7    ;; not a primop yet though
+      (apply + (list 3 4))            ===> 7    ;; not a primop though
 
       (map cadr '((a b) (d e) (g h))) ===> (b e h)
 
