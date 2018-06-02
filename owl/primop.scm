@@ -132,6 +132,61 @@
       (define fx>> (func '(4 58 4 5 6 7 24 7)))
 
       (define apply (bytes->bytecode '(125))) ;; <- no arity, just call 64 | 61
+
+      (define null '())
+
+      (define apply-error "implementation restriction: please fold a long list instead of applying a function")
+
+      (define apply
+         (case-lambda
+            ((fn l)
+               (if (eq? l null) (fn)
+                  (lets ((a l l))
+                     (if (eq? l null) (fn a)
+                        (lets ((b l l))
+                           (if (eq? l null) (fn a b)
+                              (lets ((c l l))
+                                 (if (eq? l null) (fn a b c)
+                                    (lets ((d l l))
+                                       (if (eq? l null) (fn a b c d)
+                                          (lets ((e l l))
+                                             (if (eq? l null) (fn a b c d e)
+                                                (car apply-error)))))))))))))
+            ((fn a l)
+               (if (eq? l null) (fn a)
+                  (lets ((b l l))
+                     (if (eq? l null) (fn a b)
+                        (lets ((c l l))
+                           (if (eq? l null) (fn a b c)
+                              (lets ((d l l))
+                                 (if (eq? l null) (fn a b c d)
+                                    (lets ((e l l))
+                                       (if (eq? l null) (fn a b c d e)
+                                          (car apply-error)))))))))))
+            ((fn a b l)
+               (if (eq? l null) (fn a b)
+                  (lets ((c l l))
+                     (if (eq? l null) (fn a b c)
+                        (lets ((d l l))
+                           (if (eq? l null) (fn a b c d)
+                              (lets ((e l l))
+                                 (if (eq? l null) (fn a b c d e)
+                                    (car apply-error)))))))))
+            ((fn a b c l)
+               (if (eq? l null) (fn a b c)
+                  (lets ((d l l))
+                     (if (eq? l null) (fn a b c d)
+                        (lets ((e l l))
+                           (if (eq? l null) (fn a b c d e)
+                              (car apply-error)))))))
+            ((fn a b c d l)
+               (if (eq? l null) (fn a b c d)
+                  (lets ((e l l))
+                     (if (eq? l null) (fn a b c d e)
+                        (car apply-error)))))
+            (x
+               (car apply-error))))
+
       (define apply-cont (bytes->bytecode '(61)))
 
       (define primops-2
@@ -173,9 +228,15 @@
             (λ (k f)
                (f k
                   (case-lambda
-                     ((c a) (k a))
-                     ((c a b) (k a b))
-                     ((c . x) (apply-cont k x)))))))
+                     ((_ a) (k a))
+                     ((_ a b) (k a b))
+                     ((_ a b c) (k a b c))
+                     ((_ a b c d) (k a b c d))
+                     ((_ a b c d e) (k a b c d e))
+                     (x
+                        ;((c . x) (apply-cont k x))
+                        (car "implementation restriction: add more values to continuation handling")
+                        ))))))
 
       (define-syntax lets/cc
          (syntax-rules (call/cc)
