@@ -124,8 +124,8 @@
       (define set (func '(4 45 4 5 6 7 24 7)))
       (define lesser? (func '(3 44 4 5 6 24 6)))
       (define listuple (func '(4 35 4 5 6 7 24 7)))
-      (define mkblack (func '(5 42 4 5 6 7 8 24 8)))
-      (define mkred (func '(5 43 4 5 6 7 8 24 8)))
+      (define mkblack (func '(5 48 4 5 6 7 8 24 8)))
+      (define mkred (func '(5 176 4 5 6 7 8 24 8)))
       (define fxqr (func '(4 26))) ;; <- placeholder
       (define fx+ (func '(4 38 4 5 6 7 24 7)))
       (define fx- (func '(4 40 4 5 6 7 24 7)))
@@ -140,8 +140,8 @@
             (tuple 'set          45 3 1 set)   ;; (set tuple pos val) -> tuple'
             (tuple 'lesser?      44 2 1 lesser?)  ;; (lesser? a b)
             (tuple 'listuple     35 3 1 listuple)  ;; (listuple type size lst)
-            (tuple 'mkblack      42 4 1 mkblack)   ; (mkblack l k v r)
-            (tuple 'mkred        43 4 1 mkred)   ; ditto
+            (tuple 'mkblack      48 4 1 mkblack) ;; (mkblack l k v r)
+            (tuple 'mkred       176 4 1 mkred)   ;; ditto, opcode: FFRED << 6 | 48
             (tuple 'ff-bind      49 1 #false ff-bind)  ;; SPECIAL ** (ffbind thing (lambda (name ...) body))
             (tuple 'fxqr         26 3 3 'fxqr)   ;; (fxdiv ah al b) -> qh ql r
             (tuple 'fx+          38 2 2 fx+)   ;; (fx+ a b)      ;; 2 out

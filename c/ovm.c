@@ -1262,10 +1262,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          assert(pairp(ob), ob, op);
          A1 = ob[op >> 6];
          NEXT(2); }
-      case 42: /* mkblack l k v r t */
+      case 42: /* FIXME: unused in new fasl */
          A4 = prim_mkff(TFF, A0, A1, A2, A3);
          NEXT(5);
-      case 43: /* mkred l k v r t */
+      case 43: /* FIXME: unused in new fasl */
          A4 = prim_mkff(TFF | FFRED, A0, A1, A2, A3);
          NEXT(5);
       case 44: /* less a b r */
@@ -1279,8 +1279,9 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 47: /* ref t o r */
          A2 = prim_ref(A0, A1);
          NEXT(3);
-      case 48:
-         UNUSED;
+      case 48: /* mk{black,red} l k v r */
+         A4 = prim_mkff(op >> 6 | TFF, A0, A1, A2, A3); /* FFRED is the top bit in op */
+         NEXT(5);
       case 49: { /* withff node l k v r */
          word hdr, *ob = (word *)A0;
          hdr = *ob++;

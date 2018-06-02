@@ -199,11 +199,11 @@
                (list "{uint64_t a=(uint64_t)immval(R["ah"])<<FBITS|immval(R["al"]);word b=immval(R["b"]);uint64_t q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q&FMAX);R["rem"]=F(a-q*b);}")
                bs (-> regs (put qh 'fixnum) (put ql 'fixnum) (put rem 'fixnum)))))
 
-      ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
-      (define (cifyer-mkff type)
+      ; mkblack, mkred
+      (define (cifyer-mkff color)
          (λ (bs regs fail)
             (lets ((l k v r to bs (get5 (cdr bs))))
-               (values (list "R["to"]=prim_mkff("type",R["l"],R["k"],R["v"],R["r"]);") bs
+               (values (list "R["to"]=prim_mkff(TFF"color",R["l"],R["k"],R["v"],R["r"]);") bs
                   (put regs to 'alloc)))))
 
       ; bind tuple n r0 .. rn
@@ -386,8 +386,6 @@
                (cons 38 cify-fxadd)
                (cons 39 cify-fxmul)
                (cons 40 cify-fxsub)
-               (cons 42 (cifyer-mkff "TFF"))
-               (cons 43 (cifyer-mkff "TFF|FFRED"))
                (cons 44 ;; less a b r
                   (λ (bs regs fail)
                      (lets ((a b to bs (get3 (cdr bs))))
@@ -398,6 +396,8 @@
                         (values (list "R["to"]=prim_set(R["ob"],R["pos"],R["val"]);") bs
                            (put regs to (get regs ob 'alloc))))))
                (cons 47 cify-ref)
+               (cons 48 (cifyer-mkff ""))
+               (cons 176 (cifyer-mkff "|FFRED"))
                (cons 49 cify-bindff)
                (cons 51 ;; cons car cdr to
                   (λ (bs regs fail)
