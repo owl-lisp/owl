@@ -130,7 +130,7 @@
       (define (cify-size bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
             (values
-               (list "R["to"]=(immediatep(R["ob"]))?IFALSE:F(hdrsize(V(R["ob"]))-1);")
+               (list "R["to"]=(immediatep(R["ob"]))?IFALSE:F(objsize(V(R["ob"]))-1);")
                bs (put regs to 'fixnum))))
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -214,7 +214,7 @@
             (values
                (ilist "{word*ob=(word*)R["ob"];word hdr;"
                   (assert-alloc regs ob "IFALSE"
-                     (ilist "hdr=*ob;assert_not(rawp(hdr)||hdrsize(hdr)!="(+ 1 n)",ob,IFALSE);"
+                     (ilist "hdr=*ob;assert_not(rawp(hdr)||objsize(hdr)!="(+ 1 n)",ob,IFALSE);"
                         (foldr
                            (λ (n tl) ;; n = (reg . pos)
                               (ilist "R[" (car n) "]=ob[" (cdr n) "];" tl))
@@ -230,7 +230,7 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049
-                  (list "{word*ob=(word*)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(hdrsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(1<<TPOS&hdr){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
+                  (list "{word*ob=(word*)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(objsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(1<<TPOS&hdr){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
                bs
                (fold del regs (list l k v r)))))
 

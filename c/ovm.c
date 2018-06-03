@@ -100,7 +100,7 @@ typedef intptr_t wdiff;
 #define header(x)                   V(x)
 #define imm_type(x)                 ((x) >> TPOS & 63)
 #define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
-#define hdrsize(x)                  ((uint32_t)(x) >> SPOS)
+#define objsize(x)                  ((uint32_t)(x) >> SPOS)
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
@@ -200,7 +200,7 @@ static void mark(word *pos, word *end) {
             word hdr = header(val);
             rev((word) pos);
             if (!flagged_or_raw(hdr))
-               pos = (word *)val + hdrsize(hdr);
+               pos = (word *)val + objsize(hdr);
          }
       }
       --pos;
@@ -219,7 +219,7 @@ static word *compact() {
          do { /* unthread */
             rev((word) new);
          } while (flagged(*new));
-         h = hdrsize(*new);
+         h = objsize(*new);
          if (old == new) {
             old += h;
             new += h;
@@ -232,7 +232,7 @@ static word *compact() {
       } else {
          if (teardown_needed(val))
             printf("gc: would teardown\n");
-         old += hdrsize(val);
+         old += objsize(val);
       }
    }
    return new;
@@ -241,7 +241,7 @@ static word *compact() {
 static void fix_pointers(word *pos, wdiff delta) {
    for (;;) {
       word hdr = *pos;
-      int n = hdrsize(hdr);
+      uint n = objsize(hdr);
       if (hdr == 0) /* end marker reached. only dragons beyond this point. */
          return;
       if (rawp(hdr)) {
@@ -285,7 +285,7 @@ static word *gc(int size, word *regs) {
    word *root;
    word *realend = memend;
    wdiff nfree;
-   fp = regs + hdrsize(*regs);
+   fp = regs + objsize(*regs);
    root = fp+1;
    *root = (word) regs;
    memend = fp;
@@ -305,7 +305,7 @@ static word *gc(int size, word *regs) {
       nfree -= size*W + MEMPAD; /* how much really could be snipped off */
       if (nfree < (heapsize / 5) || nfree < 0) {
          /* increase heap size if less than 20% is free by ~10% of heap size (growth usually implies more growth) */
-         regs[hdrsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data */
+         regs[objsize(*regs)] = 0; /* use an invalid descriptor to denote end live heap data */
          regs = (word *) ((word)regs + adjust_heap(size*W + nused/10 + 4096));
          nfree = memend - regs;
          if (nfree <= size)
@@ -315,7 +315,7 @@ static word *gc(int size, word *regs) {
          wdiff dec = -(nfree / 10);
          wdiff new = nfree - dec;
          if (new > size*W*2 + MEMPAD) {
-            regs[hdrsize(*regs)] = 0; /* as above */
+            regs[objsize(*regs)] = 0; /* as above */
             regs = (word *) ((word)regs + adjust_heap(dec+MEMPAD*W));
             heapsize = (word)memend - (word)memstart;
             nfree = (word)memend - (word)regs;
@@ -379,7 +379,7 @@ static word mkraw(uint type, uint32_t len) {
    byte *end;
    uint32_t hdr = (W + len + W - 1) << FPOS | RAWBIT | make_header(0, type);
    uint pads = -len % W;
-   allocate(hdrsize(hdr), ob);
+   allocate(objsize(hdr), ob);
    *ob = hdr;
    end = (byte *)ob + W + len;
    while (pads--)
@@ -427,7 +427,7 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
       if (this == key)
          return ff[2];
       hdr = *ff;
-      switch (hdrsize(hdr)) {
+      switch (objsize(hdr)) {
          case 3:
             return def;
          case 4:
@@ -454,7 +454,7 @@ static word prim_ref(word pword, word pos) {
          return IFALSE;
       return F(((byte *)pword)[W + pos]);
    }
-   if (!pos || hdrsize(hdr) <= pos) /* tuples are indexed from 1 (probably later 0-255) */
+   if (!pos || objsize(hdr) <= pos) /* tuples are indexed from 1 (probably later 0-255) */
       return IFALSE;
    return G(pword, pos);
 }
@@ -507,9 +507,9 @@ static word prim_set(word wptr, word pos, word val) {
    if (immediatep(ob))
       return IFALSE;
    hdr = *ob;
-   if (rawp(hdr) || hdrsize(hdr) < pos)
+   if (rawp(hdr) || objsize(hdr) < pos)
       return IFALSE;
-   hdr = hdrsize(hdr);
+   hdr = objsize(hdr);
    allocate(hdr, new);
    for (p = 0; p <= hdr; ++p)
       new[p] = (pos == p && p) ? val : ob[p];
@@ -1189,7 +1189,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          word hdr, pos = 1, n = *ip++ + 1;
          assert(allocp(tuple), tuple, 32);
          hdr = *tuple;
-         assert_not(rawp(hdr) || hdrsize(hdr) != n, tuple, 32);
+         assert_not(rawp(hdr) || objsize(hdr) != n, tuple, 32);
          while (--n)
             R[*ip++] = tuple[pos++];
          NEXT(0); }
@@ -1213,7 +1213,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(4); }
       case 36: { /* size o r */
          word *ob = (word *)A0;
-         A1 = immediatep(ob) ? IFALSE : F(hdrsize(*ob) - 1);
+         A1 = immediatep(ob) ? IFALSE : F(objsize(*ob) - 1);
          NEXT(2); }
       case 38: { /* fx+ a b r o, types prechecked, signs ignored */
          word res = immval(A0) + immval(A1);
@@ -1258,7 +1258,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          hdr = *ob++;
          A2 = *ob++; /* key */
          A3 = *ob++; /* value */
-         switch (hdrsize(hdr)) {
+         switch (objsize(hdr)) {
             case 3:
                A1 = A4 = IEMPTY;
                break;
@@ -1285,7 +1285,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          assert(allocp(ob), ob, 50);
          hdr = *ob;
          if (is_type(hdr, TTHREAD)) {
-            int pos = hdrsize(hdr) - 1;
+            uint pos = objsize(hdr) - 1;
             word code = ob[pos];
             acc = pos - 3;
             while (--pos)
