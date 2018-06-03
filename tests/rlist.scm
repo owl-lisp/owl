@@ -1,5 +1,5 @@
 
-(import 
+(import
    (owl rlist)
    (only (owl sys) get-heap-bytes-written))
 
@@ -35,9 +35,11 @@
 (run-test 100 #f)
 
 (λ (args)
-   ;; bin/vm fasl/boot.fasl --run tests/rlist.scm 100 1000 10000 100000 1000000 10000000 
-   (map 
-      (λ (arg) 
+   ;; bin/vm fasl/boot.fasl --run tests/rlist.scm 100 1000 10000 100000 1000000 10000000
+   ;; note: since the data structure should scale logarithmically, one could by
+   ;; default double the size at each step and run up to a maximum time or heap size
+   (map
+      (λ (arg)
          (run-test (string->integer arg) #t))
       (cdr args))
    0)

@@ -1,7 +1,7 @@
 (define-library (owl list-extra)
 
    (export
-      lset ldel length
+      lset ldel lget length
       led ledn lins
       take drop iota
       list-ref
@@ -24,6 +24,13 @@
             ((null? lst) (error "list-ref: out of list" pos))
             ((eq? pos 0) (car lst))
             (else (list-ref (cdr lst) (- pos 1)))))
+
+      (define (lget lst pos def)
+         (cond
+            ((null? lst) def)
+            ((eq? pos 0) (car lst))
+            (else
+               (lget (cdr lst) (- pos 1) def))))
 
       (define (lset lst pos val)
          (cond
