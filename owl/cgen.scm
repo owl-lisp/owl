@@ -341,7 +341,7 @@
                   (λ (bs regs fail)
                      (lets ((o r bs (get2 (cdr bs))))
                         (values
-                           (list "{word ob=R["o"];if(allocp(ob))ob=V(ob);R["r"]=F(imm_type(ob));}")
+                           (list "{word ob=R["o"];if(allocp(ob))ob=V(ob);R["r"]=F((hval)ob>>TPOS&63);}")
                            bs
                            (put regs r 'fixnum)))))
                (cons 17 ;; arity-fail

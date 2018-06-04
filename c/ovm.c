@@ -99,7 +99,6 @@ typedef intptr_t wdiff;
 #define fixnump(desc)               (((desc) & 255) == 2)
 #define NR                          190 /* FIXME: should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
-#define imm_type(x)                 ((x) >> TPOS & 63)
 #define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
 #define objsize(x)                  ((hval)(x) >> SPOS)
 #define immediatep(x)               ((word)(x) & 2)
@@ -1108,11 +1107,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
       case 14:
          A1 = onum((int8_t)*ip, 1);
          NEXT(2);
-      case 15: { /* type-byte o r <- actually sixtet */
+      case 15: { /* type o r */
          word ob = A0;
          if (allocp(ob))
             ob = V(ob);
-         A1 = F(imm_type(ob));
+         A1 = F((hval)ob >> TPOS & 63);
          NEXT(2); }
       case 16: /* jv[which] a o1 a2 */
          if (A0 == load_imms[op >> 6])
