@@ -955,7 +955,7 @@ static word do_poll(word a, word b, word c) {
    return cons(r1, r2);
 }
 
-static word vm(word *ob, word *arg) {
+static word vm(word *ob, word arg) {
    byte *ip;
    uint bank = 0;
    uint ticker = TICKS;
@@ -970,7 +970,7 @@ static word vm(word *ob, word *arg) {
       R[acc] = INULL;
    R[0] = IFALSE;
    R[3] = IHALT;
-   R[4] = (word) arg;
+   R[4] = arg;
    acc = 2; /* boot always calls with 2 args */
 
 apply: /* apply something at ob to values in regs, or maybe switch context */
@@ -1545,7 +1545,7 @@ int main(int nargs, char **argv) {
    find_heap(&nargs, &argv, &nobjs, &nwords);
    setup(nwords, nobjs);
    prog = load_heap(nobjs);
-   rval = vm(prog, (word *)onum((word)argv, 0));
+   rval = vm(prog, onum((uintptr_t)argv, 0));
    setdown();
    if (fixnump(rval)) {
       int n = immval(rval);
