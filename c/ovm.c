@@ -71,8 +71,9 @@
 #endif
 
 typedef unsigned int uint;
-typedef uintptr_t word;
 typedef uint8_t byte;
+typedef uintptr_t word; /* heap cell */
+typedef uint32_t hval; /* heap value */
 typedef intptr_t wdiff;
 
 /*** Macros ***/
@@ -90,17 +91,17 @@ typedef intptr_t wdiff;
 #define MAXPAYL                     ((MAXOBJ - 1) * W) /* maximum payload in an allocated object */
 #define RAWBIT                      2048
 #define FPOS                        (SPOS - LDW) /* offset of the fractional part in the header size */
-#define payl_len(hdr)               (((uint32_t)hdr >> FPOS) - (W + W - 1))
-#define make_immediate(value, type) ((word)(value) << IPOS | (type) << TPOS | 2)
-#define make_header(size, type)     ((word)(size) << SPOS | (type) << TPOS | 2)
+#define payl_len(hdr)               (((hval)hdr >> FPOS) - W - (W - 1))
+#define make_immediate(value, type) ((hval)(value) << IPOS | (type) << TPOS | 2)
+#define make_header(size, type)     ((hval)(size) << SPOS | (type) << TPOS | 2)
 #define BOOL(cval)                  ((cval) ? ITRUE : IFALSE)
-#define immval(desc)                ((desc) >> IPOS)
+#define immval(desc)                ((hval)(desc) >> IPOS)
 #define fixnump(desc)               (((desc) & 255) == 2)
 #define NR                          190 /* FIXME: should be ~32, see n-registers in register.scm */
 #define header(x)                   V(x)
 #define imm_type(x)                 ((x) >> TPOS & 63)
 #define is_type(x, t)               (((x) & (63 << TPOS | 2)) == ((t) << TPOS | 2))
-#define objsize(x)                  ((uint32_t)(x) >> SPOS)
+#define objsize(x)                  ((hval)(x) >> SPOS)
 #define immediatep(x)               ((word)(x) & 2)
 #define allocp(x)                   (!immediatep(x))
 #define rawp(hdr)                   ((hdr) & RAWBIT)
@@ -162,7 +163,7 @@ extern char **environ;
 static word *genstart;
 static word *memstart;
 static word *memend;
-static word max_heap_mb; /* max heap size in MB */
+static hval max_heap_mb; /* max heap size in MB */
 static int breaked;      /* set in signal handler, passed over to owl in thread switch */
 static word state;       /* IFALSE | previous program state across runs */
 static const byte *hp;
@@ -214,7 +215,7 @@ static word *compact() {
    while (old < end) {
       word val = *old;
       if (flagged(val)) {
-         word h;
+         hval h;
          *new = val;
          do { /* unthread */
             rev((word) new);
@@ -241,7 +242,7 @@ static word *compact() {
 static void fix_pointers(word *pos, wdiff delta) {
    for (;;) {
       word hdr = *pos;
-      uint n = objsize(hdr);
+      hval n = objsize(hdr);
       if (hdr == 0) /* end marker reached. only dragons beyond this point. */
          return;
       if (rawp(hdr)) {
@@ -374,10 +375,10 @@ static word mkpair(word h, word a, word d) {
 }
 
 /* make a raw object to hold len bytes (compute size, advance fp, clear padding) */
-static word mkraw(uint type, uint32_t len) {
+static word mkraw(uint type, hval len) {
    word *ob;
    byte *end;
-   uint32_t hdr = (W + len + W - 1) << FPOS | RAWBIT | make_header(0, type);
+   hval hdr = (W + len + W - 1) << FPOS | RAWBIT | make_header(0, type);
    uint pads = -len % W;
    allocate(objsize(hdr), ob);
    *ob = hdr;
@@ -389,7 +390,7 @@ static word mkraw(uint type, uint32_t len) {
 
 /*** Primops called from VM and generated C-code ***/
 
-static word prim_connect(word *host, word port, word type) {
+static hval prim_connect(word *host, word port, word type) {
    int sock;
    byte *ip = (byte *)host + W;
    unsigned long ipfull;
@@ -443,8 +444,8 @@ static word prim_get(word *ff, word key, word def) { /* ff assumed to be valid *
    return def;
 }
 
-static word prim_ref(word pword, word pos) {
-   word hdr;
+static word prim_ref(word pword, hval pos) {
+   hval hdr;
    if (immediatep(pword))
       return IFALSE;
    hdr = header(pword);
@@ -466,7 +467,7 @@ static int64_t cnum(word a) {
       uint shift = 0;
       x = 0;
       do {
-         x |= immval(p[1]) << shift;
+         x |= (uint64_t)immval(p[1]) << shift;
          shift += FBITS;
          p = (word *)p[2];
       } while (shift < 64 && allocp(p));
@@ -490,7 +491,7 @@ static word onum(int64_t a, int s) {
       while (!((uint64_t)FMAX << shift & x))
          shift -= FBITS;
       do {
-         p = mkpair(NUMHDR, F(x >> shift & FMAX), p);
+         p = mkpair(NUMHDR, F(x >> shift), p);
          shift -= FBITS;
       } while (shift + FBITS);
       header(p) = h;
@@ -499,17 +500,16 @@ static word onum(int64_t a, int s) {
    return make_immediate(x, t);
 }
 
-static word prim_set(word wptr, word pos, word val) {
+static word prim_set(word wptr, hval pos, word val) {
    word *ob = (word *)wptr;
-   word hdr, p;
+   hval hdr, p;
    word *new;
    pos = immval(pos);
    if (immediatep(ob))
       return IFALSE;
    hdr = *ob;
-   if (rawp(hdr) || objsize(hdr) < pos)
+   if (rawp(hdr) || (hdr = objsize(hdr)) < pos)
       return IFALSE;
-   hdr = objsize(hdr);
    allocate(hdr, new);
    for (p = 0; p <= hdr; ++p)
       new[p] = (pos == p && p) ? val : ob[p];
@@ -910,7 +910,8 @@ static word prim_mkff(word t, word l, word k, word v, word r) {
 /* TODO: implement this in owl */
 static word do_poll(word a, word b, word c) {
    fd_set rs, ws, es;
-   word *cur, r1, r2;
+   word *cur;
+   hval r1, r2;
    int nfds = 1;
    struct timeval tv;
    int res;
@@ -932,7 +933,7 @@ static word do_poll(word a, word b, word c) {
    if (c == IFALSE) {
       res = select(nfds, &rs, &ws, &es, NULL);
    } else {
-      int ms = immval(c);
+      hval ms = immval(c);
       tv.tv_sec = ms/1000;
       tv.tv_usec = (ms%1000)*1000;
       res = select(nfds, &rs, &ws, &es, &tv);
@@ -975,7 +976,7 @@ static word vm(word *ob, word *arg) {
 apply: /* apply something at ob to values in regs, or maybe switch context */
 
    if (allocp(ob)) {
-      word hdr = *ob & 4095; /* cut size out, take just header info */
+      hval hdr = *ob & 4095; /* cut size out, take just header info */
       if (hdr == make_header(0, TPROC)) { /* proc */
          R[1] = (word) ob; ob = (word *) ob[1];
       } else if (hdr == make_header(0, TCLOS)) { /* clos */
@@ -1157,11 +1158,11 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          NEXT(3); }
       case 26: { /* fxqr ah al b qh ql r, b != 0, int32 / int16 -> int32, as fixnums */
          uint64_t a = (uint64_t)immval(A0) << FBITS | immval(A1);
-         word b = immval(A2);
+         hval b = immval(A2);
          uint64_t q;
          q = a / b;
          A3 = F(q >> FBITS);
-         A4 = F(q & FMAX);
+         A4 = F(q);
          A5 = F(a - q*b);
          NEXT(6); }
       case 27: /* syscall cont op arg1 arg2 */
@@ -1198,8 +1199,8 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
             ip += ip[1] << 8 | ip[2];
          NEXT(3);
       case 35: { /* listuple type size lst to */
-         word type = immval(A0);
-         word size = immval(A1) + 1;
+         uint type = immval(A0);
+         hval size = immval(A1) + 1;
          word *lst = (word *)A2;
          word *ob;
          allocate(size, ob);
@@ -1216,19 +1217,19 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A1 = immediatep(ob) ? IFALSE : F(objsize(*ob) - 1);
          NEXT(2); }
       case 38: { /* fx+ a b r o, types prechecked, signs ignored */
-         word res = immval(A0) + immval(A1);
+         hval res = immval(A0) + immval(A1);
          A3 = BOOL(1 << FBITS & res);
-         A2 = F(res & FMAX);
+         A2 = F(res);
          NEXT(4); }
       case 39: { /* fx* a b l h */
          uint64_t res = (uint64_t)immval(A0) * immval(A1);
          A3 = F(res >> FBITS);
-         A2 = F(res & FMAX);
+         A2 = F(res);
          NEXT(4); }
       case 40: { /* fx- a b r u, args prechecked, signs ignored */
-         word r = immval(A0) - immval(A1);
+         hval r = immval(A0) - immval(A1);
          A3 = BOOL(1 << FBITS & r);
-         A2 = F(r & FMAX);
+         A2 = F(r);
          NEXT(4); }
       case 41: { /* car a r, or cdr d r */
          word *ob = (word *)A0;
@@ -1285,7 +1286,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          assert(allocp(ob), ob, 50);
          hdr = *ob;
          if (is_type(hdr, TTHREAD)) {
-            uint pos = objsize(hdr) - 1;
+            hval pos = objsize(hdr) - 1;
             word code = ob[pos];
             acc = pos - 3;
             while (--pos)
@@ -1314,10 +1315,10 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          A2 = A0 ^ (FMAX << IPOS & A1); /* inherit A0's type info */
          NEXT(3);
       case 58: { /* fx>> x n hi lo */
-         word x = immval(A0);
+         hval x = immval(A0);
          uint n = immval(A1);
          A2 = F(x >> n);
-         A3 = F(x << (FBITS - n) & FMAX);
+         A3 = F(x << (FBITS - n));
          NEXT(4); }
       case 37: /* FIXME: opcode 37 unused in new fasl */
       case 59: /* lraw lst type r (FIXME: alloc amount testing compiler pass not in place yet) */
@@ -1346,7 +1347,7 @@ invoke: /* nargs and regs ready, maybe gc and execute ob */
          goto apply; }
       case 62: /* set-ticker <val> <to> -> old ticker value */
          /* ponder: it should be possible to remove this, if the only use is to yield control */
-         A1 = F(ticker & FMAX);
+         A1 = F(ticker);
          ticker = immval(A0);
          NEXT(2);
       case 63: /* sys-prim op arg1 arg2 arg3 r1 */
@@ -1394,11 +1395,9 @@ static word get_nat() {
 static word *get_field(word *ptrs, int pos) {
    if (0 == *hp) {
       byte type;
-      word val;
       hp++;
       type = *hp++;
-      val = make_immediate(get_nat(), type);
-      *fp++ = val;
+      *fp++ = make_immediate(get_nat(), type);
    } else {
       word diff = get_nat();
       if (ptrs != NULL)
@@ -1517,7 +1516,7 @@ static word *decode_fasl(uint nobjs) {
       fp = get_obj(ptrs, pos);
    }
    entry = (word *) ptrs[pos - 1];
-   ptrs[0] = make_header(nobjs + 1, 0) | RAWBIT;
+   *ptrs = make_header(nobjs + 1, 0) | RAWBIT;
    return entry;
 }
 

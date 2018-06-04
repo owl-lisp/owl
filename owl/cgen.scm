@@ -123,7 +123,7 @@
       (define (cify-sizeb bs regs fail)
          (lets ((ob to bs (get2 (cdr bs))))
             (values
-               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{word h=V(R["ob"]);R["to"]=rawp(h)?F(payl_len(h)):IFALSE;}")
+               (list "if(immediatep(R["ob"])){R["to"]=IFALSE;}else{hval h=V(R["ob"]);R["to"]=rawp(h)?F(payl_len(h)):IFALSE;}")
                bs (put regs to 'fixnum)))) ;; output is always a fixnum
 
       ;; lraw lst-reg type-reg flipp-reg to
@@ -150,7 +150,7 @@
          (lets ((a b r o bs (get4 (cdr bs))))
             (values
                ;; res is shifted down, so there is room for an overflow bit
-               (list "{word res=immval(R["a"])+immval(R["b"]);R["o"]=BOOL(1<<FBITS&res);R["r"]=F(res&FMAX);}")
+               (list "{hval res=immval(R["a"])+immval(R["b"]);R["o"]=BOOL(1<<FBITS&res);R["r"]=F(res);}")
                bs (put (put regs r 'fixnum) o 'bool))))
 
       ; fxband a b r
@@ -175,28 +175,28 @@
       (define (cify-fxmul bs regs fail)
          (lets ((a b l h bs (get4 (cdr bs))))
             (values
-               (list "{uint64_t p=(uint64_t)immval(R["a"])*immval(R["b"]);R["l"]=F(p&FMAX);R["h"]=F(p>>FBITS);}")
+               (list "{uint64_t p=(uint64_t)immval(R["a"])*immval(R["b"]);R["l"]=F(p);R["h"]=F(p>>FBITS);}")
                bs (put (put regs h 'fixnum) l 'fixnum))))
 
       ; fx- a b r u?
       (define (cify-fxsub bs regs fail)
          (lets ((a b r u bs (get4 (cdr bs))))
             (values
-               (list "{word r=immval(R["a"])-immval(R["b"]);R["u"]=BOOL(1<<FBITS&r);R["r"]=F(r&FMAX);}")
+               (list "{hval r=immval(R["a"])-immval(R["b"]);R["u"]=BOOL(1<<FBITS&r);R["r"]=F(r);}")
                bs (put (put regs r 'fixnum) u 'bool))))
 
       ; fx>> x n hi lo
       (define (cify-fxright bs regs fail)
          (lets ((x n hi lo bs (get4 (cdr bs))))
             (values
-               (list "{word x=immval(R["x"]);unsigned int n=immval(R["n"]);R["hi"]=F(x>>n);R["lo"]=F(x<<(FBITS-n)&FMAX);}")
+               (list "{hval x=immval(R["x"]);uint n=immval(R["n"]);R["hi"]=F(x>>n);R["lo"]=F(x<<(FBITS-n));}")
                bs (put (put regs lo 'fixnum) hi 'fixnum))))
 
       ; fxqr ah al b qh ql rem, for (ah<<16 | al) = (qh<<16 | ql)*b + rem
       (define (cify-fxqr bs regs fail)
          (lets ((ah al b qh ql rem bs (get6 (cdr bs))))
             (values
-               (list "{uint64_t a=(uint64_t)immval(R["ah"])<<FBITS|immval(R["al"]);word b=immval(R["b"]);uint64_t q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q&FMAX);R["rem"]=F(a-q*b);}")
+               (list "{uint64_t a=(uint64_t)immval(R["ah"])<<FBITS|immval(R["al"]);hval b=immval(R["b"]);uint64_t q=a/b;R["qh"]=F(q>>FBITS);R["ql"]=F(q);R["rem"]=F(a-q*b);}")
                bs (-> regs (put qh 'fixnum) (put ql 'fixnum) (put rem 'fixnum)))))
 
       ; mkblack, mkred
@@ -212,7 +212,7 @@
             ((ob n bs (get2 (cdr bs)))
              (targets bs (split-at bs n)))
             (values
-               (ilist "{word*ob=(word*)R["ob"];word hdr;"
+               (ilist "{word*ob=(word*)R["ob"];hval hdr;"
                   (assert-alloc regs ob "IFALSE"
                      (ilist "hdr=*ob;assert_not(rawp(hdr)||objsize(hdr)!="(+ 1 n)",ob,IFALSE);"
                         (foldr
@@ -230,7 +230,7 @@
             (values ;; would probably be a bad idea to use prim_withff(&l, &r, ...), as those have at
                     ;; least earlier caused an immense slowdown in compiled code
                (assert-alloc regs n 1049
-                  (list "{word*ob=(word*)R["n"];word hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(objsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(1<<TPOS&hdr){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
+                  (list "{word*ob=(word*)R["n"];hval hdr=*ob;R["k"]=ob[1];R["v"]=ob[2];switch(objsize(hdr)){case 3:R["l"]=R["r"]=IEMPTY;break;case 4:if(1<<TPOS&hdr){R["l"]=IEMPTY;R["r"]=ob[3];}else{R["l"]=ob[3];R["r"]=IEMPTY;};break;default:R["l"]=ob[3];R["r"]=ob[4];}}"))
                bs
                (fold del regs (list l k v r)))))
 
