@@ -374,6 +374,11 @@ static word mkpair(word h, word a, word d) {
    return (word)pair;
 }
 
+/* recursion depth does not exceed two */
+static word mkint(uint64_t x) {
+   return mkpair(NUMHDR, F(x), x > FMAX ? mkint(x >> FBITS) : INULL);
+}
+
 /* make a raw object to hold len bytes (compute size, advance fp, clear padding) */
 static word mkraw(uint type, hval len) {
    word *ob;
@@ -477,27 +482,19 @@ static int64_t cnum(word a) {
    return is_type(a, TNUMN) ? -x : x;
 }
 
-static word onum(int64_t a, int s) {
-   uint64_t x = a;
+static word onum(int64_t n, uint s) {
    word h = NUMHDR, t = TNUM;
-   if (s && a < 0) {
+   if (s && n < 0) {
       h = NUMNHDR;
       t = TNUMN;
-      x = -a;
+      n = -n;
    }
-   if (x > FMAX) {
-      word p = INULL;
-      uint shift = (63 / FBITS) * FBITS;
-      while (!((uint64_t)FMAX << shift & x))
-         shift -= FBITS;
-      do {
-         p = mkpair(NUMHDR, F(x >> shift), p);
-         shift -= FBITS;
-      } while (shift + FBITS);
+   if (n > FMAX) {
+      word p = mkint(n);
       header(p) = h;
       return p;
    }
-   return make_immediate(x, t);
+   return make_immediate(n, t);
 }
 
 static word prim_set(word wptr, hval pos, word val) {
