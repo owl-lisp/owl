@@ -120,7 +120,7 @@
 (define about-owl
 "Owl Lisp -- a functional scheme
 Copyright (c) Aki Helin
-Check out https://github.com/owl-lisp/owl for more information.")
+Check out https://gitlab.com/owl-lisp/owl for more information.")
 
 
 (define usual-suspects
