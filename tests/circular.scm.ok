@@ -1,3 +1,0 @@
-Could not load tests/circular.scm because 
-  Library (tests circular) failed: 
-    Circular dependency causing reload of (tests circular) 

@@ -1,5 +1,0 @@
-port -> #true
-start -> 0
-end -> 10
-take five -> 5
-result: #(100 101 102 3 4 55 66 77 8 9 10 11 12)

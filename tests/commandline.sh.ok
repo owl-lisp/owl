@@ -1,1 +1,0 @@
-(-e (import (scheme process-context)) (print (cdr (command-line))))

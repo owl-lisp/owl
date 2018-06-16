@@ -1,2 +1,0 @@
-(quote (foo (bar baz)))
-((quote (foo (bar baz))) 42 2+3i)

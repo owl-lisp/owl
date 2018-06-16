@@ -1,7 +1,0 @@
-init -> #true
-start -> #(42 42 42)
-1st size -> 3
-2nd size -> 7
-*** + append aaa\n -> #(42 42 42 97 97 97 10)
-truncate + bbb -> #(98 98 98 10)
-remove -> #true
